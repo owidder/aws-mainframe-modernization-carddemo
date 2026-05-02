@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-process_all.py  –  Analysiert alle COBOL-Dateien und generiert HTML-Dokumentation.
+process_all.py  –  Analyse all COBOL files and generate HTML documentation.
 
-Aufruf:
-    python process_all.py                   # alle Programme (inkrementell)
-    python process_all.py --force           # alle neu analysieren
-    python process_all.py --limit 5         # nur erste 5 Programme
-    python process_all.py --model qwen2:7b  # anderes Ollama-Modell
+Usage:
+    python process_all.py                   # all programs (incremental)
+    python process_all.py --force           # re-analyse everything
+    python process_all.py --limit 5         # first 5 programs only
+    python process_all.py --model qwen2:7b  # different Ollama model
 """
 
 import argparse
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-BASE_DIR    = Path(__file__).parent.parent.parent  # Repo-Root
+BASE_DIR    = Path(__file__).parent.parent.parent  # repo root
 APP_DIR     = BASE_DIR / 'app'
 SCRIPTS_DIR = Path(__file__).parent
 DATA_DIR    = SCRIPTS_DIR.parent / 'data'
@@ -28,17 +28,17 @@ def find_cobol_files(app_dir: Path) -> list[Path]:
     files = []
     for f in app_dir.rglob('*'):
         if f.is_file() and f.suffix in COBOL_EXTENSIONS:
-            # EBCDIC-Datendateien überspringen
+            # Skip EBCDIC data files
             if 'EBCDIC' not in str(f) and 'data' not in f.parts:
                 files.append(f)
     return sorted(files)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Alle COBOL-Dateien analysieren und dokumentieren')
-    parser.add_argument('--force',  action='store_true', help='Bereits analysierte Dateien überschreiben')
-    parser.add_argument('--limit',  type=int, default=0,  help='Maximale Anzahl zu verarbeitender Dateien (0=alle)')
-    parser.add_argument('--model',  default='gcp/claude-sonnet-4-6', help='Claude-Modell')
+    parser = argparse.ArgumentParser(description='Analyse all COBOL files and generate documentation')
+    parser.add_argument('--force',  action='store_true', help='Re-analyse already-processed files')
+    parser.add_argument('--limit',  type=int, default=0,  help='Maximum number of files to process (0=all)')
+    parser.add_argument('--model',  default='gcp/claude-sonnet-4-6', help='Claude model')
     parser.add_argument('--app-dir', type=Path, default=APP_DIR)
     parser.add_argument('--data-dir', type=Path, default=DATA_DIR)
     parser.add_argument('--html-dir', type=Path, default=HTML_DIR)
@@ -51,12 +51,12 @@ def main():
     if args.limit:
         files = files[:args.limit]
 
-    print(f'CardDemo COBOL-Dokumentation')
+    print(f'CardDemo COBOL Documentation')
     print(f'============================')
-    print(f'Programme gefunden : {len(files)}')
-    print(f'Daten-Verzeichnis  : {args.data_dir}')
-    print(f'HTML-Verzeichnis   : {args.html_dir}')
-    print(f'Ollama-Modell      : {args.model}')
+    print(f'Programs found     : {len(files)}')
+    print(f'Data directory     : {args.data_dir}')
+    print(f'HTML directory     : {args.html_dir}')
+    print(f'Model              : {args.model}')
     print(f'Start              : {datetime.now().strftime("%H:%M:%S")}')
     print()
 
@@ -70,7 +70,7 @@ def main():
     for i, cbl in enumerate(files, 1):
         json_path = args.data_dir / f"{cbl.stem.upper()}.json"
         if json_path.exists() and not args.force:
-            print(f'[{i:3d}/{len(files)}] Übersprungen: {cbl.name}')
+            print(f'[{i:3d}/{len(files)}] Skipped: {cbl.name}')
             ok += 1
             continue
 
@@ -87,7 +87,7 @@ def main():
         result = subprocess.run(cmd, capture_output=False)
         if result.returncode == 0:
             ok += 1
-            # Sofort HTML generieren
+            # Generate HTML immediately
             subprocess.run([
                 python, str(generate_script),
                 '--program', cbl.stem.upper(),
@@ -96,10 +96,10 @@ def main():
             ], capture_output=True)
         else:
             failed.append(cbl.name)
-            print(f'  [FEHLER] {cbl.name}')
+            print(f'  [ERROR] {cbl.name}')
 
-    # Abschließender Index
-    print(f'\nGeneriere Index...')
+    # Final index
+    print(f'\nGenerating index...')
     subprocess.run([
         python, str(generate_script),
         '--input-dir', str(args.data_dir),
@@ -107,13 +107,13 @@ def main():
     ])
 
     print(f'\n============================')
-    print(f'Fertig: {ok} OK, {len(failed)} Fehler')
-    print(f'Ende  : {datetime.now().strftime("%H:%M:%S")}')
+    print(f'Done: {ok} OK, {len(failed)} errors')
+    print(f'End : {datetime.now().strftime("%H:%M:%S")}')
     if failed:
-        print('Fehlgeschlagen:')
+        print('Failed:')
         for f in failed:
             print(f'  - {f}')
-    print(f'\nHTML-Dokumentation: {args.html_dir}/index.html')
+    print(f'\nHTML documentation: {args.html_dir}/index.html')
 
 
 if __name__ == '__main__':

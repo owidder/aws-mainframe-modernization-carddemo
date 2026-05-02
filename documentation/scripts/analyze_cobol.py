@@ -80,7 +80,7 @@ NOT_PARAGRAPH = {
 # ---------------------------------------------------------------------------
 
 def _build_stem_index(client: QdrantClient) -> dict[str, str]:
-    """Lädt Mapping STEM_UPPER -> file_path aus Qdrant (nur chunk_index=0)."""
+    """Loads STEM_UPPER -> file_path mapping from Qdrant (chunk_index=0 only)."""
     index: dict[str, str] = {}
     offset = None
     while True:
@@ -104,7 +104,7 @@ def _build_stem_index(client: QdrantClient) -> dict[str, str]:
 
 
 def _fetch_file_content(client: QdrantClient, file_path: str) -> str:
-    """Rekonstruiert den vollständigen Dateiinhalt aus Qdrant-Chunks."""
+    """Reconstructs the full file content from Qdrant chunks."""
     chunks = []
     offset = None
     while True:
@@ -189,7 +189,7 @@ def gather_index_context(content: str, copybook_names: list[str],
             if stem in stem_index:
                 copybooks[stem] = _fetch_file_content(client, stem_index[stem])
 
-        # 2. Aufgerufene Programme auflösen
+        # 2. Resolve called programs
         called_names = list(dict.fromkeys(CALL_PATTERN.findall(content)))
         called: dict[str, str] = {}
         for name in called_names:
@@ -197,7 +197,7 @@ def gather_index_context(content: str, copybook_names: list[str],
             if stem in stem_index:
                 called[stem] = _fetch_file_content(client, stem_index[stem])[:2000]
 
-        # 3. Semantisch ähnliche Programme (Ergebnis aus bereits analysierten JSONs anreichern)
+        # 3. Semantically similar programs (enriched with already-analysed JSON results)
         raw_similar = _semantic_search(client, content[:2000], rel_path, top_k=3)
         similar: list[dict] = []
         for s in raw_similar:
@@ -219,7 +219,7 @@ def gather_index_context(content: str, copybook_names: list[str],
         return {"copybooks": copybooks, "called_programs": called, "similar_programs": similar}
 
     except Exception as e:
-        print(f"    [Index] Fehler beim Laden des Kontexts: {e}", file=sys.stderr)
+        print(f"    [Index] Error loading context: {e}", file=sys.stderr)
         return empty
 
 
@@ -323,11 +323,11 @@ def parse_cobol_structure(content: str) -> dict:
     }
 
 # ---------------------------------------------------------------------------
-# Claude-Hilfsfunktion
+# Claude helper function
 # ---------------------------------------------------------------------------
 
 def call_claude_json(prompt: str, model: str = DEFAULT_MODEL) -> object:
-    """Ruft die Claude API auf, extrahiert JSON aus der Antwort. None bei Fehler."""
+    """Calls the Claude API and extracts JSON from the response. Returns None on error."""
     try:
         resp = get_client().messages.create(
             model=model,
@@ -348,20 +348,20 @@ def call_claude_json(prompt: str, model: str = DEFAULT_MODEL) -> object:
             text = text[:last + 1]
         return json.loads(text)
     except anthropic.AuthenticationError:
-        print('    [Fehler] Ungültiger ANTHROPIC_API_KEY.', file=sys.stderr)
+        print('    [Error] Invalid ANTHROPIC_API_KEY.', file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f'    [Warnung] JSON-Parse-Fehler: {e}', file=sys.stderr)
+        print(f'    [Warning] JSON parse error: {e}', file=sys.stderr)
         return None
 
 # ---------------------------------------------------------------------------
-# Phase 1: Fachkontext des gesamten Programms verstehen
+# Phase 1: Understand business context of the full program
 # ---------------------------------------------------------------------------
 
 def _format_similar_programs(similar: list[dict]) -> str:
     if not similar:
         return ""
-    lines = ["ÄHNLICHE PROGRAMME IM SYSTEM (bereits analysiert):"]
+    lines = ["SIMILAR PROGRAMS IN THE SYSTEM (already analysed):"]
     for s in similar:
         name = s.get("name", "?")
         purpose = s.get("purpose", s.get("excerpt", "")[:200])
@@ -374,22 +374,22 @@ def _format_copybook_list(copybooks: dict[str, str]) -> str:
     if not copybooks:
         return ""
     names = ", ".join(copybooks.keys())
-    return f"REFERENZIERTE COPYBOOKS (Datenstrukturen): {names}"
+    return f"REFERENCED COPYBOOKS (data structures): {names}"
 
 
 def _format_copybook_content(copybooks: dict[str, str], max_per_cb: int = 2500,
                               max_total: int = 8000) -> str:
-    """Formatiert Copybook-Inhalte für Prompts, mit Längenbegrenzung."""
+    """Formats copybook contents for prompts, with length limit."""
     if not copybooks:
         return ""
-    parts = ["EINGEBUNDENE COPYBOOK-DEFINITIONEN (via COPY-Statement):"]
+    parts = ["INCLUDED COPYBOOK DEFINITIONS (via COPY statement):"]
     total = 0
     for name, content in copybooks.items():
         excerpt = content[:max_per_cb]
         if total + len(excerpt) > max_total:
             remaining = max_total - total
             if remaining < 200:
-                parts.append(f"\n=== {name} ===\n[... weiterer Inhalt gekürzt ...]")
+                parts.append(f"\n=== {name} ===\n[... further content truncated ...]")
                 break
             excerpt = content[:remaining]
         parts.append(f"\n=== COPY {name} ===\n{excerpt}")
@@ -400,7 +400,7 @@ def _format_copybook_content(copybooks: dict[str, str], max_per_cb: int = 2500,
 def _format_called_programs(called: dict[str, str], max_per: int = 600) -> str:
     if not called:
         return ""
-    parts = ["AUFGERUFENE UNTERPROGRAMME (via CALL):"]
+    parts = ["CALLED SUBPROGRAMS (via CALL):"]
     for name, content in called.items():
         parts.append(f"\n  • {name}:\n{content[:max_per]}")
     return "\n".join(parts)
@@ -408,7 +408,7 @@ def _format_called_programs(called: dict[str, str], max_per: int = 600) -> str:
 
 def extract_business_context(program_name: str, content: str,
                              ctx: dict, model: str) -> dict:
-    print(f'    Fachkontext analysieren...')
+    print(f'    Analysing business context...')
 
     lines = content.splitlines()
     header = '\n'.join(lines[:100])
@@ -420,7 +420,7 @@ def extract_business_context(program_name: str, content: str,
             skeleton_lines.append(l.rstrip())
     skeleton = '\n'.join(skeleton_lines[:200])
 
-    # Index-Kontext für Phase 1
+    # Index context for phase 1
     ctx_block = "\n\n".join(filter(None, [
         _format_similar_programs(ctx.get("similar_programs", [])),
         _format_copybook_list(ctx.get("copybooks", {})),
@@ -462,17 +462,17 @@ Reply ONLY with this JSON object (all text in English):
     if isinstance(result, dict):
         return result
     return {
-        'purpose': f'COBOL-Programm {program_name}',
+        'purpose': f'COBOL program {program_name}',
         'process_description': '',
-        'type': 'Unbekannt',
-        'module': 'Unbekannt',
+        'type': 'Unknown',
+        'module': 'Unknown',
         'files': {},
         'variables': {},
         'business_rules': [],
     }
 
 # ---------------------------------------------------------------------------
-# Phase 2: Variablen fachlich erklären (mit Copybook-Kontext)
+# Phase 2: Explain variables in business terms (with copybook context)
 # ---------------------------------------------------------------------------
 
 def explain_variables(data_lines: list[dict], program_name: str,
@@ -487,7 +487,7 @@ Known files: {json.dumps(biz.get('files', {}), ensure_ascii=False)}
 Known variable meanings: {json.dumps(biz.get('variables', {}), ensure_ascii=False)}
 Business rules: {json.dumps(biz.get('business_rules', []), ensure_ascii=False)}"""
 
-    # Copybook-Inhalte sind entscheidend für Variablenerklärungen
+    # Copybook contents are essential for variable explanations
     copybook_block = _format_copybook_content(ctx.get("copybooks", {}),
                                                max_per_cb=2500, max_total=8000)
 
@@ -549,7 +549,7 @@ Important:
     return all_vars
 
 # ---------------------------------------------------------------------------
-# Phase 3: Paragraphen fachlich erklären (mit Copybook- und CALL-Kontext)
+# Phase 3: Explain paragraphs in business terms (with copybook and CALL context)
 # ---------------------------------------------------------------------------
 
 def explain_paragraph(para: dict, program_name: str,
@@ -563,7 +563,7 @@ Files: {json.dumps(biz.get('files', {}), ensure_ascii=False)}
 Variables (selection): {json.dumps(dict(list(biz.get('variables', {}).items())[:20]), ensure_ascii=False)}
 Business rules: {json.dumps(biz.get('business_rules', []), ensure_ascii=False)}"""
 
-    # Für Paragraphen: Copybook-Namen + erste 800 Zeichen je Copybook
+    # For paragraphs: copybook names + first 800 chars per copybook
     copybook_brief = _format_copybook_content(ctx.get("copybooks", {}),
                                                max_per_cb=800, max_total=3000)
     called_brief   = _format_called_programs(ctx.get("called_programs", {}), max_per=300)

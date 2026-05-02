@@ -1,0 +1,3520 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAUDBUNL – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-1000-INITIALIZE">1000-INITIALIZE</a>
+  
+  <a href="#para-1000-EXIT">1000-EXIT</a>
+  
+  <a href="#para-2000-FIND-NEXT-AUTH-SUMMARY">2000-FIND-NEXT-AUTH-SUMMARY</a>
+  
+  <a href="#para-2000-EXIT">2000-EXIT</a>
+  
+  <a href="#para-3000-FIND-NEXT-AUTH-DTL">3000-FIND-NEXT-AUTH-DTL</a>
+  
+  <a href="#para-3000-EXIT">3000-EXIT</a>
+  
+  <a href="#para-4000-FILE-CLOSE">4000-FILE-CLOSE</a>
+  
+  <a href="#para-4000-EXIT">4000-EXIT</a>
+  
+  <a href="#para-9999-ABEND">9999-ABEND</a>
+  
+  <a href="#para-9999-EXIT">9999-EXIT</a>
+  
+  
+
+  
+  <h2>Variables (72)</h2>
+  
+  <a href="#var-OPFIL1-REC">OPFIL1-REC</a>
+  
+  <a href="#var-OPFIL2-REC">OPFIL2-REC</a>
+  
+  <a href="#var-ROOT-SEG-KEY">ROOT-SEG-KEY</a>
+  
+  <a href="#var-CHILD-SEG-REC">CHILD-SEG-REC</a>
+  
+  <a href="#var-WS-VARIABLES">WS-VARIABLES</a>
+  
+  <a href="#var-WS-PGMNAME">WS-PGMNAME</a>
+  
+  <a href="#var-CURRENT-DATE">CURRENT-DATE</a>
+  
+  <a href="#var-CURRENT-YYDDD">CURRENT-YYDDD</a>
+  
+  <a href="#var-WS-AUTH-DATE">WS-AUTH-DATE</a>
+  
+  <a href="#var-WS-EXPIRY-DAYS">WS-EXPIRY-DAYS</a>
+  
+  <a href="#var-WS-DAY-DIFF">WS-DAY-DIFF</a>
+  
+  <a href="#var-IDX">IDX</a>
+  
+  <a href="#var-WS-CURR-APP-ID">WS-CURR-APP-ID</a>
+  
+  <a href="#var-WS-NO-CHKP">WS-NO-CHKP</a>
+  
+  <a href="#var-WS-AUTH-SMRY-PROC-CNT">WS-AUTH-SMRY-PROC-CNT</a>
+  
+  <a href="#var-WS-TOT-REC-WRITTEN">WS-TOT-REC-WRITTEN</a>
+  
+  <a href="#var-WS-NO-SUMRY-READ">WS-NO-SUMRY-READ</a>
+  
+  <a href="#var-WS-NO-SUMRY-DELETED">WS-NO-SUMRY-DELETED</a>
+  
+  <a href="#var-WS-NO-DTL-READ">WS-NO-DTL-READ</a>
+  
+  <a href="#var-WS-NO-DTL-DELETED">WS-NO-DTL-DELETED</a>
+  
+  <a href="#var-WS-ERR-FLG">WS-ERR-FLG</a>
+  
+  <a href="#var-ERR-FLG-ON">ERR-FLG-ON</a>
+  
+  <a href="#var-ERR-FLG-OFF">ERR-FLG-OFF</a>
+  
+  <a href="#var-WS-END-OF-AUTHDB-FLAG">WS-END-OF-AUTHDB-FLAG</a>
+  
+  <a href="#var-END-OF-AUTHDB">END-OF-AUTHDB</a>
+  
+  <a href="#var-NOT-END-OF-AUTHDB">NOT-END-OF-AUTHDB</a>
+  
+  <a href="#var-WS-MORE-AUTHS-FLAG">WS-MORE-AUTHS-FLAG</a>
+  
+  <a href="#var-MORE-AUTHS">MORE-AUTHS</a>
+  
+  <a href="#var-NO-MORE-AUTHS">NO-MORE-AUTHS</a>
+  
+  <a href="#var-WS-END-OF-ROOT-SEG">WS-END-OF-ROOT-SEG</a>
+  
+  <a href="#var-WS-END-OF-CHILD-SEG">WS-END-OF-CHILD-SEG</a>
+  
+  <a href="#var-WS-INFILE-STATUS">WS-INFILE-STATUS</a>
+  
+  <a href="#var-WS-OUTFL1-STATUS">WS-OUTFL1-STATUS</a>
+  
+  <a href="#var-WS-OUTFL2-STATUS">WS-OUTFL2-STATUS</a>
+  
+  <a href="#var-WS-CUSTID-STATUS">WS-CUSTID-STATUS</a>
+  
+  <a href="#var-END-OF-FILE">END-OF-FILE</a>
+  
+  <a href="#var-WK-CHKPT-ID">WK-CHKPT-ID</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WK-CHKPT-ID-CTR">WK-CHKPT-ID-CTR</a>
+  
+  <a href="#var-WS-IMS-VARIABLES">WS-IMS-VARIABLES</a>
+  
+  
+  <a style="color:var(--comment);font-style:italic;">… and 32 more</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>PAUDBUNL.CBL</h1>
+    <p>Unload all pending authorization data (summary and detail records) from the IMS database into sequential output files for archiving, backup, or downstream processing.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">PAUDBUNL reads all pending authorization summary records (PAUTSUM0 segments) sequentially from the IMS database and writes each valid summary record to a sequential output file (OPFILE1). For each summary record found, the program then retrieves all associated child detail records (PAUTDTL1 segments) using a Get-Next-within-Parent (GNP) call and writes them to a second sequential output file (OPFILE2), preserving the parent-child relationship via the account ID as the root segment key. The process continues until all pending authorization records have been exhausted from the database, effectively producing a full snapshot of the pending authorization database in flat file format. This program is the counterpart to PAUDBLOD (which loads data into IMS) and is functionally similar to DBUNLDGS, together forming the unload side of the pending authorization database maintenance cycle.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Only pending authorization summary records with a numeric account ID (PA-ACCT-ID IS NUMERIC) are written to the output file and have their child detail records processed — non-numeric account IDs are silently skipped.</li><li>The parent-child relationship between authorization summary and detail records is preserved in the output by writing the account ID (ROOT-SEG-KEY) alongside each detail record in OPFILE2.</li><li>All detail records belonging to a summary record are extracted using IMS GNP (Get-Next-within-Parent) calls, ensuring only details associated with the current summary are included before moving to the next account.</li><li>The program performs a full unload of the entire pending authorization database — no date-based or status-based filtering is applied during the unload itself, making it a complete snapshot.</li><li>Any unexpected IMS status code (other than spaces for success or GB for end-of-database on summary, or GE for no-more-children on detail) causes an immediate program abend with return code 16, ensuring data integrity of the output files.</li><li>Checkpoint/restart capability is built in via IMS checkpoint frequency parameters (P-CHKP-FREQ), supporting recovery in case of mid-run failure without reprocessing the entire database.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">OPFILE1</td>
+            <td style="color:var(--subtext);">Sequential output file containing pending authorization summary records (one record per account/authorization header)</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">OPFILE2</td>
+            <td style="color:var(--subtext);">Sequential output file containing pending authorization detail records (individual transaction-level authorization entries, linked to summary records by account ID key)</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Authentication</span>
+      
+      <span class="badge badge-copy">COPY IMSFUNCS</span>
+      
+      <span class="badge badge-copy">COPY CIPAUSMY</span>
+      
+      <span class="badge badge-copy">COPY CIPAUDTY</span>
+      
+      <span class="badge badge-copy">COPY PAUTBPCB</span>
+      
+      <span class="badge badge-meta">317 lines</span>
+      <span class="badge badge-meta">72 variables</span>
+      <span class="badge badge-meta">11 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-02</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3>MAIN-PARA</h3>
+    <p>MAIN-PARA is the top-level orchestrator of the pending authorization unload process. It initializes the environment, drives the sequential extraction of all pending authorization summary and detail records from the IMS database into output files, then closes those files and returns control to the caller.</p>
+    <div class="para-meta">Lines 157–172</div>
+  </div>
+  
+  <div class="para-card" id="para-1000-INITIALIZE">
+    <h3>1000-INITIALIZE</h3>
+    <p>Initializes the PAUDBUNL unload run by capturing the current processing date, announcing program start to the operator, and opening both output files that will receive the pending authorization summary and detail records extracted from IMS.</p>
+    <div class="para-meta">Lines 173–202</div>
+  </div>
+  
+  <div class="para-card" id="para-1000-EXIT">
+    <h3>1000-EXIT</h3>
+    <p>This is a no-operation exit point that serves as the formal termination boundary for the 1000-series processing block, allowing controlled return to the calling routine after summary record processing.</p>
+    <div class="para-meta">Lines 203–206</div>
+  </div>
+  
+  <div class="para-card" id="para-2000-FIND-NEXT-AUTH-SUMMARY">
+    <h3>2000-FIND-NEXT-AUTH-SUMMARY</h3>
+    <p>Retrieves the next pending authorization summary record (account header) from the IMS database and, if valid, writes it to the summary output file and triggers extraction of all associated detail transactions. Controls end-of-database detection and abends on any unexpected database error to protect output integrity.</p>
+    <div class="para-meta">Lines 207–247</div>
+  </div>
+  
+  <div class="para-card" id="para-2000-EXIT">
+    <h3>2000-EXIT</h3>
+    <p>This paragraph serves as the formal exit point for the 2000-series processing block, which handles the sequential unloading of pending authorization summary and detail records. It marks the boundary between the main unload processing logic and any subsequent processing sections.</p>
+    <div class="para-meta">Lines 248–252</div>
+  </div>
+  
+  <div class="para-card" id="para-3000-FIND-NEXT-AUTH-DTL">
+    <h3>3000-FIND-NEXT-AUTH-DTL</h3>
+    <p>Retrieves the next individual authorization transaction detail record belonging to the current account's pending authorization summary, writes it to the detail output file, and handles end-of-children and error conditions to maintain data integrity during the unload.</p>
+    <div class="para-meta">Lines 253–284</div>
+  </div>
+  
+  <div class="para-card" id="para-3000-EXIT">
+    <h3>3000-EXIT</h3>
+    <p>This paragraph serves as the formal exit point for the summary record processing routine (3000), allowing the program to cleanly return control to the main processing loop after completing all actions for a given pending authorization summary record and its associated detail records.</p>
+    <div class="para-meta">Lines 285–288</div>
+  </div>
+  
+  <div class="para-card" id="para-4000-FILE-CLOSE">
+    <h3>4000-FILE-CLOSE</h3>
+    <p>Finalizes the unload process by closing both output files containing the pending authorization summary and detail records, ensuring all written data is properly flushed and secured. Any failure to cleanly close either output file is flagged in the job log to alert operations staff of a potential data integrity risk.</p>
+    <div class="para-meta">Lines 289–304</div>
+  </div>
+  
+  <div class="para-card" id="para-4000-EXIT">
+    <h3>4000-EXIT</h3>
+    <p>This paragraph serves as the formal exit point for the detail record processing loop (paragraph 4000), allowing the program to cleanly return control to the summary record processing cycle after all child detail records for a given account have been written to the output file.</p>
+    <div class="para-meta">Lines 305–307</div>
+  </div>
+  
+  <div class="para-card" id="para-9999-ABEND">
+    <h3>9999-ABEND</h3>
+    <p>This paragraph handles unrecoverable errors during the pending authorization unload process by signalling a critical failure and halting the program immediately. It ensures that any unexpected IMS database condition is surfaced as a hard failure, preventing incomplete or corrupted output files from being silently passed to downstream systems.</p>
+    <div class="para-meta">Lines 308–315</div>
+  </div>
+  
+  <div class="para-card" id="para-9999-EXIT">
+    <h3>9999-EXIT</h3>
+    <p>Serves as the formal exit point for the pending authorization unload program, providing a clean termination anchor that other paragraphs can branch to after completing their processing steps.</p>
+    <div class="para-meta">Lines 316–317</div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.                                         00010026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-code">       PROGRAM-ID. PAUDBUNL.                                            00020037</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-code">       AUTHOR.     AWS.                                                 00030026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-empty">                                                                        00040026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.                                            00050026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.                                           00060026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-empty">                                                                        00070026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       INPUT-OUTPUT SECTION.                                            00080026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-code">       FILE-CONTROL.                                                    00090026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-code">           SELECT OPFILE1 ASSIGN TO OUTFIL1                             00100035</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">           ORGANIZATION IS SEQUENTIAL                                   00110026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-code">           ACCESS MODE  IS SEQUENTIAL                                   00120026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-code">           FILE STATUS IS WS-OUTFL1-STATUS.                             00130026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-empty">                                                                        00140026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-comment">      *                                                                 00150026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-code">           SELECT OPFILE2 ASSIGN TO OUTFIL2                             00151035</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-code">           ORGANIZATION IS SEQUENTIAL                                   00152026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-code">           ACCESS MODE  IS SEQUENTIAL                                   00153026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-code">           FILE STATUS IS WS-OUTFL2-STATUS.                             00154026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-empty">                                                                        00155026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-comment">      *                                                                 00156026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00160026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.                                                   00170026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00180026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-comment">      *                                                                 00190026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-section-header">       FILE SECTION.                                                    00200026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-code">       FD OPFILE1.                                                      00210026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">       01 OPFIL1-REC                    PIC X(100).                     00220026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-code">       FD OPFILE2.                                                      00221026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-variable-declaration">       01 OPFIL2-REC.                                                   00222036</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-variable-declaration">          05 ROOT-SEG-KEY               PIC S9(11) COMP-3.              00223036</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-variable-declaration">          05 CHILD-SEG-REC              PIC X(200).                     00224036</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-comment">      *                                                                 00230026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00240026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.                                         00250026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00260026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-variable-declaration">       01 WS-VARIABLES.                                                 00270026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-variable-declaration">         05 WS-PGMNAME                 PIC X(08) VALUE 'IMSUNLOD'.      00280026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-variable-declaration">         05 CURRENT-DATE               PIC 9(06).                       00290026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-variable-declaration">         05 CURRENT-YYDDD              PIC 9(05).                       00300026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-variable-declaration">         05 WS-AUTH-DATE               PIC 9(05).                       00310026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-variable-declaration">         05 WS-EXPIRY-DAYS             PIC S9(4) COMP.                  00320026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-variable-declaration">         05 WS-DAY-DIFF                PIC S9(4) COMP.                  00330026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-variable-declaration">         05 IDX                        PIC S9(4) COMP.                  00340026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-variable-declaration">         05 WS-CURR-APP-ID             PIC 9(11).                       00350026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-comment">      *                                                                 00360026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-variable-declaration">         05 WS-NO-CHKP                 PIC  9(8) VALUE 0.               00370026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-variable-declaration">         05 WS-AUTH-SMRY-PROC-CNT      PIC  9(8) VALUE 0.               00380026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TOT-REC-WRITTEN         PIC S9(8) COMP VALUE 0.          00390026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-variable-declaration">         05 WS-NO-SUMRY-READ           PIC S9(8) COMP VALUE 0.          00400026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">         05 WS-NO-SUMRY-DELETED        PIC S9(8) COMP VALUE 0.          00410026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-variable-declaration">         05 WS-NO-DTL-READ             PIC S9(8) COMP VALUE 0.          00420026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-variable-declaration">         05 WS-NO-DTL-DELETED          PIC S9(8) COMP VALUE 0.          00430026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-comment">      *                                                                 00440026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.             00450026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-ON                         VALUE 'Y'.             00460026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-OFF                        VALUE 'N'.             00470026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">         05 WS-END-OF-AUTHDB-FLAG      PIC X(01) VALUE 'N'.             00480026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-variable-declaration">           88 END-OF-AUTHDB                      VALUE 'Y'.             00490026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-variable-declaration">           88 NOT-END-OF-AUTHDB                  VALUE 'N'.             00500026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-variable-declaration">         05 WS-MORE-AUTHS-FLAG         PIC X(01) VALUE 'N'.             00510026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-variable-declaration">           88 MORE-AUTHS                         VALUE 'Y'.             00520026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">           88 NO-MORE-AUTHS                      VALUE 'N'.             00530026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-variable-declaration">         05 WS-END-OF-ROOT-SEG         PIC X(01) VALUE SPACES.          00540050</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-variable-declaration">         05 WS-END-OF-CHILD-SEG        PIC X(01) VALUE SPACES.          00550050</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-variable-declaration">         05 WS-INFILE-STATUS           PIC X(02) VALUE SPACES.          00570026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-variable-declaration">         05 WS-OUTFL1-STATUS           PIC X(02) VALUE SPACES.          00571026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-variable-declaration">         05 WS-OUTFL2-STATUS           PIC X(02) VALUE SPACES.          00572026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-variable-declaration">         05 WS-CUSTID-STATUS           PIC X(02) VALUE SPACES.          00580026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-variable-declaration">            88 END-OF-FILE                       VALUE '10'.            00590026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-comment">      *                                                                 00600026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-variable-declaration">         05 WK-CHKPT-ID.                                                00610026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">89</td>
+      <td class="code-cell t-variable-declaration">            10  FILLER              PIC  X(04) VALUE 'RMAD'.            00620026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">90</td>
+      <td class="code-cell t-variable-declaration">            10  WK-CHKPT-ID-CTR     PIC  9(04) VALUE ZEROES.            00630026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">91</td>
+      <td class="code-cell t-comment">      *                                                                 00640026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">92</td>
+      <td class="code-cell t-variable-declaration">       01 WS-IMS-VARIABLES.                                             00650026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">93</td>
+      <td class="code-cell t-comment">      *   05 PSB-NAME                        PIC X(8) VALUE 'IMSUNLOD'. 00660042</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">94</td>
+      <td class="code-cell t-comment">      *   05 PCB-OFFSET.                                                00670042</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">95</td>
+      <td class="code-cell t-comment">      *      10 PAUT-PCB-NUM                 PIC S9(4) COMP VALUE +2.   00680042</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">96</td>
+      <td class="code-cell t-variable-declaration">          05 IMS-RETURN-CODE                 PIC X(02).                 00690026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">97</td>
+      <td class="code-cell t-variable-declaration">             88 STATUS-OK                    VALUE '  ', 'FW'.          00700026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">98</td>
+      <td class="code-cell t-variable-declaration">             88 SEGMENT-NOT-FOUND            VALUE 'GE'.                00710026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">99</td>
+      <td class="code-cell t-variable-declaration">             88 DUPLICATE-SEGMENT-FOUND      VALUE 'II'.                00720026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">100</td>
+      <td class="code-cell t-variable-declaration">             88 WRONG-PARENTAGE              VALUE 'GP'.                00730026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">101</td>
+      <td class="code-cell t-variable-declaration">             88 END-OF-DB                    VALUE 'GB'.                00740026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">102</td>
+      <td class="code-cell t-variable-declaration">             88 DATABASE-UNAVAILABLE         VALUE 'BA'.                00750026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">103</td>
+      <td class="code-cell t-variable-declaration">             88 PSB-SCHEDULED-MORE-THAN-ONCE VALUE 'TC'.                00760026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">104</td>
+      <td class="code-cell t-variable-declaration">             88 COULD-NOT-SCHEDULE-PSB       VALUE 'TE'.                00770026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">105</td>
+      <td class="code-cell t-variable-declaration">             88 RETRY-CONDITION              VALUE 'BA', 'FH', 'TE'.    00780026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">106</td>
+      <td class="code-cell t-variable-declaration">          05 WS-IMS-PSB-SCHD-FLG             PIC X(1).                  00790026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">107</td>
+      <td class="code-cell t-variable-declaration">             88  IMS-PSB-SCHD                VALUE 'Y'.                 00800026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">108</td>
+      <td class="code-cell t-variable-declaration">             88  IMS-PSB-NOT-SCHD            VALUE 'N'.                 00810026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">109</td>
+      <td class="code-cell t-empty">                                                                        00820026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">110</td>
+      <td class="code-cell t-comment">      *                                                                 00830026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">111</td>
+      <td class="code-cell t-variable-declaration">       01 ROOT-UNQUAL-SSA.                                              00831029</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">112</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(08) VALUE 'PAUTSUM0'.         00831129</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">113</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01) VALUE ' '.                00831229</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">114</td>
+      <td class="code-cell t-comment">      *                                                                 00831329</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">115</td>
+      <td class="code-cell t-variable-declaration">       01 CHILD-UNQUAL-SSA.                                             00831429</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">116</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(08) VALUE 'PAUTDTL1'.         00831529</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">117</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01) VALUE ' '.                00831629</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">118</td>
+      <td class="code-cell t-comment">      *                                                                 00833029</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">119</td>
+      <td class="code-cell t-variable-declaration">       01 PRM-INFO.                                                     00840026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">120</td>
+      <td class="code-cell t-variable-declaration">          05 P-EXPIRY-DAYS          PIC 9(02).                          00850026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">121</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01).                          00860026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">122</td>
+      <td class="code-cell t-variable-declaration">          05 P-CHKP-FREQ            PIC X(05).                          00870026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">123</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01).                          00880026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">124</td>
+      <td class="code-cell t-variable-declaration">          05 P-CHKP-DIS-FREQ        PIC X(05).                          00890026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">125</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01).                          00900026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">126</td>
+      <td class="code-cell t-variable-declaration">          05 P-DEBUG-FLAG           PIC X(01).                          00910026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">127</td>
+      <td class="code-cell t-variable-declaration">             88 DEBUG-ON            VALUE 'Y'.                          00920026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">128</td>
+      <td class="code-cell t-variable-declaration">             88 DEBUG-OFF           VALUE 'N'.                          00930026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">129</td>
+      <td class="code-cell t-variable-declaration">          05 FILLER                 PIC X(01).                          00940026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">130</td>
+      <td class="code-cell t-comment">      *                                                                 00950026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">131</td>
+      <td class="code-cell t-comment">      *                                                                 00960026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">132</td>
+      <td class="code-cell t-copy-statement">       COPY IMSFUNCS.                                                   00961032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">133</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00970026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">134</td>
+      <td class="code-cell t-comment">      *  IMS SEGMENT LAYOUT                                             00980026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">135</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*00990026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">136</td>
+      <td class="code-cell t-empty">                                                                        01000026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">137</td>
+      <td class="code-cell t-comment">      *- PENDING AUTHORIZATION SUMMARY SEGMENT - ROOT                   01010026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">138</td>
+      <td class="code-cell t-variable-declaration">       01 PENDING-AUTH-SUMMARY.                                         01020026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">139</td>
+      <td class="code-cell t-copy-statement">       COPY CIPAUSMY.                                                   01030026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">140</td>
+      <td class="code-cell t-empty">                                                                        01040026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">141</td>
+      <td class="code-cell t-comment">      *- PENDING AUTHORIZATION DETAILS SEGMENT - CHILD                  01050026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">142</td>
+      <td class="code-cell t-variable-declaration">       01 PENDING-AUTH-DETAILS.                                         01060026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">143</td>
+      <td class="code-cell t-copy-statement">       COPY CIPAUDTY.                                                   01070026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">144</td>
+      <td class="code-cell t-empty">                                                                        01080026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">145</td>
+      <td class="code-cell t-comment">      *                                                                 01090026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">146</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01100026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">147</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.                                                 01110026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">148</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01120026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">149</td>
+      <td class="code-cell t-comment">      * PCB MASKS FOLLOW                                                01130026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">150</td>
+      <td class="code-cell t-copy-statement">       COPY PAUTBPCB.                                                   01140027</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">151</td>
+      <td class="code-cell t-comment">      *                                                                 01160026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">152</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01170026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">153</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION                  USING PAUTBPCB.              01180028</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">154</td>
+      <td class="code-cell t-comment">      *                                          PGM-PCB-MASK.          01190028</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">155</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01200026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">156</td>
+      <td class="code-cell t-comment">      *                                                                 01210026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">157</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.                                                       01220026</td>
+      <td class="expl-cell">Entry point of the main business process for the pending authorization unload program.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">            ENTRY 'DLITCBL'                 USING PAUTBPCB.             01225033</td>
+      <td class="expl-cell">Registers this program as an IMS-callable batch routine, receiving the pending authorization database control block (PCB) needed to access IMS segments.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">159</td>
+      <td class="code-cell t-empty">                                                                        01226029</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">160</td>
+      <td class="code-cell t-comment">      *                                                                 01230026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">           PERFORM 1000-INITIALIZE                THRU 1000-EXIT        01240026</td>
+      <td class="expl-cell">Prepares the program for processing: opens output files, initializes counters for summary/detail records read and written, and sets up checkpoint/restart parameters.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">162</td>
+      <td class="code-cell t-comment">      *                                                                 01250026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">163</td>
+      <td class="code-cell t-statement">           PERFORM 2000-FIND-NEXT-AUTH-SUMMARY    THRU 2000-EXIT        01260026</td>
+      <td class="expl-cell">Drives the core unload loop — repeatedly retrieves the next pending authorization summary record and all its associated detail records, writing them to the output files, until the entire pending authorization database has been exhausted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">           UNTIL   WS-END-OF-ROOT-SEG = 'Y'                             01280050</td>
+      <td class="expl-cell">Continues the unload loop until all pending authorization summary (root) segments in the IMS database have been processed and the end-of-database condition is reached.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">165</td>
+      <td class="code-cell t-empty">                                                                        01531150</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">           PERFORM 4000-FILE-CLOSE THRU 4000-EXIT                       01532030</td>
+      <td class="expl-cell">Closes both the summary output file (OPFILE1) and the detail output file (OPFILE2) after all pending authorization records have been successfully unloaded.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">167</td>
+      <td class="code-cell t-comment">      *                                                                 01540026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">168</td>
+      <td class="code-cell t-comment">      *                                                                 01560026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">169</td>
+      <td class="code-cell t-comment">      *                                                                 01650026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">           GOBACK.                                                      01660026</td>
+      <td class="expl-cell">Returns control to the IMS batch region, signalling that the full unload of the pending authorization database is complete.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">171</td>
+      <td class="code-cell t-comment">      *                                                                 01670026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">172</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01680026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">173</td>
+      <td class="code-cell t-paragraph-header">       1000-INITIALIZE.                                                 01690026</td>
+      <td class="expl-cell">Initializes the PAUDBUNL unload run by capturing the current processing date, announcing program start to the operator, and opening both output files that will receive the pending authorization summary and detail records extracted from IMS.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">174</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*01700026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">175</td>
+      <td class="code-cell t-comment">      *                                                                 01710026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">           ACCEPT CURRENT-DATE     FROM DATE                            01720026</td>
+      <td class="expl-cell">Captures today's calendar date to stamp the run and support any date-sensitive processing during the unload.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">           ACCEPT CURRENT-YYDDD    FROM DAY                             01730026</td>
+      <td class="expl-cell">Captures today's Julian date (YYDDD format) used later to calculate the age of pending authorizations and determine expiry.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">178</td>
+      <td class="code-cell t-empty">                                                                        01740026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">179</td>
+      <td class="code-cell t-comment">      *    ACCEPT PRM-INFO FROM SYSIN                                   01750038</td>
+      <td class="expl-cell">Note indicating that reading input parameters from SYSIN (such as expiry days and checkpoint frequency) was considered but is handled elsewhere or disabled.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">           DISPLAY 'STARTING PROGRAM PAUDBUNL::'                        01760054</td>
+      <td class="expl-cell">Announces to the operator console that the pending authorization unload program PAUDBUNL has started execution.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">           DISPLAY '*-------------------------------------*'            01770026</td>
+      <td class="expl-cell">Prints a visual separator line to the operator console to improve readability of the job log.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">           DISPLAY 'TODAYS DATE            :' CURRENT-DATE              01790043</td>
+      <td class="expl-cell">Displays today's processing date on the operator console, providing an audit trail of when this unload snapshot was taken.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">           DISPLAY ' '                                                  01800026</td>
+      <td class="expl-cell">Prints a blank line to the operator console for log readability.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">184</td>
+      <td class="code-cell t-empty">                                                                        01810026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">           .                                                            01960026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT OPFILE1                                          01961028</td>
+      <td class="expl-cell">Opens the sequential output file (OPFILE1) that will receive all pending authorization summary records extracted from IMS.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">           IF WS-OUTFL1-STATUS =  SPACES OR '00'                        01962028</td>
+      <td class="expl-cell">Verifies that OPFILE1 opened successfully — a blank or '00' status confirms the summary output file is ready to receive records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">              CONTINUE                                                  01963028</td>
+      <td class="expl-cell">Allows processing to continue normally when OPFILE1 has opened without errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">           ELSE                                                         01964028</td>
+      <td class="expl-cell">Handles the failure path if OPFILE1 did not open successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">              DISPLAY 'ERROR IN OPENING OPFILE1:' WS-OUTFL1-STATUS      01965028</td>
+      <td class="expl-cell">Logs the specific file status code for OPFILE1 to the operator console to assist in diagnosing the open failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND                                        01966028</td>
+      <td class="expl-cell">Terminates the program immediately with an abend if the summary output file could not be opened, preventing a partial or corrupt unload.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">           END-IF                                                       01967028</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">193</td>
+      <td class="code-cell t-comment">      *                                                                 01968028</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">194</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT OPFILE2                                          01969028</td>
+      <td class="expl-cell">Opens the sequential output file (OPFILE2) that will receive all pending authorization detail records extracted from IMS.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">195</td>
+      <td class="code-cell t-statement">           IF WS-OUTFL2-STATUS =  SPACES OR '00'                        01969128</td>
+      <td class="expl-cell">Verifies that OPFILE2 opened successfully — a blank or '00' status confirms the detail output file is ready to receive records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">196</td>
+      <td class="code-cell t-statement">              CONTINUE                                                  01969228</td>
+      <td class="expl-cell">Allows processing to continue normally when OPFILE2 has opened without errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">197</td>
+      <td class="code-cell t-statement">           ELSE                                                         01969328</td>
+      <td class="expl-cell">Handles the failure path if OPFILE2 did not open successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">198</td>
+      <td class="code-cell t-statement">              DISPLAY 'ERROR IN OPENING OPFILE2:' WS-OUTFL2-STATUS      01969428</td>
+      <td class="expl-cell">Logs the specific file status code for OPFILE2 to the operator console to assist in diagnosing the open failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">199</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND                                        01969528</td>
+      <td class="expl-cell">Terminates the program immediately with an abend if the detail output file could not be opened, preventing a partial or corrupt unload.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">200</td>
+      <td class="code-cell t-statement">           END-IF.                                                      01969634</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">201</td>
+      <td class="code-cell t-comment">      *                                                                 01969728</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">202</td>
+      <td class="code-cell t-comment">      *                                                                 01970026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1000-EXIT">
+      <td class="ln">203</td>
+      <td class="code-cell t-paragraph-header">       1000-EXIT.                                                       01980026</td>
+      <td class="expl-cell">Marks the exit boundary of the 1000-series processing block, providing a structured return point after pending authorization summary processing completes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-EXIT">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">            EXIT.                                                       01990026</td>
+      <td class="expl-cell">Formally closes the 1000-series processing block, returning control to the main unload processing loop to continue with the next pending authorization record.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-EXIT">
+      <td class="ln">205</td>
+      <td class="code-cell t-comment">      *                                                                 02000026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-EXIT">
+      <td class="ln">206</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*02010026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">207</td>
+      <td class="code-cell t-paragraph-header">       2000-FIND-NEXT-AUTH-SUMMARY.                                     02020026</td>
+      <td class="expl-cell">Entry point for the paragraph that fetches the next pending authorization summary record from the IMS database.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">208</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*02030026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">209</td>
+      <td class="code-cell t-comment">      *                                                                 02040026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">210</td>
+      <td class="code-cell t-comment">      *     DISPLAY 'IN 2000 READ ROOT SEGMENT PARA'                    02041057</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">211</td>
+      <td class="code-cell t-comment">      *              PAUT-PCB-STATUS                                    02065050</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">            INITIALIZE PAUT-PCB-STATUS                                  02066047</td>
+      <td class="expl-cell">Clears any previous IMS database response code before issuing a new request, ensuring a clean status check for this retrieval.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">            CALL 'CBLTDLI'            USING  FUNC-GN                    02070034</td>
+      <td class="expl-cell">Issues a sequential Get-Next call to the IMS database to retrieve the next pending authorization summary (account header) record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">214</td>
+      <td class="code-cell t-statement">                                        PAUTBPCB                        02080029</td>
+      <td class="expl-cell">Specifies the IMS Program Communication Block for the pending authorization database, governing access control and status reporting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">215</td>
+      <td class="code-cell t-statement">                                        PENDING-AUTH-SUMMARY            02090029</td>
+      <td class="expl-cell">Designates the data area where the retrieved pending authorization summary record (account header fields) will be stored.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">                                        ROOT-UNQUAL-SSA.                02100029</td>
+      <td class="expl-cell">Specifies an unqualified root segment search argument, meaning no filter is applied — every summary record in the database is eligible for retrieval.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">217</td>
+      <td class="code-cell t-comment">      *     DISPLAY ' *******************************'                  02130057</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">218</td>
+      <td class="code-cell t-comment">      *     DISPLAY ' AFTER THE ROOT SEG IMS CALL    '                  02130157</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">219</td>
+      <td class="code-cell t-comment">      *     DISPLAY 'SEG LEVEL: ' PAUT-SEG-LEVEL                        02132057</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">220</td>
+      <td class="code-cell t-comment">      *     DISPLAY 'PCB STATU: ' PAUT-PCB-STATUS                       02133057</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">221</td>
+      <td class="code-cell t-comment">      *     DISPLAY 'SEG NAME   : ' PAUT-SEG-NAME                       02135057</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">222</td>
+      <td class="code-cell t-comment">      *     DISPLAY ' *******************************'                  02138043</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS = SPACES                              02140029</td>
+      <td class="expl-cell">Checks whether the IMS database call succeeded (blank status = success), meaning a valid pending authorization summary record was returned.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">224</td>
+      <td class="code-cell t-comment">      *             SET NOT-END-OF-AUTHDB TO TRUE                       02160050</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">                    ADD 1                 TO WS-NO-SUMRY-READ           02170026</td>
+      <td class="expl-cell">Increments the running total of pending authorization summary records read from the IMS database during this unload run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">226</td>
+      <td class="code-cell t-statement">                    ADD 1                 TO WS-AUTH-SMRY-PROC-CNT      02180026</td>
+      <td class="expl-cell">Increments the combined processing counter tracking total authorization records (summary and detail) handled in the current run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">227</td>
+      <td class="code-cell t-statement">                    MOVE PENDING-AUTH-SUMMARY TO OPFIL1-REC             02190030</td>
+      <td class="expl-cell">Transfers the full pending authorization summary record into the output record buffer in preparation for writing to the summary output file (OPFILE1).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">228</td>
+      <td class="code-cell t-statement">                    INITIALIZE ROOT-SEG-KEY                             02190156</td>
+      <td class="expl-cell">Clears the account ID linking key field to ensure no residual data from a previous account contaminates the detail output records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">229</td>
+      <td class="code-cell t-statement">                    INITIALIZE CHILD-SEG-REC                            02190256</td>
+      <td class="expl-cell">Clears the child detail record buffer to ensure no residual data from a previous account's detail records carries over.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">230</td>
+      <td class="code-cell t-statement">                    MOVE PA-ACCT-ID           TO ROOT-SEG-KEY           02190356</td>
+      <td class="expl-cell">Captures the account ID from the current summary record as the linking key that will be written alongside each associated detail record in OPFILE2, preserving the parent-child relationship.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">231</td>
+      <td class="code-cell t-comment">      *             DISPLAY 'WRITING FIRST FILE'                        02190456</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">232</td>
+      <td class="code-cell t-statement">                    IF PA-ACCT-ID IS NUMERIC                            02190556</td>
+      <td class="expl-cell">Validates that the account ID is a proper numeric value — non-numeric account IDs indicate corrupt or invalid records and are silently excluded from the output files.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">                    WRITE OPFIL1-REC                                    02190656</td>
+      <td class="expl-cell">Writes the pending authorization summary record to the sequential output file (OPFILE1), creating one header record per valid account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">234</td>
+      <td class="code-cell t-statement">                    INITIALIZE WS-END-OF-CHILD-SEG                      02190756</td>
+      <td class="expl-cell">Resets the child-segment exhaustion flag so the detail retrieval loop starts fresh for this account's associated transactions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">235</td>
+      <td class="code-cell t-statement">                    PERFORM 3000-FIND-NEXT-AUTH-DTL THRU 3000-EXIT      02190856</td>
+      <td class="expl-cell">Triggers the retrieval and writing of all pending authorization detail (transaction-level) records belonging to the current summary account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">                    UNTIL  WS-END-OF-CHILD-SEG='Y'                      02190956</td>
+      <td class="expl-cell">Continues retrieving detail records for the current account until all child transaction records have been extracted and written to OPFILE2.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">237</td>
+      <td class="code-cell t-statement">                    END-IF                                              02191056</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">238</td>
+      <td class="code-cell t-statement">               END-IF                                                   02191156</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">239</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS = 'GB'                                02192029</td>
+      <td class="expl-cell">Checks whether the IMS database has returned a 'GB' (end-of-database) status, indicating all pending authorization summary records have been read.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">240</td>
+      <td class="code-cell t-statement">                    SET END-OF-AUTHDB     TO TRUE                       02194029</td>
+      <td class="expl-cell">Sets the internal end-of-database indicator to signal that the IMS database has no more pending authorization summary records to process.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">241</td>
+      <td class="code-cell t-statement">                    MOVE 'Y' TO WS-END-OF-ROOT-SEG                      02195050</td>
+      <td class="expl-cell">Sets the processing loop termination flag to stop the main unload loop, as the full pending authorization database has been exhausted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">242</td>
+      <td class="code-cell t-statement">               END-IF                                                   02197029</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'GB'         02200029</td>
+      <td class="expl-cell">Checks whether the IMS database returned an unexpected error code — any status other than success (spaces) or end-of-database (GB) is an unrecoverable error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">244</td>
+      <td class="code-cell t-statement">                  DISPLAY 'AUTH SUM  GN FAILED  :' PAUT-PCB-STATUS      02230029</td>
+      <td class="expl-cell">Logs the unexpected IMS error status code to the system output to support problem diagnosis and audit trail.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">                  DISPLAY 'KEY FEEDBACK AREA    :' PAUT-KEYFB           02240048</td>
+      <td class="expl-cell">Logs the IMS key feedback area, showing which account record was being processed when the database error occurred, aiding in failure investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">246</td>
+      <td class="code-cell t-statement">                    PERFORM 9999-ABEND                                  02260026</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the program with return code 16, preventing corrupt or incomplete data from being written to the output files.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
+      <td class="ln">247</td>
+      <td class="code-cell t-statement">            .                                                           02280026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2000-EXIT">
+      <td class="ln">248</td>
+      <td class="code-cell t-paragraph-header">       2000-EXIT.                                                       02290026</td>
+      <td class="expl-cell">Marks the exit boundary of the pending authorization unload processing block (2000 series).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-EXIT">
+      <td class="ln">249</td>
+      <td class="code-cell t-statement">            EXIT.                                                       02300026</td>
+      <td class="expl-cell">Transfers control back to the calling paragraph after all summary and detail record unload processing for the current iteration is complete.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-EXIT">
+      <td class="ln">250</td>
+      <td class="code-cell t-comment">      *                                                                 02310026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-EXIT">
+      <td class="ln">251</td>
+      <td class="code-cell t-comment">      *                                                                 02320026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-EXIT">
+      <td class="ln">252</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*02330026</td>
+      <td class="expl-cell">Separator boundary indicating the end of the 2000-series unload processing section and the start of the next processing block.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">253</td>
+      <td class="code-cell t-paragraph-header">       3000-FIND-NEXT-AUTH-DTL.                                         02340026</td>
+      <td class="expl-cell">Entry point for the paragraph that fetches the next child authorization detail record for the current account.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">254</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*02350026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">255</td>
+      <td class="code-cell t-comment">      *                                                                 02360026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">256</td>
+      <td class="code-cell t-comment">      *     DISPLAY 'IN 3000 READ CHILD SEGMENT PARA'                   02361057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have logged entry into the child segment retrieval step during testing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">257</td>
+      <td class="code-cell t-statement">            CALL 'CBLTDLI'            USING  FUNC-GNP                   02370034</td>
+      <td class="expl-cell">Requests the next pending authorization detail transaction record from the IMS database that belongs to the current summary account, using a Get-Next-within-Parent call to stay scoped to the current account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">258</td>
+      <td class="code-cell t-statement">                                        PAUTBPCB                        02380030</td>
+      <td class="expl-cell">Targets the pending authorization IMS database via its Program Communication Block, which governs access and status reporting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">259</td>
+      <td class="code-cell t-statement">                                        PENDING-AUTH-DETAILS            02390030</td>
+      <td class="expl-cell">Specifies the data area where the retrieved authorization detail transaction record (e.g., amount, date, merchant) will be stored.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">260</td>
+      <td class="code-cell t-statement">                                        CHILD-UNQUAL-SSA.               02400030</td>
+      <td class="expl-cell">Uses an unqualified child segment search argument, meaning all detail records under the current parent account are eligible for retrieval in sequence.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">261</td>
+      <td class="code-cell t-comment">      *        DISPLAY '***************************'                    02401057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have printed a visual separator in the job log during testing.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">262</td>
+      <td class="code-cell t-comment">      *        DISPLAY ' AFTER CHILD SEG IMS CALL  '                    02402057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have confirmed the IMS call for the child segment had completed.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">263</td>
+      <td class="code-cell t-comment">      *        DISPLAY 'PCB STATU: ' PAUT-PCB-STATUS                    02410057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have logged the IMS status code returned after the detail record retrieval attempt.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">264</td>
+      <td class="code-cell t-comment">      *        DISPLAY 'SEG NAME   : ' PAUT-SEG-NAME                    02411057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have logged the IMS segment name of the retrieved record for debugging.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">265</td>
+      <td class="code-cell t-comment">      *        DISPLAY '***************************'                    02412057</td>
+      <td class="expl-cell">Diagnostic trace (disabled) that would have printed a closing visual separator in the job log during testing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">266</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS = SPACES                              02420030</td>
+      <td class="expl-cell">Checks whether the IMS database successfully returned a valid authorization detail record for the current account (blank status = success).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">                    SET MORE-AUTHS       TO TRUE                        02430030</td>
+      <td class="expl-cell">Signals that more authorization detail records may still exist for this account, keeping the detail retrieval loop active.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">268</td>
+      <td class="code-cell t-statement">                    ADD 1                 TO WS-NO-SUMRY-READ           02440030</td>
+      <td class="expl-cell">Increments the running total of pending authorization summary records read — note: this counter appears misapplied here and likely intended to track detail reads.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">269</td>
+      <td class="code-cell t-statement">                    ADD 1                 TO WS-AUTH-SMRY-PROC-CNT      02450030</td>
+      <td class="expl-cell">Increments the overall count of authorization records processed in this run, used for checkpoint and reporting purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">270</td>
+      <td class="code-cell t-statement">                    MOVE PENDING-AUTH-DETAILS TO CHILD-SEG-REC          02460036</td>
+      <td class="expl-cell">Transfers the retrieved authorization detail transaction data into the output record layout ready for writing to the detail output file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">271</td>
+      <td class="code-cell t-statement">                    WRITE OPFIL2-REC                                    02470030</td>
+      <td class="expl-cell">Writes the authorization detail transaction record to OPFILE2, the sequential output file capturing individual transaction-level authorization entries linked to the parent account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">               END-IF                                                   02480030</td>
+      <td class="expl-cell">Closes the successful-retrieval processing block for the current detail record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">273</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS = 'GE'                                02490030</td>
+      <td class="expl-cell">Checks whether IMS has signalled that there are no more detail records for the current account (GE = no children remaining under this parent).</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">274</td>
+      <td class="code-cell t-comment">      *             SET NO-MORE-AUTHS    TO TRUE                        02500050</td>
+      <td class="expl-cell">Alternative end-of-children flag approach (disabled), superseded by the direct move on the next line.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">275</td>
+      <td class="code-cell t-statement">                    MOVE 'Y' TO WS-END-OF-CHILD-SEG                     02500150</td>
+      <td class="expl-cell">Sets the end-of-child-segment flag to 'Y', signalling the main processing loop to stop retrieving details for this account and move to the next summary record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">276</td>
+      <td class="code-cell t-statement">                    DISPLAY 'CHILD SEG FLAG GE : '                      02501044</td>
+      <td class="expl-cell">Logs a confirmation message to the job output indicating that all detail records for the current account have been exhausted, aiding in operational monitoring.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">277</td>
+      <td class="code-cell t-statement">                             WS-END-OF-CHILD-SEG                        02502050</td>
+      <td class="expl-cell">Includes the value of the end-of-child flag in the log message to confirm it has been correctly set to 'Y'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">               END-IF                                                   02510030</td>
+      <td class="expl-cell">Closes the end-of-children handling block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">279</td>
+      <td class="code-cell t-statement">               IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'GE'         02520030</td>
+      <td class="expl-cell">Checks whether the IMS status code is anything other than a successful retrieval or a normal end-of-children condition, indicating an unexpected database error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">                  DISPLAY 'GNP CALL FAILED  :' PAUT-PCB-STATUS          02530030</td>
+      <td class="expl-cell">Logs the unexpected IMS error status code to the job output to assist operations and support teams in diagnosing the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">                  DISPLAY 'KFB AREA IN CHILD:' PAUT-KEYFB               02531048</td>
+      <td class="expl-cell">Logs the IMS key feedback area for the failed call, providing the database position context to help pinpoint which account's detail records caused the error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">                    PERFORM 9999-ABEND                                  02540049</td>
+      <td class="expl-cell">Triggers an immediate abnormal program termination with return code 16, preventing corrupt or incomplete data from being written to the output files.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">               END-IF.                                                  02550051</td>
+      <td class="expl-cell">Closes the error-handling block for unexpected IMS status conditions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-FIND-NEXT-AUTH-DTL">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">               INITIALIZE PAUT-PCB-STATUS.                              02580052</td>
+      <td class="expl-cell">Clears the IMS status code field after processing, ensuring no stale status from the current detail retrieval interferes with the evaluation of the next IMS call.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-3000-EXIT">
+      <td class="ln">285</td>
+      <td class="code-cell t-paragraph-header">       3000-EXIT.                                                       02590026</td>
+      <td class="expl-cell">Marks the exit boundary of the pending authorization summary processing routine, signalling the end of processing for one summary-detail cycle.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-EXIT">
+      <td class="ln">286</td>
+      <td class="code-cell t-statement">            EXIT.                                                       02600026</td>
+      <td class="expl-cell">Returns control to the calling paragraph in the main unload loop, ready to process the next pending authorization summary record from the IMS database.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-EXIT">
+      <td class="ln">287</td>
+      <td class="code-cell t-comment">      *                                                                 02610026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-EXIT">
+      <td class="ln">288</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*02620026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">289</td>
+      <td class="code-cell t-paragraph-header">       4000-FILE-CLOSE.                                                 02630030</td>
+      <td class="expl-cell">Finalizes the unload process by closing both output files containing the pending authorization summary and detail records, ensuring all written data is properly flushed and secured. Any failure to cleanly close either output file is flagged in the job log to alert operations staff of a potential data integrity risk.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">            DISPLAY 'CLOSING THE FILE'                                  02631043</td>
+      <td class="expl-cell">Logs a message to the job output indicating that the unload process has completed and the output files are now being finalized and closed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">291</td>
+      <td class="code-cell t-statement">            CLOSE OPFILE1.                                              02640034</td>
+      <td class="expl-cell">Seals the summary output file (OPFILE1) containing all pending authorization header records, ensuring all buffered summary data is written to disk.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">292</td>
+      <td class="code-cell t-empty">                                                                        02650030</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">            IF WS-OUTFL1-STATUS =  SPACES OR '00'                       02660034</td>
+      <td class="expl-cell">Verifies that the summary output file (OPFILE1) closed successfully without any file system errors, confirming the authorization summary snapshot is intact.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">             CONTINUE                                                   02670030</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">            ELSE                                                        02680034</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">             DISPLAY 'ERROR IN CLOSING 1ST FILE:'WS-OUTFL1-STATUS       02690030</td>
+      <td class="expl-cell">Alerts operations staff via the job log that the summary output file (OPFILE1) did not close cleanly, reporting the specific file status code to support incident investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">297</td>
+      <td class="code-cell t-statement">            END-IF.                                                     02700034</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">298</td>
+      <td class="code-cell t-statement">            CLOSE OPFILE2.                                              02710034</td>
+      <td class="expl-cell">Seals the detail output file (OPFILE2) containing all pending authorization transaction-level records, ensuring all buffered detail data is written to disk.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">299</td>
+      <td class="code-cell t-empty">                                                                        02720030</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">300</td>
+      <td class="code-cell t-statement">            IF WS-OUTFL2-STATUS =  SPACES OR '00'                       02730034</td>
+      <td class="expl-cell">Verifies that the detail output file (OPFILE2) closed successfully without any file system errors, confirming the authorization detail snapshot is intact.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">301</td>
+      <td class="code-cell t-statement">             CONTINUE                                                   02740030</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">302</td>
+      <td class="code-cell t-statement">            ELSE                                                        02750034</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">             DISPLAY 'ERROR IN CLOSING 2ND FILE:'WS-OUTFL2-STATUS       02760030</td>
+      <td class="expl-cell">Alerts operations staff via the job log that the detail output file (OPFILE2) did not close cleanly, reporting the specific file status code to support incident investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FILE-CLOSE">
+      <td class="ln">304</td>
+      <td class="code-cell t-statement">            END-IF.                                                     02770034</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-4000-EXIT">
+      <td class="ln">305</td>
+      <td class="code-cell t-paragraph-header">       4000-EXIT.                                                       02780030</td>
+      <td class="expl-cell">Marks the exit point of the detail record processing routine, signalling the end of child record extraction for the current pending authorization account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-EXIT">
+      <td class="ln">306</td>
+      <td class="code-cell t-statement">            EXIT.                                                       02790030</td>
+      <td class="expl-cell">Returns control to the calling paragraph in the summary record processing loop, ready to advance to the next pending authorization account in the IMS database.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-4000-EXIT">
+      <td class="ln">307</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*03620026</td>
+      <td class="expl-cell">Separator boundary marking the end of the detail record processing section within the unload program structure.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9999-ABEND">
+      <td class="ln">308</td>
+      <td class="code-cell t-paragraph-header">       9999-ABEND.                                                      03630026</td>
+      <td class="expl-cell">This paragraph handles unrecoverable errors during the pending authorization unload process by signalling a critical failure and halting the program immediately. It ensures that any unexpected IMS database condition is surfaced as a hard failure, preventing incomplete or corrupted output files from being silently passed to downstream systems.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND">
+      <td class="ln">309</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*03640026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND">
+      <td class="ln">310</td>
+      <td class="code-cell t-comment">      *                                                                 03650026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">311</td>
+      <td class="code-cell t-statement">           DISPLAY 'IMSUNLOD ABENDING ...'                              03660030</td>
+      <td class="expl-cell">Writes a message to the system log identifying that the pending authorization unload program (IMSUNLOD) has encountered a fatal error and is terminating abnormally.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-9999-ABEND">
+      <td class="ln">312</td>
+      <td class="code-cell t-empty">                                                                        03670026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">313</td>
+      <td class="code-cell t-statement">           MOVE 16 TO RETURN-CODE                                       03680026</td>
+      <td class="expl-cell">Sets the job return code to 16, the highest severity failure indicator, alerting operations and downstream job scheduling that the unload did not complete successfully and output files should not be trusted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">314</td>
+      <td class="code-cell t-statement">           GOBACK.                                                      03690026</td>
+      <td class="expl-cell">Terminates the program immediately, stopping all further processing of the pending authorization database to prevent any additional records from being written to the output files in an inconsistent state.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND">
+      <td class="ln">315</td>
+      <td class="code-cell t-comment">      *                                                                 03700026</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9999-EXIT">
+      <td class="ln">316</td>
+      <td class="code-cell t-paragraph-header">       9999-EXIT.                                                       03710026</td>
+      <td class="expl-cell">Marks the terminal exit point of the pending authorization unload process, used as a common return target after all summary and detail records have been written to the output files.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-EXIT">
+      <td class="ln">317</td>
+      <td class="code-cell t-statement">            EXIT.                                                       03720026</td>
+      <td class="expl-cell">Signals the end of the unload program's execution flow, returning control cleanly after the full database snapshot of pending authorizations has been produced.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-OPFIL1-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">OPFIL1-REC
+        
+        
+      </td>
+      <td class="var-pic">PIC X(100)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Output buffer record for the pending authorization summary file (OPFILE1). Each 100-byte record written here represents one authorization summary header — containing account-level authorization totals, limits, and balances — as it is unloaded from the IMS database to the sequential archive file.</td>
+    </tr>
+    
+    <tr id="var-OPFIL2-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">OPFIL2-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Output buffer record for the pending authorization detail file (OPFILE2). Each record written here represents one individual transaction-level authorization entry, paired with its parent account ID so that downstream systems can reconstruct the parent-child relationship between account summaries and their individual authorization transactions.</td>
+    </tr>
+    
+    <tr id="var-ROOT-SEG-KEY">
+      <td class="var-level">05</td>
+      <td class="var-name">ROOT-SEG-KEY
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(11) COMP-3</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The account ID of the parent summary record, written alongside each detail record in OPFILE2. This linking key preserves the parent-child relationship in the output file, allowing downstream systems or reload programs to associate each individual authorization transaction back to the correct cardholder account.</td>
+    </tr>
+    
+    <tr id="var-CHILD-SEG-REC">
+      <td class="var-level">05</td>
+      <td class="var-name">CHILD-SEG-REC
+        
+        
+      </td>
+      <td class="var-pic">PIC X(200)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The raw content of a single pending authorization detail record (transaction-level data such as authorization date, card number, transaction amount, approval code, and merchant information) as read from the IMS database and written to the detail output file OPFILE2.</td>
+    </tr>
+    
+    <tr id="var-WS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Working storage group containing all general-purpose program control variables used during the pending authorization unload process, including counters, date fields, status flags, and file status indicators.</td>
+    </tr>
+    
+    <tr id="var-WS-PGMNAME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-PGMNAME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">IMSUNLOD</td>
+      <td class="var-desc">The internal name of this unload program ('IMSUNLOD'), used for identification in log messages, abend diagnostics, and checkpoint/restart records so that operations staff can identify which program produced a given output or error.</td>
+    </tr>
+    
+    <tr id="var-CURRENT-DATE">
+      <td class="var-level">05</td>
+      <td class="var-name">CURRENT-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(06)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The current calendar date (in YYMMDD format) at the time the unload program runs. Used as a reference point for calculating how old a pending authorization is relative to the expiry threshold defined by P-EXPIRY-DAYS.</td>
+    </tr>
+    
+    <tr id="var-CURRENT-YYDDD">
+      <td class="var-level">05</td>
+      <td class="var-name">CURRENT-YYDDD
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(05)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The current Julian date (in YYDDD format) at the time the unload runs. Used in conjunction with WS-AUTH-DATE to calculate the age of each pending authorization in days, enabling comparison against the expiry threshold.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-DATE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-AUTH-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(05)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The Julian date (YYDDD) on which a specific authorization was originally created. Compared against CURRENT-YYDDD to determine how many days the authorization has been pending, which can be used to identify expired authorizations relative to the P-EXPIRY-DAYS parameter.</td>
+    </tr>
+    
+    <tr id="var-WS-EXPIRY-DAYS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-EXPIRY-DAYS
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) COMP</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The working storage copy of the input parameter P-EXPIRY-DAYS, representing the number of days after which a pending authorization is considered expired. Used during processing to determine whether an authorization has aged beyond the acceptable pending period.</td>
+    </tr>
+    
+    <tr id="var-WS-DAY-DIFF">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-DAY-DIFF
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) COMP</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The calculated difference in days between the current Julian date and the date a specific authorization was created. This age calculation determines whether a pending authorization has exceeded the expiry threshold defined by P-EXPIRY-DAYS.</td>
+    </tr>
+    
+    <tr id="var-IDX">
+      <td class="var-level">05</td>
+      <td class="var-name">IDX
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) COMP</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A general-purpose loop index used to iterate through repeating data elements during processing, such as the five account status codes (PA-ACCOUNT-STATUS) on a pending authorization summary record.</td>
+    </tr>
+    
+    <tr id="var-WS-CURR-APP-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CURR-APP-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(11)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The account ID of the pending authorization summary record currently being processed. Holds the numeric display form of the account identifier used to track which account's authorizations are being unloaded at any given point in the run.</td>
+    </tr>
+    
+    <tr id="var-WS-NO-CHKP">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-NO-CHKP
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(8)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Counter tracking the number of records processed since the last IMS checkpoint was taken. When this counter reaches the value of P-CHKP-FREQ, a checkpoint is issued to protect the work done so far, enabling restart from that point if the job fails mid-run.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-SMRY-PROC-CNT">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-AUTH-SMRY-PROC-CNT
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(8)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Running count of the total number of authorization summary and detail records processed during the current unload run. Used to drive checkpoint frequency logic — when this count reaches the P-CHKP-FREQ threshold, an IMS checkpoint is taken to protect progress.</td>
+    </tr>
+    
+    <tr id="var-WS-TOT-REC-WRITTEN">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TOT-REC-WRITTEN
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(8) COMP</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Cumulative count of all records written to the output files (both summary records to OPFILE1 and detail records to OPFILE2) during the unload run. Reported at end-of-job to confirm the total volume of data extracted and archived.</td>
+    </tr>
+    
+    <tr id="var-WS-NO-SUMRY-READ">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-NO-SUMRY-READ
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(8) COMP</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Cumulative count of pending authorization summary (account-level header) records successfully read from the IMS database during the unload. Reported at end-of-job to confirm how many accounts had pending authorization data extracted.</td>
+    </tr>
+    
+    <tr id="var-WS-NO-SUMRY-DELETED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-NO-SUMRY-DELETED
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(8) COMP</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Counter reserved for tracking the number of pending authorization summary records deleted from the IMS database during processing. Not actively incremented in the unload path — retained for potential use in a purge or delete variant of this program.</td>
+    </tr>
+    
+    <tr id="var-WS-NO-DTL-READ">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-NO-DTL-READ
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(8) COMP</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Cumulative count of individual pending authorization detail (transaction-level) records successfully read from the IMS database during the unload. Reported at end-of-job to confirm the total number of authorization transactions extracted.</td>
+    </tr>
+    
+    <tr id="var-WS-NO-DTL-DELETED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-NO-DTL-DELETED
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(8) COMP</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Counter reserved for tracking the number of pending authorization detail records deleted from the IMS database during processing. Not actively incremented in the unload path — retained for potential use in a purge or delete variant of this program.</td>
+    </tr>
+    
+    <tr id="var-WS-ERR-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERR-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Error indicator flag for the unload program. Set to 'Y' when an unexpected error condition is encountered during processing, signaling that the program should not continue normal processing and should initiate error handling or abend procedures.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when an error has been detected during the unload run. Used in program logic to branch to error handling routines and prevent further normal processing after a failure.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-OFF">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-OFF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when no error has been detected — the program is processing normally. The initial state of the error flag, confirming the unload is proceeding without issues.</td>
+    </tr>
+    
+    <tr id="var-WS-END-OF-AUTHDB-FLAG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-END-OF-AUTHDB-FLAG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Flag indicating whether the entire pending authorization IMS database has been fully read. Set to 'Y' when IMS returns a GB (end-of-database) status on a summary record read, signaling that all accounts have been processed and the main processing loop should terminate.</td>
+    </tr>
+    
+    <tr id="var-END-OF-AUTHDB">
+      <td class="var-level">88</td>
+      <td class="var-name">END-OF-AUTHDB
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when all pending authorization summary records in the IMS database have been read and the end-of-database has been reached. Used to exit the main processing loop cleanly after a complete unload.</td>
+    </tr>
+    
+    <tr id="var-NOT-END-OF-AUTHDB">
+      <td class="var-level">88</td>
+      <td class="var-name">NOT-END-OF-AUTHDB
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when there are still pending authorization summary records remaining to be read from the IMS database. Used to keep the main processing loop active while accounts remain to be unloaded.</td>
+    </tr>
+    
+    <tr id="var-WS-MORE-AUTHS-FLAG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-MORE-AUTHS-FLAG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Flag indicating whether there are additional pending authorization detail records to be read for the current account. Controls the inner processing loop that retrieves all child detail records belonging to the current summary account before moving to the next account.</td>
+    </tr>
+    
+    <tr id="var-MORE-AUTHS">
+      <td class="var-level">88</td>
+      <td class="var-name">MORE-AUTHS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when there are more pending authorization detail records to retrieve for the current account. Keeps the inner GNP (Get-Next-within-Parent) loop active until all transactions for the current account have been extracted.</td>
+    </tr>
+    
+    <tr id="var-NO-MORE-AUTHS">
+      <td class="var-level">88</td>
+      <td class="var-name">NO-MORE-AUTHS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when all pending authorization detail records for the current account have been read. Signals the inner loop to stop retrieving child records and move on to the next account summary record.</td>
+    </tr>
+    
+    <tr id="var-WS-END-OF-ROOT-SEG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-END-OF-ROOT-SEG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">Flag indicating that all pending authorization summary (root/parent) segments have been read from the IMS database. When set, it signals the end of the outer processing loop, meaning every account's authorization header has been unloaded and no more accounts remain.</td>
+    </tr>
+    
+    <tr id="var-WS-END-OF-CHILD-SEG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-END-OF-CHILD-SEG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">Flag indicating that all pending authorization detail (child) segments for the current account summary record have been read. When set, it signals the inner loop to stop issuing GNP calls for the current account and advance to the next summary record.</td>
+    </tr>
+    
+    <tr id="var-WS-INFILE-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-INFILE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">File status code returned by the operating system after each I/O operation on the input file. Monitored to detect read errors or unexpected end-of-file conditions that would indicate a problem with the input data source.</td>
+    </tr>
+    
+    <tr id="var-WS-OUTFL1-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-OUTFL1-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">File status code returned by the operating system after each write operation to OPFILE1 (the summary output file). Monitored to detect write failures that would indicate the authorization summary archive file was not written correctly.</td>
+    </tr>
+    
+    <tr id="var-WS-OUTFL2-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-OUTFL2-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">File status code returned by the operating system after each write operation to OPFILE2 (the detail output file). Monitored to detect write failures that would indicate the authorization transaction detail archive file was not written correctly.</td>
+    </tr>
+    
+    <tr id="var-WS-CUSTID-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CUSTID-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">File status code returned by the operating system after I/O operations on the customer ID reference file. Used to detect end-of-file or error conditions when reading customer data during the unload process.</td>
+    </tr>
+    
+    <tr id="var-END-OF-FILE">
+      <td class="var-level">88</td>
+      <td class="var-name">END-OF-FILE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">10</td>
+      <td class="var-desc">Condition name that evaluates to true when the customer ID file has been fully read (file status '10' = end-of-file). Signals that there are no more customer records to process from that reference file.</td>
+    </tr>
+    
+    <tr id="var-WK-CHKPT-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">WK-CHKPT-ID
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Composite IMS checkpoint identifier used when issuing checkpoint calls during the unload run. Combines a fixed program prefix with an incrementing counter to create a unique checkpoint ID for each restart point, enabling the job to be restarted from the last checkpoint if it fails mid-run.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">RMAD</td>
+      <td class="var-desc">Fixed four-character prefix ('RMAD') that identifies this program's checkpoint records within IMS. Acts as a namespace qualifier so that checkpoint IDs from this unload program can be distinguished from those of other programs in the IMS restart/recovery logs.</td>
+    </tr>
+    
+    <tr id="var-WK-CHKPT-ID-CTR">
+      <td class="var-level">10</td>
+      <td class="var-name">WK-CHKPT-ID-CTR
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(04)</td>
+      <td class="var-pic">ZEROES</td>
+      <td class="var-desc">Incrementing numeric counter appended to the checkpoint prefix to form a unique checkpoint ID for each IMS checkpoint taken during the unload run. Each time a checkpoint is issued (based on P-CHKP-FREQ), this counter advances, creating a sequential audit trail of restart points.</td>
+    </tr>
+    
+    <tr id="var-WS-IMS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-IMS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Working storage group containing all IMS-specific control variables, including the IMS return/status code and the PSB scheduling flag. These variables govern how the program interprets IMS responses and manages its connection to the pending authorization database.</td>
+    </tr>
+    
+    <tr id="var-IMS-RETURN-CODE">
+      <td class="var-level">05</td>
+      <td class="var-name">IMS-RETURN-CODE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character status code returned by IMS after each database call (GN, GNP, etc.). Determines whether the call succeeded, reached end-of-database, found no child records, or encountered an error — driving all branching logic in the unload program.</td>
+    </tr>
+    
+    <tr id="var-STATUS-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">STATUS-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'  ', 'FW'</td>
+      <td class="var-desc">Condition name that evaluates to true when an IMS database call completed successfully (spaces = normal success, 'FW' = successful with forward positioning). Confirms that the retrieved authorization record is valid and can be written to the output file.</td>
+    </tr>
+    
+    <tr id="var-SEGMENT-NOT-FOUND">
+      <td class="var-level">88</td>
+      <td class="var-name">SEGMENT-NOT-FOUND
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">GE</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'GE' (Get-Next found no more segments), indicating that all detail (child) authorization records for the current account have been read. Signals the inner loop to stop and move to the next account.</td>
+    </tr>
+    
+    <tr id="var-DUPLICATE-SEGMENT-FOUND">
+      <td class="var-level">88</td>
+      <td class="var-name">DUPLICATE-SEGMENT-FOUND
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">II</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'II', indicating an attempt to insert a duplicate segment. Not expected during an unload operation but defined for completeness in error detection and abend handling.</td>
+    </tr>
+    
+    <tr id="var-WRONG-PARENTAGE">
+      <td class="var-level">88</td>
+      <td class="var-name">WRONG-PARENTAGE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">GP</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'GP', indicating that a GNP call found a segment but it belongs to a different parent than expected. Represents a data integrity anomaly in the pending authorization database hierarchy.</td>
+    </tr>
+    
+    <tr id="var-END-OF-DB">
+      <td class="var-level">88</td>
+      <td class="var-name">END-OF-DB
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">GB</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'GB' (end-of-database), indicating that all pending authorization summary records have been read. Triggers the end of the outer processing loop and initiates end-of-job processing.</td>
+    </tr>
+    
+    <tr id="var-DATABASE-UNAVAILABLE">
+      <td class="var-level">88</td>
+      <td class="var-name">DATABASE-UNAVAILABLE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">BA</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'BA', indicating the pending authorization database is not available (e.g., stopped or locked). Triggers retry logic or an abend, as the unload cannot proceed without database access.</td>
+    </tr>
+    
+    <tr id="var-PSB-SCHEDULED-MORE-THAN-ONCE">
+      <td class="var-level">88</td>
+      <td class="var-name">PSB-SCHEDULED-MORE-THAN-ONCE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">TC</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'TC', indicating the Program Specification Block (PSB) for the pending authorization database has already been scheduled in this region. Represents a program initialization error that would prevent normal database access.</td>
+    </tr>
+    
+    <tr id="var-COULD-NOT-SCHEDULE-PSB">
+      <td class="var-level">88</td>
+      <td class="var-name">COULD-NOT-SCHEDULE-PSB
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">TE</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns 'TE', indicating the PSB for the pending authorization database could not be scheduled (e.g., resource unavailable). Triggers retry logic or an abend, as the program cannot access the database without a scheduled PSB.</td>
+    </tr>
+    
+    <tr id="var-RETRY-CONDITION">
+      <td class="var-level">88</td>
+      <td class="var-name">RETRY-CONDITION
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'BA', 'FH', 'TE'</td>
+      <td class="var-desc">Condition name that evaluates to true when IMS returns a status code indicating a transient, potentially recoverable condition (database unavailable, fast path halt, or PSB scheduling failure). When true, the program may retry the operation rather than immediately abending, improving resilience during temporary IMS resource constraints.</td>
+    </tr>
+    
+    <tr id="var-WS-IMS-PSB-SCHD-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-IMS-PSB-SCHD-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(1)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Flag indicating whether the IMS Program Specification Block (PSB) for the pending authorization database has been successfully scheduled (connected). Must be 'Y' before any IMS database calls can be made; used to manage the lifecycle of the IMS database connection during the unload run.</td>
+    </tr>
+    
+    <tr id="var-IMS-PSB-SCHD">
+      <td class="var-level">88</td>
+      <td class="var-name">IMS-PSB-SCHD
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when the IMS PSB has been successfully scheduled and the program has an active connection to the pending authorization database. Confirms the program is ready to issue IMS database read calls.</td>
+    </tr>
+    
+    <tr id="var-IMS-PSB-NOT-SCHD">
+      <td class="var-level">88</td>
+      <td class="var-name">IMS-PSB-NOT-SCHD
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when the IMS PSB has not yet been scheduled or has been terminated. Indicates the program does not currently have an active connection to the pending authorization database and cannot issue database calls.</td>
+    </tr>
+    
+    <tr id="var-ROOT-UNQUAL-SSA">
+      <td class="var-level">01</td>
+      <td class="var-name">ROOT-UNQUAL-SSA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Unqualified Segment Search Argument (SSA) used in IMS GN calls to retrieve pending authorization summary (root/parent) segments. By specifying the segment name 'PAUTSUM0' without qualification, it instructs IMS to return the next available summary record regardless of key value, enabling a full sequential scan of all accounts.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">PAUTSUM0</td>
+      <td class="var-desc">The IMS segment name 'PAUTSUM0' identifying the pending authorization summary segment type in the database. This name tells IMS which segment definition to use when retrieving account-level authorization header records during the unload.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">' '</td>
+      <td class="var-desc">Single space character that terminates the unqualified SSA for the summary segment, conforming to IMS SSA format requirements. The space signals to IMS that this is an unqualified SSA with no key qualification, meaning all summary records should be returned.</td>
+    </tr>
+    
+    <tr id="var-CHILD-UNQUAL-SSA">
+      <td class="var-level">01</td>
+      <td class="var-name">CHILD-UNQUAL-SSA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Unqualified Segment Search Argument (SSA) used in IMS GNP calls to retrieve pending authorization detail (child) segments under the current summary record. By specifying segment name 'PAUTDTL1' without qualification, it instructs IMS to return all detail records belonging to the current parent account in sequence.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">PAUTDTL1</td>
+      <td class="var-desc">The IMS segment name 'PAUTDTL1' identifying the pending authorization detail segment type in the database. This name tells IMS which segment definition to use when retrieving individual transaction-level authorization records during the GNP (Get-Next-within-Parent) calls.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">' '</td>
+      <td class="var-desc">Single space character that terminates the unqualified SSA for the detail segment, conforming to IMS SSA format requirements. The space signals to IMS that this is an unqualified SSA, meaning all detail records under the current parent account should be returned without key filtering.</td>
+    </tr>
+    
+    <tr id="var-PRM-INFO">
+      <td class="var-level">01</td>
+      <td class="var-name">PRM-INFO
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group record containing the input parameters passed to the unload program at execution time, including the authorization expiry threshold (P-EXPIRY-DAYS) and the IMS checkpoint frequency (P-CHKP-FREQ). These parameters control the behavior of the unload run without requiring program changes.</td>
+    </tr>
+    
+    <tr id="var-P-EXPIRY-DAYS">
+      <td class="var-level">05</td>
+      <td class="var-name">P-EXPIRY-DAYS
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Input parameter specifying the number of days after which a pending authorization is considered expired. For example, a value of 30 means any authorization older than 30 days is treated as stale. Used to define the business threshold for authorization aging and potential filtering during processing.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Delimiter or padding byte separating the expiry days parameter from the checkpoint frequency parameter in the input parameter string. Has no business meaning; serves only as a structural separator in the parameter record layout.</td>
+    </tr>
+    
+    <tr id="var-P-CHKP-FREQ">
+      <td class="var-level">05</td>
+      <td class="var-name">P-CHKP-FREQ
+        
+        
+      </td>
+      <td class="var-pic">PIC X(05)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Input parameter controlling how often the program takes an IMS checkpoint during the unload run. For example, a value of 00100 means a checkpoint is taken every 100 records processed. This supports restart and recovery: if the job fails mid-run, processing can resume from the last checkpoint rather than reprocessing the entire pending authorization database from the beginning.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Delimiter or padding byte separating the checkpoint frequency parameter from the checkpoint display frequency parameter in the input parameter string. Has no business meaning; serves only as a structural separator in the parameter record layout.</td>
+    </tr>
+    
+    <tr id="var-P-CHKP-DIS-FREQ">
+      <td class="var-level">05</td>
+      <td class="var-name">P-CHKP-DIS-FREQ
+        
+        
+      </td>
+      <td class="var-pic">PIC X(05)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Input parameter controlling how frequently progress statistics or checkpoint information are displayed (e.g., written to the job log) during the unload run. For example, a value of 00500 means a progress message is printed every 500 records. This gives operations staff visibility into how far along the unload job has progressed without waiting for it to complete.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Delimiter or padding byte separating the checkpoint display frequency parameter from the debug flag in the input parameter string. Has no business meaning; serves only as a structural separator in the parameter record layout.</td>
+    </tr>
+    
+    <tr id="var-P-DEBUG-FLAG">
+      <td class="var-level">05</td>
+      <td class="var-name">P-DEBUG-FLAG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Input parameter flag that controls whether the program runs in debug mode. When set to 'Y', additional diagnostic information (such as IMS call details, record counts, or intermediate processing steps) is written to the job log to assist developers or support staff in troubleshooting issues with the unload process. When set to 'N', the program runs silently in normal production mode.</td>
+    </tr>
+    
+    <tr id="var-DEBUG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">DEBUG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when debug mode is active (P-DEBUG-FLAG = 'Y'). When this condition is true, the program produces verbose diagnostic output to help operations or development staff trace the unload processing step by step — useful during testing or when investigating data issues in the pending authorization database.</td>
+    </tr>
+    
+    <tr id="var-DEBUG-OFF">
+      <td class="var-level">88</td>
+      <td class="var-name">DEBUG-OFF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when debug mode is inactive (P-DEBUG-FLAG = 'N'). When this condition is true, the program runs in standard production mode without generating extra diagnostic output, keeping the job log clean and processing at full speed.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Trailing delimiter or padding byte at the end of the input parameter string following the debug flag. Has no business meaning; serves only as a structural separator or end-of-record pad in the parameter record layout.</td>
+    </tr>
+    
+    <tr id="var-PENDING-AUTH-SUMMARY">
+      <td class="var-level">01</td>
+      <td class="var-name">PENDING-AUTH-SUMMARY
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Working storage record structure that holds one pending authorization summary record read from the IMS database. This represents the header-level information for a single credit card account's pending authorizations, including account ID, customer ID, credit and cash limits, balances, and counts of approved and declined authorizations. It is the root (parent) segment in the IMS hierarchy and is written to OPFILE1 during the unload. Its contents are defined by the CIPAUSMY copybook.</td>
+    </tr>
+    
+    <tr id="var-PENDING-AUTH-DETAILS">
+      <td class="var-level">01</td>
+      <td class="var-name">PENDING-AUTH-DETAILS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Working storage record structure that holds one pending authorization detail record read from the IMS database. This represents a single individual transaction-level authorization entry linked to a parent summary account record, containing information such as authorization date and time, card number, transaction amount, approval status, merchant category, and response codes. It is the child segment in the IMS hierarchy and is written to OPFILE2 (along with the parent account ID key) during the unload. Its contents are defined by the CIPAUDTY copybook.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/app-authorization-ims-db2-mq/cbl/PAUDBUNL.CBL
+  </footer>
+
+</main>
+</body>
+</html>

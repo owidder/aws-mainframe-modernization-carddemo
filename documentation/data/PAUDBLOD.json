@@ -1,0 +1,4292 @@
+{
+  "meta": {
+    "program_name": "PAUDBLOD",
+    "file_path": "app/app-authorization-ims-db2-mq/cbl/PAUDBLOD.CBL",
+    "analyzed_at": "2026-05-02T18:45:44.061619",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Laden (Load) von ausstehenden Autorisierungsdaten aus sequentiellen Dateien in die IMS-Datenbank zur Wiederherstellung oder Initialbefüllung der Pending-Authorization-Datenbank.",
+    "process_description": "Das Programm PAUDBLOD ist das Gegenstück zum Entlade-Programm PAUDBUNL und liest zwei sequentielle Eingabedateien: eine mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente) und eine mit Autorisierungs-Detaildatensätzen (Child-Segmente). Zunächst werden alle Root-Segmente (Autorisierungs-Summaries je Konto) sequentiell gelesen und als übergeordnete Segmente in die IMS-Datenbank eingefügt. Anschließend werden alle Child-Segmente (Autorisierungs-Details) gelesen, wobei für jeden Detailsatz zunächst der zugehörige Root-Datensatz per Konto-ID in der IMS-Datenbank gesucht und dann der Detailsatz als untergeordnetes Segment eingefügt wird. Bereits vorhandene Datensätze (Duplikate) werden toleriert und protokolliert, ohne einen Abbruch auszulösen.",
+    "type": "Batch",
+    "module": "Authentication",
+    "files": {
+      "INFILE1": "Sequentielle Eingabedatei mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, PAUTSUM0) je Kreditkartenkonto",
+      "INFILE2": "Sequentielle Eingabedatei mit Autorisierungs-Detaildatensätzen (Child-Segmente, PAUTDTL1) mit Konto-ID als Schlüssel und Detaildaten zur einzelnen Autorisierung"
+    },
+    "business_rules": [
+      "Root-Segmente (Autorisierungs-Summaries) müssen vor den Child-Segmenten (Autorisierungs-Details) in die IMS-Datenbank geladen werden, da die hierarchische IMS-Struktur dies erfordert.",
+      "Für jeden Child-Datensatz muss der zugehörige Root-Datensatz anhand der Konto-ID (ACCNTID) in der IMS-Datenbank auffindbar sein, bevor der Detail-Datensatz eingefügt werden kann.",
+      "Duplikate (Status 'II' = Duplicate Segment) werden bei Root- und Child-Segmenten toleriert und protokolliert, führen aber nicht zum Programmabbruch – dies ermöglicht idempotente Wiederholungsläufe.",
+      "Child-Datensätze mit nicht-numerischer Konto-ID werden übersprungen und nicht in die Datenbank geladen.",
+      "Jeder andere Datenbankfehler (außer Duplikat und Erfolg) führt zu einem sofortigen Programmabbruch (ABEND), um Datenkonsistenz zu gewährleisten.",
+      "Das Programm arbeitet im IMS-Batch-Modus mit PSB-Scheduling und unterstützt Checkpoint/Restart-Mechanismen für die Wiederanlaufbarkeit bei Fehlern."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "IMSFUNCS",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "PAUTBPCB"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "PAUDBUNL",
+        "DBUNLDGS"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "       IDENTIFICATION DIVISION.                                         00010026",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "       PROGRAM-ID. PAUDBLOD.                                            00020053",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "       AUTHOR.     AWS.                                                 00030026",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "                                                                        00040026",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "       ENVIRONMENT DIVISION.                                            00050026",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       CONFIGURATION SECTION.                                           00060026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "                                                                        00070026",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       INPUT-OUTPUT SECTION.                                            00080026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "       FILE-CONTROL.                                                    00090026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "           SELECT INFILE1 ASSIGN TO INFILE1                             00100053",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "           ORGANIZATION IS SEQUENTIAL                                   00110026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "           ACCESS MODE  IS SEQUENTIAL                                   00120026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "           FILE STATUS IS WS-INFIL1-STATUS.                             00130053",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                                                                        00140026",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                                                                 00150026",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "           SELECT INFILE2 ASSIGN TO INFILE2                             00151053",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "           ORGANIZATION IS SEQUENTIAL                                   00152026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "           ACCESS MODE  IS SEQUENTIAL                                   00153026",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "           FILE STATUS IS WS-INFIL2-STATUS.                             00154053",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "                                                                        00155026",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "      *                                                                 00156026",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "      *----------------------------------------------------------------*00160026",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "       DATA DIVISION.                                                   00170026",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "      *----------------------------------------------------------------*00180026",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "      *                                                                 00190026",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "       FILE SECTION.                                                    00200026",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "       FD INFILE1.                                                      00210053",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "       01 INFIL1-REC                    PIC X(100).                     00220053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "       FD INFILE2.                                                      00221053",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "       01 INFIL2-REC.                                                   00222053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "          05 ROOT-SEG-KEY               PIC S9(11) COMP-3.              00223036",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "          05 CHILD-SEG-REC              PIC X(200).                     00224036",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "      *                                                                 00230026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "      *----------------------------------------------------------------*00240026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "       WORKING-STORAGE SECTION.                                         00250026",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "      *----------------------------------------------------------------*00260026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       01 WS-VARIABLES.                                                 00270026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'IMSUNLOD'.      00280026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "         05 CURRENT-DATE               PIC 9(06).                       00290026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "         05 CURRENT-YYDDD              PIC 9(05).                       00300026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "         05 WS-AUTH-DATE               PIC 9(05).                       00310026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "         05 WS-EXPIRY-DAYS             PIC S9(4) COMP.                  00320026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "         05 WS-DAY-DIFF                PIC S9(4) COMP.                  00330026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "         05 IDX                        PIC S9(4) COMP.                  00340026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "         05 WS-CURR-APP-ID             PIC 9(11).                       00350026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "      *                                                                 00360026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "         05 WS-NO-CHKP                 PIC  9(8) VALUE 0.               00370026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "         05 WS-AUTH-SMRY-PROC-CNT      PIC  9(8) VALUE 0.               00380026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "         05 WS-TOT-REC-WRITTEN         PIC S9(8) COMP VALUE 0.          00390026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "         05 WS-NO-SUMRY-READ           PIC S9(8) COMP VALUE 0.          00400026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "         05 WS-NO-SUMRY-DELETED        PIC S9(8) COMP VALUE 0.          00410026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "         05 WS-NO-DTL-READ             PIC S9(8) COMP VALUE 0.          00420026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "         05 WS-NO-DTL-DELETED          PIC S9(8) COMP VALUE 0.          00430026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "      *                                                                 00440026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.             00450026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.             00460026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.             00470026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "         05 WS-END-OF-AUTHDB-FLAG      PIC X(01) VALUE 'N'.             00480026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "           88 END-OF-AUTHDB                      VALUE 'Y'.             00490026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "           88 NOT-END-OF-AUTHDB                  VALUE 'N'.             00500026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "         05 WS-MORE-AUTHS-FLAG         PIC X(01) VALUE 'N'.             00510026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "           88 MORE-AUTHS                         VALUE 'Y'.             00520026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "           88 NO-MORE-AUTHS                      VALUE 'N'.             00530026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "         05 WS-END-OF-INFILE1          PIC X(01) VALUE SPACES.          00540053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "         05 WS-END-OF-INFILE2          PIC X(01) VALUE SPACES.          00550053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "         05 WS-INFILE-STATUS           PIC X(02) VALUE SPACES.          00570026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "         05 WS-INFIL1-STATUS           PIC X(02) VALUE SPACES.          00571053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "         05 WS-INFIL2-STATUS           PIC X(02) VALUE SPACES.          00572053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "         05 END-ROOT-SEG-FILE          PIC X(01) VALUE SPACES.          00573053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "         05 END-CHILD-SEG-FILE         PIC X(01) VALUE SPACES.          00574053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "         05 WS-CUSTID-STATUS           PIC X(02) VALUE SPACES.          00580026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "            88 END-OF-FILE                       VALUE '10'.            00590026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "      *                                                                 00600026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "         05 WK-CHKPT-ID.                                                00610026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "            10  FILLER              PIC  X(04) VALUE 'RMAD'.            00620026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "            10  WK-CHKPT-ID-CTR     PIC  9(04) VALUE ZEROES.            00630026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "      *                                                                 00640026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "       01 WS-IMS-VARIABLES.                                             00650026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "      *   05 PSB-NAME                        PIC X(8) VALUE 'IMSUNLOD'. 00660042",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "      *   05 PCB-OFFSET.                                                00670042",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "      *      10 PAUT-PCB-NUM                 PIC S9(4) COMP VALUE +2.   00680042",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "          05 IMS-RETURN-CODE                 PIC X(02).                 00690026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "             88 STATUS-OK                    VALUE '  ', 'FW'.          00700026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "             88 SEGMENT-NOT-FOUND            VALUE 'GE'.                00710026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "             88 DUPLICATE-SEGMENT-FOUND      VALUE 'II'.                00720026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "             88 WRONG-PARENTAGE              VALUE 'GP'.                00730026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "             88 END-OF-DB                    VALUE 'GB'.                00740026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 104,
+      "code": "             88 DATABASE-UNAVAILABLE         VALUE 'BA'.                00750026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "             88 PSB-SCHEDULED-MORE-THAN-ONCE VALUE 'TC'.                00760026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 106,
+      "code": "             88 COULD-NOT-SCHEDULE-PSB       VALUE 'TE'.                00770026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "             88 RETRY-CONDITION              VALUE 'BA', 'FH', 'TE'.    00780026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "          05 WS-IMS-PSB-SCHD-FLG             PIC X(1).                  00790026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "             88  IMS-PSB-SCHD                VALUE 'Y'.                 00800026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "             88  IMS-PSB-NOT-SCHD            VALUE 'N'.                 00810026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "                                                                        00820026",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 112,
+      "code": "      *                                                                 00830026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "       01 ROOT-QUAL-SSA.                                                00831053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 114,
+      "code": "          05 QUAL-SSA-SEG-NAME      PIC X(08) VALUE 'PAUTSUM0'.         00831153",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "          05 FILLER                 PIC X(01) VALUE '('.                00831253",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "          05 QUAL-SSA-KEY-FIELD     PIC X(08) VALUE 'ACCNTID '.         00831354",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "          05 QUAL-SSA-REL-OPER      PIC X(02) VALUE 'EQ'.               00831454",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "          05 QUAL-SSA-KEY-VALUE     PIC S9(11) COMP-3.                  00831553",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "          05 FILLER                 PIC X(01) VALUE ')'.                00831653",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 120,
+      "code": "      *                                                                 00831753",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 121,
+      "code": "       01 ROOT-UNQUAL-SSA.                                              00831853",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 122,
+      "code": "          05 FILLER                 PIC X(08) VALUE 'PAUTSUM0'.         00831953",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 123,
+      "code": "          05 FILLER                 PIC X(01) VALUE ' '.                00832053",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 124,
+      "code": "      *                                                                 00832153",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 125,
+      "code": "       01 CHILD-UNQUAL-SSA.                                             00832253",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "          05 FILLER                 PIC X(08) VALUE 'PAUTDTL1'.         00832353",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 127,
+      "code": "          05 FILLER                 PIC X(01) VALUE ' '.                00832453",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 128,
+      "code": "      *                                                                 00833029",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 129,
+      "code": "       01 PRM-INFO.                                                     00840026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 130,
+      "code": "          05 P-EXPIRY-DAYS          PIC 9(02).                          00850026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "          05 FILLER                 PIC X(01).                          00860026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "          05 P-CHKP-FREQ            PIC X(05).                          00870026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "          05 FILLER                 PIC X(01).                          00880026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "          05 P-CHKP-DIS-FREQ        PIC X(05).                          00890026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "          05 FILLER                 PIC X(01).                          00900026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "          05 P-DEBUG-FLAG           PIC X(01).                          00910026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 137,
+      "code": "             88 DEBUG-ON            VALUE 'Y'.                          00920026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "             88 DEBUG-OFF           VALUE 'N'.                          00930026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 139,
+      "code": "          05 FILLER                 PIC X(01).                          00940026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "      *                                                                 00950026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "      *                                                                 00960026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "       COPY IMSFUNCS.                                                   00961032",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "      *----------------------------------------------------------------*00970026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "      *  IMS SEGMENT LAYOUT                                             00980026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "      *----------------------------------------------------------------*00990026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "                                                                        01000026",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "      *- PENDING AUTHORIZATION SUMMARY SEGMENT - ROOT                   01010026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 148,
+      "code": "       01 PENDING-AUTH-SUMMARY.                                         01020026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "       COPY CIPAUSMY.                                                   01030026",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 150,
+      "code": "                                                                        01040026",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "      *- PENDING AUTHORIZATION DETAILS SEGMENT - CHILD                  01050026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "       01 PENDING-AUTH-DETAILS.                                         01060026",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 153,
+      "code": "       COPY CIPAUDTY.                                                   01070026",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "                                                                        01080026",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 155,
+      "code": "      *                                                                 01090026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 156,
+      "code": "      *----------------------------------------------------------------*01100026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 157,
+      "code": "       LINKAGE SECTION.                                                 01110026",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 158,
+      "code": "      *----------------------------------------------------------------*01120026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 159,
+      "code": "      * PCB MASKS FOLLOW                                                01130026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "       01 IO-PCB-MASK   PIC X(1).                                       01131057",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "       COPY PAUTBPCB.                                                   01140027",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 162,
+      "code": "      *                                                                 01160026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 163,
+      "code": "      *----------------------------------------------------------------*01170026",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "       PROCEDURE DIVISION                  USING IO-PCB-MASK            01180057",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 165,
+      "code": "                                                 PAUTBPCB.              01181056",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 166,
+      "code": "      *                                          PGM-PCB-MASK.          01190028",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 167,
+      "code": "      *----------------------------------------------------------------*01200026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 168,
+      "code": "      *                                                                 01210026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 169,
+      "code": "       MAIN-PARA.                                                       01220026",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss."
+    },
+    {
+      "number": 170,
+      "code": "      *     DISPLAY 'CHECK PROG PCB:' PAUTBPCB.                         01222039",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 171,
+      "code": "            ENTRY 'DLITCBL'                 USING PAUTBPCB.             01225033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Registriert das Programm beim IMS-Laufzeitsystem und stellt die Verbindung zur Pending-Authorization-Datenbank über den Programm-Kommunikationsblock (PCB) her."
+    },
+    {
+      "number": 172,
+      "code": "                                                                        01226029",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "            DISPLAY 'STARTING PAUDBLOD'.                                01227053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Protokolliert den Programmstart von PAUDBLOD im Systemlog zur Nachvollziehbarkeit des Batch-Laufs."
+    },
+    {
+      "number": 174,
+      "code": "      *                                                                 01230026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "           PERFORM 1000-INITIALIZE                THRU 1000-EXIT        01240026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Führt alle Vorbereitungsschritte durch: Öffnen der Eingabedateien, Initialisierung der Zähler und Steuerungsparameter für den Ladevorgang."
+    },
+    {
+      "number": 176,
+      "code": "      *                                                                 01250026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "           PERFORM 2000-READ-ROOT-SEG-FILE        THRU 2000-EXIT        01260053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Lädt alle Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) aus der Eingabedatei sequentiell in die IMS-Datenbank – Konto für Konto, bis alle Summary-Datensätze verarbeitet sind."
+    },
+    {
+      "number": 178,
+      "code": "           UNTIL   END-ROOT-SEG-FILE  = 'Y'                             01280053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Steuert die Verarbeitungsschleife für Root-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Summary-Eingabedatei erreicht ist."
+    },
+    {
+      "number": 179,
+      "code": "                                                                        01281053",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 180,
+      "code": "           PERFORM 3000-READ-CHILD-SEG-FILE       THRU 3000-EXIT        01290058",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Lädt alle Autorisierungs-Detaildatensätze (Child-Segmente) aus der Eingabedatei in die IMS-Datenbank, jeweils dem zugehörigen Konto-Root-Segment untergeordnet."
+    },
+    {
+      "number": 181,
+      "code": "           UNTIL   END-CHILD-SEG-FILE = 'Y'                             01300053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Steuert die Verarbeitungsschleife für Child-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Detail-Eingabedatei erreicht ist."
+    },
+    {
+      "number": 182,
+      "code": "                                                                        01531150",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 183,
+      "code": "           PERFORM 4000-FILE-CLOSE THRU 4000-EXIT                       01532030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Schließt alle Eingabedateien ordnungsgemäß und gibt die belegten Ressourcen frei, nachdem alle Autorisierungsdaten in die IMS-Datenbank geladen wurden."
+    },
+    {
+      "number": 184,
+      "code": "      *                                                                 01540026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 185,
+      "code": "      *                                                                 01560026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 186,
+      "code": "      *                                                                 01650026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 187,
+      "code": "           GOBACK.                                                      01660026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Beendet das Ladeprogramm geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück."
+    },
+    {
+      "number": 188,
+      "code": "      *                                                                 01670026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 189,
+      "code": "      *----------------------------------------------------------------*01680026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "       1000-INITIALIZE.                                                 01690026",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden."
+    },
+    {
+      "number": 191,
+      "code": "      *----------------------------------------------------------------*01700026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "      *                                                                 01710026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 193,
+      "code": "           ACCEPT CURRENT-DATE     FROM DATE                            01720026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Ermittelt das aktuelle Tagesdatum (JJMMTT) als Referenzdatum für die Verarbeitung der Autorisierungsdaten."
+    },
+    {
+      "number": 194,
+      "code": "           ACCEPT CURRENT-YYDDD    FROM DAY                             01730026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Ermittelt das aktuelle Datum im Julianischen Format (JJDDD) für die spätere Berechnung des Ablaufalters ausstehender Autorisierungen."
+    },
+    {
+      "number": 195,
+      "code": "                                                                        01740026",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "           DISPLAY '*-------------------------------------*'            01770026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Gibt eine optische Trennlinie im Verarbeitungsprotokoll aus, um den Beginn des Ladelaufs klar zu kennzeichnen."
+    },
+    {
+      "number": 197,
+      "code": "           DISPLAY 'TODAYS DATE            :' CURRENT-DATE              01790043",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Protokolliert das aktuelle Verarbeitungsdatum im Batch-Log zur Nachvollziehbarkeit und Revisionssicherheit des Ladelaufs."
+    },
+    {
+      "number": 198,
+      "code": "           DISPLAY ' '                                                  01800026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Fügt eine Leerzeile im Protokoll ein zur besseren Lesbarkeit des Verarbeitungsprotokolls."
+    },
+    {
+      "number": 199,
+      "code": "                                                                        01810026",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 200,
+      "code": "           .                                                            01960026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 201,
+      "code": "           OPEN INPUT  INFILE1                                          01961054",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente je Kreditkartenkonto) für die Verarbeitung."
+    },
+    {
+      "number": 202,
+      "code": "           IF WS-INFIL1-STATUS =  SPACES OR '00'                        01962053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Summaries erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg)."
+    },
+    {
+      "number": 203,
+      "code": "              CONTINUE                                                  01963028",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Summaries fehlerfrei geöffnet wurde."
+    },
+    {
+      "number": 204,
+      "code": "           ELSE                                                         01964028",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Fehlerbehandlung: Die Datei mit den Autorisierungs-Summaries konnte nicht geöffnet werden."
+    },
+    {
+      "number": 205,
+      "code": "              DISPLAY 'ERROR IN OPENING INFILE1:' WS-INFIL1-STATUS      01965053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Summary-Datei zur Fehlerdiagnose."
+    },
+    {
+      "number": 206,
+      "code": "              PERFORM 9999-ABEND                                        01966028",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Bricht den Ladelauf sofort ab, da ohne die Summary-Eingabedatei keine Root-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist."
+    },
+    {
+      "number": 207,
+      "code": "           END-IF                                                       01967028",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 208,
+      "code": "      *                                                                 01968028",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 209,
+      "code": "           OPEN INPUT INFILE2                                           01969054",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente je Einzelautorisierung) für die Verarbeitung."
+    },
+    {
+      "number": 210,
+      "code": "           IF WS-INFIL2-STATUS =  SPACES OR '00'                        01969153",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Details erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg)."
+    },
+    {
+      "number": 211,
+      "code": "              CONTINUE                                                  01969228",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Details fehlerfrei geöffnet wurde."
+    },
+    {
+      "number": 212,
+      "code": "           ELSE                                                         01969328",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Fehlerbehandlung: Die Datei mit den Autorisierungs-Details konnte nicht geöffnet werden."
+    },
+    {
+      "number": 213,
+      "code": "              DISPLAY 'ERROR IN OPENING INFILE2:' WS-INFIL2-STATUS      01969453",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Detail-Datei zur Fehlerdiagnose."
+    },
+    {
+      "number": 214,
+      "code": "              PERFORM 9999-ABEND                                        01969528",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Bricht den Ladelauf sofort ab, da ohne die Detail-Eingabedatei keine Child-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist."
+    },
+    {
+      "number": 215,
+      "code": "           END-IF.                                                      01969634",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 216,
+      "code": "      *                                                                 01969728",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 217,
+      "code": "      *                                                                 01970026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 218,
+      "code": "       1000-EXIT.                                                       01980026",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-EXIT",
+      "explanation": "Markiert das Ende des Initialisierungsabschnitts – alle Vorbereitungen für den IMS-Datenbanklade-Prozess (PSB-Scheduling, Dateiöffnung, Parameterübernahme) sind abgeschlossen."
+    },
+    {
+      "number": 219,
+      "code": "            EXIT.                                                       01990026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-EXIT",
+      "explanation": "Gibt die Programmsteuerung an den aufrufenden Ablaufabschnitt zurück, sodass der eigentliche Ladeprozess der Autorisierungsdaten beginnen kann."
+    },
+    {
+      "number": 220,
+      "code": "      *                                                                 02000026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 221,
+      "code": "      *----------------------------------------------------------------*02010026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 222,
+      "code": "       2000-READ-ROOT-SEG-FILE.                                         02020053",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende."
+    },
+    {
+      "number": 223,
+      "code": "      *----------------------------------------------------------------*02030026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 224,
+      "code": "      *                                                                 02040026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 225,
+      "code": "      *     DISPLAY 'IN 2000 READ ROOT SEG FILE PARA'                   02041061",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Auskommentierte Diagnoseausgabe zur Laufzeitverfolgung des Lesevorgangs (nur bei Fehleranalyse aktiviert)."
+    },
+    {
+      "number": 226,
+      "code": "            READ INFILE1                                                02042053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Liest den nächsten Autorisierungs-Zusammenfassungsdatensatz (Summary/Root-Segment) eines Kreditkartenkontos aus der sequentiellen Eingabedatei."
+    },
+    {
+      "number": 227,
+      "code": "                                                                        02042153",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "            IF WS-INFIL1-STATUS =  SPACES OR '00'                       02042253",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Prüft, ob der Lesevorgang erfolgreich war – ein Leerzeichen oder '00' signalisiert einen fehlerfreien Datensatz, der weiterverarbeitet werden kann."
+    },
+    {
+      "number": 229,
+      "code": "               MOVE INFIL1-REC TO PENDING-AUTH-SUMMARY                  02042353",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Überträgt den gelesenen Datensatz in die Arbeitsstruktur für Autorisierungs-Zusammenfassungen, um ihn für den IMS-Datenbankzugriff vorzubereiten."
+    },
+    {
+      "number": 230,
+      "code": "               PERFORM 2100-INSERT-ROOT-SEG THRU 2100-EXIT              02042454",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Löst das Einfügen des Autorisierungs-Summary-Datensatzes als Root-Segment in die IMS-Datenbank aus (Unterroutine 2100)."
+    },
+    {
+      "number": 231,
+      "code": "            ELSE                                                        02042553",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 232,
+      "code": "               IF WS-INFIL1-STATUS = '10'                               02042653",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Prüft, ob das Dateiende der Root-Segment-Eingabedatei erreicht wurde (Status '10' = End of File)."
+    },
+    {
+      "number": 233,
+      "code": "                  MOVE 'Y' TO END-ROOT-SEG-FILE                         02042753",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Setzt das Steuerungskennzeichen 'Dateiende erreicht', damit die übergeordnete Verarbeitungsschleife die Lese-Phase für Root-Segmente ordnungsgemäß beendet."
+    },
+    {
+      "number": 234,
+      "code": "               ELSE                                                     02042853",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 235,
+      "code": "                  DISPLAY 'ERROR READING ROOT SEG INFILE'               02042953",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": "Gibt eine Fehlermeldung aus, wenn ein unerwarteter Lesefehler bei der Autorisierungs-Summary-Datei aufgetreten ist (weder Erfolg noch Dateiende)."
+    },
+    {
+      "number": 236,
+      "code": "               END-IF                                                   02043053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 237,
+      "code": "            END-IF.                                                     02043153",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 238,
+      "code": "                                                                        02043253",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-READ-ROOT-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 239,
+      "code": "       2000-EXIT.                                                       02043353",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-EXIT",
+      "explanation": "Markiert das Ende der Verarbeitungsroutine für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+    },
+    {
+      "number": 240,
+      "code": "            EXIT.                                                       02043453",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-EXIT",
+      "explanation": "Schließt die Root-Segment-Ladeschleife ab und gibt die Kontrolle an den übergeordneten Steuerungsablauf zurück."
+    },
+    {
+      "number": 241,
+      "code": "                                                                        02043553",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 242,
+      "code": "       2100-INSERT-ROOT-SEG.                                            02043653",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden."
+    },
+    {
+      "number": 243,
+      "code": "                                                                        02043753",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 244,
+      "code": "            CALL 'CBLTDLI'       USING  FUNC-ISRT                       02070053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Fügt den Autorisierungs-Summaryeintrag des Kreditkartenkontos als Root-Segment in die IMS-Pending-Authorization-Datenbank ein."
+    },
+    {
+      "number": 245,
+      "code": "                                        PAUTBPCB                        02080029",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Verwendet den konfigurierten IMS-Datenbankzugriffspfad (PCB) für die Pending-Authorization-Datenbank."
+    },
+    {
+      "number": 246,
+      "code": "                                        PENDING-AUTH-SUMMARY            02090029",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Übergibt die Autorisierungs-Zusammenfassungsdaten (Kontostand ausstehender Autorisierungen) als einzufügenden Datensatz."
+    },
+    {
+      "number": 247,
+      "code": "                                        ROOT-UNQUAL-SSA.                02100053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Adressiert das Root-Segment ohne Qualifizierung, da kein übergeordnetes Segment existiert – der Eintrag wird auf oberster Hierarchieebene angelegt."
+    },
+    {
+      "number": 248,
+      "code": "            DISPLAY ' *******************************'                  02130040",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe."
+    },
+    {
+      "number": 249,
+      "code": "      *     DISPLAY ' AFTER THE ROOT SEG INSERT CALL '                  02130167",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Deaktivierte Diagnoseausgabe: Würde im Debug-Betrieb den Zeitpunkt nach dem Einfügeversuch im Protokoll kennzeichnen."
+    },
+    {
+      "number": 250,
+      "code": "      *     DISPLAY 'PCB STATU: ' PAUT-PCB-STATUS                       02133067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Deaktivierte Diagnoseausgabe: Würde den IMS-Rückgabestatus nach dem Einfügeversuch für Fehleranalysen protokollieren."
+    },
+    {
+      "number": 251,
+      "code": "      *     DISPLAY 'SEG NAME : ' PAUT-SEG-NAME                         02135067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Deaktivierte Diagnoseausgabe: Würde den Namen des betroffenen IMS-Segments zur Nachvollziehbarkeit im Fehlerfall ausgeben."
+    },
+    {
+      "number": 252,
+      "code": "            DISPLAY ' *******************************'                  02138053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe."
+    },
+    {
+      "number": 253,
+      "code": "            IF PAUT-PCB-STATUS = SPACES                                 02140053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Prüft, ob der Autorisierungs-Summaryeintrag erfolgreich in die Datenbank geschrieben wurde (leerer Status = Erfolg)."
+    },
+    {
+      "number": 254,
+      "code": "               DISPLAY 'ROOT INSERT SUCCESS    '                        02160053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Protokolliert die erfolgreiche Neuanlage des Konto-Summaryeintrags in der Pending-Authorization-Datenbank."
+    },
+    {
+      "number": 255,
+      "code": "            END-IF                                                      02191053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Abschluss der Erfolgsprüfung."
+    },
+    {
+      "number": 256,
+      "code": "            IF PAUT-PCB-STATUS = 'II'                                   02192053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Prüft, ob der Autorisierungs-Summaryeintrag für dieses Konto bereits in der Datenbank vorhanden ist (Duplikat-Erkennung)."
+    },
+    {
+      "number": 257,
+      "code": "               DISPLAY 'ROOT SEGMENT ALREADY IN DB'                     02194153",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Protokolliert, dass der Konto-Summaryeintrag bereits existiert – der Datensatz wird übersprungen, ohne die Verarbeitung zu unterbrechen."
+    },
+    {
+      "number": 258,
+      "code": "            END-IF                                                      02197053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Abschluss der Duplikat-Prüfung."
+    },
+    {
+      "number": 259,
+      "code": "            IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'            02200053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler beim Einfügen des Konto-Summaryeintrags aufgetreten ist (weder Erfolg noch Duplikat)."
+    },
+    {
+      "number": 260,
+      "code": "                  DISPLAY 'ROOT INSERT FAILED  :' PAUT-PCB-STATUS       02230053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Protokolliert den IMS-Fehlercode, um die Ursache des fehlgeschlagenen Einfügevorgangs für die Fehleranalyse festzuhalten."
+    },
+    {
+      "number": 261,
+      "code": "                  PERFORM 9999-ABEND                                    02260053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Löst einen kontrollierten Programmabbruch aus, um Datenbankinkonsistenzen durch einen unvollständigen Ladevorgang zu verhindern."
+    },
+    {
+      "number": 262,
+      "code": "            END-IF                                                      02270053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Abschluss der Fehlerbehandlung für kritische Datenbankfehler."
+    },
+    {
+      "number": 263,
+      "code": "            .                                                           02271053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-INSERT-ROOT-SEG",
+      "explanation": "Abschluss des Paragraphen."
+    },
+    {
+      "number": 264,
+      "code": "       2100-EXIT.                                                       02280053",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-EXIT",
+      "explanation": "Abschlusspunkt des Verarbeitungsabschnitts für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+    },
+    {
+      "number": 265,
+      "code": "            EXIT.                                                       02290053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-EXIT",
+      "explanation": "Beendet den Verarbeitungsabschnitt und gibt die Steuerung an den aufrufenden Programmablauf zurück, sodass der nächste Prozessschritt (z. B. Laden der Child-Segmente) eingeleitet werden kann."
+    },
+    {
+      "number": 266,
+      "code": "      *                                                                 02310026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 267,
+      "code": "      *                                                                 02320026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 268,
+      "code": "      *----------------------------------------------------------------*02330026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-EXIT",
+      "explanation": "Trennlinie zur strukturellen Abgrenzung dieses Verarbeitungsabschnitts vom nachfolgenden Programmabschnitt."
+    },
+    {
+      "number": 269,
+      "code": "       3000-READ-CHILD-SEG-FILE.                                        02340053",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt."
+    },
+    {
+      "number": 270,
+      "code": "      *----------------------------------------------------------------*02350026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 271,
+      "code": "      *     DISPLAY 'IN 3000 READ CHILD SEG FILE PARA'                  02351067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 272,
+      "code": "            READ INFILE2                                                02352053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Liest den nächsten Autorisierungs-Detaildatensatz (Child-Segment) aus der sequentiellen Eingabedatei INFILE2."
+    },
+    {
+      "number": 273,
+      "code": "                                                                        02353053",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 274,
+      "code": "            IF WS-INFIL2-STATUS =  SPACES OR '00'                       02354053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Prüft, ob der Lesevorgang erfolgreich war – d.h. ob ein gültiger Autorisierungs-Detaildatensatz zur Verarbeitung bereitsteht."
+    },
+    {
+      "number": 275,
+      "code": "               IF ROOT-SEG-KEY IS NUMERIC                               02354162",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Prüft, ob die Konto-ID des gelesenen Detaildatensatzes numerisch und damit fachlich gültig ist – Datensätze mit ungültiger Konto-ID werden übersprungen."
+    },
+    {
+      "number": 276,
+      "code": "      *        DISPLAY 'GNGTO ROOT SEG KEY'                             02355067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 277,
+      "code": "               MOVE ROOT-SEG-KEY  TO QUAL-SSA-KEY-VALUE                 02355260",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Überträgt die Konto-ID des Detaildatensatzes als Suchschlüssel, um den zugehörigen Root-Datensatz (Autorisierungs-Summary) in der IMS-Datenbank zu lokalisieren."
+    },
+    {
+      "number": 278,
+      "code": "      *        DISPLAY 'ROOT-SEG-KEY : '    QUAL-SSA-KEY-VALUE          02355367",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 279,
+      "code": "      *        DISPLAY 'MOVED ROOT SEG KEY'                             02355467",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 280,
+      "code": "               MOVE CHILD-SEG-REC TO PENDING-AUTH-DETAILS               02355562",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Überträgt den gelesenen Autorisierungs-Detaildatensatz in die IMS-Segmentstruktur für die Datenbankeinlagerung."
+    },
+    {
+      "number": 281,
+      "code": "               PERFORM 3100-INSERT-CHILD-SEG THRU 3100-EXIT             02356054",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Startet die Einfügung des Autorisierungs-Detaildatensatzes als untergeordnetes Child-Segment unter dem zugehörigen Konto-Root-Segment in der IMS-Datenbank."
+    },
+    {
+      "number": 282,
+      "code": "               END-IF                                                   02356162",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 283,
+      "code": "            ELSE                                                        02357053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 284,
+      "code": "               IF WS-INFIL2-STATUS = '10'                               02358053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Prüft, ob das Ende der Detaildatei erreicht wurde (Dateiende-Statuscode '10'), um die Verarbeitungsschleife regulär zu beenden."
+    },
+    {
+      "number": 285,
+      "code": "                  MOVE 'Y' TO END-CHILD-SEG-FILE                        02359053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Setzt das Steuerungskennzeichen für das Dateiende der Detaildatei, damit die übergeordnete Verarbeitungsschleife die Einlesephase für Child-Segmente ordnungsgemäß abschließt."
+    },
+    {
+      "number": 286,
+      "code": "               ELSE                                                     02359153",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 287,
+      "code": "                  DISPLAY 'ERROR READING CHILD SEG INFILE'              02359253",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": "Protokolliert einen unerwarteten Lesefehler auf der Detaildatei zur Fehlerdiagnose – dieser Zustand deutet auf ein technisches Problem beim Zugriff auf die Autorisierungs-Detaildaten hin."
+    },
+    {
+      "number": 288,
+      "code": "               END-IF                                                   02359353",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 289,
+      "code": "            END-IF.                                                     02359453",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-CHILD-SEG-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 290,
+      "code": "       3000-EXIT.                                                       02359553",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-EXIT",
+      "explanation": "Markiert das Ende der Verarbeitungsgruppe für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+    },
+    {
+      "number": 291,
+      "code": "            EXIT.                                                       02359653",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-EXIT",
+      "explanation": "Gibt die Kontrolle an den aufrufenden Ablaufabschnitt zurück, sodass die Batch-Verarbeitung mit dem nächsten Verarbeitungsschritt (z. B. Checkpoint-Prüfung oder nächster Datensatz) fortgesetzt werden kann."
+    },
+    {
+      "number": 292,
+      "code": "       3100-INSERT-CHILD-SEG.                                           02359753",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird."
+    },
+    {
+      "number": 293,
+      "code": "      *                                                                 02360026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 294,
+      "code": "      *     DISPLAY 'IN 3100 INSERT CHILD SEG PARA'                     02361061",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 295,
+      "code": "            INITIALIZE PAUT-PCB-STATUS                                  02362058",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Setzt den IMS-Statuscode zurück, um eine saubere Fehlerauswertung für den nachfolgenden Datenbankzugriff sicherzustellen."
+    },
+    {
+      "number": 296,
+      "code": "            CALL 'CBLTDLI'       USING  FUNC-GU                         02370053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Sucht in der IMS-Datenbank den Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) des Kontos, der als übergeordneter Eintrag für den einzufügenden Detaildatensatz benötigt wird."
+    },
+    {
+      "number": 297,
+      "code": "                                        PAUTBPCB                        02380030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Referenziert den IMS-Programm-Kommunikationsblock (PCB) der Pending-Authorization-Datenbank für diesen Datenbankzugriff."
+    },
+    {
+      "number": 298,
+      "code": "                                        PENDING-AUTH-SUMMARY            02390053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Gibt den Zielbereich im Arbeitsspeicher an, in den der gefundene Autorisierungs-Zusammenfassungsdatensatz des Kontos geladen wird."
+    },
+    {
+      "number": 299,
+      "code": "                                        ROOT-QUAL-SSA.                  02400053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Übergibt die Konto-ID als qualifizierten Suchschlüssel, um gezielt den Root-Datensatz des richtigen Kreditkartenkontos zu lokalisieren."
+    },
+    {
+      "number": 300,
+      "code": "               DISPLAY '***************************'                    02401043",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle."
+    },
+    {
+      "number": 301,
+      "code": "      *        DISPLAY ' AFTER ROOT SEG GU CALL    '                    02402067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 302,
+      "code": "      *        DISPLAY 'PCB STATU: ' PAUT-PCB-STATUS                    02410067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 303,
+      "code": "      *        DISPLAY 'SEG NAME : ' PAUT-SEG-NAME                      02411067",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 304,
+      "code": "               DISPLAY '***************************'                    02412043",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle."
+    },
+    {
+      "number": 305,
+      "code": "               IF PAUT-PCB-STATUS = SPACES                              02420030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Prüft, ob der Autorisierungs-Zusammenfassungsdatensatz des Kontos erfolgreich in der IMS-Datenbank gefunden wurde (leerer Statuscode = Erfolg)."
+    },
+    {
+      "number": 306,
+      "code": "                  DISPLAY 'GU CALL TO ROOT SEG SUCCESS'                 02430053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Protokolliert den erfolgreichen Fund des übergeordneten Konto-Summary-Datensatzes im Batch-Laufzeitprotokoll."
+    },
+    {
+      "number": 307,
+      "code": "      *           ADD 2 TO PA-AUTH-DATE-9C                              02430167",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 308,
+      "code": "      *           ADD 2 TO PA-AUTH-TIME-9C                              02430267",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": ""
+    },
+    {
+      "number": 309,
+      "code": "                  PERFORM 3200-INSERT-IMS-CALL  THRU 3200-EXIT          02430353",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Fügt den Autorisierungs-Detaildatensatz als untergeordnetes Segment unter dem gefundenen Konto-Summary in die IMS-Datenbank ein."
+    },
+    {
+      "number": 310,
+      "code": "               IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'         02520059",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist – toleriert wird nur ein Duplikat ('II'); jeder andere Fehler gilt als kritisch."
+    },
+    {
+      "number": 311,
+      "code": "                  DISPLAY 'ROOT GU CALL FAIL:' PAUT-PCB-STATUS          02530053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Protokolliert den fehlgeschlagenen Suchzugriff auf den Konto-Summary-Datensatz inklusive des IMS-Fehlercodes zur Fehlerdiagnose."
+    },
+    {
+      "number": 312,
+      "code": "                  DISPLAY 'KFB AREA IN CHILD:' PAUT-KEYFB               02531048",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Gibt den IMS-Key-Feedback-Bereich aus, um den genauen Datenbankpfad des fehlerhaften Zugriffs für die Fehleranalyse nachvollziehbar zu machen."
+    },
+    {
+      "number": 313,
+      "code": "                    PERFORM 9999-ABEND                                  02540049",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Bricht die Batch-Verarbeitung sofort ab, da ein inkonsistenter Datenbankzustand vorliegt und Datenverlust oder fehlerhafte Buchungen verhindert werden müssen."
+    },
+    {
+      "number": 314,
+      "code": "               END-IF.                                                  02550051",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-INSERT-CHILD-SEG",
+      "explanation": "Schließt die Fehlerbehandlungslogik für den IMS-Datenbankzugriff ab."
+    },
+    {
+      "number": 315,
+      "code": "       3100-EXIT.                                                       02590053",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-EXIT",
+      "explanation": "Markiert den Endpunkt des Verarbeitungsblocks für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+    },
+    {
+      "number": 316,
+      "code": "            EXIT.                                                       02600026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-EXIT",
+      "explanation": "Schließt die Root-Segment-Ladeverarbeitung ab und gibt die Steuerung an den übergeordneten Prozessablauf zurück, damit die Verarbeitung der Autorisierungs-Detaildatensätze (Child-Segmente) fortgesetzt werden kann."
+    },
+    {
+      "number": 317,
+      "code": "      *                                                                 02610026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3100-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 318,
+      "code": "       3200-INSERT-IMS-CALL.                                            02611053",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Einstiegspunkt für das Einfügen eines Autorisierungs-Detaildatensatzes in die IMS-Pending-Authorization-Datenbank."
+    },
+    {
+      "number": 319,
+      "code": "      *                                                                 02611153",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": ""
+    },
+    {
+      "number": 320,
+      "code": "      *     DISPLAY 'IN 3200 INSERT CALL'                               02611261",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Deaktivierte Diagnoseausgabe zur Nachverfolgung des Einfügevorgangs – nur bei aktiviertem Debug-Modus relevant."
+    },
+    {
+      "number": 321,
+      "code": "                  CALL 'CBLTDLI' USING  FUNC-ISRT                       02611353",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Übergibt den Autorisierungs-Detaildatensatz per IMS-Insert-Aufruf zur physischen Speicherung in der Datenbank."
+    },
+    {
+      "number": 322,
+      "code": "                                        PAUTBPCB                        02611453",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Verwendet den Programm-Kommunikationsblock der Pending-Authorization-Datenbank, um den Rückgabestatus des Einfügevorgangs zu empfangen."
+    },
+    {
+      "number": 323,
+      "code": "                                        PENDING-AUTH-DETAILS            02611553",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Stellt die vollständigen Autorisierungsdetails (Betrag, Händler, Datum etc.) als einzufügenden Datensatz bereit."
+    },
+    {
+      "number": 324,
+      "code": "                                        CHILD-UNQUAL-SSA.               02611654",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Gibt die hierarchische Position des Detaildatensatzes als Child-Segment ohne zusätzliche Qualifizierung an, sodass IMS den Datensatz dem zuvor positionierten Root-Segment unterordnet."
+    },
+    {
+      "number": 325,
+      "code": "                                                                        02611753",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": ""
+    },
+    {
+      "number": 326,
+      "code": "            IF PAUT-PCB-STATUS = SPACES                                 02611866",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Prüft, ob der Autorisierungs-Detaildatensatz erfolgreich in die Datenbank eingefügt wurde (leerer Status = Erfolg)."
+    },
+    {
+      "number": 327,
+      "code": "               DISPLAY 'CHILD SEGMENT INSERTED SUCCESS'                 02611966",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Protokolliert die erfolgreiche Speicherung des Autorisierungs-Detaildatensatzes zur Nachvollziehbarkeit im Batch-Log."
+    },
+    {
+      "number": 328,
+      "code": "            END-IF                                                      02612055",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Abschluss der Erfolgsprüfung."
+    },
+    {
+      "number": 329,
+      "code": "            IF PAUT-PCB-STATUS = 'II'                                   02612166",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Prüft, ob der Autorisierungs-Detaildatensatz bereits in der Datenbank vorhanden ist (Duplikat-Erkennung bei Wiederholungsläufen)."
+    },
+    {
+      "number": 330,
+      "code": "               DISPLAY 'CHILD SEGMENT ALREADY IN DB'                    02612266",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Protokolliert das erkannte Duplikat – der Datensatz wird toleriert und übersprungen, kein Abbruch erfolgt."
+    },
+    {
+      "number": 331,
+      "code": "            END-IF                                                      02612366",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Abschluss der Duplikat-Prüfung."
+    },
+    {
+      "number": 332,
+      "code": "            IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'            02612466",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist, der weder ein Erfolg noch ein tolerierbares Duplikat ist."
+    },
+    {
+      "number": 333,
+      "code": "                  DISPLAY 'INSERT CALL FAIL FOR CHILD:' PAUT-PCB-STATUS 02612566",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Gibt den fehlgeschlagenen Einfügevorgang mit dem IMS-FehlerstatusCode zur Fehlerdiagnose im Batch-Log aus."
+    },
+    {
+      "number": 334,
+      "code": "                  DISPLAY 'KFB AREA IN CHILD:' PAUT-KEYFB               02612666",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Gibt den Key-Feedback-Bereich aus, um den betroffenen Datenbankpfad und Schlüssel für die Fehleranalyse zu identifizieren."
+    },
+    {
+      "number": 335,
+      "code": "                    PERFORM 9999-ABEND                                  02612766",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Löst einen kontrollierten Programmabbruch aus, um Datenkonsistenz zu wahren – fehlerhafte Teilladungen werden verhindert."
+    },
+    {
+      "number": 336,
+      "code": "            END-IF.                                                     02612866",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": "Abschluss der Fehlerbehandlung für kritische Datenbankfehler."
+    },
+    {
+      "number": 337,
+      "code": "                                                                        02612966",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-INSERT-IMS-CALL",
+      "explanation": ""
+    },
+    {
+      "number": 338,
+      "code": "       3200-EXIT.                                                       02613066",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-EXIT",
+      "explanation": "Markiert das Ende des Verarbeitungsabschnitts 3200, der für das Einfügen von Autorisierungs-Detaildatensätzen (Child-Segmente) in die IMS-Datenbank zuständig ist."
+    },
+    {
+      "number": 339,
+      "code": "            EXIT.                                                       02614066",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-EXIT",
+      "explanation": "Beendet den Detaillade-Abschnitt und gibt die Kontrolle an den übergeordneten Steuerablauf des Batch-Ladeprozesses zurück."
+    },
+    {
+      "number": 340,
+      "code": "      *----------------------------------------------------------------*02620026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3200-EXIT",
+      "explanation": "Visuelle Trennlinie zur Abgrenzung des nächsten Verarbeitungsabschnitts im Programmablauf."
+    },
+    {
+      "number": 341,
+      "code": "       4000-FILE-CLOSE.                                                 02630030",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen."
+    },
+    {
+      "number": 342,
+      "code": "            DISPLAY 'CLOSING THE FILE'                                  02631043",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Protokolliert den Beginn des Datei-Schließvorgangs im Batch-Log zur Nachvollziehbarkeit des Verarbeitungsfortschritts."
+    },
+    {
+      "number": 343,
+      "code": "            CLOSE INFILE1.                                              02640053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Schließt die Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, INFILE1) nach vollständiger Verarbeitung."
+    },
+    {
+      "number": 344,
+      "code": "                                                                        02650030",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 345,
+      "code": "            IF WS-INFIL1-STATUS =  SPACES OR '00'                       02660053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Summaries fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg)."
+    },
+    {
+      "number": 346,
+      "code": "             CONTINUE                                                   02670030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Kein Handlungsbedarf – die Datei mit den Autorisierungs-Summaries wurde erfolgreich geschlossen."
+    },
+    {
+      "number": 347,
+      "code": "            ELSE                                                        02680034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 348,
+      "code": "             DISPLAY 'ERROR IN CLOSING 1ST FILE:'WS-INFIL1-STATUS       02690053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Protokolliert einen Fehler beim Schließen der Autorisierungs-Summary-Datei mit dem genauen Fehlercode zur Fehlerdiagnose."
+    },
+    {
+      "number": 349,
+      "code": "            END-IF.                                                     02700034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 350,
+      "code": "            CLOSE INFILE2.                                              02710053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Schließt die Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente, INFILE2) nach vollständiger Verarbeitung."
+    },
+    {
+      "number": 351,
+      "code": "                                                                        02720030",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 352,
+      "code": "            IF WS-INFIL2-STATUS =  SPACES OR '00'                       02730053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Details fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg)."
+    },
+    {
+      "number": 353,
+      "code": "             CONTINUE                                                   02740030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Kein Handlungsbedarf – die Datei mit den Autorisierungs-Details wurde erfolgreich geschlossen."
+    },
+    {
+      "number": 354,
+      "code": "            ELSE                                                        02750034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 355,
+      "code": "             DISPLAY 'ERROR IN CLOSING 2ND FILE:'WS-INFIL2-STATUS       02760053",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": "Protokolliert einen Fehler beim Schließen der Autorisierungs-Detail-Datei mit dem genauen Fehlercode zur Fehlerdiagnose."
+    },
+    {
+      "number": 356,
+      "code": "            END-IF.                                                     02770034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 357,
+      "code": "       4000-EXIT.                                                       02780030",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-EXIT",
+      "explanation": "Markiert den Endpunkt der Verarbeitungsroutine für das Laden der Autorisierungsdaten in die IMS-Datenbank."
+    },
+    {
+      "number": 358,
+      "code": "            EXIT.                                                       02790030",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-EXIT",
+      "explanation": "Beendet die Laderoutine und gibt die Kontrolle an den aufrufenden Programmteil zurück, der den nächsten Verarbeitungsschritt (z. B. Checkpoint oder Dateiende-Prüfung) einleitet."
+    },
+    {
+      "number": 359,
+      "code": "      *----------------------------------------------------------------*03620026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-EXIT",
+      "explanation": "Abgrenzung zum nächsten Programmabschnitt – kennzeichnet das Ende der Lade-Prozesslogik."
+    },
+    {
+      "number": 360,
+      "code": "       9999-ABEND.                                                      03630026",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern."
+    },
+    {
+      "number": 361,
+      "code": "      *----------------------------------------------------------------*03640026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": ""
+    },
+    {
+      "number": 362,
+      "code": "      *                                                                 03650026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": ""
+    },
+    {
+      "number": 363,
+      "code": "           DISPLAY 'IMS LOAD ABENDING ...'                              03660054",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Gibt eine Fehlermeldung in das Job-Protokoll aus, die den Abbruch des IMS-Ladevorgangs für ausstehende Autorisierungen anzeigt."
+    },
+    {
+      "number": 364,
+      "code": "                                                                        03670026",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": ""
+    },
+    {
+      "number": 365,
+      "code": "           MOVE 16 TO RETURN-CODE                                       03680026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Setzt den Rückgabecode auf 16 (höchste Fehlerstufe), damit nachgelagerte Batch-Jobs und der Job-Scheduler den kritischen Fehler erkennen und abhängige Verarbeitungsschritte nicht ausführen."
+    },
+    {
+      "number": 366,
+      "code": "           GOBACK.                                                      03690026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Beendet das Programm und übergibt die Kontrolle mit dem gesetzten Fehler-Rückgabecode an den aufrufenden Batch-Scheduler, der dann entsprechende Fehlerbehandlungsroutinen einleiten kann."
+    },
+    {
+      "number": 367,
+      "code": "      *                                                                 03700026",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": ""
+    },
+    {
+      "number": 368,
+      "code": "       9999-EXIT.                                                       03710026",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-EXIT",
+      "explanation": "Markiert den finalen Austrittspunkt des Batch-Ladeprogramms nach vollständiger Verarbeitung aller Root- und Child-Segmente."
+    },
+    {
+      "number": 369,
+      "code": "            EXIT.                                                       03720026",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-EXIT",
+      "explanation": "Beendet die Programmausführung geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück, nachdem alle Autorisierungsdaten geladen wurden."
+    }
+  ],
+  "variables": [
+    {
+      "name": "INFIL1-REC",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "INFIL2-REC.",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "ROOT-SEG-KEY",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "CHILD-SEG-REC",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-VARIABLES.",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "CURRENT-DATE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "CURRENT-YYDDD",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-AUTH-DATE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-EXPIRY-DAYS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-DAY-DIFF",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "IDX",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-CURR-APP-ID",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-NO-CHKP",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-AUTH-SMRY-PROC-CNT",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-TOT-REC-WRITTEN",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-NO-SUMRY-READ",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-NO-SUMRY-DELETED",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-NO-DTL-READ",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-NO-DTL-DELETED",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-END-OF-AUTHDB-FLAG",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "END-OF-AUTHDB",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "NOT-END-OF-AUTHDB",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-MORE-AUTHS-FLAG",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "MORE-AUTHS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "NO-MORE-AUTHS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-END-OF-INFILE1",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-END-OF-INFILE2",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-INFILE-STATUS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-INFIL1-STATUS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-INFIL2-STATUS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "END-ROOT-SEG-FILE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "END-CHILD-SEG-FILE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-CUSTID-STATUS",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WK-CHKPT-ID.",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "FILLER",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WK-CHKPT-ID-CTR",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-IMS-VARIABLES.",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "IMS-RETURN-CODE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "STATUS-OK",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "SEGMENT-NOT-FOUND",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "DUPLICATE-SEGMENT-FOUND",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WRONG-PARENTAGE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "END-OF-DB",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "DATABASE-UNAVAILABLE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "PSB-SCHEDULED-MORE-THAN-ONCE",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "COULD-NOT-SCHEDULE-PSB",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "RETRY-CONDITION",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "WS-IMS-PSB-SCHD-FLG",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "IMS-PSB-SCHD",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "IMS-PSB-NOT-SCHD",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "ROOT-QUAL-SSA.",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "QUAL-SSA-SEG-NAME",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "FILLER",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "QUAL-SSA-KEY-FIELD",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "QUAL-SSA-REL-OPER",
+      "level": null,
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "(Analyse nicht verfügbar)"
+    },
+    {
+      "name": "QUAL-SSA-KEY-VALUE",
+      "level": "05",
+      "picture": "PIC S9(11) COMP-3",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Die 11-stellige Konto-ID, die als Suchschlüssel für den qualifizierten IMS-Datenbankzugriff verwendet wird. Mit diesem Wert wird der qualifizierte SSA (Segment Search Argument) aufgebaut, um gezielt den Root-Segment-Datensatz (PAUTSUM0) eines bestimmten Kreditkartenkontos in der IMS-Datenbank zu lokalisieren, bevor zugehörige Detail-Datensätze eingefügt werden."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "')'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Abschließende schließende Klammer ')' des qualifizierten IMS-SSA (Segment Search Argument). Sie bildet das syntaktisch notwendige Ende der SSA-Suchbedingung, z. B. 'PAUTSUM0(ACCNTID  = 00012345678)'. Ohne dieses Zeichen wäre der IMS-Suchausdruck syntaktisch ungültig."
+    },
+    {
+      "name": "ROOT-UNQUAL-SSA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Root-Segment PAUTSUM0 (Autorisierungs-Zusammenfassung je Kreditkartenkonto) in der IMS-Datenbank. Ein unqualifiziertes SSA enthält keinen Schlüsselfilter und wird verwendet, wenn sequenziell über alle Root-Segmente navigiert wird, ohne einen spezifischen Kontoschlüssel anzugeben."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "'PAUTSUM0'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Der IMS-Segmentname 'PAUTSUM0', der das Root-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, auf welchen Segmenttyp (Autorisierungs-Zusammenfassung je Konto) der Datenbankzugriff abzielt."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "' '",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Abschließendes Leerzeichen des unqualifizierten SSA für das Root-Segment. Gemäß IMS-SSA-Syntax signalisiert ein Leerzeichen an dieser Stelle, dass keine weitere Qualifizierung (kein Schlüsselfilter) folgt – der Zugriff erfolgt also ohne Einschränkung auf einen bestimmten Kontoschlüssel."
+    },
+    {
+      "name": "CHILD-UNQUAL-SSA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Child-Segment PAUTDTL1 (Autorisierungs-Detaildatensatz) in der IMS-Datenbank. Wird verwendet, um innerhalb eines bereits positionierten Root-Segments auf die untergeordneten Autorisierungs-Einzeltransaktionen zuzugreifen, ohne einen zusätzlichen Schlüsselfilter anzugeben."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "'PAUTDTL1'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Der IMS-Segmentname 'PAUTDTL1', der das Child-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, dass der Zugriff auf den Detaildatensatz einer einzelnen Autorisierungstransaktion (untergeordnet zum Konto-Root-Segment) abzielt."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "' '",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Abschließendes Leerzeichen des unqualifizierten SSA für das Child-Segment. Signalisiert IMS gemäß SSA-Syntax, dass kein Schlüsselfilter für den Detaildatensatz angegeben wird – der Zugriff erfolgt relativ zur aktuellen Datenbankposition (unterhalb des bereits positionierten Root-Segments)."
+    },
+    {
+      "name": "PRM-INFO",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Gruppenfeld für alle Steuerungsparameter des Batch-Ladelaufs. Enthält die konfigurierbaren Laufzeitparameter, die das Verhalten des Programms bezüglich Ablauffristen, Checkpoint-Frequenz und Diagnoseausgaben steuern. Diese Parameter werden typischerweise über die JCL-SYSIN oder einen Parameterrecord übergeben."
+    },
+    {
+      "name": "P-EXPIRY-DAYS",
+      "level": "05",
+      "picture": "PIC 9(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Konfigurationsparameter: Gibt an, nach wie vielen Tagen eine ausstehende Autorisierung als abgelaufen gilt und nicht mehr in die IMS-Datenbank geladen werden soll. Steuert damit die Gültigkeitsprüfung beim Laden – Autorisierungen, deren Alter diesen Schwellwert überschreitet, werden übersprungen, um veraltete Sperren auf Kreditlimits zu vermeiden."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+    },
+    {
+      "name": "P-CHKP-FREQ",
+      "level": "05",
+      "picture": "PIC X(05)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen das Programm einen IMS-Checkpoint setzt. Checkpoints sichern den Verarbeitungsfortschritt, sodass bei einem Programmabbruch der Ladelauf nicht von Beginn an wiederholt werden muss, sondern ab dem letzten Checkpoint-Punkt wiederanläuft (Restart-Fähigkeit)."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+    },
+    {
+      "name": "P-CHKP-DIS-FREQ",
+      "level": "05",
+      "picture": "PIC X(05)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Display-Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen Zwischenstatistiken (z. B. Anzahl gelesener, geschriebener und übersprungener Datensätze) in das Protokoll ausgegeben werden. Ermöglicht die Überwachung des Ladefortschritts während der Batch-Verarbeitung, ohne den eigentlichen Checkpoint-Mechanismus zu beeinflussen."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+    },
+    {
+      "name": "P-DEBUG-FLAG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Steuerungsschalter für erweiterte Diagnoseausgaben: Wenn auf 'Y' gesetzt, gibt das Programm zusätzliche technische Detailinformationen (z. B. IMS-Statuscodes, verarbeitete Schlüsselwerte, Zwischenergebnisse) in das Protokoll aus. Erleichtert die Fehleranalyse bei Problemen im Ladelauf, ohne den Produktivbetrieb zu beeinträchtigen (dann 'N')."
+    },
+    {
+      "name": "DEBUG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "'Y'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Ist wahr, wenn der Debug-Modus aktiv ist (P-DEBUG-FLAG = 'Y'). Ermöglicht im Programmcode eine lesbare Prüfung, ob erweiterte Diagnoseausgaben für die Fehleranalyse des Ladelaufs aktiviert sind."
+    },
+    {
+      "name": "DEBUG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "'N'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Ist wahr, wenn der Debug-Modus deaktiviert ist (P-DEBUG-FLAG = 'N'). Ermöglicht im Programmcode eine lesbare Prüfung, ob der Ladelauf im normalen Produktionsmodus ohne zusätzliche Diagnoseausgaben läuft."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Abschließendes Füllzeichen am Ende des Parameterrecords. Dient der korrekten Längenausrichtung des gesamten Parameterfelds und hat keinen eigenen fachlichen Inhalt."
+    },
+    {
+      "name": "PENDING-AUTH-SUMMARY",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Arbeitsbereich für einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) eines Kreditkartenkontos. Enthält über das eingebundene Copybook CIPAUSMY alle Felder des IMS-Root-Segments PAUTSUM0: Konto-ID, Kunden-ID, Autorisierungsstatus, Kreditlimit, Bargeldlimit, aktuelle Salden sowie Zähler und Beträge für genehmigte und abgelehnte Autorisierungen. Wird beim Lesen aus INFILE1 befüllt und anschließend als Root-Segment in die IMS-Datenbank geschrieben."
+    },
+    {
+      "name": "PENDING-AUTH-DETAILS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Arbeitsbereich für einen Autorisierungs-Detaildatensatz (Child-Segment) einer einzelnen Kreditkartentransaktion. Enthält über das eingebundene Copybook CIPAUDTY alle Felder des IMS-Child-Segments PAUTDTL1: Autorisierungsschlüssel (Datum/Uhrzeit), Kartennummer, Autorisierungstyp, Ablaufdatum der Karte, Transaktionsbetrag, genehmigter Betrag, Antwortcode sowie Händler- und Länderkennzeichen. Wird beim Lesen aus INFILE2 befüllt und nach erfolgreicher Lokalisierung des zugehörigen Root-Segments als Child-Segment in die IMS-Datenbank eingefügt."
+    },
+    {
+      "name": "IO-PCB-MASK",
+      "level": "01",
+      "picture": "PIC X(1)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Platzhalter-Maske für den IMS I/O Program Communication Block (IO-PCB). Der IO-PCB ist die Schnittstelle zwischen dem COBOL-Batch-Programm und dem IMS-Laufzeitsystem für Systemdienste wie das Setzen von Checkpoints (CHKP-Aufruf) und Restart-Operationen. Diese vereinfachte Deklaration als einzelnes Zeichen dient der formalen Adressierbarkeit des IO-PCB in der ENTRY-Schnittstelle des IMS-Batch-Programms."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 169,
+      "line_end": 189,
+      "description": "MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss."
+    },
+    {
+      "name": "1000-INITIALIZE",
+      "line_start": 190,
+      "line_end": 217,
+      "description": "Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden."
+    },
+    {
+      "name": "1000-EXIT",
+      "line_start": 218,
+      "line_end": 221,
+      "description": "Formaler Abschlusspunkt des Initialisierungsabschnitts (1000-INIT). Dient als struktureller Rücksprungpunkt nach Abschluss aller Vorbereitungsschritte für den Datenbanklade-Prozess."
+    },
+    {
+      "name": "2000-READ-ROOT-SEG-FILE",
+      "line_start": 222,
+      "line_end": 238,
+      "description": "Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende."
+    },
+    {
+      "name": "2000-EXIT",
+      "line_start": 239,
+      "line_end": 241,
+      "description": "Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 2000). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze."
+    },
+    {
+      "name": "2100-INSERT-ROOT-SEG",
+      "line_start": 242,
+      "line_end": 263,
+      "description": "Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden."
+    },
+    {
+      "name": "2100-EXIT",
+      "line_start": 264,
+      "line_end": 268,
+      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts 2100, der das Ende der Root-Segment-Ladeverarbeitung markiert und die Rückkehr zum übergeordneten Steuerungsablauf ermöglicht."
+    },
+    {
+      "name": "3000-READ-CHILD-SEG-FILE",
+      "line_start": 269,
+      "line_end": 289,
+      "description": "Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt."
+    },
+    {
+      "name": "3000-EXIT",
+      "line_start": 290,
+      "line_end": 291,
+      "description": "Formaler Abschlusspunkt der Root-Segment-Ladeschleife (3000er Paragraphengruppe). Dient als struktureller Rücksprungpunkt nach Abschluss der Verarbeitung eines Autorisierungs-Zusammenfassungsdatensatzes."
+    },
+    {
+      "name": "3100-INSERT-CHILD-SEG",
+      "line_start": 292,
+      "line_end": 314,
+      "description": "Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird."
+    },
+    {
+      "name": "3100-EXIT",
+      "line_start": 315,
+      "line_end": 317,
+      "description": "Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 3100). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze und ermöglicht einen sauberen Rücksprung nach Abschluss der Root-Segment-Verarbeitung."
+    },
+    {
+      "name": "3200-INSERT-IMS-CALL",
+      "line_start": 318,
+      "line_end": 337,
+      "description": "Dieser Paragraph fügt einen einzelnen Autorisierungs-Detaildatensatz (Child-Segment) als untergeordnetes Element in die IMS-Datenbank ein und bewertet das Ergebnis: Erfolg, Duplikat oder kritischer Fehler mit Programmabbruch."
+    },
+    {
+      "name": "3200-EXIT",
+      "line_start": 338,
+      "line_end": 340,
+      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts 3200, der den geordneten Rücksprung zur aufrufenden Steuerlogik des Ladeprozesses sicherstellt."
+    },
+    {
+      "name": "4000-FILE-CLOSE",
+      "line_start": 341,
+      "line_end": 356,
+      "description": "Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen."
+    },
+    {
+      "name": "4000-EXIT",
+      "line_start": 357,
+      "line_end": 359,
+      "description": "Formaler Abschlusspunkt des Lade-Prozesses für Root-Segmente. Dieser Paragraph dient als struktureller Endpunkt der Verarbeitungsschleife und ermöglicht einen sauberen Rücksprung nach Abschluss aller Datenbanklade-Operationen."
+    },
+    {
+      "name": "9999-ABEND",
+      "line_start": 360,
+      "line_end": 367,
+      "description": "Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern."
+    },
+    {
+      "name": "9999-EXIT",
+      "line_start": 368,
+      "line_end": 369,
+      "description": "Formaler Abschlusspunkt des Programms PAUDBLOD, der als strukturierter Rücksprungpunkt nach Abschluss aller Lade- und Protokollierungsaktivitäten dient."
+    }
+  ],
+  "copybooks": [
+    "IMSFUNCS",
+    "CIPAUSMY",
+    "CIPAUDTY",
+    "PAUTBPCB"
+  ]
+}
