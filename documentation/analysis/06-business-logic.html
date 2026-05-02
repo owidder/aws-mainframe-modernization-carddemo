@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detailed Business Logic – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     class="active">
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#1-cbtrn02c--daily-transaction-posting-batch"
+     class="">1. CBTRN02C – Daily Transaction Posting (Batch)</a>
+  
+  <a href="#paragraph-index"
+     class="toc-h3">Paragraph Index</a>
+  
+  <a href="#file-access"
+     class="toc-h3">File Access</a>
+  
+  <a href="#main-loop--appcblcbtrn02ccbl"
+     class="toc-h3">Main Loop — app/cbl/CBTRN02C.cbl</a>
+  
+  <a href="#validation--appcblcbtrn02ccbl"
+     class="toc-h3">Validation — app/cbl/CBTRN02C.cbl</a>
+  
+  <a href="#posting--appcblcbtrn02ccbl"
+     class="toc-h3">Posting — app/cbl/CBTRN02C.cbl</a>
+  
+  <a href="#reject-record--appcblcbtrn02ccbl"
+     class="toc-h3">Reject Record — app/cbl/CBTRN02C.cbl</a>
+  
+  <a href="#db2-timestamp-format--appcblcbtrn02ccbl"
+     class="toc-h3">DB2 Timestamp Format — app/cbl/CBTRN02C.cbl</a>
+  
+  <a href="#validation-error-codes"
+     class="toc-h3">Validation Error Codes</a>
+  
+  <a href="#java-migration-notes"
+     class="toc-h3">Java Migration Notes</a>
+  
+  <a href="#2-cosgn00c--user-authentication-cics-online"
+     class="">2. COSGN00C – User Authentication (CICS Online)</a>
+  
+  <a href="#paragraph-index-1"
+     class="toc-h3">Paragraph Index</a>
+  
+  <a href="#cics-program-lifecycle"
+     class="toc-h3">CICS Program Lifecycle</a>
+  
+  <a href="#authentication-logic--appcblcosgn00ccbl"
+     class="toc-h3">Authentication Logic — app/cbl/COSGN00C.cbl</a>
+  
+  <a href="#commarea-fields-passed-to-next-program"
+     class="toc-h3">COMMAREA Fields Passed to Next Program</a>
+  
+  <a href="#java-migration-notes-1"
+     class="toc-h3">Java Migration Notes</a>
+  
+  <a href="#3-cbact04c--interest-calculation-batch"
+     class="">3. CBACT04C – Interest Calculation (Batch)</a>
+  
+  <a href="#paragraph-index-2"
+     class="toc-h3">Paragraph Index</a>
+  
+  <a href="#file-access-1"
+     class="toc-h3">File Access</a>
+  
+  <a href="#program-parameter"
+     class="toc-h3">Program Parameter</a>
+  
+  <a href="#main-loop--appcblcbact04ccbl"
+     class="toc-h3">Main Loop — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#interest-rate-lookup--appcblcbact04ccbl"
+     class="toc-h3">Interest Rate Lookup — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#interest-calculation--appcblcbact04ccbl"
+     class="toc-h3">Interest Calculation — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#interest-transaction-record--appcblcbact04ccbl"
+     class="toc-h3">Interest Transaction Record — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#account-cycle-close--appcblcbact04ccbl"
+     class="toc-h3">Account Cycle Close — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#fee-calculation--appcblcbact04ccbl"
+     class="toc-h3">Fee Calculation — app/cbl/CBACT04C.cbl</a>
+  
+  <a href="#java-migration-notes-2"
+     class="toc-h3">Java Migration Notes</a>
+  
+  <a href="#4-cbstm03a--account-statement-generation-batch"
+     class="">4. CBSTM03A – Account Statement Generation (Batch)</a>
+  
+  <a href="#paragraph-index-3"
+     class="toc-h3">Paragraph Index</a>
+  
+  <a href="#notable-cobol-constructs-modernization-relevant"
+     class="toc-h3">Notable COBOL Constructs (Modernization-Relevant)</a>
+  
+  <a href="#subroutine-interface-to-cbstm03b--appcblcbstm03acbl"
+     class="toc-h3">Subroutine Interface to CBSTM03B — app/cbl/CBSTM03A.cbl</a>
+  
+  <a href="#plain-text-output-format--appcblcbstm03acbl"
+     class="toc-h3">Plain Text Output Format — app/cbl/CBSTM03A.cbl</a>
+  
+  <a href="#5-cbtrn01c--transaction-validation-batch"
+     class="">5. CBTRN01C – Transaction Validation (Batch)</a>
+  
+  <a href="#paragraph-index-4"
+     class="toc-h3">Paragraph Index</a>
+  
+  <a href="#file-access-2"
+     class="toc-h3">File Access</a>
+  
+  <a href="#6-user-security-record-usrsec--csusr01y"
+     class="">6. User Security Record (USRSEC / CSUSR01Y)</a>
+  
+  <a href="#summary-business-critical-migration-notes"
+     class="">Summary: Business-Critical Migration Notes</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Detailed Business Logic
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--detailed-business-logic-of-core-programs">CardDemo – Detailed Business Logic of Core Programs</h1>
+<p>This document describes the <strong>exact business logic</strong> of the key COBOL programs based on direct source code analysis. It is the primary input for the Java mapping in <code>07-java-mapping.md</code>.</p>
+<p>All line references point into the source files under <code>app/</code>.</p>
+<hr>
+<h2 id="1-cbtrn02c--daily-transaction-posting-batch">1. CBTRN02C – Daily Transaction Posting (Batch)</h2>
+<p><strong>Type:</strong> Batch | <strong>Source:</strong> <span class="srcref">app/cbl/CBTRN02C.cbl</span> | <strong>Function:</strong> Post daily transactions, update account balances and category totals</p>
+<h3 id="paragraph-index">Paragraph Index</h3>
+<table>
+<thead><tr>
+<th>Paragraph</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>PROCEDURE DIVISION</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Main loop: open files, read-validate-post, close</td>
+</tr>
+<tr>
+<td><code>0000-DALYTRAN-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open DALYTRAN for input</td>
+</tr>
+<tr>
+<td><code>0100-TRANFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open TRANSACT-FILE for output</td>
+</tr>
+<tr>
+<td><code>0200-XREFFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open XREF-FILE for input</td>
+</tr>
+<tr>
+<td><code>0300-DALYREJS-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open DALYREJS-FILE for output</td>
+</tr>
+<tr>
+<td><code>0400-ACCTFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open ACCOUNT-FILE for I-O</td>
+</tr>
+<tr>
+<td><code>0500-TCATBALF-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Open TCATBAL-FILE for I-O</td>
+</tr>
+<tr>
+<td><code>1000-DALYTRAN-GET-NEXT</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Read next sequential record from DALYTRAN</td>
+</tr>
+<tr>
+<td><code>1500-VALIDATE-TRAN</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Orchestrate validation sub-paragraphs</td>
+</tr>
+<tr>
+<td><code>1500-A-LOOKUP-XREF</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Validate card number via XREFFILE</td>
+</tr>
+<tr>
+<td><code>1500-B-LOOKUP-ACCT</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Validate account: existence, credit limit, expiry</td>
+</tr>
+<tr>
+<td><code>2000-POST-TRANSACTION</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Map DALYTRAN fields to TRAN-RECORD, call sub-paragraphs</td>
+</tr>
+<tr>
+<td><code>2500-WRITE-REJECT-REC</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Write rejected record + error trailer to DALYREJS</td>
+</tr>
+<tr>
+<td><code>2700-UPDATE-TCATBAL</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Read TCATBAL record; route to create or update</td>
+</tr>
+<tr>
+<td><code>2700-A-CREATE-TCATBAL-REC</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Write new TCATBAL record (first transaction of category)</td>
+</tr>
+<tr>
+<td><code>2700-B-UPDATE-TCATBAL-REC</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Rewrite existing TCATBAL record</td>
+</tr>
+<tr>
+<td><code>2800-UPDATE-ACCOUNT-REC</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Update ACCT-CURR-BAL and cycle credit/debit</td>
+</tr>
+<tr>
+<td><code>2900-WRITE-TRANSACTION-FILE</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Write TRAN-RECORD to TRANFILE</td>
+</tr>
+<tr>
+<td><code>Z-GET-DB2-FORMAT-TIMESTAMP</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Format current date/time as DB2 timestamp string</td>
+</tr>
+<tr>
+<td><code>9999-ABEND-PROGRAM</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td>Call CEE3ABD to terminate with abend code 999</td>
+</tr>
+</tbody></table>
+<h3 id="file-access">File Access</h3>
+<table>
+<thead><tr>
+<th>DDName</th>
+<th>File</th>
+<th>Mode</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>DALYTRAN</td>
+<td>DALYTRAN</td>
+<td>INPUT</td>
+<td>Daily transaction input (sequential)</td>
+</tr>
+<tr>
+<td>TRANFILE</td>
+<td>TRANSACT</td>
+<td>OUTPUT</td>
+<td>Transaction master (VSAM KSDS)</td>
+</tr>
+<tr>
+<td>XREFFILE</td>
+<td>XREF-FILE</td>
+<td>INPUT</td>
+<td>Card-to-account cross-reference</td>
+</tr>
+<tr>
+<td>DALYREJS</td>
+<td>DALYREJS</td>
+<td>OUTPUT</td>
+<td>Rejected transactions (GDG)</td>
+</tr>
+<tr>
+<td>ACCTFILE</td>
+<td>ACCOUNT-FILE</td>
+<td>I-O</td>
+<td>Account master (VSAM KSDS)</td>
+</tr>
+<tr>
+<td>TCATBALF</td>
+<td>TCATBAL-FILE</td>
+<td>I-O</td>
+<td>Transaction category balances</td>
+</tr>
+</tbody></table>
+<h3 id="main-loop--appcblcbtrn02ccbl">Main Loop — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h3>
+<pre><code class="language-text">L193  PROCEDURE DIVISION.
+L195-199  PERFORM 0000-DALYTRAN-OPEN ... 0500-TCATBALF-OPEN   ← open all six files
+
+L202  PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;:
+L204    PERFORM 1000-DALYTRAN-GET-NEXT
+L206      ADD 1 TO WS-TRANSACTION-COUNT
+L208      MOVE 0 TO WS-VALIDATION-FAIL-REASON
+L209      MOVE SPACES TO WS-VALIDATION-FAIL-REASON-DESC
+L210      PERFORM 1500-VALIDATE-TRAN
+L211      IF WS-VALIDATION-FAIL-REASON = 0:
+L212        PERFORM 2000-POST-TRANSACTION
+L213-215  ELSE:
+L214        ADD 1 TO WS-REJECT-COUNT
+L215        PERFORM 2500-WRITE-REJECT-REC
+
+L221-226  PERFORM 9000-DALYTRAN-CLOSE ... 9500-TCATBALF-CLOSE  ← close all six files
+L229      IF WS-REJECT-COUNT &gt; 0: MOVE 4 TO RETURN-CODE         ← non-zero RC signals partial failure</code></pre>
+<h3 id="validation--appcblcbtrn02ccbl">Validation — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h3>
+<h4 id="-l370appcblcbtrn02ccbl"><code>1500-VALIDATE-TRAN</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L371  PERFORM 1500-A-LOOKUP-XREF
+L372  IF WS-VALIDATION-FAIL-REASON = 0:
+L373      PERFORM 1500-B-LOOKUP-ACCT
+      ELSE: CONTINUE                   ← short-circuits only XREF→ACCT chain</code></pre>
+<h4 id="-l380appcblcbtrn02ccbl"><code>1500-A-LOOKUP-XREF</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L382  MOVE DALYTRAN-CARD-NUM TO FD-XREF-CARD-NUM
+L383  READ XREF-FILE INTO CARD-XREF-RECORD
+L385-387    INVALID KEY:
+              MOVE 100 TO WS-VALIDATION-FAIL-REASON
+              MOVE &#x27;INVALID CARD NUMBER FOUND&#x27; TO WS-VALIDATION-FAIL-REASON-DESC</code></pre>
+<h4 id="-l393appcblcbtrn02ccbl"><code>1500-B-LOOKUP-ACCT</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L394  MOVE XREF-ACCT-ID TO FD-ACCT-ID
+L395  READ ACCOUNT-FILE INTO ACCOUNT-RECORD
+L397-399    INVALID KEY:
+              MOVE 101 TO WS-VALIDATION-FAIL-REASON
+              MOVE &#x27;ACCOUNT RECORD NOT FOUND&#x27;
+
+L403  COMPUTE WS-TEMP-BAL = ACCT-CURR-CYC-CREDIT
+                           - ACCT-CURR-CYC-DEBIT
+                           + DALYTRAN-AMT
+
+L407  IF ACCT-CREDIT-LIMIT &lt; WS-TEMP-BAL:             ← credit limit check
+L410      MOVE 102 TO WS-VALIDATION-FAIL-REASON
+L411      MOVE &#x27;OVERLIMIT TRANSACTION&#x27;
+
+L414  IF ACCT-EXPIRAION-DATE &lt; DALYTRAN-ORIG-TS(1:10): ← string compare YYYY-MM-DD
+L417      MOVE 103 TO WS-VALIDATION-FAIL-REASON
+L418      MOVE &#x27;TRANSACTION RECEIVED AFTER ACCT EXPIRATION&#x27;</code></pre>
+<blockquote><strong>Note:</strong> Both checks at L407 and L414 run unconditionally. The <strong>last failing check wins</strong> (overwrites the error code). Java implementations must replicate this behavior.</blockquote>
+<h3 id="posting--appcblcbtrn02ccbl">Posting — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h3>
+<h4 id="-l424appcblcbtrn02ccbl"><code>2000-POST-TRANSACTION</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L425-435  MOVE DALYTRAN-* TO TRAN-*          ← field-by-field copy of 11 fields
+L437      PERFORM Z-GET-DB2-FORMAT-TIMESTAMP  ← proc timestamp = current time
+L438      MOVE DB2-FORMAT-TS TO TRAN-PROC-TS
+
+L440      PERFORM 2700-UPDATE-TCATBAL         ← step 1: category balance
+L441      PERFORM 2800-UPDATE-ACCOUNT-REC     ← step 2: account balance
+L442      PERFORM 2900-WRITE-TRANSACTION-FILE ← step 3: write transaction record</code></pre>
+<blockquote><strong>Note:</strong> Order matters for Java <code>@Transactional</code>: category → account → transaction.</blockquote>
+<h4 id="-l467appcblcbtrn02ccbl"><code>2700-UPDATE-TCATBAL</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L469  MOVE XREF-ACCT-ID     TO FD-TRANCAT-ACCT-ID
+L470  MOVE DALYTRAN-TYPE-CD TO FD-TRANCAT-TYPE-CD
+L471  MOVE DALYTRAN-CAT-CD  TO FD-TRANCAT-CD
+
+L473  MOVE &#x27;N&#x27; TO WS-CREATE-TRANCAT-REC
+L474  READ TCATBAL-FILE INTO TRAN-CAT-BAL-RECORD
+L475-478    INVALID KEY:
+              DISPLAY &#x27;TCATBAL record not found ... Creating.&#x27;
+              MOVE &#x27;Y&#x27; TO WS-CREATE-TRANCAT-REC     ← flag: new record needed
+
+L495  IF WS-CREATE-TRANCAT-REC = &#x27;Y&#x27;:
+L496      PERFORM 2700-A-CREATE-TCATBAL-REC         ← WRITE new record
+      ELSE:
+L498      PERFORM 2700-B-UPDATE-TCATBAL-REC         ← REWRITE existing record</code></pre>
+<h4 id="-l503appcblcbtrn02ccbl"><code>2700-A-CREATE-TCATBAL-REC</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L504  INITIALIZE TRAN-CAT-BAL-RECORD
+L505-507  MOVE key fields (ACCT-ID, TYPE-CD, CAT-CD)
+L508      ADD DALYTRAN-AMT TO TRAN-CAT-BAL           ← balance starts at transaction amount
+L510      WRITE FD-TRAN-CAT-BAL-RECORD FROM TRAN-CAT-BAL-RECORD</code></pre>
+<h4 id="-l526appcblcbtrn02ccbl"><code>2700-B-UPDATE-TCATBAL-REC</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L527  ADD DALYTRAN-AMT TO TRAN-CAT-BAL
+L528  REWRITE FD-TRAN-CAT-BAL-RECORD FROM TRAN-CAT-BAL-RECORD</code></pre>
+<h4 id="-l545appcblcbtrn02ccbl"><code>2800-UPDATE-ACCOUNT-REC</code> — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h4>
+<pre><code class="language-text">L547  ADD DALYTRAN-AMT TO ACCT-CURR-BAL              ← always update total balance
+L548  IF DALYTRAN-AMT &gt;= 0:
+L549      ADD DALYTRAN-AMT TO ACCT-CURR-CYC-CREDIT   ← positive = credit
+      ELSE:
+L551      ADD DALYTRAN-AMT TO ACCT-CURR-CYC-DEBIT    ← negative = debit
+L554  REWRITE FD-ACCTFILE-REC FROM ACCOUNT-RECORD</code></pre>
+<h3 id="reject-record--appcblcbtrn02ccbl">Reject Record — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h3>
+<pre><code class="language-text">L447  MOVE DALYTRAN-RECORD TO REJECT-TRAN-DATA  ← 350 bytes: original transaction
+L448  MOVE WS-VALIDATION-TRAILER TO VALIDATION-TRAILER
+          ← 80 bytes: WS-VALIDATION-FAIL-REASON (PIC 9(04))
+                    + WS-VALIDATION-FAIL-REASON-DESC (PIC X(76))
+L451  WRITE FD-REJS-RECORD FROM REJECT-RECORD   ← 430 bytes total to DALYREJS</code></pre>
+<h3 id="db2-timestamp-format--appcblcbtrn02ccbl">DB2 Timestamp Format — <span class="srcref">app/cbl/CBTRN02C.cbl</span></h3>
+<pre><code class="language-text">L693  MOVE FUNCTION CURRENT-DATE TO COBOL-TS
+L694-702  Rearrange fields into DB2 format: YYYY-MM-DD-HH.MM.SS.mm0000
+          Separators: &#x27;-&#x27; between date parts, &#x27;.&#x27; between time parts
+          Result in DB2-FORMAT-TS PIC X(26)</code></pre>
+<h3 id="validation-error-codes">Validation Error Codes</h3>
+<table>
+<thead><tr>
+<th>Code</th>
+<th>Description</th>
+<th>Paragraph</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>INVALID CARD NUMBER FOUND</td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+</tr>
+<tr>
+<td>101</td>
+<td>ACCOUNT RECORD NOT FOUND</td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+</tr>
+<tr>
+<td>102</td>
+<td>OVERLIMIT TRANSACTION</td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+</tr>
+<tr>
+<td>103</td>
+<td>TRANSACTION RECEIVED AFTER ACCT EXPIRATION</td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+</tr>
+<tr>
+<td>109</td>
+<td>ACCOUNT RECORD NOT FOUND (on REWRITE)</td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+</tr>
+</tbody></table>
+<h3 id="java-migration-notes">Java Migration Notes</h3>
+<ul>
+<li><strong>Both checks run (L407 + L414)</strong>: No early exit; last error code wins. Replicate in Java.</li>
+<li><strong>findOrCreate for TCATBAL</strong>: L474-L498 → <code>repository.findById(key).orElse(new TranCatBalance(key, ZERO))</code></li>
+<li><strong>Write order</strong>: TCATBAL → ACCOUNT → TRANFILE; wrap all three in a single <code>@Transactional</code></li>
+<li><strong>Return code 4</strong>: L229 → Java Step <code>ExitStatus.FAILED</code> or custom <code>ExitStatus(&quot;COMPLETED_WITH_REJECTS&quot;)</code></li>
+<li><strong>Timestamp format</strong> (L692–702): Java <code>DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH.mm.ss.SS&#x27;0000&#x27;&quot;)</code></li>
+</ul>
+<hr>
+<h2 id="2-cosgn00c--user-authentication-cics-online">2. COSGN00C – User Authentication (CICS Online)</h2>
+<p><strong>Type:</strong> CICS Online | <strong>Source:</strong> <span class="srcref">app/cbl/COSGN00C.cbl</span> | <strong>Transaction:</strong> <code>CC00</code></p>
+<h3 id="paragraph-index-1">Paragraph Index</h3>
+<table>
+<thead><tr>
+<th>Paragraph</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>MAIN-PARA</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>Entry point; branch on EIBCALEN and EIBAID</td>
+</tr>
+<tr>
+<td><code>PROCESS-ENTER-KEY</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>Receive map, validate fields, call READ-USER-SEC-FILE</td>
+</tr>
+<tr>
+<td><code>SEND-SIGNON-SCREEN</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>Populate header then send BMS map COSGN0A</td>
+</tr>
+<tr>
+<td><code>SEND-PLAIN-TEXT</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>Send plain text message (PF3 logout path)</td>
+</tr>
+<tr>
+<td><code>POPULATE-HEADER-INFO</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>Fill date, time, APPLID, SYSID into map output area</td>
+</tr>
+<tr>
+<td><code>READ-USER-SEC-FILE</code></td>
+<td><span class="srcref">app/cbl/COSGN00C.cbl</span></td>
+<td>CICS READ of USRSEC; compare password; XCTL to menu</td>
+</tr>
+</tbody></table>
+<h3 id="cics-program-lifecycle">CICS Program Lifecycle</h3>
+<pre><code class="language-text">L73   MAIN-PARA:
+L75       SET ERR-FLG-OFF TO TRUE
+L77-78    MOVE SPACES TO WS-MESSAGE, ERRMSGO
+
+L80       IF EIBCALEN = 0:                    ← first invocation (no COMMAREA)
+L81-83        MOVE LOW-VALUES TO COSGN0AO
+              MOVE -1 TO USERIDL              ← position cursor on User ID field
+              PERFORM SEND-SIGNON-SCREEN      ← display empty sign-on screen
+          ELSE:
+L85           EVALUATE EIBAID:               ← which key did the user press?
+L86-87            WHEN DFHENTER → PERFORM PROCESS-ENTER-KEY
+L88-90            WHEN DFHPF3  → MOVE CCDA-MSG-THANK-YOU; PERFORM SEND-PLAIN-TEXT
+L92-94            WHEN OTHER   → set error flag; &#x27;Invalid key&#x27;; re-send screen
+
+L98-102   EXEC CICS RETURN TRANSID(&#x27;CC00&#x27;) COMMAREA(CARDDEMO-COMMAREA)
+          ← always return with same transid so next keystroke re-enters this program</code></pre>
+<h3 id="authentication-logic--appcblcosgn00ccbl">Authentication Logic — <span class="srcref">app/cbl/COSGN00C.cbl</span></h3>
+<h4 id="-l108appcblcosgn00ccbl"><code>PROCESS-ENTER-KEY</code> — <span class="srcref">app/cbl/COSGN00C.cbl</span></h4>
+<pre><code class="language-text">L110-115  EXEC CICS RECEIVE MAP(&#x27;COSGN0A&#x27;) MAPSET(&#x27;COSGN00&#x27;)   ← get screen input
+
+L117-130  EVALUATE TRUE:
+L118          WHEN USERIDI = SPACES OR LOW-VALUES:
+                  &#x27;Please enter User ID ...&#x27;
+                  MOVE -1 TO USERIDL; PERFORM SEND-SIGNON-SCREEN; STOP
+L123          WHEN PASSWDI = SPACES OR LOW-VALUES:
+                  &#x27;Please enter Password ...&#x27;
+                  MOVE -1 TO PASSWDL; PERFORM SEND-SIGNON-SCREEN; STOP
+
+L132-135  MOVE FUNCTION UPPER-CASE(USERIDI) TO WS-USER-ID, CDEMO-USER-ID
+L135-136  MOVE FUNCTION UPPER-CASE(PASSWDI) TO WS-USER-PWD   ← both forced to uppercase
+
+L138-140  IF NOT ERR-FLG-ON: PERFORM READ-USER-SEC-FILE</code></pre>
+<h4 id="-l209appcblcosgn00ccbl"><code>READ-USER-SEC-FILE</code> — <span class="srcref">app/cbl/COSGN00C.cbl</span></h4>
+<pre><code class="language-text">L211-218  EXEC CICS READ
+              DATASET(&#x27;USRSEC&#x27;)
+              INTO(SEC-USER-DATA)
+              RIDFLD(WS-USER-ID)              ← primary key = User ID (8 chars)
+              RESP(WS-RESP-CD)
+
+L221      EVALUATE WS-RESP-CD:
+L222          WHEN 0 (record found):
+L223              IF SEC-USR-PWD = WS-USER-PWD:    ← PLAINTEXT password compare!
+L224-228              populate COMMAREA (FROM-TRANID, FROM-PROGRAM, USER-ID, USER-TYPE)
+L229                  MOVE ZEROS TO CDEMO-PGM-CONTEXT    ← 0 = first entry to next program
+L230-233              IF CDEMO-USRTYP-ADMIN (SEC-USR-TYPE = &#x27;A&#x27;):
+L231                      EXEC CICS XCTL PROGRAM(&#x27;COADM01C&#x27;) COMMAREA(...)
+L234-236              ELSE:
+L235                      EXEC CICS XCTL PROGRAM(&#x27;COMEN01C&#x27;) COMMAREA(...)
+L241-244          ELSE (wrong password):
+                      &#x27;Wrong Password. Try again ...&#x27;
+L247          WHEN 13 (record not found):
+                  &#x27;User not found. Try again ...&#x27;
+L253          WHEN OTHER:
+                  &#x27;Unable to verify the User ...&#x27;</code></pre>
+<h3 id="commarea-fields-passed-to-next-program">COMMAREA Fields Passed to Next Program</h3>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Value</th>
+<th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>CDEMO-FROM-TRANID</code></td>
+<td><code>&#x27;CC00&#x27;</code></td>
+<td>Hard-coded in WS-TRANID</td>
+</tr>
+<tr>
+<td><code>CDEMO-FROM-PROGRAM</code></td>
+<td><code>&#x27;COSGN00C&#x27;</code></td>
+<td>Hard-coded in WS-PGMNAME</td>
+</tr>
+<tr>
+<td><code>CDEMO-TO-TRANID</code></td>
+<td>(not set)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>CDEMO-USER-ID</code></td>
+<td>User ID (uppercase)</td>
+<td>L134</td>
+</tr>
+<tr>
+<td><code>CDEMO-USER-TYPE</code></td>
+<td><code>&#x27;A&#x27;</code> or <code>&#x27;U&#x27;</code></td>
+<td>SEC-USR-TYPE from USRSEC</td>
+</tr>
+<tr>
+<td><code>CDEMO-PGM-CONTEXT</code></td>
+<td><code>0</code></td>
+<td>L229 — signals "first entry" to target program</td>
+</tr>
+</tbody></table>
+<h3 id="java-migration-notes-1">Java Migration Notes</h3>
+<ul>
+<li><strong>Plaintext password</strong> (L223): <code>SEC-USR-PWD = WS-USER-PWD</code> — migrate to BCrypt in Spring Security</li>
+<li><strong>USRSEC key</strong>: 8-char User ID, uppercase only (L132) → <code>userId.toUpperCase()</code> before lookup</li>
+<li><strong>User type routing</strong> (L230–235): <code>UserType.ADMIN</code> → admin endpoint; <code>UserType.USER</code> → standard menu</li>
+<li><strong>COMMAREA</strong> → JWT claims: <code>sub=userId</code>, <code>role=ADMIN|USER</code>, <code>fromTranid=CC00</code></li>
+<li><strong>EIBCALEN = 0</strong>: no Java equivalent; REST is stateless — first request is always "fresh"</li>
+</ul>
+<hr>
+<h2 id="3-cbact04c--interest-calculation-batch">3. CBACT04C – Interest Calculation (Batch)</h2>
+<p><strong>Type:</strong> Batch | <strong>Source:</strong> <span class="srcref">app/cbl/CBACT04C.cbl</span> | <strong>Function:</strong> Compute monthly interest per account/category, write interest transactions, reset cycle balances</p>
+<h3 id="paragraph-index-2">Paragraph Index</h3>
+<table>
+<thead><tr>
+<th>Paragraph</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>PROCEDURE DIVISION</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Entry; receives PARM (date string)</td>
+</tr>
+<tr>
+<td><code>0000-TCATBALF-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Open TCATBALF for sequential input</td>
+</tr>
+<tr>
+<td><code>0100-XREFFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Open XREFFILE for random input</td>
+</tr>
+<tr>
+<td><code>0200-DISCGRP-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Open DISCGRP (interest rates) for random input</td>
+</tr>
+<tr>
+<td><code>0300-ACCTFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Open ACCTFILE for I-O</td>
+</tr>
+<tr>
+<td><code>0400-TRANFILE-OPEN</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Open TRANSACT for sequential output</td>
+</tr>
+<tr>
+<td><code>1000-TCATBALF-GET-NEXT</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Read next sequential TCATBAL record</td>
+</tr>
+<tr>
+<td><code>1050-UPDATE-ACCOUNT</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Apply total interest, zero cycle balances, rewrite account</td>
+</tr>
+<tr>
+<td><code>1100-GET-ACCT-DATA</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Read account by ACCT-ID (for GROUP-ID)</td>
+</tr>
+<tr>
+<td><code>1110-GET-XREF-DATA</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Read XREF by ACCT-ID (alternate key) for CARD-NUM</td>
+</tr>
+<tr>
+<td><code>1200-GET-INTEREST-RATE</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Lookup DISCGRP; fallback to 'DEFAULT' group</td>
+</tr>
+<tr>
+<td><code>1200-A-GET-DEFAULT-INT-RATE</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Re-read DISCGRP with group = 'DEFAULT'</td>
+</tr>
+<tr>
+<td><code>1300-COMPUTE-INTEREST</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Apply formula; accumulate; call WRITE-TX</td>
+</tr>
+<tr>
+<td><code>1300-B-WRITE-TX</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td>Build and write interest transaction record</td>
+</tr>
+<tr>
+<td><code>1400-COMPUTE-FEES</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td><strong>STUB — not implemented</strong> (just EXIT)</td>
+</tr>
+</tbody></table>
+<h3 id="file-access-1">File Access</h3>
+<table>
+<thead><tr>
+<th>DDName</th>
+<th>File</th>
+<th>Mode</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>TCATBALF</td>
+<td>TCATBAL-FILE</td>
+<td>INPUT/SEQ</td>
+<td>All category balances, sorted by ACCT-ID</td>
+</tr>
+<tr>
+<td>XREFFILE</td>
+<td>XREF-FILE</td>
+<td>INPUT/RAND</td>
+<td>Alternate key: ACCT-ID → CARD-NUM</td>
+</tr>
+<tr>
+<td>DISCGRP</td>
+<td>DISCGRP-FILE</td>
+<td>INPUT/RAND</td>
+<td>Interest rates per group + type + category</td>
+</tr>
+<tr>
+<td>ACCTFILE</td>
+<td>ACCOUNT-FILE</td>
+<td>I-O/RAND</td>
+<td>Read ACCT-GROUP-ID; rewrite updated balance</td>
+</tr>
+<tr>
+<td>TRANSACT</td>
+<td>TRANSACT-FILE</td>
+<td>OUTPUT/SEQ</td>
+<td>Interest transactions written sequentially</td>
+</tr>
+</tbody></table>
+<h3 id="program-parameter">Program Parameter</h3>
+<pre><code class="language-text">L176-178  LINKAGE SECTION.
+          01 EXTERNAL-PARMS.
+             05 PARM-LENGTH  PIC S9(04) COMP.
+             05 PARM-DATE    PIC X(10).          ← JCL PARM date, used as TRAN-ID prefix
+L180  PROCEDURE DIVISION USING EXTERNAL-PARMS.</code></pre>
+<h3 id="main-loop--appcblcbact04ccbl">Main Loop — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L188  PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;:
+L190      PERFORM 1000-TCATBALF-GET-NEXT        ← sequential scan of TCATBALF
+
+L194      IF TRANCAT-ACCT-ID NOT= WS-LAST-ACCT-NUM:  ← new account detected
+L195-199      IF WS-FIRST-TIME NOT = &#x27;Y&#x27;:
+                  PERFORM 1050-UPDATE-ACCOUNT   ← close out previous account
+              ELSE:
+                  MOVE &#x27;N&#x27; TO WS-FIRST-TIME
+L200          MOVE 0 TO WS-TOTAL-INT            ← reset interest accumulator
+L201          MOVE TRANCAT-ACCT-ID TO WS-LAST-ACCT-NUM
+L202-203      MOVE TRANCAT-ACCT-ID TO FD-ACCT-ID
+              PERFORM 1100-GET-ACCT-DATA        ← fetch ACCT-GROUP-ID
+L204-205      MOVE TRANCAT-ACCT-ID TO FD-XREF-ACCT-ID
+              PERFORM 1110-GET-XREF-DATA        ← fetch CARD-NUM via alternate key
+
+L210      PERFORM 1200-GET-INTEREST-RATE        ← lookup rate for this type+category
+L214      IF DIS-INT-RATE NOT = 0:
+L215          PERFORM 1300-COMPUTE-INTEREST
+L216          PERFORM 1400-COMPUTE-FEES         ← STUB: does nothing
+
+      ← after loop exits (EOF):
+L220-221  PERFORM 1050-UPDATE-ACCOUNT           ← close out last account</code></pre>
+<h3 id="interest-rate-lookup--appcblcbact04ccbl">Interest Rate Lookup — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L415  1200-GET-INTEREST-RATE:
+      Key = FD-DIS-ACCT-GROUP-ID (from ACCT-GROUP-ID)
+          + FD-DIS-TRAN-TYPE-CD  (from TRANCAT-TYPE-CD)
+          + FD-DIS-TRAN-CAT-CD   (from TRANCAT-CD)
+L416  READ DISCGRP-FILE INTO DIS-GROUP-RECORD (INVALID KEY: log message)
+
+L422  IF DISCGRP-STATUS = &#x27;00&#x27;: use DIS-INT-RATE
+L436  IF DISCGRP-STATUS = &#x27;23&#x27; (not found):
+L437      MOVE &#x27;DEFAULT&#x27; TO FD-DIS-ACCT-GROUP-ID    ← fallback group
+L438      PERFORM 1200-A-GET-DEFAULT-INT-RATE        ← retry read with &#x27;DEFAULT&#x27;</code></pre>
+<h3 id="interest-calculation--appcblcbact04ccbl">Interest Calculation — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L462  1300-COMPUTE-INTEREST:
+L464-465  COMPUTE WS-MONTHLY-INT
+           = (TRAN-CAT-BAL * DIS-INT-RATE) / 1200
+          ← DIS-INT-RATE is annual rate × 100 (e.g. 18.5% stored as 1850)
+          ← dividing by 1200 converts to monthly fraction
+
+L467  ADD WS-MONTHLY-INT TO WS-TOTAL-INT      ← accumulate across all categories for account
+L468  PERFORM 1300-B-WRITE-TX                 ← write one interest transaction per category</code></pre>
+<h3 id="interest-transaction-record--appcblcbact04ccbl">Interest Transaction Record — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L474      ADD 1 TO WS-TRANID-SUFFIX
+L476-480  STRING PARM-DATE, WS-TRANID-SUFFIX INTO TRAN-ID   ← e.g. &#x27;2026-05-02000001&#x27;
+L482      MOVE &#x27;01&#x27; TO TRAN-TYPE-CD            ← Interest transaction type
+L483      MOVE &#x27;05&#x27; TO TRAN-CAT-CD             ← Interest category code (note: moves to PIC 9(04))
+L484      MOVE &#x27;System&#x27; TO TRAN-SOURCE
+L485-488  STRING &#x27;Int. for a/c &#x27;, ACCT-ID INTO TRAN-DESC
+L490      MOVE WS-MONTHLY-INT TO TRAN-AMT
+L491-493  MOVE 0/SPACES to TRAN-MERCHANT-ID/NAME/CITY/ZIP   ← system transaction, no merchant
+L495      MOVE XREF-CARD-NUM TO TRAN-CARD-NUM
+L496-498  PERFORM Z-GET-DB2-FORMAT-TIMESTAMP; set both TRAN-ORIG-TS and TRAN-PROC-TS
+L500      WRITE FD-TRANFILE-REC FROM TRAN-RECORD</code></pre>
+<h3 id="account-cycle-close--appcblcbact04ccbl">Account Cycle Close — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L352  ADD WS-TOTAL-INT TO ACCT-CURR-BAL           ← apply total accumulated interest
+L353  MOVE 0 TO ACCT-CURR-CYC-CREDIT              ← reset billing cycle credit to zero
+L354  MOVE 0 TO ACCT-CURR-CYC-DEBIT               ← reset billing cycle debit to zero
+L356  REWRITE FD-ACCTFILE-REC FROM ACCOUNT-RECORD</code></pre>
+<h3 id="fee-calculation--appcblcbact04ccbl">Fee Calculation — <span class="srcref">app/cbl/CBACT04C.cbl</span></h3>
+<pre><code class="language-text">L518  1400-COMPUTE-FEES.     ← STUB: body is just EXIT
+L519      EXIT.</code></pre>
+<blockquote><strong>Do not implement fees</strong> in Java — no business logic exists here. Use a placeholder comment only.</blockquote>
+<h3 id="java-migration-notes-2">Java Migration Notes</h3>
+<ul>
+<li><strong>Interest formula</strong> (L464): <code>balance.multiply(rate).divide(BigDecimal.valueOf(1200), 2, HALF_UP)</code></li>
+<li><strong>Alternate key</strong> (L204–205): <code>xrefRepository.findByAcctId(acctId)</code> — JPA <code>@NaturalId</code> or <code>findBy</code> query</li>
+<li><strong>Sequential scan grouped by account</strong>: replace with <code>SELECT ... ORDER BY acct_id</code> + Java grouping</li>
+<li><strong>DISCGRP 'DEFAULT' fallback</strong> (L436–438): two-step lookup; implement as <code>findByKeyOrDefault(key, &quot;DEFAULT&quot;)</code></li>
+<li><strong>1400-COMPUTE-FEES is a stub</strong>: implement as empty method with <code>// TODO: fee calculation not in source</code></li>
+<li><strong>WS-TOTAL-INT accumulator</strong> (L200, L467): accumulate per account across all category rows before writing</li>
+</ul>
+<hr>
+<h2 id="4-cbstm03a--account-statement-generation-batch">4. CBSTM03A – Account Statement Generation (Batch)</h2>
+<p><strong>Type:</strong> Batch | <strong>Source:</strong> <span class="srcref">app/cbl/CBSTM03A.cbl</span> | <strong>Function:</strong> Generate account statements in plain text (80 chars) and HTML format</p>
+<h3 id="paragraph-index-3">Paragraph Index</h3>
+<table>
+<thead><tr>
+<th>Paragraph</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>(main loop)</td>
+<td><span class="srcref">app/cbl/CBSTM03A.cbl</span></td>
+<td>Iterate accounts; call CBSTM03B for file I/O</td>
+</tr>
+</tbody></table>
+<h3 id="notable-cobol-constructs-modernization-relevant">Notable COBOL Constructs (Modernization-Relevant)</h3>
+<table>
+<thead><tr>
+<th>Construct</th>
+<th>Approx. Line</th>
+<th>Java Equivalent</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>ALTER ... GOTO</code></td>
+<td>varies</td>
+<td>Replace with Strategy or State pattern</td>
+</tr>
+<tr>
+<td><code>COMP</code> variables (binary)</td>
+<td><span class="srcref">app/cbl/CBSTM03A.cbl</span></td>
+<td><code>int</code> / <code>short</code></td>
+</tr>
+<tr>
+<td><code>COMP-3</code> variables (packed decimal)</td>
+<td><span class="srcref">app/cbl/CBSTM03A.cbl</span></td>
+<td><code>BigDecimal</code></td>
+</tr>
+<tr>
+<td>2D array in WORKING-STORAGE</td>
+<td>varies</td>
+<td><code>List&lt;List&lt;T&gt;&gt;</code> or <code>Map&lt;Key, List&lt;T&gt;&gt;</code></td>
+</tr>
+<tr>
+<td><code>CALL &#x27;CBSTM03B&#x27;</code> subroutine</td>
+<td>varies</td>
+<td>Inject <code>StatementFileService</code> as Spring bean</td>
+</tr>
+</tbody></table>
+<h3 id="subroutine-interface-to-cbstm03b--appcblcbstm03acbl">Subroutine Interface to CBSTM03B — <span class="srcref">app/cbl/CBSTM03A.cbl</span></h3>
+<pre><code class="language-text">L71-83  WS-M03B-AREA (passed by reference to CBSTM03B):
+  L72  WS-M03B-DD      PIC X(08)    ← DDName of the file to operate on
+  L73  WS-M03B-OPER    PIC X(01)    ← Operation:
+                                        &#x27;O&#x27;=Open, &#x27;C&#x27;=Close, &#x27;R&#x27;=Read-sequential,
+                                        &#x27;K&#x27;=Read-by-key, &#x27;W&#x27;=Write, &#x27;Z&#x27;=Rewrite
+  L80  WS-M03B-RC      PIC X(02)    ← Return code from CBSTM03B
+  L81  WS-M03B-KEY     PIC X(25)    ← Key for &#x27;K&#x27; reads
+  L82  WS-M03B-KEY-LN  PIC S9(4)    ← Key length
+  L83  WS-M03B-FLDT    PIC X(1000)  ← Record data buffer (read/write payload)</code></pre>
+<h3 id="plain-text-output-format--appcblcbstm03acbl">Plain Text Output Format — <span class="srcref">app/cbl/CBSTM03A.cbl</span></h3>
+<pre><code class="language-text">L87-88    ST-LINE0:  *** START OF STATEMENT *** (80 chars)
+L91-92    ST-LINE1:  {Customer full name, 75 chars}
+L94-95    ST-LINE2:  {Address line 1, 50 chars}
+L97-98    ST-LINE3:  {Address line 2, 50 chars}
+L100      ST-LINE4:  {City, State ZIP, 80 chars}
+L102      ST-LINE5:  dashes (80 chars)
+L104-106  ST-LINE6:  &#x27;Basic Details&#x27; centered
+L107-110  ST-LINE7:  &#x27;Account ID         : &#x27; + ACCT-ID
+L111-115  ST-LINE8:  &#x27;Current Balance    : &#x27; + ACCT-CURR-BAL (PIC 9(9).99-)
+L116-119  ST-LINE9:  &#x27;FICO Score         : &#x27; + CUST-FICO-CREDIT-SCORE
+L120      ST-LINE10: dashes (80 chars)
+L121-124  ST-LINE11: &#x27;TRANSACTION SUMMARY&#x27; centered
+L129-131  ST-LINE13: column headers (Tran ID, Tran Details, Tran Amount)
+L133-137  ST-LINE14: {TRAN-ID} {TRAN-DESC} ${TRAN-AMT}  (per transaction)
+L139-142  ST-LINE14A:&#x27;Total EXP:&#x27; + ${total}
+L144-146  ST-LINE15: *** END OF STATEMENT *** (80 chars)</code></pre>
+<hr>
+<h2 id="5-cbtrn01c--transaction-validation-batch">5. CBTRN01C – Transaction Validation (Batch)</h2>
+<p><strong>Type:</strong> Batch | <strong>Source:</strong> <span class="srcref">app/cbl/CBTRN01C.cbl</span> | <strong>Function:</strong> Read DALYTRAN and validate against CUSTFILE, XREFFILE, CARDFILE, ACCTFILE</p>
+<h3 id="paragraph-index-4">Paragraph Index</h3>
+<table>
+<thead><tr>
+<th>Paragraph</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>PROCEDURE DIVISION</code></td>
+<td><span class="srcref">app/cbl/CBTRN01C.cbl</span></td>
+<td>Main sequential loop over DALYTRAN</td>
+</tr>
+</tbody></table>
+<h3 id="file-access-2">File Access</h3>
+<table>
+<thead><tr>
+<th>DDName</th>
+<th>File</th>
+<th>Mode</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>DALYTRAN</td>
+<td>DALYTRAN-FILE</td>
+<td>INPUT</td>
+<td>Daily transaction input (sequential)</td>
+</tr>
+<tr>
+<td>CUSTFILE</td>
+<td>CUSTOMER-FILE</td>
+<td>INPUT</td>
+<td>Customer data validation</td>
+</tr>
+<tr>
+<td>XREFFILE</td>
+<td>XREF-FILE</td>
+<td>INPUT</td>
+<td>Card-to-account mapping</td>
+</tr>
+<tr>
+<td>CARDFILE</td>
+<td>CARD-FILE</td>
+<td>INPUT</td>
+<td>Card record validation</td>
+</tr>
+<tr>
+<td>ACCTFILE</td>
+<td>ACCOUNT-FILE</td>
+<td>I-O</td>
+<td>Account validation</td>
+</tr>
+<tr>
+<td>TRANFILE</td>
+<td>TRANSACT-FILE</td>
+<td>I-O</td>
+<td>Transaction master</td>
+</tr>
+</tbody></table>
+<blockquote><strong>Difference from CBTRN02C</strong>: CBTRN01C additionally reads CUSTFILE (L34–38) and CARDFILE (L43–50), providing deeper validation including customer existence and card record checks.</blockquote>
+<hr>
+<h2 id="6-user-security-record-usrsec--csusr01y">6. User Security Record (USRSEC / CSUSR01Y)</h2>
+<p><strong>Source:</strong> <span class="srcref">app/cpy/CSUSR01Y.cpy</span> | Referenced by COSGN00C at <span class="srcref">app/cbl/COSGN00C.cbl</span></p>
+<pre><code class="language-cobol">01 SEC-USER-DATA.
+   05 SEC-USR-ID         PIC X(08).  ← primary key (= WS-USER-ID on login)
+   05 SEC-USR-FNAME      PIC X(20).
+   05 SEC-USR-LNAME      PIC X(20).
+   05 SEC-USR-PWD        PIC X(08).  ← plaintext password — replace with BCrypt hash
+   05 SEC-USR-TYPE       PIC X(01).  ← &#x27;A&#x27; = Admin, &#x27;U&#x27; = User
+   05 SEC-USR-ACTIVE-FLG PIC X(01).</code></pre>
+<hr>
+<h2 id="summary-business-critical-migration-notes">Summary: Business-Critical Migration Notes</h2>
+<table>
+<thead><tr>
+<th>Topic</th>
+<th>COBOL Behavior</th>
+<th>Java Recommendation</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Dual validation (L407+L414)</td>
+<td>Both checks always run; last code wins</td>
+<td>Run both checks; collect all errors</td>
+</tr>
+<tr>
+<td>Plaintext passwords (L223)</td>
+<td>Direct string compare to USRSEC field</td>
+<td>BCrypt + Spring Security</td>
+</tr>
+<tr>
+<td>Interest formula (L464-465)</td>
+<td><code>(BAL * RATE) / 1200</code></td>
+<td><code>BigDecimal.divide(..., HALF_UP)</code></td>
+</tr>
+<tr>
+<td>TCATBAL create-or-update (L474-498)</td>
+<td>READ → INVALID KEY → WRITE else REWRITE</td>
+<td><code>findById().orElse(new Entity())</code></td>
+</tr>
+<tr>
+<td>Fee calculation (L518-519)</td>
+<td>STUB — EXIT only</td>
+<td>Empty method + <code>// TODO</code> comment</td>
+</tr>
+<tr>
+<td>DB2 timestamp (L692-702)</td>
+<td><code>YYYY-MM-DD-HH.MM.SS.mm0000</code></td>
+<td><code>DateTimeFormatter</code> with literal dashes/dots</td>
+</tr>
+<tr>
+<td>XREF alternate key (L204-205)</td>
+<td><code>READ XREF-FILE KEY IS FD-XREF-ACCT-ID</code></td>
+<td><code>xrefRepo.findByAcctId(acctId)</code></td>
+</tr>
+<tr>
+<td>CICS routing (L230-235)</td>
+<td>XCTL to COADM01C or COMEN01C by type</td>
+<td>Spring Security role-based redirect</td>
+</tr>
+<tr>
+<td>Cycle reset (L353-354)</td>
+<td>Zero CURR-CYC-CREDIT and CURR-CYC-DEBIT</td>
+<td>Set fields to <code>BigDecimal.ZERO</code></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Analysis date: 2026-05-02</em> <em>Based on direct source read of: CBTRN02C.cbl, COSGN00C.cbl, CBACT04C.cbl, CBSTM03A.cbl, CBTRN01C.cbl</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>06-geschaeftslogik.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

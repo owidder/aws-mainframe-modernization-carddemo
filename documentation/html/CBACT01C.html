@@ -1,0 +1,3724 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBACT01C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-1000-ACCTFILE-GET-NEXT">1000-ACCTFILE-GET-NEXT</a>
+  
+  <a href="#para-1100-DISPLAY-ACCT-RECORD">1100-DISPLAY-ACCT-RECORD</a>
+  
+  <a href="#para-1300-POPUL-ACCT-RECORD">1300-POPUL-ACCT-RECORD</a>
+  
+  <a href="#para-1350-WRITE-ACCT-RECORD">1350-WRITE-ACCT-RECORD</a>
+  
+  <a href="#para-1400-POPUL-ARRAY-RECORD">1400-POPUL-ARRAY-RECORD</a>
+  
+  <a href="#para-1450-WRITE-ARRY-RECORD">1450-WRITE-ARRY-RECORD</a>
+  
+  <a href="#para-1500-POPUL-VBRC-RECORD">1500-POPUL-VBRC-RECORD</a>
+  
+  <a href="#para-1550-WRITE-VB1-RECORD">1550-WRITE-VB1-RECORD</a>
+  
+  <a href="#para-1575-WRITE-VB2-RECORD">1575-WRITE-VB2-RECORD</a>
+  
+  <a href="#para-0000-ACCTFILE-OPEN">0000-ACCTFILE-OPEN</a>
+  
+  <a href="#para-2000-OUTFILE-OPEN">2000-OUTFILE-OPEN</a>
+  
+  <a href="#para-3000-ARRFILE-OPEN">3000-ARRFILE-OPEN</a>
+  
+  <a href="#para-4000-VBRFILE-OPEN">4000-VBRFILE-OPEN</a>
+  
+  <a href="#para-9000-ACCTFILE-CLOSE">9000-ACCTFILE-CLOSE</a>
+  
+  <a href="#para-9999-ABEND-PROGRAM">9999-ABEND-PROGRAM</a>
+  
+  <a href="#para-9910-DISPLAY-IO-STATUS">9910-DISPLAY-IO-STATUS</a>
+  
+  
+
+  
+  <h2>Variables (21)</h2>
+  
+  <a href="#var-FD-ACCTFILE-REC">FD-ACCTFILE-REC</a>
+  
+  <a href="#var-OUT-ACCT-REC">OUT-ACCT-REC</a>
+  
+  <a href="#var-ARR-ARRAY-REC">ARR-ARRAY-REC</a>
+  
+  <a href="#var-VBR-REC">VBR-REC</a>
+  
+  <a href="#var-ACCTFILE-STATUS">ACCTFILE-STATUS</a>
+  
+  <a href="#var-OUTFILE-STATUS">OUTFILE-STATUS</a>
+  
+  <a href="#var-ARRYFILE-STATUS">ARRYFILE-STATUS</a>
+  
+  <a href="#var-VBRCFILE-STATUS">VBRCFILE-STATUS</a>
+  
+  <a href="#var-IO-STATUS">IO-STATUS</a>
+  
+  <a href="#var-TWO-BYTES-BINARY">TWO-BYTES-BINARY</a>
+  
+  <a href="#var-TWO-BYTES-ALPHA">TWO-BYTES-ALPHA</a>
+  
+  <a href="#var-IO-STATUS-04">IO-STATUS-04</a>
+  
+  <a href="#var-APPL-RESULT">APPL-RESULT</a>
+  
+  <a href="#var-END-OF-FILE">END-OF-FILE</a>
+  
+  <a href="#var-ABCODE">ABCODE</a>
+  
+  <a href="#var-TIMING">TIMING</a>
+  
+  <a href="#var-WS-RECD-LEN">WS-RECD-LEN</a>
+  
+  <a href="#var-VBRC-REC1">VBRC-REC1</a>
+  
+  <a href="#var-VBRC-REC2">VBRC-REC2</a>
+  
+  <a href="#var-WS-ACCT-REISSUE-DATE">WS-ACCT-REISSUE-DATE</a>
+  
+  <a href="#var-WS-REISSUE-DATE">WS-REISSUE-DATE</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>CBACT01C.CBL</h1>
+    <p>Das Programm CBACT01C ist ein BATCH-COBOL-Programm, das die Verarbeitung von Kreditkartendaten durchführt. Es liest Daten aus einer ACCTFILE und schreibt diese in verschiedene Dateien wie OUT-FILE, ARRY-FILE und VBRC-FILE.</p>
+    
+    
+    
+    <div class="badges">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Account</span>
+      
+      <span class="badge badge-copy">COPY CVACT01Y</span>
+      
+      <span class="badge badge-copy">COPY CODATECN</span>
+      
+      <span class="badge badge-meta">430 lines</span>
+      <span class="badge badge-meta">21 variables</span>
+      <span class="badge badge-meta">16 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-01</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-1000-ACCTFILE-GET-NEXT">
+    <h3>1000-ACCTFILE-GET-NEXT</h3>
+    
+    <div class="para-meta">Lines 165–199</div>
+  </div>
+  
+  <div class="para-card" id="para-1100-DISPLAY-ACCT-RECORD">
+    <h3>1100-DISPLAY-ACCT-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist ein Display-Befehl für eine Kreditkartenrechnung. Er zeigt bestimmte Daten einer Karte an, wie ID, Aktivitätsstatus, aktuelle Guthaben und mehr.</p>
+    <div class="para-meta">Lines 200–214</div>
+  </div>
+  
+  <div class="para-card" id="para-1300-POPUL-ACCT-RECORD">
+    <h3>1300-POPUL-ACCT-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' übernimmt und formatiert Daten aus einer Kreditkartenrechnung. Die Daten werden in eine Ausgabewarteschlange geleitet, die für das Reissuern von Kreditkarten verwendet wird.</p>
+    <div class="para-meta">Lines 215–241</div>
+  </div>
+  
+  <div class="para-card" id="para-1350-WRITE-ACCT-RECORD">
+    <h3>1350-WRITE-ACCT-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Statusnachrichten beim Schreiben in das Konto-Datei und führt entsprechende Fehlerbehandlungen durch.</p>
+    <div class="para-meta">Lines 242–252</div>
+  </div>
+  
+  <div class="para-card" id="para-1400-POPUL-ARRAY-RECORD">
+    <h3>1400-POPUL-ARRAY-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' erstellt eine Array-Record für die Verwaltung von Kreditkarten. Die Daten werden in den Feldern des Arrays gespeichert.</p>
+    <div class="para-meta">Lines 253–262</div>
+  </div>
+  
+  <div class="para-card" id="para-1450-WRITE-ARRY-RECORD">
+    <h3>1450-WRITE-ARRY-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Schreibstatus von einem File und führt entsprechende Fehlerabstufungen aus.</p>
+    <div class="para-meta">Lines 263–275</div>
+  </div>
+  
+  <div class="para-card" id="para-1500-POPUL-VBRC-RECORD">
+    <h3>1500-POPUL-VBRC-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist verantwortlich für die Initialisierung von Variablen, die aus einer bestimmten Kreditkarten-Datenbank extrahiert werden. Die Daten werden in zwei separate Variablen (VB1 und VB2) verteilt.</p>
+    <div class="para-meta">Lines 276–286</div>
+  </div>
+  
+  <div class="para-card" id="para-1550-WRITE-VB1-RECORD">
+    <h3>1550-WRITE-VB1-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' schreibt ein VB1-Datenrecord aus und prüft den Schreibstatus des Accounts-Files.</p>
+    <div class="para-meta">Lines 287–301</div>
+  </div>
+  
+  <div class="para-card" id="para-1575-WRITE-VB2-RECORD">
+    <h3>1575-WRITE-VB2-RECORD</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' schreibt eine Kreditkartenrechnung in einen Speicherort und überprüft die Schreibstatus des Dateisystems.</p>
+    <div class="para-meta">Lines 302–316</div>
+  </div>
+  
+  <div class="para-card" id="para-0000-ACCTFILE-OPEN">
+    <h3>0000-ACCTFILE-OPEN</h3>
+    <p>Dieser Abschnitt des Programms 'CBACT01C' ist für die Öffnung eines Datensatzes namens 'ACCTFILE-FILE'. Er führt eine Reihe von Schritten durch, um sicherzustellen, dass der Datensatz erfolgreich geöffnet wird und gibt entsprechende Fehlermeldungen aus, wenn dies nicht der Fall ist.</p>
+    <div class="para-meta">Lines 317–333</div>
+  </div>
+  
+  <div class="para-card" id="para-2000-OUTFILE-OPEN">
+    <h3>2000-OUTFILE-OPEN</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' öffnet eine Ausgabedatei und speichert den Status in der Variable APPL-RESULT. Er führt Fehlerbehandlungen aus, wenn die Datei nicht erfolgreich geöffnet werden kann.</p>
+    <div class="para-meta">Lines 334–351</div>
+  </div>
+  
+  <div class="para-card" id="para-3000-ARRFILE-OPEN">
+    <h3>3000-ARRFILE-OPEN</h3>
+    <p>Dieser Abschnitt des Programms 'CBACT01C' öffnet eine Datei namens 'ARRY-FILE'. Er führt Fehlerabläufe aus, wenn die Datei nicht erfolgreich geöffnet wird.</p>
+    <div class="para-meta">Lines 352–369</div>
+  </div>
+  
+  <div class="para-card" id="para-4000-VBRFILE-OPEN">
+    <h3>4000-VBRFILE-OPEN</h3>
+    <p>Dieser Abschnitt des COBOL-Programms 'CBACT01C' öffnet eine Datei namens VBRC-FILE und überprüft den Status der Dateiöffnung. Je nach dem Ergebnis wird die Variable APPL-RESULT entsprechend gesetzt.</p>
+    <div class="para-meta">Lines 370–387</div>
+  </div>
+  
+  <div class="para-card" id="para-9000-ACCTFILE-CLOSE">
+    <h3>9000-ACCTFILE-CLOSE</h3>
+    <p>Abschluss des Kontostandards und Fehlerabgleich bei Schließung des Kontodatei-Files</p>
+    <div class="para-meta">Lines 388–405</div>
+  </div>
+  
+  <div class="para-card" id="para-9999-ABEND-PROGRAM">
+    <h3>9999-ABEND-PROGRAM</h3>
+    <p>Dieser Abschnitt des COBOL-Programms beinhaltet die Initialisierung von Programmausfallparametern und eine Aufrufanweisung zu einer externen Routine.</p>
+    <div class="para-meta">Lines 406–412</div>
+  </div>
+  
+  <div class="para-card" id="para-9910-DISPLAY-IO-STATUS">
+    <h3>9910-DISPLAY-IO-STATUS</h3>
+    
+    <div class="para-meta">Lines 413–430</div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">000100******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">000200* PROGRAM     : CBACT01C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">000300* Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">000400* Type        : BATCH COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">000500* FUNCTION    : READ THE ACCOUNT FILE AND WRITE INTO FILES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">000600******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">000700* Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">000800* All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">000900*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">001000* Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">001100* You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">001200* You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">001300*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">001400*    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">001500*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">001600* Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">001700* software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">001800* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">001900* either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">002000* language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">002100******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID.    CBACT01C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.        AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       INPUT-OUTPUT SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-code">       FILE-CONTROL.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-code">           SELECT ACCTFILE-FILE ASSIGN TO ACCTFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-ACCT-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS ACCTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-code">           SELECT OUT-FILE ASSIGN TO OUTFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-code">                  ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-code">                  FILE STATUS IS OUTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-code">           SELECT ARRY-FILE ASSIGN TO ARRYFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-code">                  ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-code">                  FILE STATUS IS ARRYFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-code">           SELECT VBRC-FILE ASSIGN TO VBRCFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-code">                  ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-code">                  FILE STATUS IS VBRCFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-section-header">       FILE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-code">       FD  ACCTFILE-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-variable-declaration">       01  FD-ACCTFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-variable-declaration">           05 FD-ACCT-ID                        PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-variable-declaration">           05 FD-ACCT-DATA                      PIC X(289).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-code">       FD OUT-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-variable-declaration">       01 OUT-ACCT-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-ID                PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-ACTIVE-STATUS     PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-CURR-BAL          PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-CREDIT-LIMIT      PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-OPEN-DATE         PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-EXPIRAION-DATE    PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-REISSUE-DATE      PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-CURR-CYC-CREDIT   PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-CURR-CYC-DEBIT    PIC S9(10)V99</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-code">                                         USAGE IS COMP-3.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-variable-declaration">          05  OUT-ACCT-GROUP-ID          PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-code">       FD ARRY-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-variable-declaration">       01 ARR-ARRAY-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-variable-declaration">          05  ARR-ACCT-ID                PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">          05  ARR-ACCT-BAL OCCURS 5  TIMES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-variable-declaration">            10  ARR-ACCT-CURR-BAL        PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-variable-declaration">            10  ARR-ACCT-CURR-CYC-DEBIT  PIC S9(10)V99</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-code">                                         USAGE IS COMP-3.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-variable-declaration">          05  ARR-FILLER                 PIC X(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-code">       FD VBRC-FILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-code">                  RECORDING MODE IS V</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-code">                  RECORD IS VARYING IN SIZE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-code">                  FROM 10 TO 80 DEPENDING</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-code">                  ON WS-RECD-LEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-variable-declaration">       01 VBR-REC                        PIC X(80).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-comment">      ****0************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">89</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">90</td>
+      <td class="code-cell t-copy-statement">       COPY CODATECN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">91</td>
+      <td class="code-cell t-variable-declaration">       01  ACCTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">92</td>
+      <td class="code-cell t-variable-declaration">           05  ACCTFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">93</td>
+      <td class="code-cell t-variable-declaration">           05  ACCTFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">94</td>
+      <td class="code-cell t-variable-declaration">       01  OUTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">95</td>
+      <td class="code-cell t-variable-declaration">           05  OUTFILE-STAT1       PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">96</td>
+      <td class="code-cell t-variable-declaration">           05  OUTFILE-STAT2       PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">97</td>
+      <td class="code-cell t-variable-declaration">       01  ARRYFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">98</td>
+      <td class="code-cell t-variable-declaration">           05  ARRYFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">99</td>
+      <td class="code-cell t-variable-declaration">           05  ARRYFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">100</td>
+      <td class="code-cell t-variable-declaration">       01  VBRCFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">101</td>
+      <td class="code-cell t-variable-declaration">           05  VBRCFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">102</td>
+      <td class="code-cell t-variable-declaration">           05  VBRCFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">103</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">104</td>
+      <td class="code-cell t-variable-declaration">       01  IO-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">105</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STAT1            PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">106</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STAT2            PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">107</td>
+      <td class="code-cell t-variable-declaration">       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">108</td>
+      <td class="code-cell t-variable-declaration">       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">109</td>
+      <td class="code-cell t-variable-declaration">           05  TWO-BYTES-LEFT      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">110</td>
+      <td class="code-cell t-variable-declaration">           05  TWO-BYTES-RIGHT     PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">111</td>
+      <td class="code-cell t-variable-declaration">       01  IO-STATUS-04.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">112</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STATUS-0401      PIC 9   VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">113</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STATUS-0403      PIC 999 VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">114</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">115</td>
+      <td class="code-cell t-variable-declaration">       01  APPL-RESULT             PIC S9(9)   COMP.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">116</td>
+      <td class="code-cell t-variable-declaration">           88  APPL-AOK            VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">117</td>
+      <td class="code-cell t-variable-declaration">           88  APPL-EOF            VALUE 16.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">118</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">119</td>
+      <td class="code-cell t-variable-declaration">       01  END-OF-FILE             PIC X(01)    VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">120</td>
+      <td class="code-cell t-variable-declaration">       01  ABCODE                  PIC S9(9) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">121</td>
+      <td class="code-cell t-variable-declaration">       01  TIMING                  PIC S9(9) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">122</td>
+      <td class="code-cell t-variable-declaration">       01  WS-RECD-LEN             PIC  9(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">123</td>
+      <td class="code-cell t-variable-declaration">       01 VBRC-REC1.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">124</td>
+      <td class="code-cell t-variable-declaration">          05  VB1-ACCT-ID                PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">125</td>
+      <td class="code-cell t-variable-declaration">          05  VB1-ACCT-ACTIVE-STATUS     PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">126</td>
+      <td class="code-cell t-variable-declaration">       01 VBRC-REC2.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">127</td>
+      <td class="code-cell t-variable-declaration">          05  VB2-ACCT-ID                PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">128</td>
+      <td class="code-cell t-variable-declaration">          05  VB2-ACCT-CURR-BAL          PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">129</td>
+      <td class="code-cell t-variable-declaration">          05  VB2-ACCT-CREDIT-LIMIT      PIC S9(10)V99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">130</td>
+      <td class="code-cell t-variable-declaration">          05  VB2-ACCT-REISSUE-YYYY      PIC X(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">131</td>
+      <td class="code-cell t-variable-declaration">       01 WS-ACCT-REISSUE-DATE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">132</td>
+      <td class="code-cell t-variable-declaration">          05  WS-ACCT-REISSUE-YYYY       PIC X(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">133</td>
+      <td class="code-cell t-variable-declaration">          05  WS-FILLER-1                PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">134</td>
+      <td class="code-cell t-variable-declaration">          05  WS-ACCT-REISSUE-MM         PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">135</td>
+      <td class="code-cell t-variable-declaration">          05  WS-FILLER-2                PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">136</td>
+      <td class="code-cell t-variable-declaration">          05  WS-ACCT-REISSUE-DD         PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">137</td>
+      <td class="code-cell t-variable-declaration">       01 WS-REISSUE-DATE REDEFINES WS-ACCT-REISSUE-DATE  PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">138</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">139</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">140</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT01C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">           PERFORM 0000-ACCTFILE-OPEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">           PERFORM 2000-OUTFILE-OPEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">144</td>
+      <td class="code-cell t-statement">           PERFORM 3000-ARRFILE-OPEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">           PERFORM 4000-VBRFILE-OPEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">146</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">           PERFORM UNTIL END-OF-FILE = 'Y'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">               IF  END-OF-FILE = 'N'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">                   PERFORM 1000-ACCTFILE-GET-NEXT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">150</td>
+      <td class="code-cell t-statement">                   IF  END-OF-FILE = 'N'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">                       DISPLAY ACCOUNT-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">152</td>
+      <td class="code-cell t-statement">                   END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">           END-PERFORM.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">155</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">           PERFORM 9000-ACCTFILE-CLOSE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">157</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT01C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">159</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">           GOBACK.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">161</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">162</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">163</td>
+      <td class="code-cell t-comment">      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">164</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">165</td>
+      <td class="code-cell t-paragraph-header">       1000-ACCTFILE-GET-NEXT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">           READ ACCTFILE-FILE INTO ACCOUNT-RECORD.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">           IF  ACCTFILE-STATUS = '00'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">               INITIALIZE ARR-ARRAY-REC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">               PERFORM 1100-DISPLAY-ACCT-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">               PERFORM 1300-POPUL-ACCT-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">               PERFORM 1350-WRITE-ACCT-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">               PERFORM 1400-POPUL-ARRAY-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">               PERFORM 1450-WRITE-ARRY-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">175</td>
+      <td class="code-cell t-statement">               INITIALIZE VBRC-REC1</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">               PERFORM 1500-POPUL-VBRC-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">               PERFORM 1550-WRITE-VB1-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">               PERFORM 1575-WRITE-VB2-RECORD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">               IF  ACCTFILE-STATUS = '10'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">                   MOVE 16 TO APPL-RESULT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">                   MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">               IF  APPL-EOF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">                   MOVE 'Y' TO END-OF-FILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">                   DISPLAY 'ERROR READING ACCOUNT FILE'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">193</td>
+      <td class="code-cell t-statement">                   MOVE ACCTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">194</td>
+      <td class="code-cell t-statement">                   PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">195</td>
+      <td class="code-cell t-statement">                   PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">196</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">197</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">198</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-ACCTFILE-GET-NEXT">
+      <td class="ln">199</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">200</td>
+      <td class="code-cell t-paragraph-header">       1100-DISPLAY-ACCT-RECORD.</td>
+      <td class="expl-cell">Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist ein Display-Befehl für eine Kreditkartenrechnung. Er zeigt bestimmte Daten einer Karte an, wie ID, Aktivitätsstatus, aktuelle Guthaben und mehr.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">201</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-ID                 :'   ACCT-ID</td>
+      <td class="expl-cell">Der Befehl 'DISPLAY' wird verwendet um die Information in der Variable 'ACCT-ID' auszugeben. Der Text 'ACCT-ID                 :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">202</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-ACTIVE-STATUS      :'   ACCT-ACTIVE-STATUS</td>
+      <td class="expl-cell">Dieser Befehl zeigt die Informationen in der Variable 'ACCT-ACTIVE-STATUS' an und führt einen Text vorher ein, um zu erklären was angezeigt wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-CURR-BAL           :'   ACCT-CURR-BAL</td>
+      <td class="expl-cell">Hier wird die Information aus der Variable 'ACCT-CURR-BAL' ausgegeben. Der Text 'ACCT-CURR-BAL           :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-CREDIT-LIMIT       :'   ACCT-CREDIT-LIMIT</td>
+      <td class="expl-cell">Dieser Befehl zeigt die Informationen in der Variable 'ACCT-CREDIT-LIMIT' an und führt einen Text vorher ein, um zu erklären was angezeigt wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">205</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-CASH-CREDIT-LIMIT  :'   ACCT-CASH-CREDIT-LIMIT</td>
+      <td class="expl-cell">Hier wird die Information aus der Variable 'ACCT-CASH-CREDIT-LIMIT' ausgegeben. Der Text 'ACCT-CASH-CREDIT-LIMIT  :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">206</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-OPEN-DATE          :'   ACCT-OPEN-DATE</td>
+      <td class="expl-cell">Dieser Befehl zeigt die Informationen in der Variable 'ACCT-OPEN-DATE' an und führt einen Text vorher ein, um zu erklären was angezeigt wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">207</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-EXPIRAION-DATE     :'   ACCT-EXPIRAION-DATE</td>
+      <td class="expl-cell">Hier wird die Information aus der Variable 'ACCT-EXPIRAION-DATE' ausgegeben. Der Text 'ACCT-EXPIRAION-DATE     :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-REISSUE-DATE       :'   ACCT-REISSUE-DATE</td>
+      <td class="expl-cell">Dieser Befehl zeigt die Informationen in der Variable 'ACCT-REISSUE-DATE' an und führt einen Text vorher ein, um zu erklären was angezeigt wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-CURR-CYC-CREDIT    :'   ACCT-CURR-CYC-CREDIT</td>
+      <td class="expl-cell">Hier wird die Information aus der Variable 'ACCT-CURR-CYC-CREDIT' ausgegeben. Der Text 'ACCT-CURR-CYC-CREDIT    :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">210</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-CURR-CYC-DEBIT     :'   ACCT-CURR-CYC-DEBIT</td>
+      <td class="expl-cell">Dieser Befehl zeigt die Informationen in der Variable 'ACCT-CURR-CYC-DEBIT' an und führt einen Text vorher ein, um zu erklären was angezeigt wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">211</td>
+      <td class="code-cell t-statement">           DISPLAY 'ACCT-GROUP-ID           :'   ACCT-GROUP-ID</td>
+      <td class="expl-cell">Hier wird die Information aus der Variable 'ACCT-GROUP-ID' ausgegeben. Der Text 'ACCT-GROUP-ID           :' gibt den Namen an, welches auf dem Display angezeigt werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">           DISPLAY '-------------------------------------------------'</td>
+      <td class="expl-cell">Dieser Befehl zeigt einen separaten Text an, um eine Trennlinie zu erstellen und die Ausgabe zu beenden.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Der Befehl 'EXIT' beendet den aktuellen Abschnitt des Programms.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1100-DISPLAY-ACCT-RECORD">
+      <td class="ln">214</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">215</td>
+      <td class="code-cell t-paragraph-header">       1300-POPUL-ACCT-RECORD.</td>
+      <td class="expl-cell">Definiert den Datensatz '1300-POPUL-ACCT-RECORD'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-ID                 TO   OUT-ACCT-ID.</td>
+      <td class="expl-cell">Überträgt die ACCT-ID in 'OUT-ACCT-ID'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">217</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-ACTIVE-STATUS      TO   OUT-ACCT-ACTIVE-STATUS.</td>
+      <td class="expl-cell">Überträgt das Aktionsstatus der Karte in 'OUT-ACCT-ACTIVE-STATUS'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">218</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CURR-BAL           TO   OUT-ACCT-CURR-BAL.</td>
+      <td class="expl-cell">Überträgt den aktuellen Kontostand in 'OUT-ACCT-CURR-BAL'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CREDIT-LIMIT       TO   OUT-ACCT-CREDIT-LIMIT.</td>
+      <td class="expl-cell">Überträgt die Kreditgrenze in 'OUT-ACCT-CREDIT-LIMIT'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CASH-CREDIT-LIMIT  TO OUT-ACCT-CASH-CREDIT-LIMIT.</td>
+      <td class="expl-cell">Überträgt die Cash-Kreditgrenze in 'OUT-ACCT-CASH-CREDIT-LIMIT'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">221</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-OPEN-DATE          TO   OUT-ACCT-OPEN-DATE.</td>
+      <td class="expl-cell">Überträgt den Aufnahmedatum in 'OUT-ACCT-OPEN-DATE'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">222</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-EXPIRAION-DATE     TO   OUT-ACCT-EXPIRAION-DATE.</td>
+      <td class="expl-cell">Überträgt das Ablaufdatum in 'OUT-ACCT-EXPIRAION-DATE'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-REISSUE-DATE       TO   CODATECN-INP-DATE</td>
+      <td class="expl-cell">Überträgt das Datum für die Neukarte in 'WS-REISSUE-DATE' und setzt den Typ auf 2.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">                                               WS-REISSUE-DATE.</td>
+      <td class="expl-cell">Setzt den Ausgabedatentyp auf 2.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">           MOVE   '2'                     TO   CODATECN-TYPE.</td>
+      <td class="expl-cell">*---------------------------------------------------------------*</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">226</td>
+      <td class="code-cell t-statement">           MOVE   '2'                     TO   CODATECN-OUTTYPE.</td>
+      <td class="expl-cell">Liest das Datum für die Neukarte aus dem Datensatz 'CODATECN-REC'.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">227</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell">Leert die Zeile.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">228</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">*CALL ASSEMBLER PROGRAM FOR DATE FORMATTING                     *</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">229</td>
+      <td class="code-cell t-comment">      *CALL ASSEMBLER PROGRAM FOR DATE FORMATTING                     *</td>
+      <td class="expl-cell">Aufruf eines Assemblerprogramms zur Formatierung von Daten.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">230</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">*---------------------------------------------------------------*</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">           CALL 'COBDATFT'       USING CODATECN-REC.</td>
+      <td class="expl-cell">Aufruf des Assemblerprogramms 'COBDATFT' mit den Daten aus 'CODATECN-REC'.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">232</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell">Leert die Zeile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           MOVE   CODATECN-0UT-DATE       TO   OUT-ACCT-REISSUE-DATE.</td>
+      <td class="expl-cell">Überträgt das formatierte Ablaufdatum in 'OUT-ACCT-REISSUE-DATE'.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">234</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell">Leert die Zeile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">235</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CURR-CYC-CREDIT    TO   OUT-ACCT-CURR-CYC-CREDIT.</td>
+      <td class="expl-cell">Überträgt den Kreditcykeldaten in 'OUT-ACCT-CURR-CYC-CREDIT'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">           IF  ACCT-CURR-CYC-DEBIT EQUAL TO ZERO</td>
+      <td class="expl-cell">Prüft, ob der Debit-Kredit gleich Null ist. Wenn ja, setzt einen festen Wert von 2525.00 in 'OUT-ACCT-CURR-CYC-DEBIT'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">237</td>
+      <td class="code-cell t-statement">               MOVE 2525.00         TO   OUT-ACCT-CURR-CYC-DEBIT</td>
+      <td class="expl-cell">Leert die Zeile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">238</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">Setzt den Wert auf 2 für 'CODATECN-TYPE' und 'CODATECN-OUTTYPE'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">239</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-GROUP-ID           TO   OUT-ACCT-GROUP-ID.</td>
+      <td class="expl-cell">Überträgt die Gruppen-ID in 'OUT-ACCT-GROUP-ID'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">240</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Beendet das aktuelle Programm.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1300-POPUL-ACCT-RECORD">
+      <td class="ln">241</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">*---------------------------------------------------------------*</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">242</td>
+      <td class="code-cell t-paragraph-header">       1350-WRITE-ACCT-RECORD.</td>
+      <td class="expl-cell">Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Statusnachrichten beim Schreiben in das Konto-Datei und führt entsprechende Fehlerbehandlungen durch.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">           WRITE OUT-ACCT-REC.</td>
+      <td class="expl-cell">Verwendet WRITE-Befehl um den Ausgangskontorekord auszugeben.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">244</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">           IF OUTFILE-STATUS NOT = '00' AND OUTFILE-STATUS NOT = '10'</td>
+      <td class="expl-cell">Prüft, ob der Status beim Schreiben in die Datei nicht '00' oder '10' ist. Wenn dies der Fall ist, gibt es eine Fehlermeldung aus und übernimmt den aktuellen Status als IO-Status.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">246</td>
+      <td class="code-cell t-statement">              DISPLAY 'ACCOUNT FILE WRITE STATUS IS:'  OUTFILE-STATUS</td>
+      <td class="expl-cell">Falls der Status nicht '00' oder '10', wird eine Fehlermeldung ausgegeben, der aktuelle Status in die Variable IO-STATUS kopiert und anschließend werden die entsprechenden Fehlerbehandlungen ausgeführt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">247</td>
+      <td class="code-cell t-statement">              MOVE OUTFILE-STATUS  TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">248</td>
+      <td class="code-cell t-statement">              PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">249</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">250</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">Wenn der Status jedoch '00' oder '10' ist, wird das IF-Befehl verlassen und das Programm beendet.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">251</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1350-WRITE-ACCT-RECORD">
+      <td class="ln">252</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Ein weiterer Kommentar, der den Codeabschnitt beschreibt.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">253</td>
+      <td class="code-cell t-paragraph-header">       1400-POPUL-ARRAY-RECORD.</td>
+      <td class="expl-cell">Dieser Abschnitt des COBOL-Programms 'CBACT01C' erstellt eine Array-Record für die Verwaltung von Kreditkarten. Die Daten werden in den Feldern des Arrays gespeichert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-ID         TO   ARR-ACCT-ID.</td>
+      <td class="expl-cell">Das erste MOVE-Befehl kopiert den Wert von ACCT-ID in ARR-ACCT-ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">255</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CURR-BAL   TO   ARR-ACCT-CURR-BAL(1).</td>
+      <td class="expl-cell">Das zweite MOVE-Befehl kopiert den Wert von ACCT-CURR-BAL in das erste Feld von ARR-ACCT-CURR-BAL.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">256</td>
+      <td class="code-cell t-statement">           MOVE   1005.00         TO   ARR-ACCT-CURR-CYC-DEBIT(1).</td>
+      <td class="expl-cell">Das dritte MOVE-Befehl setzt einen festen Wert von 1005.00 in das erste Feld von ARR-ACCT-CURR-CYC-DEBIT.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">257</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CURR-BAL   TO   ARR-ACCT-CURR-BAL(2).</td>
+      <td class="expl-cell">Das vierte MOVE-Befehl kopiert den Wert von ACCT-CURR-BAL in das zweite Feld von ARR-ACCT-CURR-BAL.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">258</td>
+      <td class="code-cell t-statement">           MOVE   1525.00         TO   ARR-ACCT-CURR-CYC-DEBIT(2).</td>
+      <td class="expl-cell">Das fünfte MOVE-Befehl setzt einen festen Wert von 1525.00 in das zweite Feld von ARR-ACCT-CURR-CYC-DEBIT.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">259</td>
+      <td class="code-cell t-statement">           MOVE   -1025.00        TO   ARR-ACCT-CURR-BAL(3).</td>
+      <td class="expl-cell">Das sechste MOVE-Befehl setzt einen festen Wert von -1025.00 in das dritte Feld von ARR-ACCT-CURR-BAL.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">260</td>
+      <td class="code-cell t-statement">           MOVE   -2500.00        TO   ARR-ACCT-CURR-CYC-DEBIT(3).</td>
+      <td class="expl-cell">Das siebte MOVE-Befehl setzt einen festen Wert von -2500.00 in das dritte Feld von ARR-ACCT-CURR-CYC-DEBIT.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">261</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Der EXIT-Befehl beendet die Aktualisierung des Arrays und übergeht alle folgenden Befehle auf dieser Ebene.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1400-POPUL-ARRAY-RECORD">
+      <td class="ln">262</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Der Kommentar erklärt, dass ein neuer Abschnitt oder eine neue Funktion im Programm beginnt.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">263</td>
+      <td class="code-cell t-paragraph-header">       1450-WRITE-ARRY-RECORD.</td>
+      <td class="expl-cell">Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Schreibstatus von einem File und führt entsprechende Fehlerabstufungen aus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">264</td>
+      <td class="code-cell t-statement">           WRITE ARR-ARRAY-REC.</td>
+      <td class="expl-cell">Führt die Schreiboperation auf den Array-Datensatz durch.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">265</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">266</td>
+      <td class="code-cell t-statement">           IF ARRYFILE-STATUS NOT = '00'</td>
+      <td class="expl-cell">Prüft, ob der Status des Dateischreibvorgangs nicht '00' oder '10'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">                        AND ARRYFILE-STATUS NOT = '10'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">268</td>
+      <td class="code-cell t-statement">              DISPLAY 'ACCOUNT FILE WRITE STATUS IS:'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">269</td>
+      <td class="code-cell t-statement">                                        ARRYFILE-STATUS</td>
+      <td class="expl-cell">Gibt den aktuellen Status aus, wenn die Prüfung fehlschlägt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">270</td>
+      <td class="code-cell t-statement">              MOVE ARRYFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Speichert den aktuellen Status in eine Variable 'IO-STATUS'</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">271</td>
+      <td class="code-cell t-statement">              PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Führt eine weitere Fehlerabstufung durch, indem der Status ausgegeben wird.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">273</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">Beendet die Ausführung des Programms bei einer Fehlerabstufung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">274</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Endet den aktuellen Prozess und gibt einen neuen Datensatz zum Schreiben bereit.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1450-WRITE-ARRY-RECORD">
+      <td class="ln">275</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Gibt eine lange Reihe von Zeichen aus, um ein neues Datenschnittstellen-Element zu beginnen.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">276</td>
+      <td class="code-cell t-paragraph-header">       1500-POPUL-VBRC-RECORD.</td>
+      <td class="expl-cell">Definiert eine neue Variable '1500-POPUL-VBRC-RECORD'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">277</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-ID            TO VB1-ACCT-ID</td>
+      <td class="expl-cell">Wert von 'ACCT-ID' wird in die Variablen 'VB1-ACCT-ID' und 'VB2-ACCT-ID' übertragen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">                                        VB2-ACCT-ID.</td>
+      <td class="expl-cell">Status des Kontos ('ACCT-ACTIVE-STATUS') wird in 'VB1-ACCT-ACTIVE-STATUS' kopiert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">279</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-ACTIVE-STATUS TO VB1-ACCT-ACTIVE-STATUS.</td>
+      <td class="expl-cell">'ACCT-CURR-BAL' (aktuelle Kreditkosten) wird in 'VB2-ACCT-CURR-BAL' übertragen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CURR-BAL           TO  VB2-ACCT-CURR-BAL.</td>
+      <td class="expl-cell">'ACCT-CREDIT-LIMIT' (Kreditlimit) wird in 'VB2-ACCT-CREDIT-LIMIT' kopiert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">           MOVE   ACCT-CREDIT-LIMIT       TO  VB2-ACCT-CREDIT-LIMIT.</td>
+      <td class="expl-cell">'WS-ACCT-REISSUE-YYYY' (Datum des Kartenneuauflages) wird in 'VB2-ACCT-REISSUE-YYYY' übertragen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">           MOVE   WS-ACCT-REISSUE-YYYY    TO  VB2-ACCT-REISSUE-YYYY.</td>
+      <td class="expl-cell">Die Daten werden ausgegeben, um zu bestätigen, dass die Initialisierung erfolgreich war.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">           DISPLAY 'VBRC-REC1:' VBRC-REC1.</td>
+      <td class="expl-cell">'VBRC-REC1' und 'VBRC-REC2' werden ausgegeben, um die Daten in diesen Variablen darzustellen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">           DISPLAY 'VBRC-REC2:' VBRC-REC2.</td>
+      <td class="expl-cell">Die Ausgabe der Daten wird fortgesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">285</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Der Prozess endet mit 'EXIT'.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1500-POPUL-VBRC-RECORD">
+      <td class="ln">286</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Kommentar: Diese Zeile gibt einen Überblick über die Funktion dieses Abschnitts.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">287</td>
+      <td class="code-cell t-paragraph-header">       1550-WRITE-VB1-RECORD.</td>
+      <td class="expl-cell">Startet die Schreiboperation für ein VB1-Datenrecord.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">288</td>
+      <td class="code-cell t-statement">           MOVE 12 TO WS-RECD-LEN.</td>
+      <td class="expl-cell">Setzt die Länge des zu schreibenden Records auf 12 Byte fest.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">289</td>
+      <td class="code-cell t-statement">           MOVE VBRC-REC1 TO VBR-REC(1:WS-RECD-LEN).</td>
+      <td class="expl-cell">Füllt das erste Record (VBRC-REC1) mit den Daten aus dem VBR-Record und limitiert diese an der angegebenen Länge.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">           WRITE VBR-REC.</td>
+      <td class="expl-cell">Schreibt das Record in die Ausgabedatei.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">291</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell">Leert die Zeile für eine neue Anweisung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">292</td>
+      <td class="code-cell t-statement">           IF VBRCFILE-STATUS NOT = '00'</td>
+      <td class="expl-cell">Prüft, ob der Schreibstatus des Accounts-Files nicht gleich '00' oder '10'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">                        AND VBRCFILE-STATUS NOT = '10'</td>
+      <td class="expl-cell">Wenn dies der Fall ist, gibt es einen Fehler aus und zeigt den aktuellen Status an.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">              DISPLAY 'ACCOUNT FILE WRITE STATUS IS:'</td>
+      <td class="expl-cell">Speichert den aktuellen Schreibstatus in die IO-Status-Variablen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">                                        VBRCFILE-STATUS</td>
+      <td class="expl-cell">Aufruf einer Subroutine zur Anzeige des IO-Statuses.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">              MOVE VBRCFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Aufruf einer Abbruchsubroutine für das Programm.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">297</td>
+      <td class="code-cell t-statement">              PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Leert die Zeile für eine neue Anweisung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">298</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">299</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">300</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Beendet den aktuellen Prozess und führt zu einem Ausgangspunkt aus, der nicht mehr in diesem Programm vorkommt.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1550-WRITE-VB1-RECORD">
+      <td class="ln">301</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Endet das Skript.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">302</td>
+      <td class="code-cell t-paragraph-header">       1575-WRITE-VB2-RECORD.</td>
+      <td class="expl-cell">Startet den Schreibprozess für eine spezifische Rechnungsdatenreihe in der Datei VBRC-REC2.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">           MOVE 39 TO WS-RECD-LEN.</td>
+      <td class="expl-cell">Setzt die Länge der zu schreibenden Daten auf 39 Byte fest und kopiert diese Daten in das Speicherfeld VBR-REC.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">304</td>
+      <td class="code-cell t-statement">           MOVE VBRC-REC2 TO VBR-REC(1:WS-RECD-LEN).</td>
+      <td class="expl-cell">Schreibt die Daten aus dem Feld VBR-REC in den Dateisystemort.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">305</td>
+      <td class="code-cell t-statement">           WRITE VBR-REC.</td>
+      <td class="expl-cell">Prüft, ob der Schreibstatus des Dateisystems '00' oder '10' ist. Wenn nicht, gibt er Fehlermeldungen aus und beendet das Programm.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">306</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell">Falls die überprüfte Statusbedingung nicht erfüllt ist, wird das Programm abgebrochen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">307</td>
+      <td class="code-cell t-statement">           IF VBRCFILE-STATUS NOT = '00'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">308</td>
+      <td class="code-cell t-statement">                        AND VBRCFILE-STATUS NOT = '10'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">309</td>
+      <td class="code-cell t-statement">              DISPLAY 'ACCOUNT FILE WRITE STATUS IS:'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">310</td>
+      <td class="code-cell t-statement">                                        VBRCFILE-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">311</td>
+      <td class="code-cell t-statement">              MOVE VBRCFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">312</td>
+      <td class="code-cell t-statement">              PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">313</td>
+      <td class="code-cell t-statement">              PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">314</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">315</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Beendet die aktuelle Routine und übergibt das Programm an die nächste Routine.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1575-WRITE-VB2-RECORD">
+      <td class="ln">316</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">317</td>
+      <td class="code-cell t-paragraph-header">       0000-ACCTFILE-OPEN.</td>
+      <td class="expl-cell">Definiert den Abschnitt '0000-ACCTFILE-OPEN' für die folgenden Schritte.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">318</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Setzt APPL-RESULT auf 8. Dieser Wert wird später verwendet, um zu überprüfen, ob der Datensatz erfolgreich geöffnet wurde.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">319</td>
+      <td class="code-cell t-statement">           OPEN INPUT ACCTFILE-FILE</td>
+      <td class="expl-cell">Öffnet den Datensatz 'ACCTFILE-FILE' in Inputmodus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">320</td>
+      <td class="code-cell t-statement">           IF  ACCTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Prüft die Statusnachricht des Datensatzes. Wenn sie '00' ist, wird der Datensatz erfolgreich geöffnet und APPL-RESULT auf 0 gesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">321</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Wenn der Datensatz nicht erfolgreich geöffnet wurde (Statusnachricht != '00'), setzt APPL-RESULT auf 12.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">322</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls der Datensatz erfolgreich geöffnet wurde, führt die nächste Anweisung aus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">323</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Falls der Datensatz nicht erfolgreich geöffnet wurde, wird eine Fehlermeldung ausgegeben und die Statusnachricht des Datensatzes in IO-STATUS gespeichert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">324</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Wenn APPL-AOK (eine Variable, die den Zustand des Anwendungsprogramms angibt) 'TRUE' ist, führt die nächste Anweisung aus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">325</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Falls APPL-AOK 'FALSE' ist, wird eine Fehlermeldung ausgegeben und das Programm abgebrochen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">326</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">Wenn der Datensatz erfolgreich geöffnet wurde (APPL-RESULT = 0), führt die nächste Anweisung aus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">327</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls der Datensatz nicht erfolgreich geöffnet wurde (APPL-RESULT != 0), wird das Programm abgebrochen und Fehlermeldungen ausgegeben.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">328</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING ACCTFILE'</td>
+      <td class="expl-cell">Gibt eine Fehlermeldung aus, wenn der Datensatz nicht erfolgreich geöffnet wurde.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">329</td>
+      <td class="code-cell t-statement">               MOVE ACCTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Speichert die Statusnachricht des Datensatzes in IO-STATUS.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">330</td>
+      <td class="code-cell t-statement">               PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Führt eine Funktion namens '9910-DISPLAY-IO-STATUS' aus, um die Statusnachricht zu anzeigen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">331</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Führt eine Funktion namens '9999-ABEND-PROGRAM' aus, um das Programm abzubrechen und Fehlermeldungen auszugeben.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">332</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Beendet den Abschnitt mit einer 'EXIT'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-ACCTFILE-OPEN">
+      <td class="ln">333</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">334</td>
+      <td class="code-cell t-paragraph-header">       2000-OUTFILE-OPEN.</td>
+      <td class="expl-cell">Die Verweisung '2000-OUTFILE-OPEN' beginnt den Abschnitt zur Ausgabedatei-Öffnung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">335</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Die Variable APPL-RESULT wird auf die Konstante 8 (z.B. ein Erfolgssignal) zugewiesen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">336</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT OUT-FILE</td>
+      <td class="expl-cell">Eine Ausgabedatei wird mit dem Modus 'OUTPUT' geöffnet.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">337</td>
+      <td class="code-cell t-statement">           IF   OUTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Ein IF-Befehl prüft den Status der Datei-Öffnung. Wenn er erfolgreich ist (Status 00), dann...</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">338</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">...wird APPL-RESULT auf 0 gesetzt, um zu signalisieren einen erfolgreichen Prozess.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">339</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Sonst wird APPL-RESULT auf 12 gesetzt, um ein Fehlerindiz zu geben.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">340</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Ein weiterer IF-Befehl prüft die Variable APPL-AOK. Wenn der Wert 'true' ist (wenn der Prozess erfolgreich war), dann...</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">341</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">...wird das Programm fortgesetzt, ohne Fehlerabsturz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">342</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Wenn jedoch APPL-AOK 'false' ist (Fehler in der Anwendung), wird eine Fehlermeldung ausgegeben und weitere Fehlerbehandlungen ausgeführt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">343</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">Die Variable IO-STATUS wird mit dem Wert von OUTFILE-STATUS übernommen, um den Fehlerstatus zu speichern.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">344</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Eine weitere Fehlerbehandlung durchführt die Ausführung einer bestimmten Routine (9910-DISPLAY-IO-STATUS) und führt anschließend einen Programmabsturz aus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">345</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING OUTFILE'  OUTFILE-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">346</td>
+      <td class="code-cell t-statement">               MOVE  OUTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">347</td>
+      <td class="code-cell t-statement">               PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">348</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">349</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">350</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Der Abschnitt endet mit einem 'EXIT'.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-OUTFILE-OPEN">
+      <td class="ln">351</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Ein weiterer Kommentar, der die Funktion dieses Abschnitts beschreibt.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">352</td>
+      <td class="code-cell t-paragraph-header">       3000-ARRFILE-OPEN.</td>
+      <td class="expl-cell">Startet den Befehl '3000-ARRFILE-OPEN', um eine Datei zu öffnen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">353</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Setzt APPL-RESULT auf die Konstante '8'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">354</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT ARRY-FILE</td>
+      <td class="expl-cell">Öffnet die Datei 'ARRY-FILE' in Outputmodus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">355</td>
+      <td class="code-cell t-statement">           IF   ARRYFILE-STATUS = '00'</td>
+      <td class="expl-cell">Prüft den Status der geöffneten Datei. Wenn er '00' ist, wird APPL-RESULT auf 0 gesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">356</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Wenn der Status nicht '00', wird APPL-RESULT auf 12 gesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">357</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">358</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und der Status in IO-STATUS gespeichert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">359</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Die Funktion 9910-DISPLAY-IO-STATUS wird aufgerufen, um den IO-Status anzuzeigen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">360</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Die Funktion 9999-ABEND-PROGRAM wird ausgeführt, um das Programm zu beenden.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">361</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">362</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und der Status in IO-STATUS gespeichert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">363</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING ARRAYFILE'  ARRYFILE-STATUS</td>
+      <td class="expl-cell">Die Funktion 9910-DISPLAY-IO-STATUS wird aufgerufen, um den IO-Status anzuzeigen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">364</td>
+      <td class="code-cell t-statement">               MOVE  ARRYFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Die Funktion 9999-ABEND-PROGRAM wird ausgeführt, um das Programm zu beenden.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">365</td>
+      <td class="code-cell t-statement">               PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Der Wert von ARRYFILE-STATUS wird in IO-STATUS kopiert.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">366</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">367</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und das Programm beendet.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">368</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Der Prozess endet.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-ARRFILE-OPEN">
+      <td class="ln">369</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Ein Kommentar, der die Funktion dieses Abschnitts beschreibt.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">370</td>
+      <td class="code-cell t-paragraph-header">       4000-VBRFILE-OPEN.</td>
+      <td class="expl-cell">Startet die Operation '4000-VBRFILE-OPEN'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">371</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Setzt die Variable APPL-RESULT auf den Wert 8.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">372</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT VBRC-FILE</td>
+      <td class="expl-cell">Öffnet die Datei VBRC-FILE in Outputmodus.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">373</td>
+      <td class="code-cell t-statement">           IF   VBRCFILE-STATUS = '00'</td>
+      <td class="expl-cell">Prüft, ob der Status der Dateiöffnung '00' ist. Wenn ja, setzt die Variable APPL-RESULT auf 0.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">374</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Wenn der Status nicht '00', wird die Variable APPL-RESULT auf den Wert 12 gesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">375</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK = true), wird das Programm fortgesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">376</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Wird eine Fehlermeldung ausgeliefert, wenn die Datei nicht geöffnet werden konnte. Der Status des IO-Errors wird in der Variable IO-STATUS gespeichert und anschließend ausgegeben.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">377</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">378</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">379</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">380</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Falls die Anwendung mit Fehler ausgeführt wurde (APPL-AOK = false), wird das Programm abgebrochen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">381</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING VBRC FILE'  VBRCFILE-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">382</td>
+      <td class="code-cell t-statement">               MOVE  VBRCFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">383</td>
+      <td class="code-cell t-statement">               PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">384</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">385</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">386</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Endet die Operation '4000-VBRFILE-OPEN'.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-4000-VBRFILE-OPEN">
+      <td class="ln">387</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell">Beendet den Abschnitt und gibt einen Kommentar hin.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">388</td>
+      <td class="code-cell t-paragraph-header">       9000-ACCTFILE-CLOSE.</td>
+      <td class="expl-cell">Abschluss des Kontostandards und Fehlerabgleich bei Schließung des Kontodatei-Files</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">389</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Zählt die Anzahl der Versuche zum Schließen des Kontodatei-Files auf 8.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">390</td>
+      <td class="code-cell t-statement">           CLOSE ACCTFILE-FILE</td>
+      <td class="expl-cell">Versucht das schließende Vorgehen für das Kontodatei-File durchzuführen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">391</td>
+      <td class="code-cell t-statement">           IF  ACCTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Prüft, ob das File erfolgreich geschlossen wurde (Status '00').</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">392</td>
+      <td class="code-cell t-statement">               SUBTRACT APPL-RESULT FROM APPL-RESULT</td>
+      <td class="expl-cell">Gibt bei erfolgreicher Schließung den Wert von APPL-RESULT um 1 reduziert zurück.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">393</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Reduziert bei fehlendem Erfolg der Schließung den Wert von APPL-RESULT um 12.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">394</td>
+      <td class="code-cell t-statement">               ADD 12 TO ZERO GIVING APPL-RESULT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">395</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">396</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird das Programm fortgesetzt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">397</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">Gibt einen Fehler aus, wenn ein Fehler beim Schließen des Kontodatei-Files auftritt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">398</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Speichert den IO-Status in der Variable IO-STATUS und führt eine spezifische Ausgabe durch.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">399</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING ACCOUNT FILE'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">400</td>
+      <td class="code-cell t-statement">               MOVE ACCTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">401</td>
+      <td class="code-cell t-statement">               PERFORM 9910-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Führt eine bestimmte Aktion aus, wenn ein Fehler im Programm auftritt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">402</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Führt eine spezifische Funktion aus, die wahrscheinlich eine Abbruch- oder Fehlerbehandlung darstellt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">403</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Endet das Programm mit einem Fehler (ABEND-PROGRAM).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">404</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Beendet den aktuellen Prozess.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-9000-ACCTFILE-CLOSE">
+      <td class="ln">405</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">406</td>
+      <td class="code-cell t-paragraph-header">       9999-ABEND-PROGRAM.</td>
+      <td class="expl-cell">Definiert den Ausfallscode '9999-ABEND-PROGRAM'.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">407</td>
+      <td class="code-cell t-statement">           DISPLAY 'ABENDING PROGRAM'</td>
+      <td class="expl-cell">Zeigt eine Nachricht an, dass der Programmabbruch erfolgt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">408</td>
+      <td class="code-cell t-statement">           MOVE 0 TO TIMING</td>
+      <td class="expl-cell">Setzt die Variable TIMING auf 0 (Zeitstempel für den Programmausfall).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">409</td>
+      <td class="code-cell t-statement">           MOVE 999 TO ABCODE</td>
+      <td class="expl-cell">Setzt die Variable ABCODE auf 999 (Code für einen schweren Fehler oder Programmausfall).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">410</td>
+      <td class="code-cell t-statement">           CALL 'CEE3ABD' USING ABCODE, TIMING.</td>
+      <td class="expl-cell">Aufruft eine externe Routine namens 'CEE3ABD' mit den Parametern ABCODE und TIMING.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">411</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">412</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell">Ein weiterer Kommentar, der wahrscheinlich zusätzliche Informationen über die Funktion dieses Abschnitts oder möglicherweise eine Anweisung für zukünftige Bearbeiter enthält.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">413</td>
+      <td class="code-cell t-paragraph-header">       9910-DISPLAY-IO-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">414</td>
+      <td class="code-cell t-statement">           IF  IO-STATUS NOT NUMERIC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">415</td>
+      <td class="code-cell t-statement">           OR  IO-STAT1 = '9'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">416</td>
+      <td class="code-cell t-statement">               MOVE IO-STAT1 TO IO-STATUS-04(1:1)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">417</td>
+      <td class="code-cell t-statement">               MOVE 0        TO TWO-BYTES-BINARY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">418</td>
+      <td class="code-cell t-statement">               MOVE IO-STAT2 TO TWO-BYTES-RIGHT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">419</td>
+      <td class="code-cell t-statement">               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">420</td>
+      <td class="code-cell t-statement">               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">421</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">422</td>
+      <td class="code-cell t-statement">               MOVE '0000' TO IO-STATUS-04</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">423</td>
+      <td class="code-cell t-statement">               MOVE IO-STATUS TO IO-STATUS-04(3:2)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">424</td>
+      <td class="code-cell t-statement">               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">425</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">426</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">427</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">428</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">429</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9910-DISPLAY-IO-STATUS">
+      <td class="ln">430</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-FD-ACCTFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-ACCTFILE-REC
+        
+        
+      </td>
+      <td class="var-pic">null</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten eines Kontos in einer Datei zu speichern.</td>
+    </tr>
+    
+    <tr id="var-OUT-ACCT-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">OUT-ACCT-REC
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten eines Kontos zu speichern und auszugeben.</td>
+    </tr>
+    
+    <tr id="var-ARR-ARRAY-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">ARR-ARRAY-REC
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um eine Array-Struktur zu speichern.</td>
+    </tr>
+    
+    <tr id="var-VBR-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">VBR-REC
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um eine Variable mit einer festen Länge von 80 Zeichen zu speichern.</td>
+    </tr>
+    
+    <tr id="var-ACCTFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">ACCTFILE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Kontodatei zu speichern.</td>
+    </tr>
+    
+    <tr id="var-OUTFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">OUTFILE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Ausgabedatei zu speichern.</td>
+    </tr>
+    
+    <tr id="var-ARRYFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">ARRYFILE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Array-Datei zu speichern.</td>
+    </tr>
+    
+    <tr id="var-VBRCFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">VBRCFILE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine VBRC-Datei zu speichern.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">IO-STATUS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über IO-Operationen zu speichern.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-BINARY">
+      <td class="var-level">01</td>
+      <td class="var-name">TWO-BYTES-BINARY
+        
+        <br><span class="var-group">REDEFINES REDEFINES TWO-BYTES-ALPHA</span>
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zwei Bytes in binärer Darstellung zu speichern.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-ALPHA">
+      <td class="var-level">01</td>
+      <td class="var-name">TWO-BYTES-ALPHA
+        
+        <br><span class="var-group">REDEFINES REDEFINES TWO-BYTES-BINARY</span>
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zwei Bytes in alphanumerischer Darstellung zu speichern.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS-04">
+      <td class="var-level">01</td>
+      <td class="var-name">IO-STATUS-04
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Statusinformationen über IO-Operationen zu speichern.</td>
+    </tr>
+    
+    <tr id="var-APPL-RESULT">
+      <td class="var-level">01</td>
+      <td class="var-name">APPL-RESULT
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um das Ergebnis einer Anwendung zu speichern.</td>
+    </tr>
+    
+    <tr id="var-END-OF-FILE">
+      <td class="var-level">01</td>
+      <td class="var-name">END-OF-FILE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zu bestimmen, ob das Ende eines Dateiendatein oder einer Datenstruktur erreicht wurde.</td>
+    </tr>
+    
+    <tr id="var-ABCODE">
+      <td class="var-level">01</td>
+      <td class="var-name">ABCODE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Codierungsinformationen zu speichern.</td>
+    </tr>
+    
+    <tr id="var-TIMING">
+      <td class="var-level">01</td>
+      <td class="var-name">TIMING
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Zeitstempelinformationen zu speichern.</td>
+    </tr>
+    
+    <tr id="var-WS-RECD-LEN">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-RECD-LEN
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Länge einer Recordstruktur zu speichern.</td>
+    </tr>
+    
+    <tr id="var-VBRC-REC1">
+      <td class="var-level">01</td>
+      <td class="var-name">VBRC-REC1
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten einer ersten VBRC-Recordstruktur zu speichern.</td>
+    </tr>
+    
+    <tr id="var-VBRC-REC2">
+      <td class="var-level">01</td>
+      <td class="var-name">VBRC-REC2
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten einer zweiten VBRC-Recordstruktur zu speichern.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCT-REISSUE-DATE">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-ACCT-REISSUE-DATE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten über das Neuausstellungsdatum eines Kontos zu speichern.</td>
+    </tr>
+    
+    <tr id="var-WS-REISSUE-DATE">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-REISSUE-DATE
+        
+        <br><span class="var-group">REDEFINES REDEFINES WS-ACCT-REISSUE-DATE</span>
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">null</td>
+      <td class="var-desc">Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um das Neuausstellungsdatum eines Kontos zu speichern.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: qwen2:7b &middot;
+    File: app/cbl/CBACT01C.cbl
+  </footer>
+
+</main>
+</body>
+</html>

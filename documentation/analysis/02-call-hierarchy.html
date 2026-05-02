@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Hierarchy – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     class="active">
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#overview-of-call-relationships"
+     class="">Overview of Call Relationships</a>
+  
+  <a href="#legend"
+     class="toc-h3">Legend</a>
+  
+  <a href="#utility-and-service-programs"
+     class="">Utility and Service Programs</a>
+  
+  <a href="#system-utilities-and-data-conversion"
+     class="toc-h3">System Utilities and Data Conversion</a>
+  
+  <a href="#cics-online-programs--navigation-hierarchy"
+     class="">CICS Online Programs – Navigation Hierarchy</a>
+  
+  <a href="#entry-point-cosgn00c-sign-on"
+     class="toc-h3">Entry Point: COSGN00C (Sign-On)</a>
+  
+  <a href="#batch-programs--job-flow"
+     class="">Batch Programs – Job Flow</a>
+  
+  <a href="#transaction-posting-job-posttran"
+     class="toc-h3">Transaction Posting Job (POSTTRAN)</a>
+  
+  <a href="#account-processing-jobs"
+     class="toc-h3">Account Processing Jobs</a>
+  
+  <a href="#data-migration-jobs"
+     class="toc-h3">Data Migration Jobs</a>
+  
+  <a href="#statement-generation"
+     class="toc-h3">Statement Generation</a>
+  
+  <a href="#program-call-matrix"
+     class="">Program Call Matrix</a>
+  
+  <a href="#entry-points-no-incoming-calls"
+     class="">Entry Points (No Incoming Calls)</a>
+  
+  <a href="#cics-online-entry-points"
+     class="toc-h3">CICS Online Entry Points</a>
+  
+  <a href="#batch-job-entry-points"
+     class="toc-h3">Batch Job Entry Points</a>
+  
+  <a href="#authorization-and-db2-programs"
+     class="toc-h3">Authorization and DB2 Programs</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Call Hierarchy
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--call-hierarchy-and-dependencies">CardDemo – Call Hierarchy and Dependencies</h1>
+<h2 id="overview-of-call-relationships">Overview of Call Relationships</h2>
+<p>The following diagrams show the dependencies between programs:</p>
+<h3 id="legend">Legend</h3>
+<ul>
+<li><code>--&gt;</code> = Program A calls Program B with CALL</li>
+<li><code>~&gt;</code> = Program A transfers control to B with XCTL (CICS only)</li>
+<li><code>*</code> = Called by other programs (not entry points)</li>
+</ul>
+<h2 id="utility-and-service-programs">Utility and Service Programs</h2>
+<p>These programs are called by multiple other programs:</p>
+<h3 id="system-utilities-and-data-conversion">System Utilities and Data Conversion</h3>
+<h4 id="csutldtc--date-utilities">CSUTLDTC – Date Utilities</h4>
+<p><strong>Called by:</strong></p>
+<ul>
+<li>CORPT00C</li>
+<li>COTRN02C</li>
+<li>Various report programs</li>
+</ul>
+<p><strong>Function:</strong> Date functions and format conversion</p>
+<h4 id="cbstm03b--statement-generation-submodule">CBSTM03B – Statement Generation Submodule</h4>
+<p><strong>Called by:</strong></p>
+<ul>
+<li>CBSTM03A (multiple times)</li>
+</ul>
+<p><strong>Function:</strong> Subroutine for statement creation and formatting</p>
+<h4 id="cobdatft--data-format-transfer">COBDATFT – Data Format Transfer</h4>
+<p><strong>Called by:</strong></p>
+<ul>
+<li>CBACT01C</li>
+</ul>
+<p><strong>Function:</strong> Converting date formats between COBOL and external systems</p>
+<h4 id="mvswait--system-wait-function">MVSWAIT – System Wait Function</h4>
+<p><strong>Called by:</strong></p>
+<ul>
+<li>COBSWAIT</li>
+</ul>
+<p><strong>Function:</strong> System calls for wait operations (Assembler)</p>
+<h2 id="cics-online-programs--navigation-hierarchy">CICS Online Programs – Navigation Hierarchy</h2>
+<h3 id="entry-point-cosgn00c-sign-on">Entry Point: COSGN00C (Sign-On)</h3>
+<pre><code class="language-text">COSGN00C (CC00 - Signon)
+    ├─ valid user
+    └─ XCTL -&gt; COMEN01C (CM01 - Main Menu)
+        ├─ User selected -&gt; XCTL -&gt; COUSR00C (CU00 - User List)
+        │   ├─ selection -&gt; XCTL -&gt; COUSR01C (CU01 - User Edit)
+        │   │   └─ save -&gt; XCTL -&gt; COUSR00C
+        │   ├─ delete -&gt; XCTL -&gt; COUSR02C (CU02 - User Delete)
+        │   └─ permissions -&gt; XCTL -&gt; COUSR03C (CU03 - User Perms)
+        │
+        ├─ Account selected -&gt; XCTL -&gt; COACTUPC (CA02 - Account Update)
+        │   └─ view -&gt; XCTL -&gt; COACTVWC (CA03 - Account View)
+        │
+        ├─ Card selected -&gt; XCTL -&gt; COCRDSLC (CC01 - Card Select)
+        │   ├─ view details -&gt; XCTL -&gt; COCRDLIC (CC02 - Card License)
+        │   └─ update -&gt; XCTL -&gt; COCRDUPC (CC03 - Card Update)
+        │
+        ├─ Transaction selected -&gt; XCTL -&gt; COTRN00C (CT00 - Tran List)
+        │   └─ select -&gt; XCTL -&gt; COTRN01C (CT01 - Tran Detail)
+        │       └─ type mgmt -&gt; XCTL -&gt; COTRN02C (CT02 - Type Mgmt)
+        │
+        ├─ Report selected -&gt; XCTL -&gt; CORPT00C (CR00 - Reports)
+        │
+        ├─ Billing selected -&gt; XCTL -&gt; COBIL00C (CB00 - Billing)
+        │
+        └─ Admin selected -&gt; XCTL -&gt; COADM01C (CA01 - Admin Menu)
+            └─ various admin functions</code></pre>
+<h2 id="batch-programs--job-flow">Batch Programs – Job Flow</h2>
+<h3 id="transaction-posting-job-posttran">Transaction Posting Job (POSTTRAN)</h3>
+<pre><code class="language-text">CBTRN02C - Post Transactions
+    ├─ Read DALYTRAN file (daily transaction input)
+    ├─ FOR EACH TRANSACTION:
+    │   ├─ 1500-A-LOOKUP-XREF
+    │   │   └─ Read XREFFILE (Card-to-Account mapping)
+    │   ├─ 1500-B-LOOKUP-ACCT
+    │   │   └─ Read ACCTFILE (Account details)
+    │   ├─ 2000-POST-TRANSACTION
+    │   │   ├─ CALL &#x27;CSUTLDTC&#x27; (Date function)
+    │   │   ├─ 2700-UPDATE-TCATBAL (Transaction Type Balance)
+    │   │   ├─ 2800-UPDATE-ACCOUNT-REC (Account update)
+    │   │   └─ 2900-WRITE-TRANSACTION-FILE (Write to TRANFILE)
+    │   └─ 2500-WRITE-REJECT-REC (on validation error)
+    └─ Generate summary report</code></pre>
+<h3 id="account-processing-jobs">Account Processing Jobs</h3>
+<pre><code class="language-text">CBACT01C - Customer Data Export
+    └─ Read CUSTFILE -&gt; Print/Export
+
+CBACT02C - Card Data Export
+    └─ Read CARDFILE -&gt; Print/Export
+
+CBACT03C - Account Xref Export
+    └─ Read XREFFILE -&gt; Print/Export
+
+CBACT04C - Interest Calculation
+    ├─ Read ACCTFILE
+    ├─ Calculate interest
+    └─ Update balances</code></pre>
+<h3 id="data-migration-jobs">Data Migration Jobs</h3>
+<pre><code class="language-text">CBEXPORT - Customer Export
+    ├─ Read CUSTFILE
+    ├─ Validate data
+    └─ Write export file
+
+CBIMPORT - Customer Import
+    ├─ Read import file
+    ├─ Validate data
+    └─ Write to CUSTFILE</code></pre>
+<h3 id="statement-generation">Statement Generation</h3>
+<pre><code class="language-text">CBSTM03A - Statement Generator (Master)
+    └─ CALL &#x27;CBSTM03B&#x27; (10x for various parts)
+        ├─ Part 1: Header
+        ├─ Part 2: Account summary
+        ├─ Part 3: Transaction details
+        ├─ ... further parts ...
+        └─ Part 10: Footer</code></pre>
+<h2 id="program-call-matrix">Program Call Matrix</h2>
+<p><strong>Programs called by others (via CALL):</strong></p>
+<table>
+<thead><tr>
+<th>Program</th>
+<th>Called by</th>
+<th>Call Type</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CBLTDLI</strong></td>
+<td>DBUNLDGS, PAUDBLOD, PAUDBUNL</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>CBSTM03B</strong></td>
+<td>CBSTM03A</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>CEEDAYS</strong></td>
+<td>CSUTLDTC</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>COBDATFT</strong></td>
+<td>CBACT01C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>CSUTLDTC</strong></td>
+<td>CORPT00C, COTRN02C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MQCLOSE</strong></td>
+<td>COACCT01, CODATE01, COPAUA0C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MQGET</strong></td>
+<td>COACCT01, CODATE01, COPAUA0C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MQOPEN</strong></td>
+<td>COACCT01, CODATE01, COPAUA0C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MQPUT</strong></td>
+<td>COACCT01, CODATE01</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MQPUT1</strong></td>
+<td>COPAUA0C</td>
+<td>CALL</td>
+</tr>
+<tr>
+<td><strong>MVSWAIT</strong></td>
+<td>COBSWAIT</td>
+<td>CALL</td>
+</tr>
+</tbody></table>
+<h2 id="entry-points-no-incoming-calls">Entry Points (No Incoming Calls)</h2>
+<p>The following programs are entry points and are not called by other COBOL programs:</p>
+<h3 id="cics-online-entry-points">CICS Online Entry Points</h3>
+<ul>
+<li><strong>COSGN00C</strong> – Sign-On (system entry point)</li>
+<li><strong>COMEN01C</strong> – Main Menu (driven from Sign-On)</li>
+<li><strong>COADM01C</strong> – Admin Menu (driven from Main Menu)</li>
+<li><strong>COUSR00C, COUSR01C, COUSR02C, COUSR03C</strong> – User Management (driven from menu)</li>
+<li><strong>COACTUPC, COACTVWC</strong> – Account Management (driven from menu)</li>
+<li><strong>COCRDSLC, COCRDLIC, COCRDUPC</strong> – Card Management (driven from menu)</li>
+<li><strong>COTRN00C, COTRN01C, COTRN02C</strong> – Transaction Management (driven from menu)</li>
+<li><strong>CORPT00C</strong> – Reporting (driven from menu)</li>
+<li><strong>COBIL00C</strong> – Billing (driven from menu)</li>
+<li><strong>COBSWAIT</strong> – System utility</li>
+</ul>
+<h3 id="batch-job-entry-points">Batch Job Entry Points</h3>
+<ul>
+<li><strong>CBTRN01C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBTRN02C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBTRN03C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBACT01C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBACT02C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBACT03C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBACT04C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBCUS01C</strong> – Called by JCL job (directly)</li>
+<li><strong>CBEXPORT</strong> – Called by JCL job (directly)</li>
+<li><strong>CBIMPORT</strong> – Called by JCL job (directly)</li>
+<li><strong>CBSTM03A</strong> – Called by JCL job (directly)</li>
+<li><strong>CBPAUP0C</strong> – Called by JCL job (directly)</li>
+</ul>
+<h3 id="authorization-and-db2-programs">Authorization and DB2 Programs</h3>
+<ul>
+<li><strong>COPAUA0C</strong> – IMS/DB2 authorization (entry point)</li>
+<li><strong>DBUNLDGS</strong> – Database unload</li>
+<li><strong>PAUDBLOD</strong> – Database load</li>
+<li><strong>COBTUPDT</strong> – Transaction type update (DB2)</li>
+<li><strong>COTRTLIC</strong> – Transaction type list</li>
+<li><strong>COTRTUPC</strong> – Transaction type update</li>
+</ul>
+<hr>
+<p><em>Analysis date: 2025-04-30</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>02-aufrufhierarchie.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

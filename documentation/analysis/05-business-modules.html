@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Modules – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     class="active">
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#module-overview"
+     class="">Module Overview</a>
+  
+  <a href="#module-1-authentication--authorization"
+     class="">Module 1: Authentication & Authorization</a>
+  
+  <a href="#module-2-customer-management"
+     class="">Module 2: Customer Management</a>
+  
+  <a href="#module-3-account-management"
+     class="">Module 3: Account Management</a>
+  
+  <a href="#module-4-card-management"
+     class="">Module 4: Card Management</a>
+  
+  <a href="#module-5-transaction-management--posting"
+     class="">Module 5: Transaction Management & Posting</a>
+  
+  <a href="#module-6-reporting--analytics"
+     class="">Module 6: Reporting & Analytics</a>
+  
+  <a href="#module-7-user--admin-management"
+     class="">Module 7: User & Admin Management</a>
+  
+  <a href="#module-integration-and-data-flow"
+     class="">Module Integration and Data Flow</a>
+  
+  <a href="#master-data-governance"
+     class="">Master Data Governance</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Business Modules
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--business-modules-and-functions">CardDemo – Business Modules and Functions</h1>
+<h2 id="module-overview">Module Overview</h2>
+<p>The CardDemo application can be divided into 7 main business modules, each implementing separate business functions:</p>
+<pre><code class="language-text">┌─────────────────────────────────────────┐
+│    1. Authentication &amp; Authorization    │
+├─────────────────────────────────────────┤
+│    2. Customer Management               │
+├─────────────────────────────────────────┤
+│    3. Account Management                │
+├─────────────────────────────────────────┤
+│    4. Card Management                   │
+├─────────────────────────────────────────┤
+│    5. Transaction Management &amp; Posting  │
+├─────────────────────────────────────────┤
+│    6. Reporting &amp; Analytics             │
+├─────────────────────────────────────────┤
+│    7. User &amp; Admin Management           │
+└─────────────────────────────────────────┘</code></pre>
+<h2 id="module-1-authentication--authorization">Module 1: Authentication & Authorization</h2>
+<p><strong>Business function:</strong> User authentication and permission management.</p>
+<p><strong>Programs:</strong> COSGN00C, CBPAUP0C, COPAUA0C, COPAUS0C-2C, PAUDBLOD, PAUDBUNL, DBUNLDGS</p>
+<p><strong>Data sources:</strong> USRSEC, DB2, IMS AUTHDB</p>
+<p><strong>Flow:</strong> User login → COSGN00C → validation against USRSEC/DB2 → COMEN01C (on success) or error</p>
+<hr>
+<h2 id="module-2-customer-management">Module 2: Customer Management</h2>
+<p><strong>Business function:</strong> Management of customer data, KYC data, addresses, and contact information.</p>
+<p><strong>Programs:</strong> COUSR00C (CU00), COUSR01C (CU01), COUSR02C (CU02), COUSR03C (CU03), CBCUS01C, CBEXPORT, CBIMPORT</p>
+<p><strong>Data sources:</strong> CUSTFILE (VSAM, 500 bytes/record), import/export files</p>
+<p><strong>Online navigation:</strong> COMEN01C → COUSR00C (List) → COUSR01C (Edit) → COUSR00C</p>
+<p><strong>Batch jobs:</strong> CBCUS01C (report), CBEXPORT (migration export), CBIMPORT (migration import)</p>
+<p><strong>Master file:</strong> CUSTFILE (500 bytes per customer, ~100,000 customers)</p>
+<hr>
+<h2 id="module-3-account-management">Module 3: Account Management</h2>
+<p><strong>Business function:</strong> Management of credit card accounts, limits, balances, and expiration dates.</p>
+<p><strong>Programs:</strong> COACTUPC (CA02), COACTVWC (CA03), CBACT04C (interest calculation), CBSTM03A/B (statements)</p>
+<p><strong>Data sources:</strong> ACCTFILE (VSAM, 300 bytes/record)</p>
+<p><strong>Online navigation:</strong> Menu → COACTUPC (Update) ↔ COACTVWC (View)</p>
+<p><strong>Batch jobs:</strong></p>
+<ul>
+<li>CBACT04C: Interest calculation (daily/monthly)</li>
+<li>CBSTM03A: Statement generation with CBSTM03B</li>
+</ul>
+<p><strong>Master file:</strong> ACCTFILE (300 bytes per account, ~500,000 accounts)</p>
+<p><strong>Key fields:</strong> ACCT-ID, ACCT-CURR-BAL, ACCT-CREDIT-LIMIT, ACCT-EXPIRAION-DATE</p>
+<hr>
+<h2 id="module-4-card-management">Module 4: Card Management</h2>
+<p><strong>Business function:</strong> Management of credit cards, card numbers, card status, and licensing.</p>
+<p><strong>Programs:</strong> COCRDSLC (CC01), COCRDLIC (CC02), COCRDUPC (CC03)</p>
+<p><strong>Data sources:</strong> CARDFILE (150 bytes), XREFFILE (50 bytes – card number to account mapping)</p>
+<p><strong>Online flow:</strong></p>
+<ol>
+<li>COCRDSLC (CC01): Card list with paging (PF7/PF8)</li>
+<li>Select card → COCRDLIC (CC02 – license) or COCRDUPC (CC03 – update)</li>
+<li>Return to COCRDSLC</li>
+</ol>
+<p><strong>Master files:</strong></p>
+<ul>
+<li>CARDFILE (150 bytes per card, ~500,000 cards)</li>
+<li>XREFFILE (50 bytes per mapping, key = CARD-NUM, FK to ACCT-ID + CUST-ID)</li>
+</ul>
+<p><strong>Validation:</strong> Each transaction reads XREFFILE, then validates ACCTFILE</p>
+<hr>
+<h2 id="module-5-transaction-management--posting">Module 5: Transaction Management & Posting</h2>
+<p><strong>Business function:</strong> Capturing, validating, and posting daily credit card transactions.</p>
+<p><strong>Programs:</strong></p>
+<ul>
+<li>Online: COTRN00C (CT00), COTRN01C (CT01), COTRN02C (CT02)</li>
+<li>Batch: CBTRN01C, CBTRN02C, CBTRN03C</li>
+<li>Utilities: CSUTLDTC (date functions), COBTUPDT, COTRTLIC, COTRTUPC (DB2 transaction type management)</li>
+</ul>
+<p><strong>Data sources:</strong> TRANFILE, DALYTRAN (input), DALYREJS (rejects), TCATBALF (category balance)</p>
+<p><strong>Batch posting logic (CBTRN02C):</strong></p>
+<ol>
+<li>Read DALYTRAN (daily input)</li>
+<li>FOR EACH transaction:</li>
+</ol>
+<ul>
+<li>Lookup XREFFILE (card-to-account)</li>
+<li>Lookup ACCTFILE (account validation)</li>
+<li>Validate: credit limit, expiration date</li>
+<li>Write to TRANFILE (master)</li>
+<li>Update ACCTFILE (balance)</li>
+<li>Update TCATBALF (category balance)</li>
+<li>On error: write to DALYREJS</li>
+</ul>
+<p><strong>Master files:</strong></p>
+<ul>
+<li>TRANFILE (350 bytes, key = TRAN-ID)</li>
+<li>TCATBALF (45 bytes, composite key = ACCT-ID + TYPE-CD + CAT-CD)</li>
+<li>DALYTRAN (sequential input, 350 bytes)</li>
+<li>DALYREJS (sequential output rejects, GDG)</li>
+</ul>
+<hr>
+<h2 id="module-6-reporting--analytics">Module 6: Reporting & Analytics</h2>
+<p><strong>Business function:</strong> Generating reports on customers, accounts, transactions, and billing.</p>
+<p><strong>Programs:</strong></p>
+<ul>
+<li>Online: CORPT00C (CR00 – report menu)</li>
+<li>Batch: CBACT01C, CBACT02C, CBACT03C, CBACT04C, CBSTM03A/B</li>
+</ul>
+<p><strong>Report types:</strong></p>
+<ol>
+<li>Customer report (CBCUS01C)</li>
+<li>Card report (CBACT02C)</li>
+<li>Account Xref report (CBACT03C)</li>
+<li>Interest calculation (CBACT04C)</li>
+<li>Account statements (CBSTM03A)</li>
+</ol>
+<p><strong>Online report flow (CORPT00C):</strong></p>
+<ol>
+<li>Select report type</li>
+<li>Input parameters (date range, filter)</li>
+<li>CALL CSUTLDTC for date functions</li>
+<li>Generate report</li>
+<li>Output to SYSOUT or file</li>
+</ol>
+<p><strong>Statements (CBSTM03A):</strong></p>
+<ul>
+<li>FOR EACH ACCOUNT: CALL CBSTM03B (10× for various parts)</li>
+<li>Parts: header, summary, detailed transactions, fees, footer</li>
+</ul>
+<hr>
+<h2 id="module-7-user--admin-management">Module 7: User & Admin Management</h2>
+<p><strong>Business function:</strong> Management of system user accounts, permissions, and admin functions.</p>
+<p><strong>Programs:</strong></p>
+<ul>
+<li>Online: COADM01C (CA01), COUSR00C (CU00), COUSR01C (CU01), COUSR02C (CU02), COUSR03C (CU03)</li>
+</ul>
+<p><strong>Admin menu (COADM01C):</strong></p>
+<ul>
+<li>Manage users</li>
+<li>System configuration</li>
+<li>Data maintenance</li>
+<li>Reports</li>
+</ul>
+<p><strong>User management workflow:</strong></p>
+<ol>
+<li>COUSR00C (List): Display all users, paging</li>
+<li>Select user:</li>
+</ol>
+<ul>
+<li>Create new → COUSR01C</li>
+<li>Edit → COUSR01C</li>
+<li>Delete → COUSR02C</li>
+<li>Permissions → COUSR03C</li>
+</ul>
+<ol>
+<li>Return to COUSR00C</li>
+</ol>
+<p><strong>User permissions (COUSR03C):</strong></p>
+<ul>
+<li>Customer management (view/edit)</li>
+<li>Account management (view/edit)</li>
+<li>Card management (view/edit)</li>
+<li>Transaction management (view/edit/post)</li>
+<li>Reporting (view/export)</li>
+<li>User management (view/edit/delete)</li>
+<li>System admin</li>
+<li>Audit log</li>
+</ul>
+<hr>
+<h2 id="module-integration-and-data-flow">Module Integration and Data Flow</h2>
+<pre><code class="language-text">Sign-On (COSGN00C)
+    ↓
+Main Menu (COMEN01C)
+    ├─ Customer → COUSR00C → COUSR01/02/03C
+    ├─ Account → COACTUPC ↔ COACTVWC
+    ├─ Card → COCRDSLC → COCRDLIC/COCRDUPC
+    ├─ Transaction → COTRN00C → COTRN01/02C
+    ├─ Report → CORPT00C
+    ├─ Billing → COBIL00C
+    └─ Admin (Admin only) → COADM01C
+
+Batch Processing (Nightly):
+    POSTTRAN (JCL)
+    ├─ CBTRN02C (Post Transactions)
+    │   ├─ Read: DALYTRAN
+    │   ├─ Lookup: XREFFILE, ACCTFILE
+    │   ├─ Write: TRANFILE, DALYREJS
+    │   └─ Update: ACCTFILE, TCATBALF
+    └─ Report Generation:
+        ├─ CBCUS01C (Customer Report)
+        ├─ CBACT01/02/03C (Account/Card Reports)
+        ├─ CBACT04C (Interest Calculation)
+        └─ CBSTM03A (Statement Generation)</code></pre>
+<hr>
+<h2 id="master-data-governance">Master Data Governance</h2>
+<table>
+<thead><tr>
+<th>File</th>
+<th>Type</th>
+<th>Owner</th>
+<th>Update</th>
+<th>Read</th>
+<th>Backup</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>CUSTFILE</td>
+<td>VSAM</td>
+<td>Admin</td>
+<td>COUSR01/02C, CBIMPORT</td>
+<td>Online/Batch</td>
+<td>CBEXPORT</td>
+</tr>
+<tr>
+<td>ACCTFILE</td>
+<td>VSAM</td>
+<td>Admin</td>
+<td>COACTUPC, CBTRN02C</td>
+<td>Online/Batch</td>
+<td>ACCTFILE</td>
+</tr>
+<tr>
+<td>CARDFILE</td>
+<td>VSAM</td>
+<td>Admin</td>
+<td>COCRDUPC</td>
+<td>Online/Batch</td>
+<td>CARDFILE</td>
+</tr>
+<tr>
+<td>XREFFILE</td>
+<td>VSAM</td>
+<td>Admin</td>
+<td>System</td>
+<td>CBTRN02C</td>
+<td>XREFFILE</td>
+</tr>
+<tr>
+<td>TRANFILE</td>
+<td>VSAM</td>
+<td>System</td>
+<td>CBTRN02C</td>
+<td>Online/Batch</td>
+<td>TRANFILE</td>
+</tr>
+<tr>
+<td>TCATBALF</td>
+<td>VSAM</td>
+<td>System</td>
+<td>CBTRN02C</td>
+<td>Online/Batch</td>
+<td>TCATBALF</td>
+</tr>
+<tr>
+<td>USRSEC</td>
+<td>File</td>
+<td>Admin</td>
+<td>COUSR01/02C</td>
+<td>COSGN00C</td>
+<td>USRSEC</td>
+</tr>
+<tr>
+<td>DB2 Tables</td>
+<td>Database</td>
+<td>DBA</td>
+<td>COBTUPDT</td>
+<td>COTRTUPC</td>
+<td>DB2 Backup</td>
+</tr>
+<tr>
+<td>IMS DB</td>
+<td>Hierarchical</td>
+<td>DBA</td>
+<td>PAUDBLOD</td>
+<td>COPAUA0C</td>
+<td>PAUDBUNL</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Analysis date: 2025-04-30</em> <em>All 44 programs are organized into these 7 business modules</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>05-fachliche-module.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

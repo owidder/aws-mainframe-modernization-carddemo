@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }} – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  {% for nav in nav_pages %}
+  <a href="{{ nav.filename }}"
+     {% if nav.filename == page.filename %}class="active"{% endif %}>
+    {{ nav.title }}
+  </a>
+  {% endfor %}
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  {% for prog in program_pages %}
+  <a href="../html/{{ prog.filename }}">{{ prog.name }}</a>
+  {% endfor %}
+
+  {% if page.toc %}
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  {% for item in page.toc %}
+  <a href="#{{ item.id }}"
+     class="{{ 'toc-h3' if item.level == 3 else '' }}">{{ item.text }}</a>
+  {% endfor %}
+  {% endif %}
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    {{ page.title }}
+  </div>
+
+  <div id="content">
+    {{ page.content_html }}
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>{{ page.source_file }}</code>
+  </footer>
+</main>
+
+</body>
+</html>

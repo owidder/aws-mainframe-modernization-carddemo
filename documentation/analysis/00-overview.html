@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Overview – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     class="active">
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#summary"
+     class="">Summary</a>
+  
+  <a href="#what-does-the-application-do"
+     class="">What Does the Application Do?</a>
+  
+  <a href="#technology-stack"
+     class="">Technology Stack</a>
+  
+  <a href="#legacy-technologies-to-be-replaced"
+     class="toc-h3">Legacy Technologies (to be replaced)</a>
+  
+  <a href="#high-level-architecture"
+     class="">High-Level Architecture</a>
+  
+  <a href="#layers-and-modules"
+     class="toc-h3">Layers and Modules</a>
+  
+  <a href="#program-statistics"
+     class="">Program Statistics</a>
+  
+  <a href="#key-files-and-data-structures"
+     class="">Key Files and Data Structures</a>
+  
+  <a href="#primary-files-vsam-ksds"
+     class="toc-h3">Primary Files (VSAM KSDS)</a>
+  
+  <a href="#copybooks-data-structures"
+     class="toc-h3">Copybooks (Data Structures)</a>
+  
+  <a href="#technology-challenges-for-modernization"
+     class="">Technology Challenges for Modernization</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Application Overview
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo-application-overview">CardDemo Application: Overview</h1>
+<h2 id="summary">Summary</h2>
+<p><strong>CardDemo</strong> is a legacy mainframe application for <strong>credit card management and transaction processing</strong> with comprehensive customer management, account management, and reporting capabilities. The application is built on classic mainframe technologies and is being migrated to a modern Java architecture.</p>
+<h2 id="what-does-the-application-do">What Does the Application Do?</h2>
+<p>The CardDemo application manages:</p>
+<ul>
+<li><strong>Customer Management</strong>: Recording and managing customer data (personal information, addresses, contact details, KYC data)</li>
+<li><strong>Account Management</strong>: Managing credit card accounts with limits, balances, and transaction history</li>
+<li><strong>Card Management</strong>: Managing credit cards, card numbers, and their assignment to accounts</li>
+<li><strong>Transaction Processing</strong>: Capturing, validating, and settling daily transactions (online and batch)</li>
+<li><strong>Transaction Types</strong>: Classifying and managing various transaction types via DB2</li>
+<li><strong>Users and Authorization</strong>: Authenticating users, permission management via IMS/DB2/MQ</li>
+<li><strong>Reporting</strong>: Daily, monthly, and ad-hoc reports on transactions, accounts, and customers</li>
+</ul>
+<h2 id="technology-stack">Technology Stack</h2>
+<h3 id="legacy-technologies-to-be-replaced">Legacy Technologies (to be replaced)</h3>
+<table>
+<thead><tr>
+<th>Technology</th>
+<th>Description</th>
+<th>Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CICS</strong></td>
+<td>Customer Information Control System</td>
+<td>Online transactions, interactive screens</td>
+</tr>
+<tr>
+<td><strong>COBOL</strong></td>
+<td>Common Business-Oriented Language</td>
+<td>All business logic, 44 programs</td>
+</tr>
+<tr>
+<td><strong>VSAM</strong></td>
+<td>Virtual Storage Access Method</td>
+<td>Indexed files for master data (Customer, Account, Card, Transaction)</td>
+</tr>
+<tr>
+<td><strong>JCL</strong></td>
+<td>Job Control Language</td>
+<td>Batch job orchestration, 38 jobs</td>
+</tr>
+<tr>
+<td><strong>BMS</strong></td>
+<td>Basic Mapping Support</td>
+<td>Screen maps, 17 maps</td>
+</tr>
+<tr>
+<td><strong>IMS</strong></td>
+<td>Information Management System</td>
+<td>Database for authorization data, PSB/DBD</td>
+</tr>
+<tr>
+<td><strong>DB2</strong></td>
+<td>IBM Database 2</td>
+<td>SQL queries for transaction types, reporting</td>
+</tr>
+<tr>
+<td><strong>MQ</strong></td>
+<td>Message Queue</td>
+<td>Message queues for asynchronous processing</td>
+</tr>
+<tr>
+<td><strong>Assembler</strong></td>
+<td>Low-level language</td>
+<td>System calls (MVSWAIT, COBDATFT)</td>
+</tr>
+</tbody></table>
+<h2 id="high-level-architecture">High-Level Architecture</h2>
+<h3 id="layers-and-modules">Layers and Modules</h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────┐
+│     CICS ONLINE LAYER (Screens)            │
+│  - COSGN00C (Sign-On)                      │
+│  - COTRN00C-02C (Transaction List)         │
+│  - COACTUPC/COACTVWC (Account Update/View)│
+│  - COCRDSLC/COCRDLIC/COCRDUPC (Card Mgmt) │
+│  - COUSR00C-03C (User Management)         │
+│  - COADM01C (Admin Menu)                   │
+│  - COMEN01C (Main Menu)                    │
+└─────────────────────────────────────────────┘
+           ↓ XCTL/LINK
+┌─────────────────────────────────────────────┐
+│    BATCH PROCESSING LAYER                  │
+│  - CBTRN01C-03C (Transaction Posting)      │
+│  - CBACT01C-04C (Account Reports)          │
+│  - CBCUS01C (Customer Reports)             │
+│  - CBEXPORT/CBIMPORT (Data Migration)      │
+│  - CBPAUP0C (Auth Message Cleanup)         │
+│  - CBSTM03A/B (Statement Generation)       │
+└─────────────────────────────────────────────┘
+           ↓ File I/O
+┌─────────────────────────────────────────────┐
+│    DATA ACCESS LAYER                       │
+│  - VSAM Files (Customer, Account, Card)    │
+│  - DB2 Tables (TransactionType)            │
+│  - IMS Databases (Authorization)           │
+│  - CICS File Control                       │
+└─────────────────────────────────────────────┘</code></pre>
+<h2 id="program-statistics">Program Statistics</h2>
+<table>
+<thead><tr>
+<th>Category</th>
+<th>Count</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>COBOL Programs (total)</strong></td>
+<td>44</td>
+</tr>
+<tr>
+<td>CICS Online</td>
+<td>~18</td>
+</tr>
+<tr>
+<td>Batch</td>
+<td>~22</td>
+</tr>
+<tr>
+<td>DB2/Authorization</td>
+<td>~8</td>
+</tr>
+<tr>
+<td><strong>JCL Jobs</strong></td>
+<td>38</td>
+</tr>
+<tr>
+<td><strong>Copybooks (data structures)</strong></td>
+<td>37</td>
+</tr>
+<tr>
+<td><strong>BMS Maps (screens)</strong></td>
+<td>17</td>
+</tr>
+<tr>
+<td><strong>VSAM Files</strong></td>
+<td>14+</td>
+</tr>
+<tr>
+<td><strong>Assembler Modules</strong></td>
+<td>2 (MVSWAIT, COBDATFT)</td>
+</tr>
+</tbody></table>
+<h2 id="key-files-and-data-structures">Key Files and Data Structures</h2>
+<h3 id="primary-files-vsam-ksds">Primary Files (VSAM KSDS)</h3>
+<ol>
+<li><strong>CUSTFILE</strong> – Customer management</li>
+<li><strong>ACCTFILE</strong> – Account management</li>
+<li><strong>CARDFILE</strong> – Card management</li>
+<li><strong>XREFFILE</strong> – Card-number-to-account cross-reference</li>
+<li><strong>TRANFILE</strong> – Transaction history</li>
+<li><strong>TCATBALF</strong> – Transaction category balance</li>
+</ol>
+<h3 id="copybooks-data-structures">Copybooks (Data Structures)</h3>
+<ul>
+<li><strong>COCOM01Y</strong> – Common communication area</li>
+<li><strong>CVTRA05Y</strong> – Transaction record</li>
+<li><strong>CVCUS01Y</strong> – Customer record</li>
+<li><strong>CVACT01Y</strong> – Account record</li>
+<li><strong>CVACT03Y</strong> – Card number cross-reference</li>
+<li><strong>COSGN00</strong> – Sign-On screen (BMS)</li>
+<li><strong>COTRN00-02</strong> – Transaction list screens</li>
+<li><strong>COACTUP, COACTVW</strong> – Account update/view screens</li>
+<li><strong>COUSR00-03</strong> – User management screens</li>
+<li><strong>COCRDSL, COCRDLI, COCRDUP</strong> – Card management screens</li>
+</ul>
+<h2 id="technology-challenges-for-modernization">Technology Challenges for Modernization</h2>
+<ol>
+<li><strong>Online layer</strong>: CICS screens must be converted to a Web UI (Spring MVC/Thymeleaf)</li>
+<li><strong>Batch layer</strong>: Job orchestration must be migrated to Spring Batch or Quartz</li>
+<li><strong>Data access</strong>: VSAM to relational DB2/PostgreSQL</li>
+<li><strong>Asynchronous processing</strong>: CICS XCTL to service calls (REST/gRPC)</li>
+<li><strong>Authentication</strong>: IMS/CICS-based auth to Spring Security</li>
+<li><strong>Reporting</strong>: Batch reports to JasperReports/Pentaho</li>
+</ol>
+<hr>
+<p><em>Analysis date: 2025-04-30</em> <em>Target platform: Java/Spring Boot, PostgreSQL, Docker, Kubernetes</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>00-uebersicht.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

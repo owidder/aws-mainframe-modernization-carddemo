@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Structures – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     class="active">
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#overview-of-key-files-and-structures"
+     class="">Overview of Key Files and Structures</a>
+  
+  <a href="#vsam-files-virtual-storage-access-method"
+     class="">VSAM Files (Virtual Storage Access Method)</a>
+  
+  <a href="#vsam-ksds-files"
+     class="toc-h3">VSAM KSDS Files</a>
+  
+  <a href="#vsam-file-structure--details"
+     class="toc-h3">VSAM File Structure – Details</a>
+  
+  <a href="#copybooks-cobol-data-structures"
+     class="">Copybooks (COBOL Data Structures)</a>
+  
+  <a href="#general-copybooks"
+     class="toc-h3">General Copybooks</a>
+  
+  <a href="#file-structure-copybooks"
+     class="toc-h3">File Structure Copybooks</a>
+  
+  <a href="#bms-screen-copybooks"
+     class="toc-h3">BMS Screen Copybooks</a>
+  
+  <a href="#sequential-files-batch-inputoutput"
+     class="">Sequential Files (Batch Input/Output)</a>
+  
+  <a href="#db2-tables"
+     class="">DB2 Tables</a>
+  
+  <a href="#transaction-type-management-app-transaction-type-db2"
+     class="toc-h3">Transaction Type Management (app-transaction-type-db2)</a>
+  
+  <a href="#authorization-and-security-app-authorization-ims-db2-mq"
+     class="toc-h3">Authorization and Security (app-authorization-ims-db2-mq)</a>
+  
+  <a href="#ims-databases"
+     class="">IMS Databases</a>
+  
+  <a href="#communication-area-commarea-for-cics"
+     class="">Communication Area (COMMAREA) for CICS</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Data Structures
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--data-structures-and-files">CardDemo – Data Structures and Files</h1>
+<h2 id="overview-of-key-files-and-structures">Overview of Key Files and Structures</h2>
+<p>CardDemo uses the following data categories:</p>
+<ul>
+<li><strong>VSAM KSDS</strong> – Indexed Sequential Datasets for master data</li>
+<li><strong>DB2 Tables</strong> – Relational data for transaction types and authorization</li>
+<li><strong>IMS Databases</strong> – Hierarchical databases for authentication</li>
+<li><strong>Copybooks</strong> – COBOL data structure definitions</li>
+</ul>
+<h2 id="vsam-files-virtual-storage-access-method">VSAM Files (Virtual Storage Access Method)</h2>
+<p>VSAM files are Indexed Sequential Datasets (KSDS) and serve as the primary persistent storage for all master data.</p>
+<h3 id="vsam-ksds-files">VSAM KSDS Files</h3>
+<table>
+<thead><tr>
+<th>File DDName</th>
+<th>Dataset Name (DSN)</th>
+<th>Record Length</th>
+<th>Key</th>
+<th>Copybook</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>CUSTFILE</td>
+<td>AWS.M2.CARDDEMO.CUSTDATA.VSAM.KSDS</td>
+<td>500 bytes</td>
+<td>CUST-ID (9 digits)</td>
+<td>CVCUS01Y</td>
+<td>Customer management</td>
+</tr>
+<tr>
+<td>ACCTFILE</td>
+<td>AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS</td>
+<td>300 bytes</td>
+<td>ACCT-ID (11 digits)</td>
+<td>CVACT01Y</td>
+<td>Account master</td>
+</tr>
+<tr>
+<td>CARDFILE</td>
+<td>AWS.M2.CARDDEMO.CARDDATA.VSAM.KSDS</td>
+<td>150 bytes</td>
+<td>CARD-NUM (16 chars)</td>
+<td>CVCRD01Y</td>
+<td>Card data</td>
+</tr>
+<tr>
+<td>XREFFILE</td>
+<td>AWS.M2.CARDDEMO.CARDXREF.VSAM.KSDS</td>
+<td>50 bytes</td>
+<td>XREF-CARD-NUM (16)</td>
+<td>CVACT03Y</td>
+<td>Card-to-account cross-reference</td>
+</tr>
+<tr>
+<td>TRANFILE</td>
+<td>AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS</td>
+<td>350 bytes</td>
+<td>TRAN-ID (16 chars)</td>
+<td>CVTRA05Y</td>
+<td>Transaction history</td>
+</tr>
+<tr>
+<td>TCATBALF</td>
+<td>AWS.M2.CARDDEMO.TCATBALF.VSAM.KSDS</td>
+<td>45 bytes</td>
+<td>Composite key</td>
+<td>CVTRA01Y</td>
+<td>Transaction category balance</td>
+</tr>
+</tbody></table>
+<h3 id="vsam-file-structure--details">VSAM File Structure – Details</h3>
+<h4 id="custfile--customer-data-cvcus01y">CUSTFILE – Customer Data (CVCUS01Y)</h4>
+<p><strong>Key:</strong> CUST-ID (9 digits) <strong>Record Length:</strong> 500 bytes <strong>LRECL:</strong> 500</p>
+<p><strong>Structure:</strong></p>
+<pre><code class="language-cobol">01  CUSTOMER-RECORD.
+    05  CUST-ID                     PIC 9(09).  [Key]
+    05  CUST-FIRST-NAME             PIC X(25).
+    05  CUST-MIDDLE-NAME            PIC X(25).
+    05  CUST-LAST-NAME              PIC X(25).
+    05  CUST-ADDR-LINE-1            PIC X(50).
+    05  CUST-ADDR-LINE-2            PIC X(50).
+    05  CUST-ADDR-LINE-3            PIC X(50).
+    05  CUST-ADDR-STATE-CD          PIC X(02).
+    05  CUST-ADDR-COUNTRY-CD        PIC X(03).
+    05  CUST-ADDR-ZIP               PIC X(10).
+    05  CUST-PHONE-NUM-1            PIC X(15).
+    05  CUST-PHONE-NUM-2            PIC X(15).
+    05  CUST-SSN                    PIC 9(09).
+    05  CUST-GOVT-ISSUED-ID         PIC X(20).
+    05  CUST-DOB-YYYY-MM-DD         PIC X(10).
+    05  CUST-EFT-ACCOUNT-ID         PIC X(10).
+    05  CUST-PRI-CARD-HOLDER-IND    PIC X(01).
+    05  CUST-FICO-CREDIT-SCORE      PIC 9(03).
+    05  FILLER                      PIC X(168).</code></pre>
+<h4 id="acctfile--account-data-cvact01y">ACCTFILE – Account Data (CVACT01Y)</h4>
+<p><strong>Key:</strong> ACCT-ID (11 digits) <strong>Record Length:</strong> 300 bytes</p>
+<p><strong>Structure:</strong></p>
+<pre><code class="language-cobol">01  ACCOUNT-RECORD.
+    05  ACCT-ID                     PIC 9(11).  [Key]
+    05  ACCT-ACTIVE-STATUS          PIC X(01).
+    05  ACCT-CURR-BAL               PIC S9(10)V99.
+    05  ACCT-CREDIT-LIMIT           PIC S9(10)V99.
+    05  ACCT-CASH-CREDIT-LIMIT      PIC S9(10)V99.
+    05  ACCT-OPEN-DATE              PIC X(10).
+    05  ACCT-EXPIRAION-DATE         PIC X(10).
+    05  ACCT-REISSUE-DATE           PIC X(10).
+    05  ACCT-CURR-CYC-CREDIT        PIC S9(10)V99.
+    05  ACCT-CURR-CYC-DEBIT         PIC S9(10)V99.
+    05  ACCT-ADDR-ZIP               PIC X(10).
+    05  ACCT-GROUP-ID               PIC X(10).
+    05  FILLER                      PIC X(178).</code></pre>
+<h4 id="xreffile--card-to-account-cross-reference-cvact03y">XREFFILE – Card-to-Account Cross-Reference (CVACT03Y)</h4>
+<p><strong>Key:</strong> XREF-CARD-NUM (16 characters) <strong>Record Length:</strong> 50 bytes</p>
+<p><strong>Structure:</strong></p>
+<pre><code class="language-cobol">01 CARD-XREF-RECORD.
+    05  XREF-CARD-NUM              PIC X(16).   [Key]
+    05  XREF-CUST-ID               PIC 9(09).   [FK to CUSTFILE]
+    05  XREF-ACCT-ID               PIC 9(11).   [FK to ACCTFILE]
+    05  FILLER                     PIC X(14).</code></pre>
+<h4 id="tranfile--transaction-history-cvtra05y">TRANFILE – Transaction History (CVTRA05Y)</h4>
+<p><strong>Key:</strong> TRAN-ID (16 characters) <strong>Record Length:</strong> 350 bytes</p>
+<p><strong>Structure:</strong></p>
+<pre><code class="language-cobol">01  TRAN-RECORD.
+    05  TRAN-ID                    PIC X(16).   [Key - Transaction ID]
+    05  TRAN-TYPE-CD               PIC X(02).   [Transaction Type Code]
+    05  TRAN-CAT-CD                PIC 9(04).   [Transaction Category Code]
+    05  TRAN-SOURCE                PIC X(10).   [Transaction Source]
+    05  TRAN-DESC                  PIC X(100).  [Transaction Description]
+    05  TRAN-AMT                   PIC S9(09)V99. [Transaction Amount]
+    05  TRAN-MERCHANT-ID           PIC 9(09).   [Merchant ID]
+    05  TRAN-MERCHANT-NAME         PIC X(50).   [Merchant Name]
+    05  TRAN-MERCHANT-CITY         PIC X(50).   [Merchant City]
+    05  TRAN-MERCHANT-ZIP          PIC X(10).   [Merchant ZIP]
+    05  TRAN-CARD-NUM              PIC X(16).   [Card (FK to XREF)]
+    05  TRAN-ORIG-TS               PIC X(26).   [Original Timestamp]
+    05  TRAN-PROC-TS               PIC X(26).   [Processing Timestamp]
+    05  FILLER                     PIC X(20).</code></pre>
+<h4 id="tcatbalf--transaction-category-balance-cvtra01y">TCATBALF – Transaction Category Balance (CVTRA01Y)</h4>
+<p><strong>Key:</strong> Composite Key (ACCT-ID + TYPE-CD + CAT-CD) <strong>Record Length:</strong> 45 bytes</p>
+<p><strong>Structure:</strong></p>
+<pre><code class="language-text">Composite Key:
+  - TRANCAT-ACCT-ID    PIC 9(11)
+  - TRANCAT-TYPE-CD    PIC X(02)
+  - TRANCAT-CD         PIC 9(04)
+
+Data:
+  - TRAN-CAT-BAL       PIC S9(09)V99  [Balance for this category]</code></pre>
+<h2 id="copybooks-cobol-data-structures">Copybooks (COBOL Data Structures)</h2>
+<h3 id="general-copybooks">General Copybooks</h3>
+<table>
+<thead><tr>
+<th>Copybook</th>
+<th>Purpose</th>
+<th>Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>COCOM01Y</strong></td>
+<td>Common communication area between programs</td>
+<td>All online programs (CICS)</td>
+</tr>
+<tr>
+<td><strong>COSGN00</strong></td>
+<td>Sign-On screen (BMS MAP)</td>
+<td>COSGN00C</td>
+</tr>
+<tr>
+<td><strong>COTTL01Y</strong></td>
+<td>Title and header information</td>
+<td>Reports and screens</td>
+</tr>
+<tr>
+<td><strong>CSDAT01Y</strong></td>
+<td>Date variables and constants</td>
+<td>Date handling</td>
+</tr>
+<tr>
+<td><strong>CSMSG01Y</strong></td>
+<td>Message components and text</td>
+<td>Error messages</td>
+</tr>
+<tr>
+<td><strong>CSMSG02Y</strong></td>
+<td>Additional message components</td>
+<td>Error messages</td>
+</tr>
+<tr>
+<td><strong>CSUSR01Y</strong></td>
+<td>User security data</td>
+<td>User management</td>
+</tr>
+<tr>
+<td><strong>CSSETATY</strong></td>
+<td>Attribute settings for screens</td>
+<td>Screen handling</td>
+</tr>
+<tr>
+<td><strong>CSUTLDWY</strong></td>
+<td>Utility date functions</td>
+<td>CSUTLDTC calls</td>
+</tr>
+<tr>
+<td><strong>CSSTRPFY</strong></td>
+<td>String processing functions</td>
+<td>String handling</td>
+</tr>
+</tbody></table>
+<h3 id="file-structure-copybooks">File Structure Copybooks</h3>
+<table>
+<thead><tr>
+<th>Copybook</th>
+<th>Record Type</th>
+<th>Size</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CVCUS01Y</strong></td>
+<td>CUSTOMER-RECORD</td>
+<td>500</td>
+<td>Customer data (CUSTFILE)</td>
+</tr>
+<tr>
+<td><strong>CVACT01Y</strong></td>
+<td>ACCOUNT-RECORD</td>
+<td>300</td>
+<td>Account data (ACCTFILE)</td>
+</tr>
+<tr>
+<td><strong>CVACT02Y</strong></td>
+<td>CARDFILE-RECORD</td>
+<td>150</td>
+<td>Card data (CARDFILE)</td>
+</tr>
+<tr>
+<td><strong>CVACT03Y</strong></td>
+<td>CARD-XREF-RECORD</td>
+<td>50</td>
+<td>Card cross-reference (XREFFILE)</td>
+</tr>
+<tr>
+<td><strong>CVTRA01Y</strong></td>
+<td>TRAN-CAT-BAL-REC</td>
+<td>45</td>
+<td>Transaction category balance</td>
+</tr>
+<tr>
+<td><strong>CVTRA02Y</strong></td>
+<td>–</td>
+<td>–</td>
+<td>Transaction supplemental structure</td>
+</tr>
+<tr>
+<td><strong>CVTRA03Y</strong></td>
+<td>–</td>
+<td>–</td>
+<td>Transaction validation</td>
+</tr>
+<tr>
+<td><strong>CVTRA05Y</strong></td>
+<td>TRAN-RECORD</td>
+<td>350</td>
+<td>Transaction record</td>
+</tr>
+<tr>
+<td><strong>CVTRA06Y</strong></td>
+<td>DALYTRAN-RECORD</td>
+<td>350</td>
+<td>Daily transaction input</td>
+</tr>
+<tr>
+<td><strong>CVTRA07Y</strong></td>
+<td>–</td>
+<td>–</td>
+<td>Transaction reports</td>
+</tr>
+</tbody></table>
+<h3 id="bms-screen-copybooks">BMS Screen Copybooks</h3>
+<table>
+<thead><tr>
+<th>Copybook</th>
+<th>Screen</th>
+<th>Type</th>
+<th>Program</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>COSGN00</strong></td>
+<td>Sign-On</td>
+<td>MAP/MAPSET</td>
+<td>COSGN00C</td>
+</tr>
+<tr>
+<td><strong>COTRN00</strong></td>
+<td>Transaction List</td>
+<td>MAP/MAPSET</td>
+<td>COTRN00C</td>
+</tr>
+<tr>
+<td><strong>COTRN01</strong></td>
+<td>Transaction Detail</td>
+<td>MAP/MAPSET</td>
+<td>COTRN01C</td>
+</tr>
+<tr>
+<td><strong>COTRN02</strong></td>
+<td>Transaction Type Mgmt</td>
+<td>MAP/MAPSET</td>
+<td>COTRN02C</td>
+</tr>
+<tr>
+<td><strong>COACTUP</strong></td>
+<td>Account Update</td>
+<td>MAP/MAPSET</td>
+<td>COACTUPC</td>
+</tr>
+<tr>
+<td><strong>COACTVW</strong></td>
+<td>Account View</td>
+<td>MAP/MAPSET</td>
+<td>COACTVWC</td>
+</tr>
+<tr>
+<td><strong>COCRDSL</strong></td>
+<td>Card Select List</td>
+<td>MAP/MAPSET</td>
+<td>COCRDSLC</td>
+</tr>
+<tr>
+<td><strong>COCRDLI</strong></td>
+<td>Card License</td>
+<td>MAP/MAPSET</td>
+<td>COCRDLIC</td>
+</tr>
+<tr>
+<td><strong>COCRDUP</strong></td>
+<td>Card Update</td>
+<td>MAP/MAPSET</td>
+<td>COCRDUPC</td>
+</tr>
+<tr>
+<td><strong>COUSR00</strong></td>
+<td>User List</td>
+<td>MAP/MAPSET</td>
+<td>COUSR00C</td>
+</tr>
+<tr>
+<td><strong>COUSR01</strong></td>
+<td>User Create/Edit</td>
+<td>MAP/MAPSET</td>
+<td>COUSR01C</td>
+</tr>
+<tr>
+<td><strong>COUSR02</strong></td>
+<td>User Delete</td>
+<td>MAP/MAPSET</td>
+<td>COUSR02C</td>
+</tr>
+<tr>
+<td><strong>COUSR03</strong></td>
+<td>User Permissions</td>
+<td>MAP/MAPSET</td>
+<td>COUSR03C</td>
+</tr>
+<tr>
+<td><strong>COADM01</strong></td>
+<td>Admin Menu</td>
+<td>MAP/MAPSET</td>
+<td>COADM01C</td>
+</tr>
+<tr>
+<td><strong>COMEN01</strong></td>
+<td>Main Menu</td>
+<td>MAP/MAPSET</td>
+<td>COMEN01C</td>
+</tr>
+<tr>
+<td><strong>CORPT00</strong></td>
+<td>Report Menu</td>
+<td>MAP/MAPSET</td>
+<td>CORPT00C</td>
+</tr>
+<tr>
+<td><strong>COBIL00</strong></td>
+<td>Billing Details</td>
+<td>MAP/MAPSET</td>
+<td>COBIL00C</td>
+</tr>
+</tbody></table>
+<h2 id="sequential-files-batch-inputoutput">Sequential Files (Batch Input/Output)</h2>
+<table>
+<thead><tr>
+<th>DDName</th>
+<th>Dataset Name</th>
+<th>Type</th>
+<th>LRECL</th>
+<th>Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>DALYTRAN</strong></td>
+<td>AWS.M2.CARDDEMO.DALYTRAN.PS</td>
+<td>Sequential</td>
+<td>350</td>
+<td>Daily transaction input</td>
+</tr>
+<tr>
+<td><strong>DALYREJS</strong></td>
+<td>AWS.M2.CARDDEMO.DALYREJS(+1)</td>
+<td>Sequential</td>
+<td>430</td>
+<td>Daily transaction rejects</td>
+</tr>
+<tr>
+<td><strong>XREFFILE</strong></td>
+<td>AWS.M2.CARDDEMO.CARDXREF.VSAM</td>
+<td>VSAM</td>
+<td>50</td>
+<td>Card-to-account cross-reference</td>
+</tr>
+<tr>
+<td><strong>OUTFILE</strong></td>
+<td>AWS.M2.CARDDEMO.RPTOUTPUT</td>
+<td>Sequential</td>
+<td>1024</td>
+<td>Report output</td>
+</tr>
+</tbody></table>
+<h2 id="db2-tables">DB2 Tables</h2>
+<p>The following tables are managed via DB2 and SQL:</p>
+<h3 id="transaction-type-management-app-transaction-type-db2">Transaction Type Management (app-transaction-type-db2)</h3>
+<table>
+<thead><tr>
+<th>Table</th>
+<th>Columns</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>TRANSACTION_TYPE</strong></td>
+<td>TYPE_CD, DESC, ACTIVE_IND, CREATE_DATE</td>
+<td>Transaction type directory</td>
+</tr>
+<tr>
+<td><strong>TRANSACTION_CAT</strong></td>
+<td>CAT_CD, DESC, TYPE_ID</td>
+<td>Transaction category classification</td>
+</tr>
+</tbody></table>
+<p><strong>Copybooks:</strong></p>
+<ul>
+<li><strong>CSDB2RWY</strong> – Request workarea for DB2</li>
+<li><strong>CSDB2RPY</strong> – Response workarea for DB2</li>
+</ul>
+<h3 id="authorization-and-security-app-authorization-ims-db2-mq">Authorization and Security (app-authorization-ims-db2-mq)</h3>
+<p>Various DB2 tables and IMS databases for:</p>
+<ul>
+<li>User authentication</li>
+<li>Role management</li>
+<li>Authorization certificates</li>
+<li>Pending authorization messages</li>
+</ul>
+<h2 id="ims-databases">IMS Databases</h2>
+<table>
+<thead><tr>
+<th>DBD Name</th>
+<th>Description</th>
+<th>Programs</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>AUTHDB</strong></td>
+<td>Authorization database</td>
+<td>COPAUA0C, COPAUS0C, COPAUS1C, COPAUS2C</td>
+</tr>
+<tr>
+<td><strong>USERDB</strong></td>
+<td>User security database</td>
+<td>CBPAUP0C, COSGN00C</td>
+</tr>
+<tr>
+<td><strong>CERTDB</strong></td>
+<td>Certificate database</td>
+<td>Authorization programs</td>
+</tr>
+</tbody></table>
+<p>PSB/DBD files are organized in the <code>app-authorization-ims-db2-mq/</code> directory.</p>
+<h2 id="communication-area-commarea-for-cics">Communication Area (COMMAREA) for CICS</h2>
+<p>The COMMAREA is passed between CICS programs via XCTL/LINK:</p>
+<p><strong>Copybook: COCOM01Y</strong></p>
+<pre><code class="language-cobol">01 CARDDEMO-COMMAREA.
+   05 CDEMO-GENERAL-INFO.
+      10 CDEMO-FROM-TRANID        PIC X(04).
+      10 CDEMO-FROM-PROGRAM       PIC X(08).
+      10 CDEMO-TO-TRANID          PIC X(04).
+      10 CDEMO-TO-PROGRAM         PIC X(08).
+      10 CDEMO-USER-ID            PIC X(08).
+      10 CDEMO-USER-TYPE          PIC X(01).
+         88 CDEMO-USRTYP-ADMIN    VALUE &#x27;A&#x27;.
+         88 CDEMO-USRTYP-USER     VALUE &#x27;U&#x27;.
+      10 CDEMO-PGM-CONTEXT        PIC 9(01).
+         88 CDEMO-PGM-ENTER       VALUE 0.
+         88 CDEMO-PGM-REENTER     VALUE 1.
+   05 CDEMO-CUSTOMER-INFO.
+      10 CDEMO-CUST-ID            PIC 9(09).
+      10 CDEMO-CUST-FNAME         PIC X(25).
+      10 CDEMO-CUST-MNAME         PIC X(25).
+      10 CDEMO-CUST-LNAME         PIC X(25).
+   05 CDEMO-ACCOUNT-INFO.
+      10 CDEMO-ACCT-ID            PIC 9(11).
+      10 CDEMO-ACCT-STATUS        PIC X(01).
+   05 CDEMO-CARD-INFO.
+      10 CDEMO-CARD-NUM           PIC 9(16).
+   05 CDEMO-MORE-INFO.
+      10 CDEMO-LAST-MAP           PIC X(7).
+      10 CDEMO-LAST-MAPSET        PIC X(7).</code></pre>
+<hr>
+<p><em>Analysis date: 2025-04-30</em> <em>Total data size: ~140 KB per transaction cycle</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>03-datenstrukturen.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

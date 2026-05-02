@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Program Inventory – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     class="active">
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#overview"
+     class="">Overview</a>
+  
+  <a href="#cics-online-programs-screen-programs"
+     class="">CICS Online Programs (Screen Programs)</a>
+  
+  <a href="#cics-online-programs--details"
+     class="toc-h3">CICS Online Programs – Details</a>
+  
+  <a href="#batch-programs-background-processing"
+     class="">Batch Programs (Background Processing)</a>
+  
+  <a href="#batch-programs--detailed-descriptions"
+     class="toc-h3">Batch Programs – Detailed Descriptions</a>
+  
+  <a href="#db2-and-authorization-programs"
+     class="">DB2 and Authorization Programs</a>
+  
+  <a href="#authorization-and-database-programs"
+     class="toc-h3">Authorization and Database Programs</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Program Inventory
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo-program-inventory">CardDemo Program Inventory</h1>
+<h2 id="overview">Overview</h2>
+<p>A total of <strong>44 COBOL programs</strong> are implemented in the CardDemo application:</p>
+<table>
+<thead><tr>
+<th>Category</th>
+<th>Count</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CICS Online</strong></td>
+<td>25</td>
+<td>Interactive screen programs for end users and administrators</td>
+</tr>
+<tr>
+<td><strong>Batch Programs</strong></td>
+<td>17</td>
+<td>Background processing jobs for data management and reports</td>
+</tr>
+<tr>
+<td><strong>DB2/Authorization</strong></td>
+<td>0</td>
+<td>Database and authorization programs</td>
+</tr>
+</tbody></table>
+<h2 id="cics-online-programs-screen-programs">CICS Online Programs (Screen Programs)</h2>
+<p>These programs manage the user interface and online transactions via CICS terminals.</p>
+<table>
+<thead><tr>
+<th>Program ID</th>
+<th>Transaction</th>
+<th>Function</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>00220000</td>
+<td>????</td>
+<td>Accept and process TRANSACTION TYPE UPDATE        *00040000</td>
+</tr>
+<tr>
+<td>002600</td>
+<td>????</td>
+<td>List Transaction Type for updates and deletes    *</td>
+</tr>
+<tr>
+<td>COACCT01</td>
+<td>????</td>
+<td></td>
+</tr>
+<tr>
+<td>COACTUPC</td>
+<td>CA02</td>
+<td>Accept and process ACCOUNT UPDATE                *</td>
+</tr>
+<tr>
+<td>COACTVWC</td>
+<td>CA03</td>
+<td>Accept and process Account View request          *</td>
+</tr>
+<tr>
+<td>COADM01C</td>
+<td>CA01</td>
+<td>Admin Menu for Admin users</td>
+</tr>
+<tr>
+<td>COBIL00C</td>
+<td>CB00</td>
+<td>Bill Payment - Pay account balance in full and a</td>
+</tr>
+<tr>
+<td>COCRDLIC</td>
+<td>CC02</td>
+<td>List Credit Cards</td>
+</tr>
+<tr>
+<td>COCRDSLC</td>
+<td>CC01</td>
+<td>Accept and process credit card detail request    *</td>
+</tr>
+<tr>
+<td>COCRDUPC</td>
+<td>CC03</td>
+<td>Accept and process credit card detail request    *</td>
+</tr>
+<tr>
+<td>CODATE01</td>
+<td>????</td>
+<td></td>
+</tr>
+<tr>
+<td>COMEN01C</td>
+<td>CM01</td>
+<td>Main Menu for the Regular users</td>
+</tr>
+<tr>
+<td>COPAUA0C</td>
+<td>????</td>
+<td>Card Authorization Decision Program</td>
+</tr>
+<tr>
+<td>COPAUS0C</td>
+<td>????</td>
+<td>Summary View of Authorization Messages</td>
+</tr>
+<tr>
+<td>COPAUS1C</td>
+<td>????</td>
+<td>Detail View of Authorization Message</td>
+</tr>
+<tr>
+<td>COPAUS2C</td>
+<td>????</td>
+<td>Mark Authorization Message Fraud</td>
+</tr>
+<tr>
+<td>CORPT00C</td>
+<td>CR00</td>
+<td>Print Transaction reports by submitting batch</td>
+</tr>
+<tr>
+<td>COSGN00C</td>
+<td>CC00</td>
+<td>Signon Screen for the CardDemo Application</td>
+</tr>
+<tr>
+<td>COTRN00C</td>
+<td>CT00</td>
+<td>List Transactions from TRANSACT file</td>
+</tr>
+<tr>
+<td>COTRN01C</td>
+<td>CT01</td>
+<td>View a Transaction from TRANSACT file</td>
+</tr>
+<tr>
+<td>COTRN02C</td>
+<td>CT02</td>
+<td>Add a new Transaction to TRANSACT file</td>
+</tr>
+<tr>
+<td>COUSR00C</td>
+<td>CU00</td>
+<td>List all users from USRSEC file</td>
+</tr>
+<tr>
+<td>COUSR01C</td>
+<td>CU01</td>
+<td>Add a new Regular/Admin user to USRSEC file</td>
+</tr>
+<tr>
+<td>COUSR02C</td>
+<td>CU02</td>
+<td>Update a user in USRSEC file</td>
+</tr>
+<tr>
+<td>COUSR03C</td>
+<td>CU03</td>
+<td>Delete a user from USRSEC file</td>
+</tr>
+</tbody></table>
+<h3 id="cics-online-programs--details">CICS Online Programs – Details</h3>
+<h4 id="sign-on-and-navigation">Sign-On and Navigation</h4>
+<ul>
+<li><strong>COSGN00C (CC00)</strong> – Sign-in screen with user authentication</li>
+<li><strong>COMEN01C (CM01)</strong> – Main menu for regular users</li>
+<li><strong>COADM01C (CA01)</strong> – Admin menu for administrative functions</li>
+</ul>
+<h4 id="user-management-cousr-family">User Management (COUSR family)</h4>
+<ul>
+<li><strong>COUSR00C (CU00)</strong> – User overview / list view</li>
+<li><strong>COUSR01C (CU01)</strong> – Create/edit user</li>
+<li><strong>COUSR02C (CU02)</strong> – Delete user / deactivation</li>
+<li><strong>COUSR03C (CU03)</strong> – Manage user permissions</li>
+</ul>
+<h4 id="account-management-coactucoactvw">Account Management (COACTU/COACTVW)</h4>
+<ul>
+<li><strong>COACTUPC</strong> – Update account / modification</li>
+<li><strong>COACTVWC</strong> – View account / read-only view</li>
+</ul>
+<h4 id="card-management-cocrd-family">Card Management (COCRD family)</h4>
+<ul>
+<li><strong>COCRDSLC</strong> – Card list / selection</li>
+<li><strong>COCRDLIC</strong> – Card licensing / activation</li>
+<li><strong>COCRDUPC</strong> – Update card / changes</li>
+</ul>
+<h4 id="transaction-management-cotrn-family">Transaction Management (COTRN family)</h4>
+<ul>
+<li><strong>COTRN00C (CT00)</strong> – Transaction list with paging</li>
+<li><strong>COTRN01C (CT01)</strong> – Transaction details view</li>
+<li><strong>COTRN02C (CT02)</strong> – Manage transaction types</li>
+</ul>
+<h4 id="reporting-and-utilities">Reporting and Utilities</h4>
+<ul>
+<li><strong>CORPT00C (CR00)</strong> – Report generation and display</li>
+<li><strong>COBIL00C (CB00)</strong> – Billing details</li>
+<li><strong>COBSWAIT</strong> – System wait function</li>
+</ul>
+<h2 id="batch-programs-background-processing">Batch Programs (Background Processing)</h2>
+<p>These programs process daily data volumes, perform calculations, and generate reports.</p>
+<table>
+<thead><tr>
+<th>Program ID</th>
+<th>Type</th>
+<th>Function</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>CBACT01C</td>
+<td>Batch</td>
+<td></td>
+</tr>
+<tr>
+<td>CBACT02C</td>
+<td>Batch</td>
+<td>Read and print card data file.</td>
+</tr>
+<tr>
+<td>CBACT03C</td>
+<td>Batch</td>
+<td>Read and print account cross reference data file.</td>
+</tr>
+<tr>
+<td>CBACT04C</td>
+<td>Batch</td>
+<td>This is a interest calculator program.</td>
+</tr>
+<tr>
+<td>CBCUS01C</td>
+<td>Batch</td>
+<td>Read and print customer data file.</td>
+</tr>
+<tr>
+<td>CBEXPORT</td>
+<td>Batch</td>
+<td>Export Customer Data for Branch Migration</td>
+</tr>
+<tr>
+<td>CBIMPORT</td>
+<td>Batch</td>
+<td>Import Customer Data from Branch Migration Export</td>
+</tr>
+<tr>
+<td>CBPAUP0C</td>
+<td>Batch</td>
+<td>Delete Expired Pending Authorization Messages</td>
+</tr>
+<tr>
+<td>CBSTM03A</td>
+<td>Batch</td>
+<td>Print Account Statements from Transaction data</td>
+</tr>
+<tr>
+<td>CBSTM03B</td>
+<td>Batch</td>
+<td>Does file processing related to Transact Report</td>
+</tr>
+<tr>
+<td>CBTRN01C</td>
+<td>Batch</td>
+<td>Post the records from daily transaction file.</td>
+</tr>
+<tr>
+<td>CBTRN02C</td>
+<td>Batch</td>
+<td>Post the records from daily transaction file.</td>
+</tr>
+<tr>
+<td>CBTRN03C</td>
+<td>Batch</td>
+<td>Print the transaction detail report.</td>
+</tr>
+<tr>
+<td>COBTUPDT</td>
+<td>Batch</td>
+<td>Update Transaction type based on user input       *00040032</td>
+</tr>
+<tr>
+<td>DBUNLDGS</td>
+<td>Batch</td>
+<td></td>
+</tr>
+<tr>
+<td>PAUDBLOD</td>
+<td>Batch</td>
+<td></td>
+</tr>
+<tr>
+<td>PAUDBUNL</td>
+<td>Batch</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="batch-programs--detailed-descriptions">Batch Programs – Detailed Descriptions</h3>
+<h4 id="transaction-processing-cbtrn-family">Transaction Processing (CBTRN family)</h4>
+<ul>
+<li><strong>CBTRN01C</strong> – Processes daily transaction file, validates card numbers against XREF file</li>
+<li><strong>CBTRN02C</strong> – Posts transactions, updates account balances and transaction category balances</li>
+<li><strong>CBTRN03C</strong> – Extended transaction validation and error handling</li>
+</ul>
+<h4 id="account-reporting-cbact-family">Account Reporting (CBACT family)</h4>
+<ul>
+<li><strong>CBACT01C</strong> – Reads and prints customer file report</li>
+<li><strong>CBACT02C</strong> – Reads and prints card file report</li>
+<li><strong>CBACT03C</strong> – Reads and prints account cross-reference file</li>
+<li><strong>CBACT04C</strong> – Interest calculation for accounts</li>
+</ul>
+<h4 id="customer-management-cbcus-family">Customer Management (CBCUS family)</h4>
+<ul>
+<li><strong>CBCUS01C</strong> – Reads and prints customer file with all customer data</li>
+</ul>
+<h4 id="data-migration-cbexportcbimport">Data Migration (CBEXPORT/CBIMPORT)</h4>
+<ul>
+<li><strong>CBEXPORT</strong> – Exports customer data for branch migration</li>
+<li><strong>CBIMPORT</strong> – Imports customer data from branch migration</li>
+</ul>
+<h4 id="billing-and-statements-cbstm-family">Billing and Statements (CBSTM family)</h4>
+<ul>
+<li><strong>CBSTM03A</strong> – Statement generation (master module)</li>
+<li><strong>CBSTM03B</strong> – Statement generation (sub-module)</li>
+</ul>
+<h4 id="authorization-and-cleanup">Authorization and Cleanup</h4>
+<ul>
+<li><strong>CBPAUP0C</strong> – Cleanup of expired authorization messages</li>
+</ul>
+<h2 id="db2-and-authorization-programs">DB2 and Authorization Programs</h2>
+<table>
+<thead><tr>
+<th>Program ID</th>
+<th>Function</th>
+</tr></thead>
+<tbody>
+</tbody></table>
+<h3 id="authorization-and-database-programs">Authorization and Database Programs</h3>
+<h4 id="authorization-module-app-authorization-ims-db2-mq">Authorization Module (app-authorization-ims-db2-mq)</h4>
+<ul>
+<li><strong>CBPAUP0C</strong> – User authentication and authorization</li>
+<li><strong>COPAUA0C</strong> – IMS/DB2 authorization lookup</li>
+<li><strong>COPAUS0C</strong> – User security file access</li>
+<li><strong>COPAUS1C</strong> – Additional security validation</li>
+<li><strong>COPAUS2C</strong> – Permission management</li>
+</ul>
+<h4 id="database-and-data-exchange">Database and Data Exchange</h4>
+<ul>
+<li><strong>DBUNLDGS</strong> – Database unload (DB2)</li>
+<li><strong>PAUDBLOD</strong> – Database load for authorization data</li>
+<li><strong>PAUDBUNL</strong> – Database unload for authorization data</li>
+</ul>
+<h4 id="transaction-type-management-app-transaction-type-db2">Transaction Type Management (app-transaction-type-db2)</h4>
+<ul>
+<li><strong>COBTUPDT</strong> – Transaction type update (DB2)</li>
+<li><strong>COTRTLIC</strong> – Transaction type list (DB2 with licensing)</li>
+<li><strong>COTRTUPC</strong> – Transaction type update with database access</li>
+</ul>
+<h4 id="date-functions-and-utilities">Date Functions and Utilities</h4>
+<ul>
+<li><strong>CODATE01</strong> – Date management and calculation</li>
+<li><strong>COACCT01</strong> – Account processing helpers</li>
+<li><strong>CSUTLDTC</strong> – System utility for date functions</li>
+</ul>
+<hr>
+<p><em>Analysis date: 2025-04-30</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>01-programme.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

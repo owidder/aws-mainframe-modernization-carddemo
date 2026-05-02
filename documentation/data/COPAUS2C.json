@@ -1,0 +1,2634 @@
+{
+  "meta": {
+    "program_name": "COPAUS2C",
+    "file_path": "app/app-authorization-ims-db2-mq/cbl/COPAUS2C.cbl",
+    "analyzed_at": "2026-05-02T18:34:40.926708",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Persistierung einer Betrugsmeldung oder Betrugsentmarkierung für eine Kreditkarten-Autorisierungstransaktion in der Betrugsdatenbank.",
+    "process_description": "Das Programm empfängt eine Autorisierungsnachricht mit Betrugsstatus-Kennzeichnung (Betrug melden oder Betrug entfernen) und schreibt diese in die Betrugstabelle AUTHFRDS. Dabei werden alle relevanten Transaktionsdaten (Kartennummer, Händlerinformationen, Beträge, Autorisierungscodes) zusammen mit dem Betrugsstatus und dem aktuellen Meldedatum gespeichert. Existiert bereits ein Eintrag für dieselbe Karte und denselben Autorisierungszeitpunkt (Duplikat-Fehler -803), wird der bestehende Datensatz mit dem neuen Betrugsstatus und dem aktuellen Datum aktualisiert statt neu angelegt. Das Programm gibt dem aufrufenden Programm (COPAUS1C) über das Communication Area eine Erfolgs- oder Fehlermeldung zurück.",
+    "type": "CICS Online",
+    "module": "Authentication",
+    "files": {
+      "CARDDEMO.AUTHFRDS": "Betrugsdatenbank-Tabelle, die gemeldete oder entmarkierte betrügerische Kreditkarten-Autorisierungstransaktionen mit allen Transaktions- und Händlerdetails sowie dem Betrugsstatus persistiert",
+      "CIPAUDTY": "Copybook mit der Datenstruktur einer Autorisierungsnachricht (Kartennummer, Autorisierungsdetails, Händlerdaten, Beträge, Transaktions-ID)",
+      "AUTHFRDS": "SQL-Include mit der Host-Variablen-Struktur für die DB2-Tabelle CARDDEMO.AUTHFRDS"
+    },
+    "business_rules": [
+      "Eine Transaktion kann entweder als betrügerisch markiert ('F') oder eine bestehende Betrugsmeldung kann zurückgezogen werden ('R') – beide Aktionen werden dauerhaft in der Betrugsdatenbank protokolliert.",
+      "Existiert für eine Kartennummer und einen Autorisierungszeitpunkt bereits ein Betrugseintrag, wird dieser aktualisiert (kein Duplikat), um Statusänderungen (z.B. Betrug → kein Betrug) zu ermöglichen.",
+      "Das Meldedatum wird immer auf das aktuelle Systemdatum gesetzt, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.",
+      "Der Autorisierungszeitpunkt wird aus einem komprimierten Zeitformat der Originalnachricht rekonstruiert (999999999 minus Zeitwert) und als lesbarer Timestamp gespeichert.",
+      "Alle relevanten Transaktionsdaten (Händler, Betrag, Autorisierungscode, POS-Eingabemodus, Ländercode) werden zusammen mit der Betrugsmeldung gespeichert, um eine vollständige Betrugsdokumentation zu gewährleisten.",
+      "Das Programm ist ein reiner Service-Baustein ohne eigene Benutzeroberfläche – es wird ausschließlich von COPAUS1C (Detailansicht) aufgerufen und gibt das Ergebnis über die COMMAREA zurück."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CIPAUDTY"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COPAUA0C",
+        "COPAUS0C",
+        "COPAUS1C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COPAUS2C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo - Authorization Module",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL IMS DB2 Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Mark Authorization Message Fraud",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COPAUS2C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COPAUS2C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "         05 WS-LENGTH                  PIC S9(4) COMP VALUE ZERO.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "         05 WS-AUTH-TIME               PIC 9(09).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-AUTH-TIME-AN REDEFINES WS-AUTH-TIME",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "                                       PIC X(09).",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-AUTH-TS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "            10 WS-AUTH-YY              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "            10 FILLER                  PIC X(01) VALUE '-'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "            10 WS-AUTH-MM              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "            10 FILLER                  PIC X(01) VALUE '-'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "            10 WS-AUTH-DD              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "            10 FILLER                  PIC X(01) VALUE ' '.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "            10 WS-AUTH-HH              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "            10 FILLER                  PIC X(01) VALUE '.'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "            10 WS-AUTH-MI              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "            10 FILLER                  PIC X(01) VALUE '.'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "            10 WS-AUTH-SS              PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "            10 WS-AUTH-SSS             PIC X(03).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "            10 FILLER                  PIC X(03) VALUE '000'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "            88 ERR-FLG-ON                        VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "            88 ERR-FLG-OF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "         05 WS-SQLCODE                 PIC +9(06).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "         05 WS-SQLSTATE                PIC +9(09).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "         05 WS-ABS-TIME                PIC S9(15) COMP-3 VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "         05 WS-CUR-DATE                PIC X(08) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "      *COPY DFHBMSCA.",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "      /****************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "      * SQL INCLUDE FOR SQLCA                             *",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "      *****************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "           EXEC SQL",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "                INCLUDE SQLCA",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "           END-EXEC.",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "           EXEC SQL",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "                INCLUDE AUTHFRDS",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "           END-EXEC.",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "           02 WS-ACCT-ID                    PIC 9(11).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "           02 WS-CUST-ID                    PIC 9(9).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "           02 WS-FRAUD-AUTH-RECORD.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "              COPY CIPAUDTY.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "           02 WS-FRAUD-STATUS-RECORD.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "              05 WS-FRD-ACTION              PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "                 88 WS-REPORT-FRAUD         VALUE 'F'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "                 88 WS-REMOVE-FRAUD         VALUE 'R'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "              05 WS-FRD-UPDATE-STATUS       PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "                 88 WS-FRD-UPDT-SUCCESS     VALUE 'S'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "                 88 WS-FRD-UPDT-FAILED      VALUE 'F'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "              05 WS-FRD-ACT-MSG             PIC X(50).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag."
+    },
+    {
+      "number": 90,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "           EXEC CICS ASKTIME NOHANDLE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Ermittelt die aktuelle Systemzeit als Grundlage für das revisionssichere Betrugsmeldedatum."
+    },
+    {
+      "number": 92,
+      "code": "              ABSTIME(WS-ABS-TIME)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "              NOHANDLE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "           EXEC CICS FORMATTIME",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Formatiert die Systemzeit in ein lesbares Datumsformat (MM/DD/YY) für die Betrugsmeldung."
+    },
+    {
+      "number": 96,
+      "code": "             ABSTIME(WS-ABS-TIME)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "             MMDDYY(WS-CUR-DATE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "             DATESEP",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "             NOHANDLE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "           MOVE WS-CUR-DATE       TO PA-FRAUD-RPT-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Setzt das Betrugsmeldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+    },
+    {
+      "number": 102,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "           MOVE PA-AUTH-ORIG-DATE(1:2) TO WS-AUTH-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert das Jahr aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+    },
+    {
+      "number": 104,
+      "code": "           MOVE PA-AUTH-ORIG-DATE(3:2) TO WS-AUTH-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert den Monat aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+    },
+    {
+      "number": 105,
+      "code": "           MOVE PA-AUTH-ORIG-DATE(5:2) TO WS-AUTH-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert den Tag aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+    },
+    {
+      "number": 106,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "           COMPUTE WS-AUTH-TIME = 999999999 - PA-AUTH-TIME-9C",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Dekodiert den komprimierten Autorisierungszeitwert der Originalnachricht (999999999 minus Zeitwert) in einen lesbaren Zeitstempel."
+    },
+    {
+      "number": 108,
+      "code": "           MOVE WS-AUTH-TIME-AN(1:2) TO WS-AUTH-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert die Stunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+    },
+    {
+      "number": 109,
+      "code": "           MOVE WS-AUTH-TIME-AN(3:2) TO WS-AUTH-MI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert die Minuten aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+    },
+    {
+      "number": 110,
+      "code": "           MOVE WS-AUTH-TIME-AN(5:2) TO WS-AUTH-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert die Sekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+    },
+    {
+      "number": 111,
+      "code": "           MOVE WS-AUTH-TIME-AN(7:3) TO WS-AUTH-SSS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Extrahiert die Millisekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+    },
+    {
+      "number": 112,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "           MOVE PA-CARD-NUM          TO CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Kreditkartennummer der betroffenen Transaktion in den Betrugsdatensatz."
+    },
+    {
+      "number": 114,
+      "code": "           MOVE WS-AUTH-TS           TO AUTH-TS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den vollständigen Autorisierungszeitstempel als eindeutigen Schlüssel der Transaktion in den Betrugsdatensatz."
+    },
+    {
+      "number": 115,
+      "code": "           MOVE PA-AUTH-TYPE         TO AUTH-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Autorisierungstyp der Transaktion (z.B. Kauf, Rückbuchung) in den Betrugsdatensatz."
+    },
+    {
+      "number": 116,
+      "code": "           MOVE PA-CARD-EXPIRY-DATE  TO CARD-EXPIRY-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt das Ablaufdatum der Kreditkarte in den Betrugsdatensatz zur vollständigen Kartendokumentation."
+    },
+    {
+      "number": 117,
+      "code": "           MOVE PA-MESSAGE-TYPE      TO MESSAGE-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Nachrichtentyp der Autorisierungsnachricht in den Betrugsdatensatz."
+    },
+    {
+      "number": 118,
+      "code": "           MOVE PA-MESSAGE-SOURCE    TO MESSAGE-SOURCE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Nachrichtenquelle (Herkunftskanal der Autorisierung) in den Betrugsdatensatz."
+    },
+    {
+      "number": 119,
+      "code": "           MOVE PA-AUTH-ID-CODE      TO AUTH-ID-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Autorisierungscode der genehmigten Transaktion in den Betrugsdatensatz."
+    },
+    {
+      "number": 120,
+      "code": "           MOVE PA-AUTH-RESP-CODE    TO AUTH-RESP-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Antwortcode des Autorisierungssystems in den Betrugsdatensatz."
+    },
+    {
+      "number": 121,
+      "code": "           MOVE PA-AUTH-RESP-REASON  TO AUTH-RESP-REASON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Ablehnungs- bzw. Genehmigungsgrund der Autorisierung in den Betrugsdatensatz."
+    },
+    {
+      "number": 122,
+      "code": "           MOVE PA-PROCESSING-CODE   TO PROCESSING-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Verarbeitungscode (Art der Finanztransaktion) in den Betrugsdatensatz."
+    },
+    {
+      "number": 123,
+      "code": "           MOVE PA-TRANSACTION-AMT   TO TRANSACTION-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den ursprünglichen Transaktionsbetrag in den Betrugsdatensatz."
+    },
+    {
+      "number": 124,
+      "code": "           MOVE PA-APPROVED-AMT      TO APPROVED-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den tatsächlich genehmigten Betrag in den Betrugsdatensatz."
+    },
+    {
+      "number": 125,
+      "code": "           MOVE PA-MERCHANT-CATAGORY-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Händlerkategoriecode (MCC) zur Klassifizierung der Betrugsart in den Betrugsdatensatz."
+    },
+    {
+      "number": 126,
+      "code": "                                     TO MERCHANT-CATAGORY-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 127,
+      "code": "           MOVE PA-ACQR-COUNTRY-CODE TO ACQR-COUNTRY-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Ländercode des Acquirers (kartenakzeptierendes Institut) in den Betrugsdatensatz."
+    },
+    {
+      "number": 128,
+      "code": "           MOVE PA-POS-ENTRY-MODE    TO POS-ENTRY-MODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den POS-Eingabemodus (z.B. Chip, Magnetstreifen, kontaktlos) in den Betrugsdatensatz."
+    },
+    {
+      "number": 129,
+      "code": "           MOVE PA-MERCHANT-ID       TO MERCHANT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die eindeutige Händler-ID des betroffenen Akzeptanzpunkts in den Betrugsdatensatz."
+    },
+    {
+      "number": 130,
+      "code": "           MOVE LENGTH OF PA-MERCHANT-NAME TO MERCHANT-NAME-LEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Ermittelt die Länge des Händlernamens für die korrekte Speicherung in der Betrugsdatenbank."
+    },
+    {
+      "number": 131,
+      "code": "           MOVE PA-MERCHANT-NAME     TO MERCHANT-NAME-TEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Händlernamen des betroffenen Akzeptanzpunkts in den Betrugsdatensatz."
+    },
+    {
+      "number": 132,
+      "code": "           MOVE PA-MERCHANT-CITY     TO MERCHANT-CITY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Stadt des Händlers in den Betrugsdatensatz zur geografischen Betrugsdokumentation."
+    },
+    {
+      "number": 133,
+      "code": "           MOVE PA-MERCHANT-STATE    TO MERCHANT-STATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt das Bundesland/den Staat des Händlers in den Betrugsdatensatz."
+    },
+    {
+      "number": 134,
+      "code": "           MOVE PA-MERCHANT-ZIP      TO MERCHANT-ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Postleitzahl des Händlers in den Betrugsdatensatz."
+    },
+    {
+      "number": 135,
+      "code": "           MOVE PA-TRANSACTION-ID    TO TRANSACTION-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die eindeutige Transaktions-ID in den Betrugsdatensatz zur lückenlosen Nachverfolgbarkeit."
+    },
+    {
+      "number": 136,
+      "code": "           MOVE PA-MATCH-STATUS      TO MATCH-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt den Abgleichsstatus der Transaktion (z.B. Treffer in Betrugslisten) in den Betrugsdatensatz."
+    },
+    {
+      "number": 137,
+      "code": "           MOVE WS-FRD-ACTION        TO AUTH-FRAUD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Setzt das Betrugskennzeichen ('F'=Betrug melden / 'R'=Betrugsmeldung zurückziehen) im Betrugsdatensatz."
+    },
+    {
+      "number": 138,
+      "code": "           MOVE WS-ACCT-ID           TO ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Kontonummer des betroffenen Kreditkartenkontos in den Betrugsdatensatz."
+    },
+    {
+      "number": 139,
+      "code": "           MOVE WS-CUST-ID           TO CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Überträgt die Kundennummer des Karteninhabers in den Betrugsdatensatz."
+    },
+    {
+      "number": 140,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "           EXEC SQL",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Schreibt den vollständigen Betrugsdatensatz mit allen Transaktions-, Händler- und Betrugsinformationen in die Betrugsdatenbank CARDDEMO.AUTHFRDS."
+    },
+    {
+      "number": 142,
+      "code": "                INSERT INTO CARDDEMO.AUTHFRDS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "                      (CARD_NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "                      ,AUTH_TS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "                      ,AUTH_TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "                      ,CARD_EXPIRY_DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "                      ,MESSAGE_TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 148,
+      "code": "                      ,MESSAGE_SOURCE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "                      ,AUTH_ID_CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 150,
+      "code": "                      ,AUTH_RESP_CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "                      ,AUTH_RESP_REASON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "                      ,PROCESSING_CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 153,
+      "code": "                      ,TRANSACTION_AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "                      ,APPROVED_AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 155,
+      "code": "                      ,MERCHANT_CATAGORY_CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 156,
+      "code": "                      ,ACQR_COUNTRY_CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 157,
+      "code": "                      ,POS_ENTRY_MODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 158,
+      "code": "                      ,MERCHANT_ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 159,
+      "code": "                      ,MERCHANT_NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "                      ,MERCHANT_CITY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "                      ,MERCHANT_STATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 162,
+      "code": "                      ,MERCHANT_ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 163,
+      "code": "                      ,TRANSACTION_ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "                      ,MATCH_STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 165,
+      "code": "                      ,AUTH_FRAUD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 166,
+      "code": "                      ,FRAUD_RPT_DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 167,
+      "code": "                      ,ACCT_ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 168,
+      "code": "                      ,CUST_ID)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 169,
+      "code": "                  VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 170,
+      "code": "                    ( :CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 171,
+      "code": "                     ,TIMESTAMP_FORMAT (:AUTH-TS,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 172,
+      "code": "                                        'YY-MM-DD HH24.MI.SSNNNNNN')",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "                     ,:AUTH-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "                     ,:CARD-EXPIRY-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "                     ,:MESSAGE-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "                     ,:MESSAGE-SOURCE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "                     ,:AUTH-ID-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "                     ,:AUTH-RESP-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 179,
+      "code": "                     ,:AUTH-RESP-REASON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 180,
+      "code": "                     ,:PROCESSING-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 181,
+      "code": "                     ,:TRANSACTION-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 182,
+      "code": "                     ,:APPROVED-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 183,
+      "code": "                     ,:MERCHANT-CATAGORY-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 184,
+      "code": "                     ,:ACQR-COUNTRY-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 185,
+      "code": "                     ,:POS-ENTRY-MODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 186,
+      "code": "                     ,:MERCHANT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 187,
+      "code": "                     ,:MERCHANT-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 188,
+      "code": "                     ,:MERCHANT-CITY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 189,
+      "code": "                     ,:MERCHANT-STATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "                     ,:MERCHANT-ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 191,
+      "code": "                     ,:TRANSACTION-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "                     ,:MATCH-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 193,
+      "code": "                     ,:AUTH-FRAUD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 194,
+      "code": "                     ,CURRENT DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "                     ,:ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "                     ,:CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 197,
+      "code": "                    )",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 198,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 199,
+      "code": "           IF SQLCODE = ZERO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Prüft, ob der Betrugsdatensatz erfolgreich neu in die Datenbank eingetragen wurde (kein Fehler aufgetreten)."
+    },
+    {
+      "number": 200,
+      "code": "              SET WS-FRD-UPDT-SUCCESS TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen."
+    },
+    {
+      "number": 201,
+      "code": "              MOVE 'ADD SUCCESS'      TO WS-FRD-ACT-MSG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Meldet dem aufrufenden Programm COPAUS1C, dass die Betrugsmeldung erfolgreich neu angelegt wurde ('ADD SUCCESS')."
+    },
+    {
+      "number": 202,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 203,
+      "code": "              IF SQLCODE = -803",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Prüft, ob für diese Kartennummer und diesen Autorisierungszeitpunkt bereits ein Betrugseintrag existiert (Duplikat-Fehler -803)."
+    },
+    {
+      "number": 204,
+      "code": "                 PERFORM FRAUD-UPDATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Aktualisiert den bestehenden Betrugseintrag mit dem neuen Betrugsstatus und dem aktuellen Meldedatum, anstatt einen Duplikateintrag anzulegen."
+    },
+    {
+      "number": 205,
+      "code": "              ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 206,
+      "code": "                 SET WS-FRD-UPDT-FAILED  TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Kennzeichnet die Datenbankoperation als fehlgeschlagen, da ein unerwarteter Datenbankfehler aufgetreten ist."
+    },
+    {
+      "number": 207,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 208,
+      "code": "                 MOVE SQLCODE            TO WS-SQLCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sichert den DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm."
+    },
+    {
+      "number": 209,
+      "code": "                 MOVE SQLSTATE           TO WS-SQLSTATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sichert den DB2-Fehlerstatus für die Fehlermeldung an das aufrufende Programm."
+    },
+    {
+      "number": 210,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 211,
+      "code": "                 STRING ' SYSTEM ERROR DB2: CODE:' WS-SQLCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und -status zur Rückgabe an das aufrufende Programm COPAUS1C."
+    },
+    {
+      "number": 212,
+      "code": "                        ', STATE: ' WS-SQLSTATE   DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 213,
+      "code": "                 INTO WS-FRD-ACT-MSG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 214,
+      "code": "                 END-STRING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 215,
+      "code": "              END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 216,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 217,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 218,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Beendet die Programmverarbeitung und gibt die Erfolgs- oder Fehlermeldung über die COMMAREA an das aufrufende Programm COPAUS1C zurück."
+    },
+    {
+      "number": 219,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 220,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 221,
+      "code": "       FRAUD-UPDATE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Einstiegspunkt für die Aktualisierung eines vorhandenen Betrugseintrags in der Datenbank."
+    },
+    {
+      "number": 222,
+      "code": "           EXEC SQL",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Startet die Datenbankoperation zur Aktualisierung des bestehenden Betrugsdatensatzes."
+    },
+    {
+      "number": 223,
+      "code": "                UPDATE CARDDEMO.AUTHFRDS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Zieldatensatz in der Betrugsdatenbank CARDDEMO.AUTHFRDS, der aktualisiert werden soll."
+    },
+    {
+      "number": 224,
+      "code": "                   SET   AUTH_FRAUD     = :AUTH-FRAUD,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Überschreibt das gespeicherte Betrugskennzeichen mit dem neuen Status ('F' = betrügerisch oder 'R' = Betrugsmeldung zurückgezogen)."
+    },
+    {
+      "number": 225,
+      "code": "                         FRAUD_RPT_DATE = CURRENT DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Setzt das Meldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+    },
+    {
+      "number": 226,
+      "code": "                   WHERE CARD_NUM = :CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Schränkt die Aktualisierung auf den Datensatz der betroffenen Kreditkartennummer ein."
+    },
+    {
+      "number": 227,
+      "code": "                     AND AUTH_TS  = TIMESTAMP_FORMAT (:AUTH-TS,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Schränkt die Aktualisierung zusätzlich auf den exakten Autorisierungszeitpunkt ein, um eindeutig die richtige Transaktion zu identifizieren."
+    },
+    {
+      "number": 228,
+      "code": "                                           'YY-MM-DD HH24.MI.SSNNNNNN')",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Wandelt den gespeicherten Autorisierungszeitstempel in das DB2-Timestamp-Format um, damit der Datenbankvergleich korrekt durchgeführt werden kann."
+    },
+    {
+      "number": 229,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Abschluss der Datenbankoperation."
+    },
+    {
+      "number": 230,
+      "code": "           IF SQLCODE = ZERO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Prüft, ob die Aktualisierung des Betrugseintrags in der Datenbank erfolgreich abgeschlossen wurde."
+    },
+    {
+      "number": 231,
+      "code": "              SET WS-FRD-UPDT-SUCCESS TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen."
+    },
+    {
+      "number": 232,
+      "code": "              MOVE 'UPDT SUCCESS'     TO WS-FRD-ACT-MSG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Setzt die Rückmeldung an das aufrufende Programm COPAUS1C auf 'UPDT SUCCESS', um die erfolgreiche Aktualisierung des Betrugseintrags zu bestätigen."
+    },
+    {
+      "number": 233,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Behandelt den Fall, dass die Datenbankaktualisierung fehlgeschlagen ist."
+    },
+    {
+      "number": 234,
+      "code": "              SET WS-FRD-UPDT-FAILED  TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Kennzeichnet die Datenbankoperation intern als fehlgeschlagen, um nachgelagerte Fehlerbehandlung zu ermöglichen."
+    },
+    {
+      "number": 235,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": ""
+    },
+    {
+      "number": 236,
+      "code": "              MOVE SQLCODE            TO WS-SQLCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Sichert den technischen DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm."
+    },
+    {
+      "number": 237,
+      "code": "              MOVE SQLSTATE           TO WS-SQLSTATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Sichert den DB2-Statuscode (SQLSTATE) für eine detailliertere Fehlerdiagnose."
+    },
+    {
+      "number": 238,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": ""
+    },
+    {
+      "number": 239,
+      "code": "              STRING ' UPDT ERROR DB2: CODE:' WS-SQLCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und Statuscode für die Rückmeldung an COPAUS1C."
+    },
+    {
+      "number": 240,
+      "code": "                     ', STATE: ' WS-SQLSTATE   DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Fügt den DB2-Statuscode zur Fehlermeldung hinzu, um eine vollständige Fehlerdiagnose zu ermöglichen."
+    },
+    {
+      "number": 241,
+      "code": "              INTO WS-FRD-ACT-MSG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Schreibt die zusammengesetzte Fehlermeldung in das Rückgabefeld für das aufrufende Programm COPAUS1C."
+    },
+    {
+      "number": 242,
+      "code": "              END-STRING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Abschluss der Fehlermeldungs-Zusammensetzung."
+    },
+    {
+      "number": 243,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": "Abschluss der Erfolgs-/Fehlerbehandlung nach der Datenbankaktualisierung."
+    },
+    {
+      "number": 244,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "FRAUD-UPDATE",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Übergeordnete Gruppenstruktur für alle internen Arbeitsvariablen des Programms COPAUS2C, die zur Verarbeitung der Betrugsmeldung benötigt werden."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COPAUS2C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Interner Programmname, der zur Identifikation des Moduls in Fehlerprotokollen und Systemaufrufen verwendet wird. Ermöglicht die eindeutige Zuordnung von Fehlermeldungen zu diesem Service-Baustein."
+    },
+    {
+      "name": "WS-LENGTH",
+      "level": "05",
+      "picture": "PIC S9(4) COMP",
+      "value": "ZERO",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Längenfeld für CICS-Kommunikationsaufrufe, z.B. zur Übergabe der COMMAREA-Länge beim Aufruf durch COPAUS1C. Wird für die korrekte Datenübertragung zwischen den Programmen benötigt."
+    },
+    {
+      "name": "WS-AUTH-TIME",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Berechneter Autorisierungszeitpunkt als numerischer Wert, der aus dem komprimierten Zeitfeld der Originalnachricht rekonstruiert wird (999999999 minus PA-AUTH-TIME-9C). Dient als Zwischenwert zur Umwandlung in den lesbaren Timestamp WS-AUTH-TS."
+    },
+    {
+      "name": "WS-AUTH-TIME-AN",
+      "level": "05",
+      "picture": "PIC X(09)",
+      "value": null,
+      "redefines": "WS-AUTH-TIME",
+      "occurs": null,
+      "is_group": false,
+      "description": "Alphanumerische Sicht auf den berechneten Autorisierungszeitpunkt. Ermöglicht den zeichenweisen Zugriff auf die einzelnen Zeitkomponenten (Stunden, Minuten, Sekunden), um diese in die formatierte Timestamp-Struktur WS-AUTH-TS zu übertragen."
+    },
+    {
+      "name": "WS-AUTH-TS",
+      "level": "05",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Vollständiger, lesbarer Autorisierungszeitstempel im Format 'YY-MM-DD HH.MI.SS.SSS', der als eindeutiger Schlüssel der Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert wird. Ermöglicht die revisionssichere Zuordnung der Betrugsmeldung zur exakten Originaltransaktion."
+    },
+    {
+      "name": "WS-AUTH-YY",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Jahreszahl (zweistellig) des Autorisierungszeitpunkts, z.B. '24' für 2024. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "'-'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen '-' zwischen Jahr und Monat im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp."
+    },
+    {
+      "name": "WS-AUTH-MM",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Monat (zweistellig) des Autorisierungszeitpunkts, z.B. '03' für März. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "'-'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen '-' zwischen Monat und Tag im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp."
+    },
+    {
+      "name": "WS-AUTH-DD",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Tag (zweistellig) des Autorisierungszeitpunkts, z.B. '15'. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "' '",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Leerzeichen als Trennzeichen zwischen Datums- und Zeitanteil im Autorisierungszeitstempel. Trennt 'YY-MM-DD' von 'HH.MI.SS' für die lesbare Darstellung."
+    },
+    {
+      "name": "WS-AUTH-HH",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Stunde (zweistellig, 24h-Format) des Autorisierungszeitpunkts, z.B. '14'. Ermöglicht die genaue zeitliche Einordnung der Transaktion für die Betrugsdokumentation."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "'.'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen '.' zwischen Stunden und Minuten im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'."
+    },
+    {
+      "name": "WS-AUTH-MI",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Minute (zweistellig) des Autorisierungszeitpunkts, z.B. '32'. Teil des präzisen Zeitstempels zur revisionssicheren Dokumentation des exakten Transaktionszeitpunkts."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "'.'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Trennzeichen '.' zwischen Minuten und Sekunden im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'."
+    },
+    {
+      "name": "WS-AUTH-SS",
+      "level": "10",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Sekunde (zweistellig) des Autorisierungszeitpunkts, z.B. '47'. Ermöglicht zusammen mit den Millisekunden die sekundengenaue Identifikation der Transaktion als eindeutiger Schlüssel in der Betrugsdatenbank."
+    },
+    {
+      "name": "WS-AUTH-SSS",
+      "level": "10",
+      "picture": "PIC X(03)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Millisekunden (dreistellig) des Autorisierungszeitpunkts. Erhöht die Eindeutigkeit des Timestamps als Schlüssel in der Betrugsdatenbank, um Kollisionen bei Transaktionen innerhalb derselben Sekunde zu vermeiden."
+    },
+    {
+      "name": "FILLER",
+      "level": "10",
+      "picture": "PIC X(03)",
+      "value": "'000'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Auffüllwert '000' für den Mikrosekunden-Anteil des DB2-Timestamps. Da die Originalnachricht keine Mikrosekunden liefert, wird dieser Anteil fest auf null gesetzt, um das vollständige DB2-Timestamp-Format zu erfüllen."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "'N'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Fehlerindikator für die Verarbeitungssteuerung: Zeigt an, ob während der Datenbankoperation ein Fehler aufgetreten ist. Steuert den weiteren Programmablauf und die Rückmeldung an das aufrufende Programm COPAUS1C."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "'Y'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass ein Fehler bei der Persistierung der Betrugsmeldung aufgetreten ist. Löst die Fehlerbehandlung aus und führt zur Rückmeldung eines Fehlerstatus an COPAUS1C."
+    },
+    {
+      "name": "ERR-FLG-OF",
+      "level": "88",
+      "picture": null,
+      "value": "'N'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass die Datenbankoperation fehlerfrei verlaufen ist. Ermöglicht die Rückmeldung eines Erfolgsstatus ('ADD SUCCESS' oder 'UPDT SUCCESS') an das aufrufende Programm COPAUS1C."
+    },
+    {
+      "name": "WS-SQLCODE",
+      "level": "05",
+      "picture": "PIC +9(06)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Formatierter DB2-Rückgabecode für Protokollierungs- und Fehlermeldungszwecke. Enthält den SQLCODE als lesbaren Wert mit Vorzeichen, um im Fehlerfall eine aussagekräftige Fehlermeldung an COPAUS1C zurückzugeben (z.B. -803 bei Duplikat-Eintrag)."
+    },
+    {
+      "name": "WS-SQLSTATE",
+      "level": "05",
+      "picture": "PIC +9(09)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Formatierter DB2-SQLSTATE-Code für erweiterte Fehlerdiagnose. Ergänzt den SQLCODE um einen standardisierten Statuscode, der bei der Fehleranalyse der Datenbankoperation (INSERT/UPDATE in CARDDEMO.AUTHFRDS) hilft."
+    },
+    {
+      "name": "WS-ABS-TIME",
+      "level": "05",
+      "picture": "PIC S9(15) COMP-3",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Absoluter Systemzeitstempel, der über CICS ASKTIME ermittelt wird. Dient als Grundlage zur Ermittlung des aktuellen Systemdatums (WS-CUR-DATE), das als Betrugsmeldedatum (PA-FRAUD-RPT-DATE) revisionssicher in der Datenbank gespeichert wird."
+    },
+    {
+      "name": "WS-CUR-DATE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Aktuelles Systemdatum zum Zeitpunkt der Betrugsmeldung im Format YYYYMMDD. Wird als Betrugsmeldedatum in der Datenbank gespeichert, um den genauen Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "CICS-Kommunikationsbereich für den Datenaustausch zwischen dem aufrufenden Programm COPAUS1C (Detailansicht) und diesem Service-Baustein. Enthält alle Ein- und Ausgabedaten der Betrugsmeldung: Kontodaten, Transaktionsdaten sowie das Ergebnis der Datenbankoperation."
+    },
+    {
+      "name": "WS-ACCT-ID",
+      "level": "02",
+      "picture": "PIC 9(11)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Kontonummer des betroffenen Kreditkartenkontos. Wird zusammen mit der Kartennummer und dem Autorisierungszeitpunkt zur eindeutigen Identifikation der betrügerischen Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert."
+    },
+    {
+      "name": "WS-CUST-ID",
+      "level": "02",
+      "picture": "PIC 9(9)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Kundennummer des Karteninhabers, dessen Transaktion als betrügerisch gemeldet oder entmarkiert wird. Wird in der Betrugsdatenbank gespeichert, um die vollständige Betrugsdokumentation dem richtigen Kunden zuordnen zu können."
+    },
+    {
+      "name": "WS-FRAUD-AUTH-RECORD",
+      "level": "02",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Gruppenstruktur, die alle Transaktionsdaten der zu meldenden oder zu entmarkierenden Autorisierungstransaktion enthält (via COPY CIPAUDTY eingebunden). Liefert Händlerdaten, Betrag, Kartennummer und Autorisierungsdetails für die vollständige Betrugsdokumentation in CARDDEMO.AUTHFRDS."
+    },
+    {
+      "name": "WS-FRAUD-STATUS-RECORD",
+      "level": "02",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Gruppenstruktur für die Steuerung und Rückmeldung der Betrugsaktion. Enthält die gewünschte Aktion (Melden oder Zurückziehen), das Ergebnis der Datenbankoperation sowie eine fachliche Rückmeldung an COPAUS1C."
+    },
+    {
+      "name": "WS-FRD-ACTION",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Steuerfeld für die gewünschte Betrugsaktion, das von COPAUS1C gesetzt wird: 'F' = Transaktion als betrügerisch in CARDDEMO.AUTHFRDS melden, 'R' = bestehende Betrugsmeldung zurückziehen. Bestimmt, welches Betrugskennzeichen in der Datenbank gespeichert wird."
+    },
+    {
+      "name": "WS-REPORT-FRAUD",
+      "level": "88",
+      "picture": null,
+      "value": "'F'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass die Transaktion als betrügerisch gemeldet werden soll. Löst einen INSERT oder UPDATE in CARDDEMO.AUTHFRDS mit dem Betrugskennzeichen 'F' aus."
+    },
+    {
+      "name": "WS-REMOVE-FRAUD",
+      "level": "88",
+      "picture": null,
+      "value": "'R'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass eine bestehende Betrugsmeldung zurückgezogen werden soll. Löst einen UPDATE in CARDDEMO.AUTHFRDS mit dem Kennzeichen 'R' aus, um den Betrugsstatus der Transaktion zu korrigieren."
+    },
+    {
+      "name": "WS-FRD-UPDATE-STATUS",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Ergebnisstatus der Datenbankoperation, der nach der Persistierung an COPAUS1C zurückgegeben wird: 'S' = Betrugsmeldung erfolgreich gespeichert oder aktualisiert, 'F' = Datenbankoperation fehlgeschlagen. Ermöglicht COPAUS1C die korrekte Rückmeldung an den Sachbearbeiter."
+    },
+    {
+      "name": "WS-FRD-UPDT-SUCCESS",
+      "level": "88",
+      "picture": null,
+      "value": "'S'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass die Betrugsmeldung oder -entmarkierung erfolgreich in CARDDEMO.AUTHFRDS persistiert wurde. Führt zur Rückmeldung 'ADD SUCCESS' (Neuanlage) oder 'UPDT SUCCESS' (Aktualisierung) an COPAUS1C."
+    },
+    {
+      "name": "WS-FRD-UPDT-FAILED",
+      "level": "88",
+      "picture": null,
+      "value": "'F'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname: Signalisiert, dass die Datenbankoperation fehlgeschlagen ist. Führt zur Rückmeldung einer Fehlerbeschreibung an COPAUS1C, damit der Sachbearbeiter über den Misserfolg der Betrugsmeldung informiert wird."
+    },
+    {
+      "name": "WS-FRD-ACT-MSG",
+      "level": "05",
+      "picture": "PIC X(50)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Fachliche Rückmeldung im Klartext an das aufrufende Programm COPAUS1C, z.B. 'ADD SUCCESS' bei erfolgreicher Neuanlage, 'UPDT SUCCESS' bei erfolgreicher Aktualisierung oder eine Fehlerbeschreibung mit SQLCODE bei gescheiterter Datenbankoperation. Dient der Anzeige des Verarbeitungsergebnisses für den Sachbearbeiter."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 89,
+      "line_end": 220,
+      "description": "MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag."
+    },
+    {
+      "name": "FRAUD-UPDATE",
+      "line_start": 221,
+      "line_end": 244,
+      "description": "Aktualisiert einen bestehenden Betrugseintrag in der Betrugsdatenbank mit dem neuen Betrugsstatus und dem aktuellen Meldedatum. Dieser Paragraph wird aufgerufen, wenn für die betreffende Karte und den Autorisierungszeitpunkt bereits ein Datensatz existiert (Duplikat-Fall)."
+    }
+  ],
+  "copybooks": [
+    "DFHBMSCA",
+    "CIPAUDTY"
+  ]
+}

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>External Interfaces – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     class="active">
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     >
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#interface-overview"
+     class="">Interface Overview</a>
+  
+  <a href="#cics-transactions"
+     class="">CICS Transactions</a>
+  
+  <a href="#transaction-overview"
+     class="toc-h3">Transaction Overview</a>
+  
+  <a href="#transaction-characteristics"
+     class="toc-h3">Transaction Characteristics</a>
+  
+  <a href="#bms-screens-basic-mapping-support"
+     class="">BMS Screens (Basic Mapping Support)</a>
+  
+  <a href="#bms-screen-overview"
+     class="toc-h3">BMS Screen Overview</a>
+  
+  <a href="#bms-screen-features"
+     class="toc-h3">BMS Screen Features</a>
+  
+  <a href="#batch-jobs-jcl"
+     class="">Batch Jobs (JCL)</a>
+  
+  <a href="#jcl-overview--transaction-processing"
+     class="toc-h3">JCL Overview – Transaction Processing</a>
+  
+  <a href="#jcl-overview--accountcustomer-management"
+     class="toc-h3">JCL Overview – Account/Customer Management</a>
+  
+  <a href="#jcl-overview--data-migration"
+     class="toc-h3">JCL Overview – Data Migration</a>
+  
+  <a href="#jcl-overview--utilities-and-reports"
+     class="toc-h3">JCL Overview – Utilities and Reports</a>
+  
+  <a href="#jcl-overview--database-and-gdg"
+     class="toc-h3">JCL Overview – Database and GDG</a>
+  
+  <a href="#jcl-overview--data-utilities"
+     class="toc-h3">JCL Overview – Data Utilities</a>
+  
+  <a href="#typical-batch-job-flow-posttran"
+     class="toc-h3">Typical Batch Job Flow (POSTTRAN)</a>
+  
+  <a href="#db2-interfaces"
+     class="">DB2 Interfaces</a>
+  
+  <a href="#db2-tables-and-programs"
+     class="toc-h3">DB2 Tables and Programs</a>
+  
+  <a href="#embedded-sql-in-cobol"
+     class="toc-h3">Embedded SQL in COBOL</a>
+  
+  <a href="#ims-interfaces-authorization"
+     class="">IMS Interfaces (Authorization)</a>
+  
+  <a href="#ims-programs"
+     class="toc-h3">IMS Programs</a>
+  
+  <a href="#mq-interfaces-message-queue"
+     class="">MQ Interfaces (Message Queue)</a>
+  
+  <a href="#mq-queues"
+     class="toc-h3">MQ Queues</a>
+  
+  <a href="#mq-usage"
+     class="toc-h3">MQ Usage</a>
+  
+  <a href="#ftp-interfaces"
+     class="">FTP Interfaces</a>
+  
+  <a href="#ftp-files"
+     class="toc-h3">FTP Files</a>
+  
+  <a href="#interface-type-summary"
+     class="">Interface Type Summary</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    External Interfaces
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--external-interfaces">CardDemo – External Interfaces</h1>
+<h2 id="interface-overview">Interface Overview</h2>
+<p>The CardDemo application communicates via various interfaces:</p>
+<ol>
+<li><strong>CICS Transactions</strong> – Online user interaction</li>
+<li><strong>BMS Screens</strong> – User interface</li>
+<li><strong>Batch Jobs (JCL)</strong> – Offline processing</li>
+<li><strong>File-Based Interfaces</strong> – Import/export</li>
+<li><strong>DB2 SQL Interface</strong> – Databases</li>
+<li><strong>IMS Interface</strong> – Authorization and authentication</li>
+<li><strong>MQ Queues</strong> – Message exchange</li>
+</ol>
+<h2 id="cics-transactions">CICS Transactions</h2>
+<p>CICS transactions are online entry points through which users control the application.</p>
+<h3 id="transaction-overview">Transaction Overview</h3>
+<table>
+<thead><tr>
+<th>Trans-ID</th>
+<th>Program</th>
+<th>Function</th>
+<th>Screen</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CC00</strong></td>
+<td>COSGN00C</td>
+<td>User sign-on</td>
+<td>COSGN00</td>
+</tr>
+<tr>
+<td><strong>CM01</strong></td>
+<td>COMEN01C</td>
+<td>Main menu</td>
+<td>COMEN01</td>
+</tr>
+<tr>
+<td><strong>CA01</strong></td>
+<td>COADM01C</td>
+<td>Admin menu</td>
+<td>COADM01</td>
+</tr>
+<tr>
+<td><strong>CU00</strong></td>
+<td>COUSR00C</td>
+<td>User list</td>
+<td>COUSR00</td>
+</tr>
+<tr>
+<td><strong>CU01</strong></td>
+<td>COUSR01C</td>
+<td>Create/edit user</td>
+<td>COUSR01</td>
+</tr>
+<tr>
+<td><strong>CU02</strong></td>
+<td>COUSR02C</td>
+<td>Delete user</td>
+<td>COUSR02</td>
+</tr>
+<tr>
+<td><strong>CU03</strong></td>
+<td>COUSR03C</td>
+<td>User permissions</td>
+<td>COUSR03</td>
+</tr>
+<tr>
+<td><strong>CA02</strong></td>
+<td>COACTUPC</td>
+<td>Update account</td>
+<td>COACTUP</td>
+</tr>
+<tr>
+<td><strong>CA03</strong></td>
+<td>COACTVWC</td>
+<td>View account</td>
+<td>COACTVW</td>
+</tr>
+<tr>
+<td><strong>CC01</strong></td>
+<td>COCRDSLC</td>
+<td>Card list</td>
+<td>COCRDSL</td>
+</tr>
+<tr>
+<td><strong>CC02</strong></td>
+<td>COCRDLIC</td>
+<td>License card</td>
+<td>COCRDLI</td>
+</tr>
+<tr>
+<td><strong>CC03</strong></td>
+<td>COCRDUPC</td>
+<td>Update card</td>
+<td>COCRDUP</td>
+</tr>
+<tr>
+<td><strong>CT00</strong></td>
+<td>COTRN00C</td>
+<td>Transaction list</td>
+<td>COTRN00</td>
+</tr>
+<tr>
+<td><strong>CT01</strong></td>
+<td>COTRN01C</td>
+<td>Transaction details</td>
+<td>COTRN01</td>
+</tr>
+<tr>
+<td><strong>CT02</strong></td>
+<td>COTRN02C</td>
+<td>Transaction types</td>
+<td>COTRN02</td>
+</tr>
+<tr>
+<td><strong>CR00</strong></td>
+<td>CORPT00C</td>
+<td>Reports</td>
+<td>CORPT00</td>
+</tr>
+<tr>
+<td><strong>CB00</strong></td>
+<td>COBIL00C</td>
+<td>Billing</td>
+<td>COBIL00</td>
+</tr>
+<tr>
+<td><strong>CW00</strong></td>
+<td>COBSWAIT</td>
+<td>System wait</td>
+<td>–</td>
+</tr>
+</tbody></table>
+<h3 id="transaction-characteristics">Transaction Characteristics</h3>
+<p><strong>Screen-based transactions:</strong></p>
+<ul>
+<li>Require <strong>COMMAREA</strong> for state management between screens</li>
+<li>Use <strong>XCTL</strong> for program transitions (not on call stack)</li>
+<li>Implement <strong>paging</strong> for large datasets (COTRN00C: 10 records per screen)</li>
+<li>Support <strong>PF keys</strong>: PF3 (return), PF7 (page back), PF8 (page forward)</li>
+<li>Type-safe <strong>field validation</strong> with error messages</li>
+</ul>
+<p><strong>Session management:</strong></p>
+<ul>
+<li>Terminal session starts with COSGN00C (Sign-On)</li>
+<li>User ID is maintained in COMMAREA</li>
+<li>User type: 'A' (Admin) or 'U' (User)</li>
+<li>Navigation via menu hierarchy</li>
+</ul>
+<h2 id="bms-screens-basic-mapping-support">BMS Screens (Basic Mapping Support)</h2>
+<p>BMS files define the user interface layouts.</p>
+<h3 id="bms-screen-overview">BMS Screen Overview</h3>
+<table>
+<thead><tr>
+<th>BMS Name</th>
+<th>MAP Set</th>
+<th>Size</th>
+<th>Program</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>COSGN00</strong></td>
+<td>COSGN00</td>
+<td>24×80</td>
+<td>COSGN00C</td>
+<td>Sign-on screen</td>
+</tr>
+<tr>
+<td><strong>COMEN01</strong></td>
+<td>COMEN01</td>
+<td>24×80</td>
+<td>COMEN01C</td>
+<td>Main menu</td>
+</tr>
+<tr>
+<td><strong>COADM01</strong></td>
+<td>COADM01</td>
+<td>24×80</td>
+<td>COADM01C</td>
+<td>Admin menu</td>
+</tr>
+<tr>
+<td><strong>COUSR00</strong></td>
+<td>COUSR00</td>
+<td>24×80</td>
+<td>COUSR00C</td>
+<td>User list</td>
+</tr>
+<tr>
+<td><strong>COUSR01</strong></td>
+<td>COUSR01</td>
+<td>24×80</td>
+<td>COUSR01C</td>
+<td>User editing</td>
+</tr>
+<tr>
+<td><strong>COUSR02</strong></td>
+<td>COUSR02</td>
+<td>24×80</td>
+<td>COUSR02C</td>
+<td>Delete user</td>
+</tr>
+<tr>
+<td><strong>COUSR03</strong></td>
+<td>COUSR03</td>
+<td>24×80</td>
+<td>COUSR03C</td>
+<td>Permissions</td>
+</tr>
+<tr>
+<td><strong>COACTUP</strong></td>
+<td>COACTUP</td>
+<td>24×80</td>
+<td>COACTUPC</td>
+<td>Update account</td>
+</tr>
+<tr>
+<td><strong>COACTVW</strong></td>
+<td>COACTVW</td>
+<td>24×80</td>
+<td>COACTVWC</td>
+<td>View account</td>
+</tr>
+<tr>
+<td><strong>COCRDSL</strong></td>
+<td>COCRDSL</td>
+<td>24×80</td>
+<td>COCRDSLC</td>
+<td>Card list</td>
+</tr>
+<tr>
+<td><strong>COCRDLI</strong></td>
+<td>COCRDLI</td>
+<td>24×80</td>
+<td>COCRDLIC</td>
+<td>License card</td>
+</tr>
+<tr>
+<td><strong>COCRDUP</strong></td>
+<td>COCRDUP</td>
+<td>24×80</td>
+<td>COCRDUPC</td>
+<td>Update card</td>
+</tr>
+<tr>
+<td><strong>COTRN00</strong></td>
+<td>COTRN00</td>
+<td>24×80</td>
+<td>COTRN00C</td>
+<td>Transaction list</td>
+</tr>
+<tr>
+<td><strong>COTRN01</strong></td>
+<td>COTRN01</td>
+<td>24×80</td>
+<td>COTRN01C</td>
+<td>Transaction details</td>
+</tr>
+<tr>
+<td><strong>COTRN02</strong></td>
+<td>COTRN02</td>
+<td>24×80</td>
+<td>COTRN02C</td>
+<td>Transaction types</td>
+</tr>
+<tr>
+<td><strong>CORPT00</strong></td>
+<td>CORPT00</td>
+<td>24×80</td>
+<td>CORPT00C</td>
+<td>Report display</td>
+</tr>
+<tr>
+<td><strong>COBIL00</strong></td>
+<td>COBIL00</td>
+<td>24×80</td>
+<td>COBIL00C</td>
+<td>Billing details</td>
+</tr>
+</tbody></table>
+<h3 id="bms-screen-features">BMS Screen Features</h3>
+<p><strong>Standard elements on all screens:</strong></p>
+<ul>
+<li><strong>TITLE line</strong>: Shows application name and transaction ID</li>
+<li><strong>Date/timestamp</strong>: Current system time in header</li>
+<li><strong>Error message area</strong>: Red error messages</li>
+<li><strong>Navigation hints</strong>: PF3, PF7, PF8 keys displayed at top right</li>
+<li><strong>Data entry areas</strong>: With field validation</li>
+</ul>
+<p><strong>Paging for list views:</strong></p>
+<ul>
+<li>COTRN00C: Displays max. 10 transactions per page</li>
+<li>COCRDSL: Card lists with paging</li>
+<li>COUSR00: User lists with paging</li>
+<li>PF7 = Page back, PF8 = Page forward</li>
+</ul>
+<h2 id="batch-jobs-jcl">Batch Jobs (JCL)</h2>
+<p>Batch jobs are controlled via JCL (Job Control Language).</p>
+<h3 id="jcl-overview--transaction-processing">JCL Overview – Transaction Processing</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Program</th>
+<th>Purpose</th>
+<th>Input</th>
+<th>Output</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>POSTTRAN</strong></td>
+<td>CBTRN02C</td>
+<td>Daily transaction posting</td>
+<td>DALYTRAN</td>
+<td>TRANFILE, DALYREJS</td>
+</tr>
+<tr>
+<td><strong>TRANFILE</strong></td>
+<td>CBTRN01C</td>
+<td>Transaction file build</td>
+<td>DALYTRAN</td>
+<td>TRANFILE</td>
+</tr>
+<tr>
+<td><strong>TRANREPT</strong></td>
+<td>CBTRN03C</td>
+<td>Transaction report</td>
+<td>TRANFILE</td>
+<td>Report</td>
+</tr>
+<tr>
+<td><strong>TRANBKP</strong></td>
+<td>–</td>
+<td>Transaction backup</td>
+<td>TRANFILE</td>
+<td>Backup file</td>
+</tr>
+<tr>
+<td><strong>TRANIDX</strong></td>
+<td>–</td>
+<td>Transaction file index</td>
+<td>TRANFILE</td>
+<td>Index</td>
+</tr>
+<tr>
+<td><strong>TRANCATG</strong></td>
+<td>–</td>
+<td>Transaction category setup</td>
+<td>–</td>
+<td>TCATBALF</td>
+</tr>
+</tbody></table>
+<h3 id="jcl-overview--accountcustomer-management">JCL Overview – Account/Customer Management</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Program</th>
+<th>Purpose</th>
+<th>Input</th>
+<th>Output</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CUSTFILE</strong></td>
+<td>–</td>
+<td>Customer file setup</td>
+<td>–</td>
+<td>CUSTFILE</td>
+</tr>
+<tr>
+<td><strong>READCUST</strong></td>
+<td>CBCUS01C</td>
+<td>Customer report</td>
+<td>CUSTFILE</td>
+<td>Report</td>
+</tr>
+<tr>
+<td><strong>CARDFILE</strong></td>
+<td>–</td>
+<td>Card file setup</td>
+<td>–</td>
+<td>CARDFILE</td>
+</tr>
+<tr>
+<td><strong>READCARD</strong></td>
+<td>CBACT02C</td>
+<td>Card report</td>
+<td>CARDFILE</td>
+<td>Report</td>
+</tr>
+<tr>
+<td><strong>ACCTFILE</strong></td>
+<td>–</td>
+<td>Account file setup</td>
+<td>–</td>
+<td>ACCTFILE</td>
+</tr>
+<tr>
+<td><strong>READACCT</strong></td>
+<td>CBACT01C</td>
+<td>Account report</td>
+<td>ACCTFILE</td>
+<td>Report</td>
+</tr>
+<tr>
+<td><strong>XREFFILE</strong></td>
+<td>–</td>
+<td>Xref file setup</td>
+<td>–</td>
+<td>XREFFILE</td>
+</tr>
+<tr>
+<td><strong>READXREF</strong></td>
+<td>CBACT03C</td>
+<td>Xref report</td>
+<td>XREFFILE</td>
+<td>Report</td>
+</tr>
+</tbody></table>
+<h3 id="jcl-overview--data-migration">JCL Overview – Data Migration</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Program</th>
+<th>Purpose</th>
+<th>Input</th>
+<th>Output</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CBEXPORT</strong></td>
+<td>CBEXPORT</td>
+<td>Customer export</td>
+<td>CUSTFILE</td>
+<td>Export file</td>
+</tr>
+<tr>
+<td><strong>CBIMPORT</strong></td>
+<td>CBIMPORT</td>
+<td>Customer import</td>
+<td>Import file</td>
+<td>CUSTFILE</td>
+</tr>
+<tr>
+<td><strong>FTPJCL</strong></td>
+<td>–</td>
+<td>FTP data transfer</td>
+<td>Export file</td>
+<td>Remote system</td>
+</tr>
+</tbody></table>
+<h3 id="jcl-overview--utilities-and-reports">JCL Overview – Utilities and Reports</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Program</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>INTCALC</strong></td>
+<td>CBACT04C</td>
+<td>Interest calculation</td>
+</tr>
+<tr>
+<td><strong>CREASTMT</strong></td>
+<td>CBSTM03A</td>
+<td>Statement generation</td>
+</tr>
+<tr>
+<td><strong>TRANREPT</strong></td>
+<td>CBTRN03C</td>
+<td>Transaction report</td>
+</tr>
+<tr>
+<td><strong>PRTCATBL</strong></td>
+<td>–</td>
+<td>Print category balance</td>
+</tr>
+<tr>
+<td><strong>REPTFILE</strong></td>
+<td>–</td>
+<td>Report file setup</td>
+</tr>
+<tr>
+<td><strong>DALYREJS</strong></td>
+<td>–</td>
+<td>Daily rejects file</td>
+</tr>
+<tr>
+<td><strong>DALYREJS</strong></td>
+<td>–</td>
+<td>Daily rejects report</td>
+</tr>
+<tr>
+<td><strong>WAITSTEP</strong></td>
+<td>COBSWAIT</td>
+<td>Dummy wait step</td>
+</tr>
+<tr>
+<td><strong>CLOSEFIL</strong></td>
+<td>–</td>
+<td>File close/cleanup</td>
+</tr>
+<tr>
+<td><strong>OPENFIL</strong></td>
+<td>–</td>
+<td>File open/setup</td>
+</tr>
+</tbody></table>
+<h3 id="jcl-overview--database-and-gdg">JCL Overview – Database and GDG</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CREADB21</strong></td>
+<td>Create DB2 tablespaces</td>
+</tr>
+<tr>
+<td><strong>MNTTRDB2</strong></td>
+<td>Maintain DB2 transaction type table</td>
+</tr>
+<tr>
+<td><strong>TRANEXTR</strong></td>
+<td>Extract transaction data from DB2</td>
+</tr>
+<tr>
+<td><strong>DBUNLDGS</strong></td>
+<td>Unload data from DB2</td>
+</tr>
+<tr>
+<td><strong>PAUDBLOD</strong></td>
+<td>Load authorization data to DB2</td>
+</tr>
+<tr>
+<td><strong>PAUDBUNL</strong></td>
+<td>Unload authorization data from DB2</td>
+</tr>
+<tr>
+<td><strong>DEFGDGB</strong></td>
+<td>Define GDG (Generation Data Group) – base</td>
+</tr>
+<tr>
+<td><strong>DEFGDGD</strong></td>
+<td>Define GDG (Generation Data Group) – versions</td>
+</tr>
+<tr>
+<td><strong>ESDSRRDS</strong></td>
+<td>Extended sequential dataset setup</td>
+</tr>
+<tr>
+<td><strong>DISCGRP</strong></td>
+<td>Disconnect group</td>
+</tr>
+</tbody></table>
+<h3 id="jcl-overview--data-utilities">JCL Overview – Data Utilities</h3>
+<table>
+<thead><tr>
+<th>JCL Name</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CBADMCDJ</strong></td>
+<td>Admin card definition job</td>
+</tr>
+<tr>
+<td><strong>DUSRSECJ</strong></td>
+<td>User security definition job</td>
+</tr>
+<tr>
+<td><strong>TCATBALF</strong></td>
+<td>Transaction category balance file</td>
+</tr>
+<tr>
+<td><strong>COMBTRAN</strong></td>
+<td>Combine transaction files</td>
+</tr>
+</tbody></table>
+<h3 id="typical-batch-job-flow-posttran">Typical Batch Job Flow (POSTTRAN)</h3>
+<pre><code class="language-text">//POSTTRAN JOB CARD
+//STEP15 EXEC PGM=CBTRN02C
+//STEPLIB  DD DISP=SHR,DSN=AWS.M2.CARDDEMO.LOADLIB
+//DALYTRAN DD DISP=SHR,DSN=AWS.M2.CARDDEMO.DALYTRAN.PS
+         [Input: Daily transactions from previous day]
+//TRANFILE DD DISP=SHR,DSN=AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS
+         [Output: Master transaction file]
+//XREFFILE DD DISP=SHR,DSN=AWS.M2.CARDDEMO.CARDXREF.VSAM.KSDS
+         [Lookup: Card-to-account mapping]
+//ACCTFILE DD DISP=SHR,DSN=AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS
+         [Update: Account balances]
+//TCATBALF DD DISP=SHR,DSN=AWS.M2.CARDDEMO.TCATBALF.VSAM.KSDS
+         [Update: Category balances]
+//DALYREJS DD DISP=(NEW,CATLG,DELETE),DSN=AWS.M2.CARDDEMO.DALYREJS(+1)
+         [Output: Rejected transactions – GDG]</code></pre>
+<h2 id="db2-interfaces">DB2 Interfaces</h2>
+<p>DB2 is used for transaction types and authorization data.</p>
+<h3 id="db2-tables-and-programs">DB2 Tables and Programs</h3>
+<table>
+<thead><tr>
+<th>Table</th>
+<th>Program</th>
+<th>Access</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>TRANSACTION_TYPE</strong></td>
+<td>COBTUPDT, COTRTLIC</td>
+<td>INSERT/UPDATE/SELECT</td>
+<td>Transaction type management</td>
+</tr>
+<tr>
+<td><strong>TRANSACTION_CAT</strong></td>
+<td>COBTUPDT, COTRTLIC</td>
+<td>SELECT</td>
+<td>Category lookup</td>
+</tr>
+<tr>
+<td><strong>USER_ROLES</strong></td>
+<td>COPAUA0C</td>
+<td>SELECT</td>
+<td>User authorization</td>
+</tr>
+<tr>
+<td><strong>USER_PERMISSIONS</strong></td>
+<td>COPAUS0C</td>
+<td>SELECT</td>
+<td>Permission check</td>
+</tr>
+<tr>
+<td><strong>AUDIT_LOG</strong></td>
+<td>PAUDBLOD/PAUDBUNL</td>
+<td>INSERT/SELECT</td>
+<td>Audit trailing</td>
+</tr>
+</tbody></table>
+<h3 id="embedded-sql-in-cobol">Embedded SQL in COBOL</h3>
+<p>Programs such as <strong>COBTUPDT</strong> and <strong>COTRTLIC</strong> use:</p>
+<ul>
+<li><strong>EXEC SQL...END-EXEC</strong> for SQL statements</li>
+<li><strong>Cursor-based</strong> row-by-row processing</li>
+<li><strong>Error handling</strong> with SQLCODE</li>
+</ul>
+<h2 id="ims-interfaces-authorization">IMS Interfaces (Authorization)</h2>
+<p>IMS (Information Management System) is used for authorization data.</p>
+<h3 id="ims-programs">IMS Programs</h3>
+<table>
+<thead><tr>
+<th>Program</th>
+<th>DBD</th>
+<th>PSB</th>
+<th>Function</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CBPAUP0C</strong></td>
+<td>AUTHDB</td>
+<td>AUTHPSB</td>
+<td>User authentication</td>
+</tr>
+<tr>
+<td><strong>COPAUA0C</strong></td>
+<td>USERDB</td>
+<td>USERPSB</td>
+<td>Authorization lookup</td>
+</tr>
+<tr>
+<td><strong>COPAUS0C</strong></td>
+<td>CERTDB</td>
+<td>CERTPSB</td>
+<td>Certificate management</td>
+</tr>
+<tr>
+<td><strong>PAUDBLOD</strong></td>
+<td>AUTHDB</td>
+<td>AUTHPSB</td>
+<td>Load authorization data</td>
+</tr>
+<tr>
+<td><strong>PAUDBUNL</strong></td>
+<td>AUTHDB</td>
+<td>AUTHPSB</td>
+<td>Unload authorization data</td>
+</tr>
+</tbody></table>
+<h2 id="mq-interfaces-message-queue">MQ Interfaces (Message Queue)</h2>
+<p>MQ is used for asynchronous processing and message queueing.</p>
+<h3 id="mq-queues">MQ Queues</h3>
+<table>
+<thead><tr>
+<th>Queue Name</th>
+<th>Type</th>
+<th>Producer</th>
+<th>Consumer</th>
+<th>Message Format</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CARDDEMO.AUTH.REQUEST</strong></td>
+<td>Local</td>
+<td>COSGN00C, COUSR00C</td>
+<td>CBPAUP0C</td>
+<td>XML/Fixed</td>
+</tr>
+<tr>
+<td><strong>CARDDEMO.AUTH.RESPONSE</strong></td>
+<td>Local</td>
+<td>CBPAUP0C</td>
+<td>COSGN00C</td>
+<td>XML/Fixed</td>
+</tr>
+<tr>
+<td><strong>CARDDEMO.TRANSACTION.INPUT</strong></td>
+<td>Local</td>
+<td>COTRN00C</td>
+<td>CBTRN02C</td>
+<td>Fixed</td>
+</tr>
+<tr>
+<td><strong>CARDDEMO.TRANSACTION.OUTPUT</strong></td>
+<td>Local</td>
+<td>CBTRN02C</td>
+<td>CORPT00C</td>
+<td>Fixed</td>
+</tr>
+<tr>
+<td><strong>CARDDEMO.ERROR.QUEUE</strong></td>
+<td>Local/Remote</td>
+<td>All</td>
+<td>Error handler</td>
+<td>Fixed</td>
+</tr>
+<tr>
+<td><strong>CARDDEMO.AUDIT.LOG</strong></td>
+<td>Local</td>
+<td>CBTRN02C, CBCUS01C</td>
+<td>Audit</td>
+<td>XML</td>
+</tr>
+</tbody></table>
+<h3 id="mq-usage">MQ Usage</h3>
+<ul>
+<li><strong>Asynchronous authentication</strong>: COSGN00C writes auth request, waits for response</li>
+<li><strong>Transaction broadcasting</strong>: CBTRN02C sends transactions to other systems</li>
+<li><strong>Error queue</strong>: Faulty messages are written to the error queue</li>
+</ul>
+<h2 id="ftp-interfaces">FTP Interfaces</h2>
+<p>The FTPJCL defines FTP connections for data exchange with branch systems.</p>
+<h3 id="ftp-files">FTP Files</h3>
+<ul>
+<li><strong>Import queues</strong>: Customer data from branches (→ CBIMPORT)</li>
+<li><strong>Export queues</strong>: Customer data to branches (← CBEXPORT)</li>
+<li><strong>Report delivery</strong>: Daily reports to management</li>
+<li><strong>Archive</strong>: Backup of master files</li>
+</ul>
+<h2 id="interface-type-summary">Interface Type Summary</h2>
+<table>
+<thead><tr>
+<th>Interface</th>
+<th>Async</th>
+<th>Batched</th>
+<th>Format</th>
+<th>Protocol</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>CICS Online</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Screen (BMS)</td>
+<td>TCP/IP + CICS</td>
+</tr>
+<tr>
+<td><strong>Batch JCL</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Sequential files</td>
+<td>JES</td>
+</tr>
+<tr>
+<td><strong>DB2 SQL</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>SQL statements</td>
+<td>DB2 network</td>
+</tr>
+<tr>
+<td><strong>IMS</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Hierarchical</td>
+<td>IMS teleprocessing</td>
+</tr>
+<tr>
+<td><strong>MQ</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Fixed/XML</td>
+<td>MQ Series</td>
+</tr>
+<tr>
+<td><strong>FTP</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Binary/text</td>
+<td>TCP/IP FTP</td>
+</tr>
+<tr>
+<td><strong>VSAM Files</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Record-oriented</td>
+<td>CICS file control</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Analysis date: 2025-04-30</em> <em>All 38 JCL jobs and 17 BMS screens are documented</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>04-schnittstellen.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

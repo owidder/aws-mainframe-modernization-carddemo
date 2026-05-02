@@ -1,0 +1,2574 @@
+{
+  "meta": {
+    "program_name": "COSGN00C",
+    "file_path": "app/cbl/COSGN00C.cbl",
+    "analyzed_at": "2026-05-02T14:02:18.231844",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Authentifizierung und Zugangskontrolle für das CardDemo-Kreditkartenverwaltungssystem über einen interaktiven Anmeldebildschirm.",
+    "process_description": "Das Programm stellt den Einstiegspunkt in das CardDemo-System dar und verwaltet den Anmeldeprozess für alle Benutzer. Es präsentiert dem Benutzer einen Anmeldebildschirm, nimmt Benutzer-ID und Passwort entgegen und validiert diese gegen eine zentrale Benutzersicherheitsdatei. Nach erfolgreicher Authentifizierung wird der Benutzer rollenbasiert weitergeleitet: Administratoren gelangen in das Admin-Menü (COADM01C), reguläre Benutzer in das Hauptmenü (COMEN01C). Bei fehlerhaften Eingaben oder ungültigen Zugangsdaten werden entsprechende Fehlermeldungen angezeigt und der Benutzer zur erneuten Eingabe aufgefordert.",
+    "type": "CICS Online",
+    "module": "Authentication",
+    "files": {
+      "USRSEC": "Benutzersicherheitsdatei – enthält Benutzer-ID, Passwort und Benutzertyp (Admin/Regular) für die Authentifizierung"
+    },
+    "business_rules": [
+      "Benutzer-ID und Passwort sind Pflichtfelder – eine leere Eingabe wird abgewiesen und der Benutzer zur Eingabe aufgefordert",
+      "Benutzer-ID und Passwort werden vor der Validierung in Großbuchstaben umgewandelt (Groß-/Kleinschreibung spielt keine Rolle)",
+      "Das eingegebene Passwort muss exakt mit dem in der Benutzersicherheitsdatei gespeicherten Passwort übereinstimmen",
+      "Nicht gefundene Benutzer-IDs (Fehlercode 13) werden mit einer separaten Meldung 'User not found' behandelt – keine Unterscheidung zwischen falschem Passwort und unbekanntem Benutzer wird nach außen kommuniziert",
+      "Nach erfolgreicher Anmeldung erfolgt eine rollenbasierte Weiterleitung: Administratoren → COADM01C (Admin-Menü), reguläre Benutzer → COMEN01C (Hauptmenü)",
+      "Drücken von PF3 beendet die Anwendung mit einer Abschiedsnachricht ('Thank You') ohne Anmeldung",
+      "Alle anderen Funktionstasten außer ENTER und PF3 werden als ungültige Eingabe abgewiesen",
+      "Systemfehler beim Zugriff auf die Benutzersicherheitsdatei werden mit der Meldung 'Unable to verify the User' abgefangen, ohne technische Details preiszugeben"
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "COCOM01Y",
+        "COSGN00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COMEN01C",
+        "COADM01C",
+        "CBPAUP0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COSGN00C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Signon Screen for the CardDemo Application",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COSGN00C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                     WORKING STORAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COSGN00C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "         05 WS-TRANID                  PIC X(04) VALUE 'CC00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "         05 WS-USER-ID                 PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "         05 WS-USER-PWD                PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "       COPY COCOM01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "       COPY COSGN00.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "       COPY COTTL01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       COPY CSDAT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "       COPY CSMSG01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "       COPY CSUSR01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       COPY DFHAID.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "       COPY DFHBMSCA.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "      *COPY DFHATTR.",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "      *                        LINKAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "         05  LK-COMMAREA                           PIC X(01)",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.",
+      "type": "code",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "      *                      PROCEDURE DIVISION",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "MAIN-PARA ist der zentrale Steuerungspunkt des Anmeldeprozesses: Er entscheidet, ob ein neuer Anmeldebildschirm präsentiert wird, eine Benutzereingabe verarbeitet wird oder die Anwendung beendet wird – und hält die Sitzung für den nächsten Interaktionsschritt offen."
+    },
+    {
+      "number": 74,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "           SET ERR-FLG-OFF TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Setzt den Fehlerstatus zurück, sodass der Anmeldebildschirm zunächst ohne Fehlermeldung angezeigt wird."
+    },
+    {
+      "number": 76,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "           MOVE SPACES TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Löscht eine eventuell vorhandene Rückmeldung an den Benutzer, um keine veralteten Meldungen anzuzeigen."
+    },
+    {
+      "number": 78,
+      "code": "                          ERRMSGO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Löscht gleichzeitig das Fehlermeldungsfeld auf dem Anmeldebildschirm, damit kein alter Fehlertext sichtbar bleibt."
+    },
+    {
+      "number": 79,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "           IF EIBCALEN = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Prüft, ob der Benutzer die Anwendung zum ersten Mal aufruft (keine vorherige Sitzung vorhanden)."
+    },
+    {
+      "number": 81,
+      "code": "               MOVE LOW-VALUES TO COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Initialisiert den Anmeldebildschirm vollständig leer, da noch keine Benutzerdaten aus einer vorherigen Interaktion vorliegen."
+    },
+    {
+      "number": 82,
+      "code": "               MOVE -1       TO USERIDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Setzt den Eingabefokus automatisch auf das Benutzer-ID-Feld, damit der Benutzer sofort mit der Eingabe beginnen kann."
+    },
+    {
+      "number": 83,
+      "code": "               PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Zeigt dem Benutzer den leeren Anmeldebildschirm zur erstmaligen Eingabe von Benutzer-ID und Passwort an."
+    },
+    {
+      "number": 84,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "               EVALUATE EIBAID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Wertet aus, welche Taste der Benutzer gedrückt hat, um die passende Folgeaktion einzuleiten."
+    },
+    {
+      "number": 86,
+      "code": "                   WHEN DFHENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Behandelt den Fall, dass der Benutzer seine Zugangsdaten eingegeben und mit ENTER bestätigt hat."
+    },
+    {
+      "number": 87,
+      "code": "                       PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Startet die Validierung der eingegebenen Benutzer-ID und des Passworts gegen die Benutzersicherheitsdatei."
+    },
+    {
+      "number": 88,
+      "code": "                   WHEN DFHPF3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Behandelt den Fall, dass der Benutzer die Anwendung über PF3 bewusst beenden möchte."
+    },
+    {
+      "number": 89,
+      "code": "                       MOVE CCDA-MSG-THANK-YOU        TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Bereitet die Abschiedsnachricht ('Thank You') vor, die dem Benutzer beim Verlassen der Anwendung angezeigt wird."
+    },
+    {
+      "number": 90,
+      "code": "                       PERFORM SEND-PLAIN-TEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Zeigt die Abschiedsnachricht als einfachen Text an und beendet damit die Anmeldesitzung für den Benutzer."
+    },
+    {
+      "number": 91,
+      "code": "                   WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Behandelt alle anderen Tasten, die im Anmeldebildschirm keine gültige Funktion haben."
+    },
+    {
+      "number": 92,
+      "code": "                       MOVE 'Y'                       TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Aktiviert den Fehlerstatus, damit auf dem Anmeldebildschirm eine Fehlermeldung eingeblendet wird."
+    },
+    {
+      "number": 93,
+      "code": "                       MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Setzt die Fehlermeldung 'Ungültige Taste', um den Benutzer auf die erlaubten Eingabemöglichkeiten hinzuweisen."
+    },
+    {
+      "number": 94,
+      "code": "                       PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert den Benutzer zur korrekten Eingabe auf."
+    },
+    {
+      "number": 95,
+      "code": "               END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Hält die Anmeldetransaktion (CC00) aktiv und übergibt die Sitzungsdaten, sodass das System beim nächsten Tastendruck des Benutzers wieder in dieses Programm zurückkehrt."
+    },
+    {
+      "number": 99,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "                     LENGTH(LENGTH OF CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 104,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 106,
+      "code": "      *                      PROCESS-ENTER-KEY",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "       PROCESS-ENTER-KEY.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Einstiegspunkt der Anmeldeverarbeitung, der nach Betätigung der ENTER-Taste ausgeführt wird."
+    },
+    {
+      "number": 109,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "           EXEC CICS RECEIVE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Liest die vom Benutzer eingegebenen Anmeldedaten (Benutzer-ID und Passwort) vom Anmeldebildschirm ein."
+    },
+    {
+      "number": 111,
+      "code": "                     MAP('COSGN0A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Bezieht sich auf den Anmeldebildschirm COSGN0A, von dem die Benutzereingaben entgegengenommen werden."
+    },
+    {
+      "number": 112,
+      "code": "                     MAPSET('COSGN00')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Gibt den Bildschirm-Mapset COSGN00 an, der die Layoutdefinition des Anmeldebildschirms enthält."
+    },
+    {
+      "number": 113,
+      "code": "                     RESP(WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Speichert den Rückmeldecode des Bildschirmlesevorgangs zur Fehlerauswertung."
+    },
+    {
+      "number": 114,
+      "code": "                     RESP2(WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Speichert einen ergänzenden Detailcode für eine genauere Fehlerdiagnose beim Bildschirmlesen."
+    },
+    {
+      "number": 115,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Prüft die Vollständigkeit der Benutzereingaben – fehlende Pflichtfelder werden erkannt und dem Benutzer gemeldet."
+    },
+    {
+      "number": 118,
+      "code": "               WHEN USERIDI OF COSGN0AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Prüft, ob der Benutzer das Pflichtfeld Benutzer-ID leer gelassen hat."
+    },
+    {
+      "number": 119,
+      "code": "                   MOVE 'Y'      TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm mit einer Fehlermeldung erneut angezeigt wird."
+    },
+    {
+      "number": 120,
+      "code": "                   MOVE 'Please enter User ID ...' TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Setzt die Aufforderung 'Please enter User ID ...' als Rückmeldung, um den Benutzer zur Eingabe der Benutzer-ID aufzufordern."
+    },
+    {
+      "number": 121,
+      "code": "                   MOVE -1       TO USERIDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Positioniert den Eingabecursor auf das Benutzer-ID-Feld, um dem Benutzer die Korrektur zu erleichtern."
+    },
+    {
+      "number": 122,
+      "code": "                   PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und wartet auf eine korrigierte Eingabe."
+    },
+    {
+      "number": 123,
+      "code": "               WHEN PASSWDI OF COSGN0AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Prüft, ob der Benutzer das Pflichtfeld Passwort leer gelassen hat."
+    },
+    {
+      "number": 124,
+      "code": "                   MOVE 'Y'      TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm mit einer Fehlermeldung erneut angezeigt wird."
+    },
+    {
+      "number": 125,
+      "code": "                   MOVE 'Please enter Password ...' TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Setzt die Aufforderung 'Please enter Password ...' als Rückmeldung, um den Benutzer zur Passworteingabe aufzufordern."
+    },
+    {
+      "number": 126,
+      "code": "                   MOVE -1       TO PASSWDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Positioniert den Eingabecursor auf das Passwort-Feld, um dem Benutzer die Korrektur zu erleichtern."
+    },
+    {
+      "number": 127,
+      "code": "                   PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und wartet auf eine korrigierte Eingabe."
+    },
+    {
+      "number": 128,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Behandelt den Normalfall: Beide Pflichtfelder wurden ausgefüllt, die Verarbeitung wird fortgesetzt."
+    },
+    {
+      "number": 129,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Keine zusätzliche Aktion erforderlich – die Validierung der Zugangsdaten erfolgt im nächsten Schritt."
+    },
+    {
+      "number": 130,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "           MOVE FUNCTION UPPER-CASE(USERIDI OF COSGN0AI) TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Normalisiert die eingegebene Benutzer-ID in Großbuchstaben, damit die Authentifizierung unabhängig von der Groß-/Kleinschreibung funktioniert."
+    },
+    {
+      "number": 133,
+      "code": "                           WS-USER-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Speichert die normalisierte Benutzer-ID im Arbeitsbereich für die nachfolgende Datenbankabfrage."
+    },
+    {
+      "number": 134,
+      "code": "                           CDEMO-USER-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Überträgt die normalisierte Benutzer-ID in den gemeinsamen Kommunikationsbereich für die gesamte CardDemo-Sitzung."
+    },
+    {
+      "number": 135,
+      "code": "           MOVE FUNCTION UPPER-CASE(PASSWDI OF COSGN0AI) TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Normalisiert das eingegebene Passwort in Großbuchstaben, damit der Vergleich mit dem gespeicherten Passwort konsistent erfolgt."
+    },
+    {
+      "number": 136,
+      "code": "                           WS-USER-PWD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Speichert das normalisierte Passwort im Arbeitsbereich für den anschließenden Passwortvergleich."
+    },
+    {
+      "number": 137,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Stellt sicher, dass die Authentifizierung gegen die Benutzersicherheitsdatei nur dann erfolgt, wenn keine Eingabefehler vorliegen."
+    },
+    {
+      "number": 139,
+      "code": "               PERFORM READ-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Liest den Benutzerdatensatz aus der Sicherheitsdatei und prüft Passwort sowie Benutzerrolle für die Anmeldung."
+    },
+    {
+      "number": 140,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "      *                      SEND-SIGNON-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "       SEND-SIGNON-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Einstiegspunkt: Anmeldebildschirm wird aufgebaut und an den Benutzer gesendet."
+    },
+    {
+      "number": 146,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "           PERFORM POPULATE-HEADER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Befüllt die Kopfzeile des Anmeldebildschirms mit aktuellen Systemdaten (z.B. Datum, Uhrzeit, Programmtitel)."
+    },
+    {
+      "number": 148,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "           MOVE WS-MESSAGE TO ERRMSGO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Überträgt die aktuelle Rückmeldung (z.B. Fehlermeldung bei falschen Zugangsdaten oder Abschiedsnachricht) in das Fehlermeldungsfeld des Anmeldebildschirms."
+    },
+    {
+      "number": 150,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "           EXEC CICS SEND",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Sendet den vollständig befüllten Anmeldebildschirm an das Terminal des Benutzers zur Eingabe von Benutzer-ID und Passwort."
+    },
+    {
+      "number": 152,
+      "code": "                     MAP('COSGN0A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Gibt an, welche Bildschirmmaske (Anmeldemaske COSGN0A) dem Benutzer präsentiert wird."
+    },
+    {
+      "number": 153,
+      "code": "                     MAPSET('COSGN00')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Referenziert den Mapset COSGN00, der die Bildschirmlayout-Definition für den Anmeldebildschirm enthält."
+    },
+    {
+      "number": 154,
+      "code": "                     FROM(COSGN0AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Stellt sicher, dass der Bildschirm mit den aktuell befüllten Ausgabedaten (Fehlermeldung, Kopfzeile) angezeigt wird."
+    },
+    {
+      "number": 155,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Löscht den gesamten bisherigen Bildschirminhalt vor der Anzeige, um eine saubere Darstellung des Anmeldebildschirms zu gewährleisten."
+    },
+    {
+      "number": 156,
+      "code": "                     CURSOR",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Positioniert den Eingabecursor automatisch auf das erste Eingabefeld, damit der Benutzer sofort mit der Eingabe beginnen kann."
+    },
+    {
+      "number": 157,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 158,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 159,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": "Abschnittstrennlinie – markiert das Ende des Anmeldebildschirm-Paragraphen und den Beginn des nächsten Verarbeitungsabschnitts."
+    },
+    {
+      "number": 160,
+      "code": "      *                      SEND-PLAIN-TEXT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 162,
+      "code": "       SEND-PLAIN-TEXT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Einstiegspunkt für die Ausgabe einer reinen Textnachricht an den Benutzer, ohne Bildschirmmaske."
+    },
+    {
+      "number": 163,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "           EXEC CICS SEND TEXT",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Sendet die fachliche Rückmeldung (z.B. 'Thank You'-Abschiedsnachricht) als einfachen Text an den Benutzer-Terminal."
+    },
+    {
+      "number": 165,
+      "code": "                     FROM(WS-MESSAGE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Verwendet den aktuellen Inhalt der Benutzer-Rückmeldung (WS-MESSAGE) als anzuzeigende Nachricht."
+    },
+    {
+      "number": 166,
+      "code": "                     LENGTH(LENGTH OF WS-MESSAGE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Stellt sicher, dass die vollständige Nachricht in ihrer definierten Länge übertragen wird – kein Abschneiden der Meldung."
+    },
+    {
+      "number": 167,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Löscht den aktuellen Bildschirminhalt vor der Anzeige, sodass die Nachricht auf einem leeren Bildschirm erscheint."
+    },
+    {
+      "number": 168,
+      "code": "                     FREEKB",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Gibt die Tastatur am Terminal wieder frei, damit der Benutzer nach der Anzeige wieder Eingaben tätigen kann."
+    },
+    {
+      "number": 169,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 170,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 171,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": "Beendet die Anmeldesitzung vollständig und gibt die Kontrolle an das CICS-System zurück – kein weiterer Programmablauf folgt."
+    },
+    {
+      "number": 172,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "      *                      POPULATE-HEADER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-PLAIN-TEXT",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "       POPULATE-HEADER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Bereitet den Kopfbereich des Anmeldebildschirms mit aktuellen Systemdaten vor, damit der Benutzer Datum, Uhrzeit, Anwendungsname und Systemidentifikation auf dem Login-Screen sieht."
+    },
+    {
+      "number": 178,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 179,
+      "code": "           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Ermittelt das aktuelle Systemdatum und die Systemzeit als Grundlage für die Anzeige im Bildschirmkopf."
+    },
+    {
+      "number": 180,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 181,
+      "code": "           MOVE CCDA-TITLE01           TO TITLE01O OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Überträgt den ersten Titeltext der CardDemo-Anwendung in den Kopfbereich des Anmeldebildschirms."
+    },
+    {
+      "number": 182,
+      "code": "           MOVE CCDA-TITLE02           TO TITLE02O OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Überträgt den zweiten Titeltext der CardDemo-Anwendung in den Kopfbereich des Anmeldebildschirms."
+    },
+    {
+      "number": 183,
+      "code": "           MOVE WS-TRANID              TO TRNNAMEO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Zeigt die Transaktions-ID (CC00) des Anmeldeprozesses im Bildschirmkopf an – dient der Nachvollziehbarkeit für Support und Benutzer."
+    },
+    {
+      "number": 184,
+      "code": "           MOVE WS-PGMNAME             TO PGMNAMEO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Zeigt den Namen des aktuell ausgeführten Anmeldeprogramms im Bildschirmkopf an."
+    },
+    {
+      "number": 185,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 186,
+      "code": "           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert den Monat aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 187,
+      "code": "           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert den Tag aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 188,
+      "code": "           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert die zweistellige Jahreszahl aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 189,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Stellt das aktuelle Datum im Format MM-DD-YY im Kopfbereich des Anmeldebildschirms dar."
+    },
+    {
+      "number": 191,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert die Stunden aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 193,
+      "code": "           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert die Minuten aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 194,
+      "code": "           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extrahiert die Sekunden aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+    },
+    {
+      "number": 195,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COSGN0AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Stellt die aktuelle Uhrzeit im Format HH-MM-SS im Kopfbereich des Anmeldebildschirms dar."
+    },
+    {
+      "number": 197,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 198,
+      "code": "           EXEC CICS ASSIGN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Ermittelt die CICS-Anwendungs-ID der laufenden Instanz und zeigt sie im Bildschirmkopf an – ermöglicht die Identifikation der Anwendungsumgebung (z. B. Produktion oder Test)."
+    },
+    {
+      "number": 199,
+      "code": "               APPLID(APPLIDO OF COSGN0AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 200,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 201,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 202,
+      "code": "           EXEC CICS ASSIGN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Ermittelt die System-ID des CICS-Knotens und zeigt sie im Bildschirmkopf an – unterstützt die Identifikation des verarbeitenden Systems im Rechenzentrum."
+    },
+    {
+      "number": 203,
+      "code": "               SYSID(SYSIDO OF COSGN0AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 204,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 205,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 206,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 207,
+      "code": "      *                      READ-USER-SEC-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 208,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 209,
+      "code": "       READ-USER-SEC-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Einstiegspunkt der Authentifizierungslogik – Suche und Prüfung des Benutzers in der Sicherheitsdatei"
+    },
+    {
+      "number": 210,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 211,
+      "code": "           EXEC CICS READ",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sucht den Benutzerdatensatz in der zentralen Benutzersicherheitsdatei anhand der eingegebenen Benutzer-ID"
+    },
+    {
+      "number": 212,
+      "code": "                DATASET   (WS-USRSEC-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Gibt die zu durchsuchende Benutzersicherheitsdatei (USRSEC) als Quelle der Authentifizierungsdaten an"
+    },
+    {
+      "number": 213,
+      "code": "                INTO      (SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Lädt den gefundenen Benutzerdatensatz (inkl. gespeichertem Passwort und Benutzerrolle) in den Arbeitsbereich"
+    },
+    {
+      "number": 214,
+      "code": "                LENGTH    (LENGTH OF SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Stellt sicher, dass der vollständige Benutzerdatensatz mit allen Sicherheitsattributen geladen wird"
+    },
+    {
+      "number": 215,
+      "code": "                RIDFLD    (WS-USER-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Identifiziert den gesuchten Benutzer eindeutig über die eingegebene und normalisierte Benutzer-ID als Suchschlüssel"
+    },
+    {
+      "number": 216,
+      "code": "                KEYLENGTH (LENGTH OF WS-USER-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Legt die exakte Länge des Suchschlüssels fest, um eine präzise Übereinstimmung in der Sicherheitsdatei zu gewährleisten"
+    },
+    {
+      "number": 217,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Empfängt den Rückmeldecode des Dateizugriffs – zeigt an, ob der Benutzer gefunden wurde oder ein Fehler auftrat"
+    },
+    {
+      "number": 218,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Empfängt einen ergänzenden Detailcode für eine differenziertere Fehlerdiagnose bei Zugriffsproblemen"
+    },
+    {
+      "number": 219,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 220,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 221,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Wertet das Ergebnis der Datenbankabfrage aus, um den weiteren Authentifizierungsablauf zu steuern"
+    },
+    {
+      "number": 222,
+      "code": "               WHEN 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Benutzer-ID wurde erfolgreich in der Sicherheitsdatei gefunden – Passwortprüfung kann beginnen"
+    },
+    {
+      "number": 223,
+      "code": "                   IF SEC-USR-PWD = WS-USER-PWD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Prüft, ob das eingegebene Passwort exakt mit dem in der Sicherheitsdatei hinterlegten Passwort übereinstimmt"
+    },
+    {
+      "number": 224,
+      "code": "                       MOVE WS-TRANID    TO CDEMO-FROM-TRANID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Hinterlegt die Transaktions-ID des Anmeldeprozesses in der Sitzungskommunikation für die Nachverfolgung"
+    },
+    {
+      "number": 225,
+      "code": "                       MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Dokumentiert das Anmeldeprogramm als Ursprung der aktuellen Sitzung in der Kommunikationsstruktur"
+    },
+    {
+      "number": 226,
+      "code": "                       MOVE WS-USER-ID   TO CDEMO-USER-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Überträgt die authentifizierte Benutzer-ID in die Sitzungskommunikation, damit Folgeprogramme den Benutzer kennen"
+    },
+    {
+      "number": 227,
+      "code": "                       MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Überträgt die Benutzerrolle (Admin oder Standardbenutzer) in die Sitzungskommunikation für die rollenbasierte Steuerung"
+    },
+    {
+      "number": 228,
+      "code": "                       MOVE ZEROS        TO CDEMO-PGM-CONTEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt den Programmkontext auf Null, um eine frische Sitzung ohne Altdaten aus vorherigen Programmaufrufen zu signalisieren"
+    },
+    {
+      "number": 229,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 230,
+      "code": "                       IF CDEMO-USRTYP-ADMIN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Prüft, ob der authentifizierte Benutzer Administratorrechte besitzt, um die korrekte Weiterleitung zu bestimmen"
+    },
+    {
+      "number": 231,
+      "code": "                            EXEC CICS XCTL",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Leitet einen Administrator nach erfolgreicher Anmeldung in das Admin-Verwaltungsmenü weiter"
+    },
+    {
+      "number": 232,
+      "code": "                              PROGRAM ('COADM01C')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zielmenü für Administratoren: COADM01C – das administrative Hauptmenü des CardDemo-Systems"
+    },
+    {
+      "number": 233,
+      "code": "                              COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Übergibt die vollständige Sitzungskommunikation (Benutzer-ID, Rolle, Kontext) an das Admin-Menü"
+    },
+    {
+      "number": 234,
+      "code": "                            END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 235,
+      "code": "                       ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Weiterleitung für reguläre Benutzer ohne Administratorrechte"
+    },
+    {
+      "number": 236,
+      "code": "                            EXEC CICS XCTL",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Leitet einen regulären Benutzer nach erfolgreicher Anmeldung in das Standard-Hauptmenü weiter"
+    },
+    {
+      "number": 237,
+      "code": "                              PROGRAM ('COMEN01C')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zielmenü für reguläre Benutzer: COMEN01C – das allgemeine Hauptmenü des CardDemo-Systems"
+    },
+    {
+      "number": 238,
+      "code": "                              COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Übergibt die vollständige Sitzungskommunikation (Benutzer-ID, Rolle, Kontext) an das Hauptmenü"
+    },
+    {
+      "number": 239,
+      "code": "                            END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 240,
+      "code": "                       END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "                   ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Behandlung einer fehlgeschlagenen Passwortprüfung – das eingegebene Passwort stimmt nicht überein"
+    },
+    {
+      "number": 242,
+      "code": "                       MOVE 'Wrong Password. Try again ...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt die Fehlermeldung 'Falsches Passwort' für die Anzeige auf dem Anmeldebildschirm"
+    },
+    {
+      "number": 243,
+      "code": "                                                          WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 244,
+      "code": "                       MOVE -1       TO PASSWDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt den Eingabefokus auf das Passwortfeld, damit der Benutzer direkt eine Korrektur vornehmen kann"
+    },
+    {
+      "number": 245,
+      "code": "                       PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert zur erneuten Passworteingabe auf"
+    },
+    {
+      "number": 246,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 247,
+      "code": "               WHEN 13",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Fehlercode 13 bedeutet: Die eingegebene Benutzer-ID existiert nicht in der Sicherheitsdatei"
+    },
+    {
+      "number": 248,
+      "code": "                   MOVE 'Y'      TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm im Fehlerzustand angezeigt wird"
+    },
+    {
+      "number": 249,
+      "code": "                   MOVE 'User not found. Try again ...' TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt die Meldung 'Benutzer nicht gefunden' – ohne Unterscheidung zu falschem Passwort (Sicherheitsprinzip)"
+    },
+    {
+      "number": 250,
+      "code": "                   MOVE -1       TO USERIDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt den Eingabefokus auf das Benutzer-ID-Feld, damit der Benutzer die ID korrigieren kann"
+    },
+    {
+      "number": 251,
+      "code": "                   PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert zur erneuten Eingabe auf"
+    },
+    {
+      "number": 252,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Behandlung unerwarteter Systemfehler beim Zugriff auf die Benutzersicherheitsdatei"
+    },
+    {
+      "number": 253,
+      "code": "                   MOVE 'Y'      TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Aktiviert den Fehlerindikator für die Fehleranzeige auf dem Anmeldebildschirm"
+    },
+    {
+      "number": 254,
+      "code": "                   MOVE 'Unable to verify the User ...' TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zeigt eine neutrale Fehlermeldung ohne technische Details – schützt vor ungewollter Informationspreisgabe"
+    },
+    {
+      "number": 255,
+      "code": "                   MOVE -1       TO USERIDL OF COSGN0AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Setzt den Eingabefokus auf das Benutzer-ID-Feld für eine erneute Eingabe nach dem Systemfehler"
+    },
+    {
+      "number": 256,
+      "code": "                   PERFORM SEND-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Zeigt den Anmeldebildschirm mit der allgemeinen Fehlermeldung an und ermöglicht einen erneuten Anmeldeversuch"
+    },
+    {
+      "number": 257,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 258,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 259,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Versionskennung des Programms: CardDemo v1.0, Stand 19. Juli 2022 – dient der Nachvollziehbarkeit von Änderungen"
+    },
+    {
+      "number": 260,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Übergeordnete Gruppenstruktur, die alle Arbeitsfelder des Anmeldeprozesses bündelt. Enthält sämtliche Steuerungs- und Eingabevariablen, die während der Benutzerauthentifizierung benötigt werden."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COSGN00C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Technischer Eigenname des Anmeldeprogramms. Wird verwendet, um das Programm in CICS-Aufrufen, Fehlerprotokollen und der Kommunikationsstruktur eindeutig zu identifizieren – z. B. beim Rücksprung oder bei der Übergabe an ein Folgeprogramm."
+    },
+    {
+      "name": "WS-TRANID",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": "CC00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "CICS-Transaktions-ID des Anmeldevorgangs. Der Wert 'CC00' identifiziert die Anmelde-Transaktion eindeutig im CICS-System und wird benötigt, um nach einer Benutzerinteraktion (z. B. Tastendruck) das Programm erneut aufzurufen (RETURN TRANSID)."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Fachliche Rückmeldung an den Benutzer auf dem Anmeldebildschirm. Enthält je nach Situation eine Fehlermeldung (z. B. 'Ungültige Anmeldedaten', 'Benutzer nicht gefunden', 'Systemfehler') oder eine Abschiedsnachricht ('Thank You') beim Beenden der Anwendung per PF3."
+    },
+    {
+      "name": "WS-USRSEC-FILE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "USRSEC  ",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Logischer Dateiname der Benutzersicherheitsdatei im System. Wird beim CICS-Dateizugriff (READ) verwendet, um den Benutzerdatensatz mit Passwort und Benutzerrolle nachzuschlagen und die Anmeldedaten zu verifizieren."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Fehlerindikator für den Anmeldevorgang. Steuert, ob auf dem Anmeldebildschirm eine Fehlermeldung angezeigt wird. Wird auf 'Y' gesetzt, sobald eine Validierungsprüfung fehlschlägt (z. B. leere Eingabe, falsches Passwort, unbekannter Benutzer), damit der Benutzer zur erneuten Eingabe aufgefordert wird."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname für den aktiven Fehlerzustand. Ist dieser Wert gesetzt, liegt ein Anmeldefehler vor – der Bildschirm wird mit einer Fehlermeldung erneut angezeigt und der Benutzer muss seine Eingaben korrigieren."
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Bedingungsname für den fehlerfreien Zustand. Ist dieser Wert gesetzt, ist bisher kein Anmeldefehler aufgetreten – die Verarbeitung kann ohne Fehlermeldung fortgesetzt werden."
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "CICS-Antwortcode nach dem Zugriff auf die Benutzersicherheitsdatei. Gibt an, ob der Datenbankzugriff erfolgreich war (Wert 0) oder ein Fehler aufgetreten ist (z. B. Datei nicht gefunden, Systemfehler). Wird ausgewertet, um zwischen 'Benutzer nicht gefunden', 'Systemfehler' und 'Erfolg' zu unterscheiden."
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "CICS-Ursachencode, der den CICS-Antwortcode (WS-RESP-CD) ergänzt und eine detailliertere Fehlerdiagnose beim Zugriff auf die Benutzersicherheitsdatei ermöglicht. Wird intern für die Fehlerbehandlung ausgewertet, jedoch nicht an den Benutzer weitergegeben, um keine sicherheitsrelevanten Details preiszugeben."
+    },
+    {
+      "name": "WS-USER-ID",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Vom Benutzer eingegebene Benutzer-ID auf dem Anmeldebildschirm, normalisiert in Großbuchstaben. Dient als Schlüssel für die Suche in der Benutzersicherheitsdatei und identifiziert den Benutzer eindeutig im System. Pflichtfeld – eine leere Eingabe wird abgewiesen."
+    },
+    {
+      "name": "WS-USER-PWD",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Vom Benutzer eingegebenes Passwort auf dem Anmeldebildschirm, normalisiert in Großbuchstaben. Wird mit dem in der Benutzersicherheitsdatei gespeicherten Passwort verglichen, um die Identität des Benutzers zu bestätigen. Pflichtfeld – eine leere Eingabe wird abgewiesen."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "CICS-Kommunikationsbereich, der Daten zwischen aufeinanderfolgenden Programmaufrufen überträgt. Beim Anmeldeprogramm wird er genutzt, um Sitzungsinformationen (Benutzer-ID, Benutzerrolle, Programmkontext) zwischen dem Anmeldebildschirm und den nachgelagerten Menüprogrammen zu übergeben."
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Minimale Platzhalterdeklaration für den CICS-Kommunikationsbereich beim ersten Programmaufruf. Da beim initialen Aufruf des Anmeldebildschirms noch keine Sitzungsdaten vorliegen, wird nur ein Byte reserviert. Der eigentliche Kommunikationsbereich (CARDDEMO-COMMAREA aus COCOM01Y) wird nach erfolgreicher Anmeldung befüllt und an das Zielprogramm übergeben."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 73,
+      "line_end": 107,
+      "description": "MAIN-PARA ist der zentrale Steuerungspunkt des Anmeldeprozesses: Er entscheidet, ob ein neuer Anmeldebildschirm präsentiert wird, eine Benutzereingabe verarbeitet wird oder die Anwendung beendet wird – und hält die Sitzung für den nächsten Interaktionsschritt offen."
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "line_start": 108,
+      "line_end": 144,
+      "description": "Dieser Paragraph verarbeitet die Anmeldeeingabe des Benutzers: Er prüft die Vollständigkeit der Zugangsdaten, normalisiert sie und leitet die eigentliche Authentifizierung gegen die Benutzersicherheitsdatei ein."
+    },
+    {
+      "name": "SEND-SIGNON-SCREEN",
+      "line_start": 145,
+      "line_end": 161,
+      "description": "Bereitet den Anmeldebildschirm für die Ausgabe an den Benutzer vor und zeigt ihn an – inklusive aktueller Kopfzeileninformationen und etwaiger Fehlermeldungen oder Hinweise zur Anmeldung."
+    },
+    {
+      "name": "SEND-PLAIN-TEXT",
+      "line_start": 162,
+      "line_end": 176,
+      "description": "Zeigt dem Benutzer eine einfache Textnachricht an (z.B. die Abschiedsnachricht nach PF3-Druck) und beendet anschließend die Anmeldesitzung sauber. Dieser Paragraph stellt den kontrollierten Abschluss der Anwendungsinteraktion sicher."
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "line_start": 177,
+      "line_end": 208,
+      "description": "Bereitet den Kopfbereich des Anmeldebildschirms mit aktuellen Systemdaten vor, damit der Benutzer Datum, Uhrzeit, Anwendungsname und Systemidentifikation auf dem Login-Screen sieht."
+    },
+    {
+      "name": "READ-USER-SEC-FILE",
+      "line_start": 209,
+      "line_end": 260,
+      "description": "Dieser Paragraph führt die eigentliche Benutzerauthentifizierung durch: Er lädt den Benutzerdatensatz aus der Sicherheitsdatei, prüft das eingegebene Passwort und leitet den Benutzer nach erfolgreicher Anmeldung rollenbasiert in das zuständige Menü weiter."
+    }
+  ],
+  "copybooks": [
+    "COCOM01Y",
+    "COSGN00",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CSUSR01Y",
+    "DFHAID",
+    "DFHBMSCA",
+    "DFHATTR"
+  ]
+}

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Java Mapping – CardDemo Analysis</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 1.1rem 1.1rem .9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+
+    #sidebar h2 {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .28rem 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .8rem;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active {
+      color: var(--cyan);
+      border-left-color: var(--cyan);
+      background: rgba(137,220,235,.1);
+      font-weight: 600;
+    }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 2.2rem 3rem;
+      max-width: 920px;
+      overflow-x: hidden;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────── */
+    .breadcrumb {
+      font-size: .75rem;
+      color: var(--comment);
+      margin-bottom: 1.6rem;
+    }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    /* ── Markdown content ────────────────────────── */
+    #content h1 {
+      font-size: 1.7rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.4rem;
+    }
+    #content h2 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin: 2.2rem 0 .8rem;
+      padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #content h3 {
+      font-size: .97rem;
+      color: var(--cyan);
+      margin: 1.5rem 0 .5rem;
+    }
+    #content h4 {
+      font-size: .88rem;
+      color: var(--keyword);
+      margin: 1.1rem 0 .4rem;
+      font-weight: 600;
+    }
+    #content p { margin-bottom: .85rem; }
+    #content ul, #content ol {
+      margin: .5rem 0 .85rem 1.4rem;
+    }
+    #content li { margin-bottom: .25rem; }
+
+    /* Tables */
+    #content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0 1.5rem;
+      font-size: .82rem;
+    }
+    #content th {
+      background: var(--bg3);
+      color: var(--subtext);
+      padding: .45rem .8rem;
+      text-align: left;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    #content td {
+      padding: .42rem .8rem;
+      border-bottom: 1px solid #31324455;
+      vertical-align: top;
+    }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+
+    /* Code */
+    #content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: .79rem;
+      line-height: 1.6;
+      margin: .8rem 0 1.3rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    #content pre code {
+      background: none;
+      color: var(--text);
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+    #content code {
+      background: var(--bg3);
+      color: var(--cyan);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+      font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* Source references */
+    .srcref {
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .78rem;
+      color: var(--blue);
+      background: rgba(137,180,250,.1);
+      border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem;
+      border-radius: .25rem;
+    }
+
+    /* Blockquote */
+    #content blockquote {
+      border-left: 3px solid var(--blue);
+      margin: .8rem 0 1rem;
+      padding: .6rem 1rem;
+      background: rgba(137,180,250,.07);
+      border-radius: 0 .35rem .35rem 0;
+      color: var(--subtext);
+      font-size: .87rem;
+    }
+
+    /* HR */
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* Links */
+    #content a { color: var(--blue); text-decoration: none; }
+    #content a:hover { text-decoration: underline; color: var(--cyan); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .72rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">Mainframe → Java Analysis</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  
+  <a href="index.html"
+     >
+    Documentation Overview
+  </a>
+  
+  <a href="00-overview.html"
+     >
+    Application Overview
+  </a>
+  
+  <a href="01-programs.html"
+     >
+    Program Inventory
+  </a>
+  
+  <a href="02-call-hierarchy.html"
+     >
+    Call Hierarchy
+  </a>
+  
+  <a href="03-data-structures.html"
+     >
+    Data Structures
+  </a>
+  
+  <a href="04-interfaces.html"
+     >
+    External Interfaces
+  </a>
+  
+  <a href="05-business-modules.html"
+     >
+    Business Modules
+  </a>
+  
+  <a href="06-business-logic.html"
+     >
+    Detailed Business Logic
+  </a>
+  
+  <a href="07-java-mapping.html"
+     class="active">
+    Java Mapping
+  </a>
+  
+
+  <hr class="sidebar-divider">
+
+  <h2>Program Detail Pages</h2>
+  
+  <a href="../html/CBACT01C.html">CBACT01C</a>
+  
+  <a href="../html/CBPAUP0C.html">CBPAUP0C</a>
+  
+  <a href="../html/CBTRN02C.html">CBTRN02C</a>
+  
+  <a href="../html/COPAUA0C.html">COPAUA0C</a>
+  
+  <a href="../html/COPAUS0C.html">COPAUS0C</a>
+  
+  <a href="../html/COPAUS1C.html">COPAUS1C</a>
+  
+  <a href="../html/COPAUS2C.html">COPAUS2C</a>
+  
+  <a href="../html/COSGN00C.html">COSGN00C</a>
+  
+
+  
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  
+  <a href="#architecture-overview"
+     class="">Architecture Overview</a>
+  
+  <a href="#package-structure"
+     class="">Package Structure</a>
+  
+  <a href="#domain-entities-vsam--jpa"
+     class="">Domain Entities (VSAM → JPA)</a>
+  
+  <a href="#customerjava--replaces-appcpycvcus01ycpy"
+     class="toc-h3">Customer.java — replaces app/cpy/CVCUS01Y.cpy</a>
+  
+  <a href="#accountjava--replaces-appcpycvact01ycpy"
+     class="toc-h3">Account.java — replaces app/cpy/CVACT01Y.cpy</a>
+  
+  <a href="#cardjava--replaces-appcpycvact02ycpy"
+     class="toc-h3">Card.java — replaces app/cpy/CVACT02Y.cpy</a>
+  
+  <a href="#cardxrefjava--replaces-appcpycvact03ycpy"
+     class="toc-h3">CardXref.java — replaces app/cpy/CVACT03Y.cpy</a>
+  
+  <a href="#transactionjava--replaces-appcpycvtra05ycpy"
+     class="toc-h3">Transaction.java — replaces app/cpy/CVTRA05Y.cpy</a>
+  
+  <a href="#transactioncategorybalancejava--replaces-appcpycvtra01ycpy"
+     class="toc-h3">TransactionCategoryBalance.java — replaces app/cpy/CVTRA01Y.cpy</a>
+  
+  <a href="#repositories-vsam-file-access--jpa"
+     class="">Repositories (VSAM file access → JPA)</a>
+  
+  <a href="#cobol-programs--java-services"
+     class="">COBOL Programs → Java Services</a>
+  
+  <a href="#cbtrn02c--transactionpostingservice"
+     class="toc-h3">CBTRN02C → TransactionPostingService</a>
+  
+  <a href="#cbact04c--interestcalculationservice"
+     class="toc-h3">CBACT04C → InterestCalculationService</a>
+  
+  <a href="#cosgn00c--authcontroller--authenticationservice"
+     class="toc-h3">COSGN00C → AuthController + AuthenticationService</a>
+  
+  <a href="#rest-endpoints-cics-transactions--spring-mvc"
+     class="">REST Endpoints (CICS Transactions → Spring MVC)</a>
+  
+  <a href="#spring-batch-jobs-jcl--spring-batch"
+     class="">Spring Batch Jobs (JCL → Spring Batch)</a>
+  
+  <a href="#posttran-job--transactionpostingjob"
+     class="toc-h3">POSTTRAN Job → TransactionPostingJob</a>
+  
+  <a href="#intcalc-job--interestcalculationjob"
+     class="toc-h3">INTCALC Job → InterestCalculationJob</a>
+  
+  <a href="#statement-job--statementgenerationjob"
+     class="toc-h3">STATEMENT Job → StatementGenerationJob</a>
+  
+  <a href="#security-configuration"
+     class="">Security Configuration</a>
+  
+  <a href="#appuserjava--replaces-usrsec-file--appcpycsusr01ycpy"
+     class="toc-h3">AppUser.java — replaces USRSEC file / app/cpy/CSUSR01Y.cpy</a>
+  
+  <a href="#cobol-datetime-constructs--java"
+     class="">COBOL Date/Time Constructs → Java</a>
+  
+  <a href="#migration-sequence-6-phases"
+     class="">Migration Sequence (6 Phases)</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    Java Mapping
+  </div>
+
+  <div id="content">
+    <h1 id="carddemo--cobol-to-java-mapping">CardDemo – COBOL to Java Mapping</h1>
+<p>This document defines the Java class model for modernizing the CardDemo application. It builds on the architecture documents (00–05) and the detailed business logic analysis in <code>06-geschaeftslogik.md</code>.</p>
+<hr>
+<h2 id="architecture-overview">Architecture Overview</h2>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────┐
+│  REST API (Spring Boot)                                 │
+│  Controller → Service → Repository (JPA/Hibernate)     │
+├─────────────────────────────────────────────────────────┤
+│  Batch (Spring Batch)                                   │
+│  JobLauncher → Step → ItemReader/Processor/Writer       │
+├─────────────────────────────────────────────────────────┤
+│  Security (Spring Security)                             │
+│  JWT / Session → UserDetailsService → BCrypt            │
+├─────────────────────────────────────────────────────────┤
+│  Persistence                                            │
+│  PostgreSQL (replaces VSAM/DB2) + JPA Entities          │
+└─────────────────────────────────────────────────────────┘</code></pre>
+<hr>
+<h2 id="package-structure">Package Structure</h2>
+<pre><code class="language-text">com.carddemo
+├── config/              # Spring configurations
+├── security/            # Auth, JWT, UserDetails
+├── domain/              # JPA entities (= VSAM records)
+│   ├── Customer.java
+│   ├── Account.java
+│   ├── Card.java
+│   ├── CardXref.java
+│   ├── Transaction.java
+│   └── TransactionCategoryBalance.java
+├── repository/          # JPA Repositories (= VSAM file access)
+├── service/             # Business logic (= COBOL PROCEDURE DIVISION)
+├── web/                 # REST controllers (= CICS transactions)
+│   ├── dto/             # Request/Response DTOs
+│   └── *Controller.java
+└── batch/               # Spring Batch (= JCL + Batch COBOL)
+    ├── transaction/
+    ├── interest/
+    ├── statement/
+    └── report/</code></pre>
+<hr>
+<h2 id="domain-entities-vsam--jpa">Domain Entities (VSAM → JPA)</h2>
+<h3 id="customerjava--replaces-appcpycvcus01ycpy">Customer.java — replaces <span class="srcref">app/cpy/CVCUS01Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;customers&quot;)
+public class Customer {
+    @Id
+    @Column(name = &quot;cust_id&quot;, length = 9)
+    private Long custId;                       // CUST-ID PIC 9(09)
+
+    @Column(name = &quot;first_name&quot;,  length = 25) private String firstName;   // CUST-FIRST-NAME
+    @Column(name = &quot;middle_name&quot;, length = 25) private String middleName;  // CUST-MIDDLE-NAME
+    @Column(name = &quot;last_name&quot;,   length = 25) private String lastName;    // CUST-LAST-NAME
+    @Column(name = &quot;addr_line1&quot;,  length = 50) private String addrLine1;   // CUST-ADDR-LINE-1
+    @Column(name = &quot;addr_line2&quot;,  length = 50) private String addrLine2;   // CUST-ADDR-LINE-2
+    @Column(name = &quot;addr_line3&quot;,  length = 50) private String addrLine3;   // CUST-ADDR-LINE-3
+    @Column(name = &quot;addr_state&quot;,   length = 2) private String addrState;   // CUST-ADDR-STATE-CD
+    @Column(name = &quot;addr_country&quot;, length = 3) private String addrCountry; // CUST-ADDR-COUNTRY-CD
+    @Column(name = &quot;addr_zip&quot;,    length = 10) private String addrZip;     // CUST-ADDR-ZIP
+    @Column(name = &quot;phone1&quot;,      length = 15) private String phone1;      // CUST-PHONE-NUM-1
+    @Column(name = &quot;phone2&quot;,      length = 15) private String phone2;      // CUST-PHONE-NUM-2
+    @Column(name = &quot;ssn&quot;,          length = 9) private String ssn;         // CUST-SSN PIC 9(09)
+    @Column(name = &quot;govt_id&quot;,     length = 20) private String govtIssuedId;// CUST-GOVT-ISSUED-ID
+    @Column(name = &quot;dob&quot;)                      private LocalDate dateOfBirth; // CUST-DOB-YYYY-MM-DD
+    @Column(name = &quot;eft_account_id&quot;, length = 10) private String eftAccountId; // CUST-EFT-ACCOUNT-ID
+    @Column(name = &quot;primary_card_holder&quot;) private boolean primaryCardHolder;   // CUST-PRI-CARD-HOLDER-IND
+    @Column(name = &quot;fico_score&quot;)          private Integer ficoScore;           // CUST-FICO-CREDIT-SCORE
+}</code></pre>
+<h3 id="accountjava--replaces-appcpycvact01ycpy">Account.java — replaces <span class="srcref">app/cpy/CVACT01Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;accounts&quot;)
+public class Account {
+    @Id
+    @Column(name = &quot;acct_id&quot;, length = 11)
+    private Long acctId;                                   // ACCT-ID PIC 9(11)
+
+    @Column(name = &quot;active_status&quot;, length = 1)  private String activeStatus;    // ACCT-ACTIVE-STATUS
+    @Column(name = &quot;curr_bal&quot;,      precision = 12, scale = 2) private BigDecimal currBal;
+    @Column(name = &quot;credit_limit&quot;,  precision = 12, scale = 2) private BigDecimal creditLimit;
+    @Column(name = &quot;cash_credit_limit&quot;, precision = 12, scale = 2) private BigDecimal cashCreditLimit;
+    @Column(name = &quot;open_date&quot;)       private LocalDate openDate;
+    @Column(name = &quot;expiration_date&quot;) private LocalDate expirationDate; // ACCT-EXPIRAION-DATE (sic — keep original spelling in comment)
+    @Column(name = &quot;reissue_date&quot;)    private LocalDate reissueDate;
+    @Column(name = &quot;curr_cyc_credit&quot;, precision = 12, scale = 2) private BigDecimal currCycCredit; // ACCT-CURR-CYC-CREDIT
+    @Column(name = &quot;curr_cyc_debit&quot;,  precision = 12, scale = 2) private BigDecimal currCycDebit;  // ACCT-CURR-CYC-DEBIT
+    @Column(name = &quot;addr_zip&quot;,   length = 10) private String addrZip;
+    @Column(name = &quot;group_id&quot;,   length = 10) private String groupId;  // ACCT-GROUP-ID — used for interest rate lookup
+}</code></pre>
+<h3 id="cardjava--replaces-appcpycvact02ycpy">Card.java — replaces <span class="srcref">app/cpy/CVACT02Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;cards&quot;)
+public class Card {
+    @Id
+    @Column(name = &quot;card_num&quot;, length = 16)
+    private String cardNum;                               // CARD-NUM PIC X(16)
+
+    @ManyToOne @JoinColumn(name = &quot;acct_id&quot;) private Account account;
+    @ManyToOne @JoinColumn(name = &quot;cust_id&quot;) private Customer customer;
+    // additional fields from CVACT02Y
+}</code></pre>
+<h3 id="cardxrefjava--replaces-appcpycvact03ycpy">CardXref.java — replaces <span class="srcref">app/cpy/CVACT03Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;card_xref&quot;)
+public class CardXref {
+    @Id
+    @Column(name = &quot;card_num&quot;, length = 16)
+    private String cardNum;                               // XREF-CARD-NUM PIC X(16)
+
+    @Column(name = &quot;cust_id&quot;,  length = 9)  private Long custId;  // XREF-CUST-ID PIC 9(09)
+    @Column(name = &quot;acct_id&quot;,  length = 11) private Long acctId;  // XREF-ACCT-ID PIC 9(11)
+}</code></pre>
+<h3 id="transactionjava--replaces-appcpycvtra05ycpy">Transaction.java — replaces <span class="srcref">app/cpy/CVTRA05Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;transactions&quot;)
+public class Transaction {
+    @Id
+    @Column(name = &quot;tran_id&quot;, length = 16)
+    private String tranId;                                // TRAN-ID PIC X(16)
+
+    @Column(name = &quot;type_cd&quot;,     length = 2)  private String typeCd;      // TRAN-TYPE-CD
+    @Column(name = &quot;cat_cd&quot;)                   private Integer catCd;      // TRAN-CAT-CD PIC 9(04)
+    @Column(name = &quot;source&quot;,      length = 10) private String source;      // TRAN-SOURCE
+    @Column(name = &quot;description&quot;, length = 100) private String description; // TRAN-DESC
+    @Column(name = &quot;amount&quot;,      precision = 11, scale = 2) private BigDecimal amount; // TRAN-AMT S9(09)V99
+    @Column(name = &quot;merchant_id&quot;)              private Long merchantId;    // TRAN-MERCHANT-ID
+    @Column(name = &quot;merchant_name&quot;, length = 50) private String merchantName; // TRAN-MERCHANT-NAME
+    @Column(name = &quot;merchant_city&quot;, length = 50) private String merchantCity; // TRAN-MERCHANT-CITY
+    @Column(name = &quot;merchant_zip&quot;,  length = 10) private String merchantZip;  // TRAN-MERCHANT-ZIP
+    @Column(name = &quot;card_num&quot;,    length = 16) private String cardNum;     // TRAN-CARD-NUM → FK to card_xref
+    @Column(name = &quot;orig_timestamp&quot;)           private LocalDateTime origTimestamp; // TRAN-ORIG-TS X(26)
+    @Column(name = &quot;proc_timestamp&quot;)           private LocalDateTime procTimestamp; // TRAN-PROC-TS X(26)
+}</code></pre>
+<h3 id="transactioncategorybalancejava--replaces-appcpycvtra01ycpy">TransactionCategoryBalance.java — replaces <span class="srcref">app/cpy/CVTRA01Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;tran_cat_balance&quot;)
+public class TransactionCategoryBalance {
+
+    @EmbeddedId
+    private TransactionCategoryKey id;                    // TCATBALF composite key
+
+    @Column(name = &quot;balance&quot;, precision = 11, scale = 2)
+    private BigDecimal balance;                           // TRAN-CAT-BAL S9(09)V99
+
+    @Embeddable
+    public static class TransactionCategoryKey implements Serializable {
+        @Column(name = &quot;acct_id&quot;)  private Long acctId;    // TRANCAT-ACCT-ID PIC 9(11)
+        @Column(name = &quot;type_cd&quot;)  private String typeCd;  // TRANCAT-TYPE-CD PIC X(02)
+        @Column(name = &quot;cat_cd&quot;)   private Integer catCd;  // TRANCAT-CD PIC 9(04)
+    }
+}</code></pre>
+<hr>
+<h2 id="repositories-vsam-file-access--jpa">Repositories (VSAM file access → JPA)</h2>
+<pre><code class="language-java">// CUSTFILE — Customer.java
+public interface CustomerRepository extends JpaRepository&lt;Customer, Long&gt; {}
+
+// ACCTFILE — Account.java
+public interface AccountRepository extends JpaRepository&lt;Account, Long&gt; {}
+
+// XREFFILE — CardXref.java
+// Primary key: cardNum; alternate key: acctId (see CBACT04C:L204)
+public interface CardXrefRepository extends JpaRepository&lt;CardXref, String&gt; {
+    Optional&lt;CardXref&gt; findByAcctId(Long acctId);   // replaces alternate-key READ in CBACT04C
+}
+
+// TRANFILE — Transaction.java
+public interface TransactionRepository extends JpaRepository&lt;Transaction, String&gt; {}
+
+// TCATBALF — TransactionCategoryBalance.java (findOrCreate pattern from CBTRN02C:L474-498)
+public interface TranCatBalanceRepository
+        extends JpaRepository&lt;TransactionCategoryBalance,
+                              TransactionCategoryBalance.TransactionCategoryKey&gt; {}</code></pre>
+<hr>
+<h2 id="cobol-programs--java-services">COBOL Programs → Java Services</h2>
+<h3 id="cbtrn02c--transactionpostingservice">CBTRN02C → TransactionPostingService</h3>
+<p>Source reference: <span class="srcref">app/cbl/CBTRN02C.cbl</span></p>
+<pre><code class="language-java">@Service
+public class TransactionPostingService {
+
+    // Replicates 1500-VALIDATE-TRAN (CBTRN02C:L370)
+    // NOTE: both checks always run — last error code wins (see CBTRN02C:L407+L414)
+    public List&lt;ValidationError&gt; validate(DailyTransaction tran) {
+        List&lt;ValidationError&gt; errors = new ArrayList&lt;&gt;();
+
+        // 1500-A-LOOKUP-XREF (CBTRN02C:L380)
+        CardXref xref = cardXrefRepository.findById(tran.getCardNum())
+            .orElseThrow(() -&gt; new ValidationException(100, &quot;INVALID CARD NUMBER FOUND&quot;));
+
+        // 1500-B-LOOKUP-ACCT (CBTRN02C:L393)
+        Account account = accountRepository.findById(xref.getAcctId())
+            .orElseThrow(() -&gt; new ValidationException(101, &quot;ACCOUNT RECORD NOT FOUND&quot;));
+
+        // Credit limit check (CBTRN02C:L403-411)
+        BigDecimal tempBal = account.getCurrCycCredit()
+                                    .subtract(account.getCurrCycDebit())
+                                    .add(tran.getAmount());
+        if (account.getCreditLimit().compareTo(tempBal) &lt; 0) {
+            errors.add(new ValidationError(102, &quot;OVERLIMIT TRANSACTION&quot;));
+        }
+
+        // Expiration check (CBTRN02C:L414-419)
+        if (account.getExpirationDate().isBefore(tran.getOrigTimestamp().toLocalDate())) {
+            errors.add(new ValidationError(103, &quot;TRANSACTION RECEIVED AFTER ACCT EXPIRATION&quot;));
+        }
+
+        return errors;
+    }
+
+    // Replicates 2000-POST-TRANSACTION (CBTRN02C:L424)
+    // Order: TCATBAL → ACCOUNT → TRANSACTION  (same as CBTRN02C:L440-442)
+    @Transactional
+    public void postTransaction(DailyTransaction dalytran, CardXref xref, Account account) {
+
+        // 2700-UPDATE-TCATBAL (CBTRN02C:L467) — findOrCreate pattern
+        var key = new TransactionCategoryBalance.TransactionCategoryKey(
+                      xref.getAcctId(), dalytran.getTypeCd(), dalytran.getCatCd());
+        TransactionCategoryBalance catBal = tranCatBalanceRepository.findById(key)
+            .orElse(new TransactionCategoryBalance(key, BigDecimal.ZERO));
+        catBal.setBalance(catBal.getBalance().add(dalytran.getAmount()));
+        tranCatBalanceRepository.save(catBal);
+
+        // 2800-UPDATE-ACCOUNT-REC (CBTRN02C:L545)
+        account.setCurrBal(account.getCurrBal().add(dalytran.getAmount()));
+        if (dalytran.getAmount().compareTo(BigDecimal.ZERO) &gt;= 0) {
+            account.setCurrCycCredit(account.getCurrCycCredit().add(dalytran.getAmount()));
+        } else {
+            account.setCurrCycDebit(account.getCurrCycDebit().add(dalytran.getAmount()));
+        }
+        accountRepository.save(account);
+
+        // 2900-WRITE-TRANSACTION-FILE (CBTRN02C:L562)
+        Transaction tran = mapToTransaction(dalytran);
+        tran.setProcTimestamp(LocalDateTime.now());
+        transactionRepository.save(tran);
+    }
+}</code></pre>
+<h3 id="cbact04c--interestcalculationservice">CBACT04C → InterestCalculationService</h3>
+<p>Source reference: <span class="srcref">app/cbl/CBACT04C.cbl</span></p>
+<pre><code class="language-java">@Service
+public class InterestCalculationService {
+
+    // Replicates 1300-COMPUTE-INTEREST (CBACT04C:L462-465)
+    // Formula: (TRAN-CAT-BAL * DIS-INT-RATE) / 1200
+    public BigDecimal computeMonthlyInterest(BigDecimal balance, BigDecimal annualRate) {
+        return balance.multiply(annualRate)
+                      .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);
+    }
+
+    // Replicates 1050-UPDATE-ACCOUNT (CBACT04C:L350-354)
+    @Transactional
+    public void closeBillingCycle(Account account, BigDecimal totalInterest) {
+        account.setCurrBal(account.getCurrBal().add(totalInterest));
+        account.setCurrCycCredit(BigDecimal.ZERO);   // CBACT04C:L353
+        account.setCurrCycDebit(BigDecimal.ZERO);    // CBACT04C:L354
+        accountRepository.save(account);
+    }
+
+    // Replicates 1400-COMPUTE-FEES (CBACT04C:L518-519) — stub in original
+    public void computeFees(Account account) {
+        // TODO: fee calculation not implemented in source (CBACT04C:L518 is EXIT only)
+    }
+}</code></pre>
+<h3 id="cosgn00c--authcontroller--authenticationservice">COSGN00C → AuthController + AuthenticationService</h3>
+<p>Source reference: <span class="srcref">app/cbl/COSGN00C.cbl</span></p>
+<pre><code class="language-java">@Service
+public class AuthenticationService implements UserDetailsService {
+
+    // Replaces READ-USER-SEC-FILE (COSGN00C:L209)
+    // BCrypt replaces plaintext compare (COSGN00C:L223: SEC-USR-PWD = WS-USER-PWD)
+    @Override
+    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
+        return userRepository.findByUserId(userId.toUpperCase())  // COSGN00C:L132 — uppercase
+            .orElseThrow(() -&gt; new UsernameNotFoundException(&quot;User not found&quot;));
+    }
+}
+
+@RestController @RequestMapping(&quot;/api/auth&quot;)
+public class AuthController {
+
+    // Replaces PROCESS-ENTER-KEY (COSGN00C:L108)
+    @PostMapping(&quot;/login&quot;)
+    public ResponseEntity&lt;LoginResponse&gt; login(@RequestBody LoginRequest request) {
+        Authentication auth = authManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getUserId().toUpperCase(),   // COSGN00C:L132
+                request.getPassword()));
+        // routing by user type (COSGN00C:L230-235) is expressed via JWT role claim
+        String jwt = jwtService.generateToken(auth);
+        return ResponseEntity.ok(new LoginResponse(jwt));
+    }
+}</code></pre>
+<hr>
+<h2 id="rest-endpoints-cics-transactions--spring-mvc">REST Endpoints (CICS Transactions → Spring MVC)</h2>
+<table>
+<thead><tr>
+<th>COBOL Program</th>
+<th>Transaction ID</th>
+<th>HTTP Method</th>
+<th>Endpoint</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>COSGN00C</code></td>
+<td><code>CC00</code></td>
+<td>POST</td>
+<td><code>/api/auth/login</code></td>
+</tr>
+<tr>
+<td><code>COMEN01C</code></td>
+<td><code>CM01</code></td>
+<td>GET</td>
+<td><code>/api/menu</code></td>
+</tr>
+<tr>
+<td><code>COADM01C</code></td>
+<td><code>CA01</code></td>
+<td>GET</td>
+<td><code>/api/admin/menu</code></td>
+</tr>
+<tr>
+<td><code>COACTUPC</code></td>
+<td><code>CA02</code></td>
+<td>PUT</td>
+<td><code>/api/accounts/{id}</code></td>
+</tr>
+<tr>
+<td><code>COACTVWC</code></td>
+<td><code>CA03</code></td>
+<td>GET</td>
+<td><code>/api/accounts/{id}</code></td>
+</tr>
+<tr>
+<td><code>COBIL00C</code></td>
+<td><code>CB00</code></td>
+<td>POST</td>
+<td><code>/api/billing/pay</code></td>
+</tr>
+<tr>
+<td><code>COCRDSLC</code></td>
+<td><code>CC01</code></td>
+<td>GET</td>
+<td><code>/api/cards?page=&amp;size=</code></td>
+</tr>
+<tr>
+<td><code>COCRDLIC</code></td>
+<td><code>CC02</code></td>
+<td>POST</td>
+<td><code>/api/cards/{num}/activate</code></td>
+</tr>
+<tr>
+<td><code>COCRDUPC</code></td>
+<td><code>CC03</code></td>
+<td>PUT</td>
+<td><code>/api/cards/{num}</code></td>
+</tr>
+<tr>
+<td><code>COTRN00C</code></td>
+<td><code>CT00</code></td>
+<td>GET</td>
+<td><code>/api/transactions?page=</code></td>
+</tr>
+<tr>
+<td><code>COTRN01C</code></td>
+<td><code>CT01</code></td>
+<td>GET</td>
+<td><code>/api/transactions/{id}</code></td>
+</tr>
+<tr>
+<td><code>COTRN02C</code></td>
+<td><code>CT02</code></td>
+<td>POST</td>
+<td><code>/api/transactions</code></td>
+</tr>
+<tr>
+<td><code>COUSR00C</code></td>
+<td><code>CU00</code></td>
+<td>GET</td>
+<td><code>/api/users?page=</code></td>
+</tr>
+<tr>
+<td><code>COUSR01C</code></td>
+<td><code>CU01</code></td>
+<td>POST</td>
+<td><code>/api/users</code></td>
+</tr>
+<tr>
+<td><code>COUSR02C</code></td>
+<td><code>CU02</code></td>
+<td>PUT</td>
+<td><code>/api/users/{id}</code></td>
+</tr>
+<tr>
+<td><code>COUSR03C</code></td>
+<td><code>CU03</code></td>
+<td>DELETE</td>
+<td><code>/api/users/{id}</code></td>
+</tr>
+<tr>
+<td><code>CORPT00C</code></td>
+<td><code>CR00</code></td>
+<td>POST</td>
+<td><code>/api/reports/generate</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="spring-batch-jobs-jcl--spring-batch">Spring Batch Jobs (JCL → Spring Batch)</h2>
+<h3 id="posttran-job--transactionpostingjob">POSTTRAN Job → TransactionPostingJob</h3>
+<p>Replaces JCL job that runs CBTRN01C + CBTRN02C.</p>
+<pre><code class="language-java">@Configuration
+public class TransactionPostingJobConfig {
+
+    @Bean
+    public Job transactionPostingJob(Step validateStep, Step postStep) {
+        return jobBuilder.get(&quot;POSTTRAN&quot;)
+            .start(validateStep)
+            .next(postStep)
+            .build();
+    }
+
+    // Replaces CBTRN01C — validation with CUSTFILE + CARDFILE
+    @Bean
+    public Step validateStep() {
+        return stepBuilder.&lt;DailyTransactionRecord, ValidationResult&gt;chunk(100)
+            .reader(dalytranReader())         // sequential read of DALYTRAN
+            .processor(validationProcessor()) // CBTRN01C logic
+            .writer(rejectWriter())           // write to DALYREJS equivalent
+            .build();
+    }
+
+    // Replaces CBTRN02C — posting to TRANFILE, ACCTFILE, TCATBALF
+    @Bean
+    public Step postStep() {
+        return stepBuilder.&lt;DailyTransactionRecord, Transaction&gt;chunk(100)
+            .reader(validatedTranReader())
+            .processor(postingProcessor())    // CBTRN02C logic (TransactionPostingService)
+            .writer(compositeWriter())        // writes to transaction + account + catbalance tables
+            .build();
+    }
+}</code></pre>
+<h3 id="intcalc-job--interestcalculationjob">INTCALC Job → InterestCalculationJob</h3>
+<p>Replaces JCL job running CBACT04C.</p>
+<pre><code class="language-java">@Configuration
+public class InterestCalculationJobConfig {
+
+    @Bean
+    public Job interestJob() {
+        return jobBuilder.get(&quot;INTCALC&quot;)
+            .start(interestStep())
+            .build();
+    }
+
+    @Bean
+    public Step interestStep() {
+        // Replaces sequential scan of TCATBALF grouped by ACCT-ID (CBACT04C:L188-222)
+        return stepBuilder.&lt;TransactionCategoryBalance, InterestTransaction&gt;chunk(50)
+            .reader(tcatbalReader())
+            .processor(interestProcessor())  // formula: (balance * rate) / 1200
+            .writer(interestWriter())        // writes interest transaction + updates account
+            .build();
+    }
+}</code></pre>
+<h3 id="statement-job--statementgenerationjob">STATEMENT Job → StatementGenerationJob</h3>
+<p>Replaces JCL job running CBSTM03A + CBSTM03B.</p>
+<pre><code class="language-java">@Configuration
+public class StatementJobConfig {
+
+    @Bean
+    public Job statementJob() {
+        return jobBuilder.get(&quot;STATEMENT&quot;)
+            .start(statementStep())
+            .build();
+    }
+
+    // Replaces CBSTM03A: text (80-char) and HTML output via Strategy pattern
+    // (replaces ALTER/GOTO construct in CBSTM03A)
+    @Bean
+    public Step statementStep() {
+        return stepBuilder.&lt;Account, StatementResult&gt;chunk(10)
+            .reader(accountReader())
+            .processor(statementProcessor())
+            .writer(statementFileWriter())   // plain text + HTML output
+            .build();
+    }
+}</code></pre>
+<hr>
+<h2 id="security-configuration">Security Configuration</h2>
+<h3 id="appuserjava--replaces-usrsec-file--appcpycsusr01ycpy">AppUser.java — replaces USRSEC file / <span class="srcref">app/cpy/CSUSR01Y.cpy</span></h3>
+<pre><code class="language-java">@Entity @Table(name = &quot;users&quot;)
+public class AppUser implements UserDetails {
+    @Id @Column(name = &quot;user_id&quot;, length = 8)
+    private String userId;                    // SEC-USR-ID PIC X(08)
+
+    @Column(name = &quot;first_name&quot;, length = 20) private String firstName;   // SEC-USR-FNAME
+    @Column(name = &quot;last_name&quot;,  length = 20) private String lastName;    // SEC-USR-LNAME
+    @Column(name = &quot;password&quot;)                private String passwordHash; // BCrypt — replaces SEC-USR-PWD plaintext
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;user_type&quot;, length = 1)   private UserType userType;  // SEC-USR-TYPE: &#x27;A&#x27; or &#x27;U&#x27;
+    @Column(name = &quot;active&quot;)                  private boolean active;     // SEC-USR-ACTIVE-FLG
+
+    public enum UserType { A, U }  // A = CDEMO-USRTYP-ADMIN, U = CDEMO-USRTYP-USER
+}</code></pre>
+<hr>
+<h2 id="cobol-datetime-constructs--java">COBOL Date/Time Constructs → Java</h2>
+<table>
+<thead><tr>
+<th>COBOL</th>
+<th>Source Line</th>
+<th>Java</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>FUNCTION CURRENT-DATE</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td><code>LocalDateTime.now()</code></td>
+</tr>
+<tr>
+<td>DB2 timestamp <code>YYYY-MM-DD-HH.MM.SS.mm0000</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td><code>DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH.mm.ss.SS&#x27;0000&#x27;&quot;)</code></td>
+</tr>
+<tr>
+<td><code>ACCT-EXPIRAION-DATE &gt;= DALYTRAN-ORIG-TS(1:10)</code></td>
+<td><span class="srcref">app/cbl/CBTRN02C.cbl</span></td>
+<td><code>!expDate.isBefore(origDate)</code></td>
+</tr>
+<tr>
+<td><code>STRING PARM-DATE, SUFFIX INTO TRAN-ID</code></td>
+<td><span class="srcref">app/cbl/CBACT04C.cbl</span></td>
+<td><code>String.format(&quot;%s%06d&quot;, date, suffix)</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="migration-sequence-6-phases">Migration Sequence (6 Phases)</h2>
+<table>
+<thead><tr>
+<th>Phase</th>
+<th>Content</th>
+<th>Weeks</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>1 – Database Schema</strong></td>
+<td>DDL from <code>03-datenstrukturen.md</code> → PostgreSQL; JPA entities; Flyway migrations</td>
+<td>1–2</td>
+</tr>
+<tr>
+<td><strong>2 – Authentication</strong></td>
+<td>COSGN00C → AuthController + JWT; USRSEC migration with BCrypt</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>3 – Core Batch</strong></td>
+<td>CBTRN02C → TransactionPostingJob; CBACT04C → InterestCalculationJob</td>
+<td>4–6</td>
+</tr>
+<tr>
+<td><strong>4 – Online Programs</strong></td>
+<td>COMEN01C, COUSR0x, COACTU<em>, COCRD</em>, COTRN* → REST controllers</td>
+<td>7–10</td>
+</tr>
+<tr>
+<td><strong>5 – Reporting</strong></td>
+<td>CBSTM03A/B → StatementJob (JasperReports); CBACT01-03C reports; CORPT00C controller</td>
+<td>11–12</td>
+</tr>
+<tr>
+<td><strong>6 – Authorization/IMS</strong></td>
+<td>COPAUA0C, COPAUS* → Spring Security roles; CBPAUP0C → scheduled cleanup job</td>
+<td>13–14</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Analysis date: 2026-05-02</em> <em>Based on: COBOL source analysis (documents 00–06) and architecture documents</em></p>
+  </div>
+
+  <footer>
+    Generated by <code>generate_analysis.py</code> &middot;
+    CardDemo Mainframe Modernization &middot;
+    Source: <code>07-java-mapping.md</code>
+  </footer>
+</main>
+
+</body>
+</html>

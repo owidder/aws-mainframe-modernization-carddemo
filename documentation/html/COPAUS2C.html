@@ -1,0 +1,2556 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COPAUS2C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-FRAUD-UPDATE">FRAUD-UPDATE</a>
+  
+  
+
+  
+  <h2>Variables (38)</h2>
+  
+  <a href="#var-WS-VARIABLES">WS-VARIABLES</a>
+  
+  <a href="#var-WS-PGMNAME">WS-PGMNAME</a>
+  
+  <a href="#var-WS-LENGTH">WS-LENGTH</a>
+  
+  <a href="#var-WS-AUTH-TIME">WS-AUTH-TIME</a>
+  
+  <a href="#var-WS-AUTH-TIME-AN">WS-AUTH-TIME-AN</a>
+  
+  <a href="#var-WS-AUTH-TS">WS-AUTH-TS</a>
+  
+  <a href="#var-WS-AUTH-YY">WS-AUTH-YY</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-AUTH-MM">WS-AUTH-MM</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-AUTH-DD">WS-AUTH-DD</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-AUTH-HH">WS-AUTH-HH</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-AUTH-MI">WS-AUTH-MI</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-AUTH-SS">WS-AUTH-SS</a>
+  
+  <a href="#var-WS-AUTH-SSS">WS-AUTH-SSS</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-ERR-FLG">WS-ERR-FLG</a>
+  
+  <a href="#var-ERR-FLG-ON">ERR-FLG-ON</a>
+  
+  <a href="#var-ERR-FLG-OF">ERR-FLG-OF</a>
+  
+  <a href="#var-WS-SQLCODE">WS-SQLCODE</a>
+  
+  <a href="#var-WS-SQLSTATE">WS-SQLSTATE</a>
+  
+  <a href="#var-WS-ABS-TIME">WS-ABS-TIME</a>
+  
+  <a href="#var-WS-CUR-DATE">WS-CUR-DATE</a>
+  
+  <a href="#var-DFHCOMMAREA">DFHCOMMAREA</a>
+  
+  <a href="#var-WS-ACCT-ID">WS-ACCT-ID</a>
+  
+  <a href="#var-WS-CUST-ID">WS-CUST-ID</a>
+  
+  <a href="#var-WS-FRAUD-AUTH-RECORD">WS-FRAUD-AUTH-RECORD</a>
+  
+  <a href="#var-WS-FRAUD-STATUS-RECORD">WS-FRAUD-STATUS-RECORD</a>
+  
+  <a href="#var-WS-FRD-ACTION">WS-FRD-ACTION</a>
+  
+  <a href="#var-WS-REPORT-FRAUD">WS-REPORT-FRAUD</a>
+  
+  <a href="#var-WS-REMOVE-FRAUD">WS-REMOVE-FRAUD</a>
+  
+  <a href="#var-WS-FRD-UPDATE-STATUS">WS-FRD-UPDATE-STATUS</a>
+  
+  <a href="#var-WS-FRD-UPDT-SUCCESS">WS-FRD-UPDT-SUCCESS</a>
+  
+  <a href="#var-WS-FRD-UPDT-FAILED">WS-FRD-UPDT-FAILED</a>
+  
+  <a href="#var-WS-FRD-ACT-MSG">WS-FRD-ACT-MSG</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>COPAUS2C.CBL</h1>
+    <p>Persistierung einer Betrugsmeldung oder Betrugsentmarkierung für eine Kreditkarten-Autorisierungstransaktion in der Betrugsdatenbank.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">Das Programm empfängt eine Autorisierungsnachricht mit Betrugsstatus-Kennzeichnung (Betrug melden oder Betrug entfernen) und schreibt diese in die Betrugstabelle AUTHFRDS. Dabei werden alle relevanten Transaktionsdaten (Kartennummer, Händlerinformationen, Beträge, Autorisierungscodes) zusammen mit dem Betrugsstatus und dem aktuellen Meldedatum gespeichert. Existiert bereits ein Eintrag für dieselbe Karte und denselben Autorisierungszeitpunkt (Duplikat-Fehler -803), wird der bestehende Datensatz mit dem neuen Betrugsstatus und dem aktuellen Datum aktualisiert statt neu angelegt. Das Programm gibt dem aufrufenden Programm (COPAUS1C) über das Communication Area eine Erfolgs- oder Fehlermeldung zurück.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Eine Transaktion kann entweder als betrügerisch markiert ('F') oder eine bestehende Betrugsmeldung kann zurückgezogen werden ('R') – beide Aktionen werden dauerhaft in der Betrugsdatenbank protokolliert.</li><li>Existiert für eine Kartennummer und einen Autorisierungszeitpunkt bereits ein Betrugseintrag, wird dieser aktualisiert (kein Duplikat), um Statusänderungen (z.B. Betrug → kein Betrug) zu ermöglichen.</li><li>Das Meldedatum wird immer auf das aktuelle Systemdatum gesetzt, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.</li><li>Der Autorisierungszeitpunkt wird aus einem komprimierten Zeitformat der Originalnachricht rekonstruiert (999999999 minus Zeitwert) und als lesbarer Timestamp gespeichert.</li><li>Alle relevanten Transaktionsdaten (Händler, Betrag, Autorisierungscode, POS-Eingabemodus, Ländercode) werden zusammen mit der Betrugsmeldung gespeichert, um eine vollständige Betrugsdokumentation zu gewährleisten.</li><li>Das Programm ist ein reiner Service-Baustein ohne eigene Benutzeroberfläche – es wird ausschließlich von COPAUS1C (Detailansicht) aufgerufen und gibt das Ergebnis über die COMMAREA zurück.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CARDDEMO.AUTHFRDS</td>
+            <td style="color:var(--subtext);">Betrugsdatenbank-Tabelle, die gemeldete oder entmarkierte betrügerische Kreditkarten-Autorisierungstransaktionen mit allen Transaktions- und Händlerdetails sowie dem Betrugsstatus persistiert</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CIPAUDTY</td>
+            <td style="color:var(--subtext);">Copybook mit der Datenstruktur einer Autorisierungsnachricht (Kartennummer, Autorisierungsdetails, Händlerdaten, Beträge, Transaktions-ID)</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">AUTHFRDS</td>
+            <td style="color:var(--subtext);">SQL-Include mit der Host-Variablen-Struktur für die DB2-Tabelle CARDDEMO.AUTHFRDS</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">CICS Online</span>
+      <span class="badge badge-module">Authentication</span>
+      
+      <span class="badge badge-copy">COPY DFHBMSCA</span>
+      
+      <span class="badge badge-copy">COPY CIPAUDTY</span>
+      
+      <span class="badge badge-meta">244 lines</span>
+      <span class="badge badge-meta">38 variables</span>
+      <span class="badge badge-meta">2 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-02</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3>MAIN-PARA</h3>
+    <p>MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag.</p>
+    <div class="para-meta">Lines 89–220</div>
+  </div>
+  
+  <div class="para-card" id="para-FRAUD-UPDATE">
+    <h3>FRAUD-UPDATE</h3>
+    <p>Aktualisiert einen bestehenden Betrugseintrag in der Betrugsdatenbank mit dem neuen Betrugsstatus und dem aktuellen Meldedatum. Dieser Paragraph wird aufgerufen, wenn für die betreffende Karte und den Autorisierungszeitpunkt bereits ein Datensatz existiert (Duplikat-Fall).</p>
+    <div class="para-meta">Lines 221–244</div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program     : COPAUS2C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Application : CardDemo - Authorization Module</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Type        : CICS COBOL IMS DB2 Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Function    : Mark Authorization Message Fraud</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID. COPAUS2C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.     AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-variable-declaration">       01 WS-VARIABLES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-variable-declaration">         05 WS-PGMNAME                 PIC X(08) VALUE 'COPAUS2C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-variable-declaration">         05 WS-LENGTH                  PIC S9(4) COMP VALUE ZERO.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-variable-declaration">         05 WS-AUTH-TIME               PIC 9(09).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-variable-declaration">         05 WS-AUTH-TIME-AN REDEFINES WS-AUTH-TIME</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-code">                                       PIC X(09).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-variable-declaration">         05 WS-AUTH-TS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-YY              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(01) VALUE '-'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-MM              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(01) VALUE '-'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-DD              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(01) VALUE ' '.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-HH              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(01) VALUE '.'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-MI              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(01) VALUE '.'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-SS              PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-variable-declaration">            10 WS-AUTH-SSS             PIC X(03).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-variable-declaration">            10 FILLER                  PIC X(03) VALUE '000'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-variable-declaration">            88 ERR-FLG-ON                        VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-variable-declaration">            88 ERR-FLG-OF                        VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-variable-declaration">         05 WS-SQLCODE                 PIC +9(06).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-variable-declaration">         05 WS-SQLSTATE                PIC +9(09).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ABS-TIME                PIC S9(15) COMP-3 VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-variable-declaration">         05 WS-CUR-DATE                PIC X(08) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-comment">      *COPY DFHBMSCA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-comment">      /****************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-comment">      * SQL INCLUDE FOR SQLCA                             *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-comment">      *****************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-code">           EXEC SQL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-code">                INCLUDE SQLCA</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-code">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-code">           EXEC SQL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-code">                INCLUDE AUTHFRDS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-code">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">       01  DFHCOMMAREA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-variable-declaration">           02 WS-ACCT-ID                    PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-variable-declaration">           02 WS-CUST-ID                    PIC 9(9).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-variable-declaration">           02 WS-FRAUD-AUTH-RECORD.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-copy-statement">              COPY CIPAUDTY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">           02 WS-FRAUD-STATUS-RECORD.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-variable-declaration">              05 WS-FRD-ACTION              PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-variable-declaration">                 88 WS-REPORT-FRAUD         VALUE 'F'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-variable-declaration">                 88 WS-REMOVE-FRAUD         VALUE 'R'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-variable-declaration">              05 WS-FRD-UPDATE-STATUS       PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-variable-declaration">                 88 WS-FRD-UPDT-SUCCESS     VALUE 'S'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-variable-declaration">                 88 WS-FRD-UPDT-FAILED      VALUE 'F'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-variable-declaration">              05 WS-FRD-ACT-MSG             PIC X(50).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">89</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
+      <td class="expl-cell">MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">90</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">91</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS ASKTIME NOHANDLE</td>
+      <td class="expl-cell">Ermittelt die aktuelle Systemzeit als Grundlage für das revisionssichere Betrugsmeldedatum.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">92</td>
+      <td class="code-cell t-exec-cics">              ABSTIME(WS-ABS-TIME)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">93</td>
+      <td class="code-cell t-exec-cics">              NOHANDLE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">           END-EXEC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">95</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS FORMATTIME</td>
+      <td class="expl-cell">Formatiert die Systemzeit in ein lesbares Datumsformat (MM/DD/YY) für die Betrugsmeldung.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">96</td>
+      <td class="code-cell t-exec-cics">             ABSTIME(WS-ABS-TIME)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">97</td>
+      <td class="code-cell t-exec-cics">             MMDDYY(WS-CUR-DATE)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">98</td>
+      <td class="code-cell t-exec-cics">             DATESEP</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">99</td>
+      <td class="code-cell t-exec-cics">             NOHANDLE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">100</td>
+      <td class="code-cell t-statement">           END-EXEC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">101</td>
+      <td class="code-cell t-statement">           MOVE WS-CUR-DATE       TO PA-FRAUD-RPT-DATE</td>
+      <td class="expl-cell">Setzt das Betrugsmeldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">102</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">103</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-ORIG-DATE(1:2) TO WS-AUTH-YY</td>
+      <td class="expl-cell">Extrahiert das Jahr aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">104</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-ORIG-DATE(3:2) TO WS-AUTH-MM</td>
+      <td class="expl-cell">Extrahiert den Monat aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-ORIG-DATE(5:2) TO WS-AUTH-DD</td>
+      <td class="expl-cell">Extrahiert den Tag aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">106</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">107</td>
+      <td class="code-cell t-statement">           COMPUTE WS-AUTH-TIME = 999999999 - PA-AUTH-TIME-9C</td>
+      <td class="expl-cell">Dekodiert den komprimierten Autorisierungszeitwert der Originalnachricht (999999999 minus Zeitwert) in einen lesbaren Zeitstempel.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">108</td>
+      <td class="code-cell t-statement">           MOVE WS-AUTH-TIME-AN(1:2) TO WS-AUTH-HH</td>
+      <td class="expl-cell">Extrahiert die Stunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">109</td>
+      <td class="code-cell t-statement">           MOVE WS-AUTH-TIME-AN(3:2) TO WS-AUTH-MI</td>
+      <td class="expl-cell">Extrahiert die Minuten aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">           MOVE WS-AUTH-TIME-AN(5:2) TO WS-AUTH-SS</td>
+      <td class="expl-cell">Extrahiert die Sekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">111</td>
+      <td class="code-cell t-statement">           MOVE WS-AUTH-TIME-AN(7:3) TO WS-AUTH-SSS</td>
+      <td class="expl-cell">Extrahiert die Millisekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">112</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">113</td>
+      <td class="code-cell t-statement">           MOVE PA-CARD-NUM          TO CARD-NUM</td>
+      <td class="expl-cell">Überträgt die Kreditkartennummer der betroffenen Transaktion in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">114</td>
+      <td class="code-cell t-statement">           MOVE WS-AUTH-TS           TO AUTH-TS</td>
+      <td class="expl-cell">Überträgt den vollständigen Autorisierungszeitstempel als eindeutigen Schlüssel der Transaktion in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">115</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-TYPE         TO AUTH-TYPE</td>
+      <td class="expl-cell">Überträgt den Autorisierungstyp der Transaktion (z.B. Kauf, Rückbuchung) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">116</td>
+      <td class="code-cell t-statement">           MOVE PA-CARD-EXPIRY-DATE  TO CARD-EXPIRY-DATE</td>
+      <td class="expl-cell">Überträgt das Ablaufdatum der Kreditkarte in den Betrugsdatensatz zur vollständigen Kartendokumentation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">           MOVE PA-MESSAGE-TYPE      TO MESSAGE-TYPE</td>
+      <td class="expl-cell">Überträgt den Nachrichtentyp der Autorisierungsnachricht in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">           MOVE PA-MESSAGE-SOURCE    TO MESSAGE-SOURCE</td>
+      <td class="expl-cell">Überträgt die Nachrichtenquelle (Herkunftskanal der Autorisierung) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-ID-CODE      TO AUTH-ID-CODE</td>
+      <td class="expl-cell">Überträgt den Autorisierungscode der genehmigten Transaktion in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-RESP-CODE    TO AUTH-RESP-CODE</td>
+      <td class="expl-cell">Überträgt den Antwortcode des Autorisierungssystems in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">121</td>
+      <td class="code-cell t-statement">           MOVE PA-AUTH-RESP-REASON  TO AUTH-RESP-REASON</td>
+      <td class="expl-cell">Überträgt den Ablehnungs- bzw. Genehmigungsgrund der Autorisierung in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">           MOVE PA-PROCESSING-CODE   TO PROCESSING-CODE</td>
+      <td class="expl-cell">Überträgt den Verarbeitungscode (Art der Finanztransaktion) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">           MOVE PA-TRANSACTION-AMT   TO TRANSACTION-AMT</td>
+      <td class="expl-cell">Überträgt den ursprünglichen Transaktionsbetrag in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">           MOVE PA-APPROVED-AMT      TO APPROVED-AMT</td>
+      <td class="expl-cell">Überträgt den tatsächlich genehmigten Betrag in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">125</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-CATAGORY-CODE</td>
+      <td class="expl-cell">Überträgt den Händlerkategoriecode (MCC) zur Klassifizierung der Betrugsart in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">126</td>
+      <td class="code-cell t-statement">                                     TO MERCHANT-CATAGORY-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">127</td>
+      <td class="code-cell t-statement">           MOVE PA-ACQR-COUNTRY-CODE TO ACQR-COUNTRY-CODE</td>
+      <td class="expl-cell">Überträgt den Ländercode des Acquirers (kartenakzeptierendes Institut) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">           MOVE PA-POS-ENTRY-MODE    TO POS-ENTRY-MODE</td>
+      <td class="expl-cell">Überträgt den POS-Eingabemodus (z.B. Chip, Magnetstreifen, kontaktlos) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-ID       TO MERCHANT-ID</td>
+      <td class="expl-cell">Überträgt die eindeutige Händler-ID des betroffenen Akzeptanzpunkts in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">           MOVE LENGTH OF PA-MERCHANT-NAME TO MERCHANT-NAME-LEN</td>
+      <td class="expl-cell">Ermittelt die Länge des Händlernamens für die korrekte Speicherung in der Betrugsdatenbank.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">131</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-NAME     TO MERCHANT-NAME-TEXT</td>
+      <td class="expl-cell">Überträgt den Händlernamen des betroffenen Akzeptanzpunkts in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">132</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-CITY     TO MERCHANT-CITY</td>
+      <td class="expl-cell">Überträgt die Stadt des Händlers in den Betrugsdatensatz zur geografischen Betrugsdokumentation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">133</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-STATE    TO MERCHANT-STATE</td>
+      <td class="expl-cell">Überträgt das Bundesland/den Staat des Händlers in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">134</td>
+      <td class="code-cell t-statement">           MOVE PA-MERCHANT-ZIP      TO MERCHANT-ZIP</td>
+      <td class="expl-cell">Überträgt die Postleitzahl des Händlers in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">135</td>
+      <td class="code-cell t-statement">           MOVE PA-TRANSACTION-ID    TO TRANSACTION-ID</td>
+      <td class="expl-cell">Überträgt die eindeutige Transaktions-ID in den Betrugsdatensatz zur lückenlosen Nachverfolgbarkeit.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">136</td>
+      <td class="code-cell t-statement">           MOVE PA-MATCH-STATUS      TO MATCH-STATUS</td>
+      <td class="expl-cell">Überträgt den Abgleichsstatus der Transaktion (z.B. Treffer in Betrugslisten) in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">137</td>
+      <td class="code-cell t-statement">           MOVE WS-FRD-ACTION        TO AUTH-FRAUD</td>
+      <td class="expl-cell">Setzt das Betrugskennzeichen ('F'=Betrug melden / 'R'=Betrugsmeldung zurückziehen) im Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">138</td>
+      <td class="code-cell t-statement">           MOVE WS-ACCT-ID           TO ACCT-ID</td>
+      <td class="expl-cell">Überträgt die Kontonummer des betroffenen Kreditkartenkontos in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">           MOVE WS-CUST-ID           TO CUST-ID</td>
+      <td class="expl-cell">Überträgt die Kundennummer des Karteninhabers in den Betrugsdatensatz.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">140</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">           EXEC SQL</td>
+      <td class="expl-cell">Schreibt den vollständigen Betrugsdatensatz mit allen Transaktions-, Händler- und Betrugsinformationen in die Betrugsdatenbank CARDDEMO.AUTHFRDS.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">                INSERT INTO CARDDEMO.AUTHFRDS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">                      (CARD_NUM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">144</td>
+      <td class="code-cell t-statement">                      ,AUTH_TS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">                      ,AUTH_TYPE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">                      ,CARD_EXPIRY_DATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">                      ,MESSAGE_TYPE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">                      ,MESSAGE_SOURCE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">                      ,AUTH_ID_CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">150</td>
+      <td class="code-cell t-statement">                      ,AUTH_RESP_CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">                      ,AUTH_RESP_REASON</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">152</td>
+      <td class="code-cell t-statement">                      ,PROCESSING_CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">                      ,TRANSACTION_AMT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">                      ,APPROVED_AMT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">155</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_CATAGORY_CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">                      ,ACQR_COUNTRY_CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">157</td>
+      <td class="code-cell t-statement">                      ,POS_ENTRY_MODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_NAME</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_CITY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_STATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">162</td>
+      <td class="code-cell t-statement">                      ,MERCHANT_ZIP</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">163</td>
+      <td class="code-cell t-statement">                      ,TRANSACTION_ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">                      ,MATCH_STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">165</td>
+      <td class="code-cell t-statement">                      ,AUTH_FRAUD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">                      ,FRAUD_RPT_DATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">                      ,ACCT_ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">                      ,CUST_ID)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">                  VALUES</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">                    ( :CARD-NUM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">                     ,TIMESTAMP_FORMAT (:AUTH-TS,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">                                        'YY-MM-DD HH24.MI.SSNNNNNN')</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">                     ,:AUTH-TYPE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">                     ,:CARD-EXPIRY-DATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">175</td>
+      <td class="code-cell t-statement">                     ,:MESSAGE-TYPE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">                     ,:MESSAGE-SOURCE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">                     ,:AUTH-ID-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">                     ,:AUTH-RESP-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">                     ,:AUTH-RESP-REASON</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">                     ,:PROCESSING-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">                     ,:TRANSACTION-AMT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">                     ,:APPROVED-AMT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-CATAGORY-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">                     ,:ACQR-COUNTRY-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">                     ,:POS-ENTRY-MODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-NAME</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-CITY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-STATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">                     ,:MERCHANT-ZIP</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">                     ,:TRANSACTION-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">                     ,:MATCH-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">193</td>
+      <td class="code-cell t-statement">                     ,:AUTH-FRAUD</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">194</td>
+      <td class="code-cell t-statement">                     ,CURRENT DATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">195</td>
+      <td class="code-cell t-statement">                     ,:ACCT-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">196</td>
+      <td class="code-cell t-statement">                     ,:CUST-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">197</td>
+      <td class="code-cell t-statement">                    )</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">198</td>
+      <td class="code-cell t-statement">           END-EXEC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">199</td>
+      <td class="code-cell t-statement">           IF SQLCODE = ZERO</td>
+      <td class="expl-cell">Prüft, ob der Betrugsdatensatz erfolgreich neu in die Datenbank eingetragen wurde (kein Fehler aufgetreten).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">200</td>
+      <td class="code-cell t-statement">              SET WS-FRD-UPDT-SUCCESS TO TRUE</td>
+      <td class="expl-cell">Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">201</td>
+      <td class="code-cell t-statement">              MOVE 'ADD SUCCESS'      TO WS-FRD-ACT-MSG</td>
+      <td class="expl-cell">Meldet dem aufrufenden Programm COPAUS1C, dass die Betrugsmeldung erfolgreich neu angelegt wurde ('ADD SUCCESS').</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">202</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">              IF SQLCODE = -803</td>
+      <td class="expl-cell">Prüft, ob für diese Kartennummer und diesen Autorisierungszeitpunkt bereits ein Betrugseintrag existiert (Duplikat-Fehler -803).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">                 PERFORM FRAUD-UPDATE</td>
+      <td class="expl-cell">Aktualisiert den bestehenden Betrugseintrag mit dem neuen Betrugsstatus und dem aktuellen Meldedatum, anstatt einen Duplikateintrag anzulegen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">205</td>
+      <td class="code-cell t-statement">              ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">206</td>
+      <td class="code-cell t-statement">                 SET WS-FRD-UPDT-FAILED  TO TRUE</td>
+      <td class="expl-cell">Kennzeichnet die Datenbankoperation als fehlgeschlagen, da ein unerwarteter Datenbankfehler aufgetreten ist.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">207</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">                 MOVE SQLCODE            TO WS-SQLCODE</td>
+      <td class="expl-cell">Sichert den DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">                 MOVE SQLSTATE           TO WS-SQLSTATE</td>
+      <td class="expl-cell">Sichert den DB2-Fehlerstatus für die Fehlermeldung an das aufrufende Programm.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">210</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">211</td>
+      <td class="code-cell t-statement">                 STRING ' SYSTEM ERROR DB2: CODE:' WS-SQLCODE</td>
+      <td class="expl-cell">Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und -status zur Rückgabe an das aufrufende Programm COPAUS1C.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">                        ', STATE: ' WS-SQLSTATE   DELIMITED BY SIZE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">                 INTO WS-FRD-ACT-MSG</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">214</td>
+      <td class="code-cell t-statement">                 END-STRING</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">215</td>
+      <td class="code-cell t-statement">              END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">217</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">218</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RETURN</td>
+      <td class="expl-cell">Beendet die Programmverarbeitung und gibt die Erfolgs- oder Fehlermeldung über die COMMAREA an das aufrufende Programm COPAUS1C zurück.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">           END-EXEC</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">           .</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">221</td>
+      <td class="code-cell t-paragraph-header">       FRAUD-UPDATE.</td>
+      <td class="expl-cell">Einstiegspunkt für die Aktualisierung eines vorhandenen Betrugseintrags in der Datenbank.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">222</td>
+      <td class="code-cell t-statement">           EXEC SQL</td>
+      <td class="expl-cell">Startet die Datenbankoperation zur Aktualisierung des bestehenden Betrugsdatensatzes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">                UPDATE CARDDEMO.AUTHFRDS</td>
+      <td class="expl-cell">Zieldatensatz in der Betrugsdatenbank CARDDEMO.AUTHFRDS, der aktualisiert werden soll.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">                   SET   AUTH_FRAUD     = :AUTH-FRAUD,</td>
+      <td class="expl-cell">Überschreibt das gespeicherte Betrugskennzeichen mit dem neuen Status ('F' = betrügerisch oder 'R' = Betrugsmeldung zurückgezogen).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">                         FRAUD_RPT_DATE = CURRENT DATE</td>
+      <td class="expl-cell">Setzt das Meldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">226</td>
+      <td class="code-cell t-statement">                   WHERE CARD_NUM = :CARD-NUM</td>
+      <td class="expl-cell">Schränkt die Aktualisierung auf den Datensatz der betroffenen Kreditkartennummer ein.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">227</td>
+      <td class="code-cell t-statement">                     AND AUTH_TS  = TIMESTAMP_FORMAT (:AUTH-TS,</td>
+      <td class="expl-cell">Schränkt die Aktualisierung zusätzlich auf den exakten Autorisierungszeitpunkt ein, um eindeutig die richtige Transaktion zu identifizieren.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">228</td>
+      <td class="code-cell t-statement">                                           'YY-MM-DD HH24.MI.SSNNNNNN')</td>
+      <td class="expl-cell">Wandelt den gespeicherten Autorisierungszeitstempel in das DB2-Timestamp-Format um, damit der Datenbankvergleich korrekt durchgeführt werden kann.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">229</td>
+      <td class="code-cell t-statement">           END-EXEC</td>
+      <td class="expl-cell">Abschluss der Datenbankoperation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">230</td>
+      <td class="code-cell t-statement">           IF SQLCODE = ZERO</td>
+      <td class="expl-cell">Prüft, ob die Aktualisierung des Betrugseintrags in der Datenbank erfolgreich abgeschlossen wurde.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">              SET WS-FRD-UPDT-SUCCESS TO TRUE</td>
+      <td class="expl-cell">Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">232</td>
+      <td class="code-cell t-statement">              MOVE 'UPDT SUCCESS'     TO WS-FRD-ACT-MSG</td>
+      <td class="expl-cell">Setzt die Rückmeldung an das aufrufende Programm COPAUS1C auf 'UPDT SUCCESS', um die erfolgreiche Aktualisierung des Betrugseintrags zu bestätigen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Behandelt den Fall, dass die Datenbankaktualisierung fehlgeschlagen ist.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">234</td>
+      <td class="code-cell t-statement">              SET WS-FRD-UPDT-FAILED  TO TRUE</td>
+      <td class="expl-cell">Kennzeichnet die Datenbankoperation intern als fehlgeschlagen, um nachgelagerte Fehlerbehandlung zu ermöglichen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">235</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">              MOVE SQLCODE            TO WS-SQLCODE</td>
+      <td class="expl-cell">Sichert den technischen DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">237</td>
+      <td class="code-cell t-statement">              MOVE SQLSTATE           TO WS-SQLSTATE</td>
+      <td class="expl-cell">Sichert den DB2-Statuscode (SQLSTATE) für eine detailliertere Fehlerdiagnose.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">238</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">239</td>
+      <td class="code-cell t-statement">              STRING ' UPDT ERROR DB2: CODE:' WS-SQLCODE</td>
+      <td class="expl-cell">Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und Statuscode für die Rückmeldung an COPAUS1C.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">240</td>
+      <td class="code-cell t-statement">                     ', STATE: ' WS-SQLSTATE   DELIMITED BY SIZE</td>
+      <td class="expl-cell">Fügt den DB2-Statuscode zur Fehlermeldung hinzu, um eine vollständige Fehlerdiagnose zu ermöglichen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">241</td>
+      <td class="code-cell t-statement">              INTO WS-FRD-ACT-MSG</td>
+      <td class="expl-cell">Schreibt die zusammengesetzte Fehlermeldung in das Rückgabefeld für das aufrufende Programm COPAUS1C.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">242</td>
+      <td class="code-cell t-statement">              END-STRING</td>
+      <td class="expl-cell">Abschluss der Fehlermeldungs-Zusammensetzung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Abschluss der Erfolgs-/Fehlerbehandlung nach der Datenbankaktualisierung.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-FRAUD-UPDATE">
+      <td class="ln">244</td>
+      <td class="code-cell t-statement">           .</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Übergeordnete Gruppenstruktur für alle internen Arbeitsvariablen des Programms COPAUS2C, die zur Verarbeitung der Betrugsmeldung benötigt werden.</td>
+    </tr>
+    
+    <tr id="var-WS-PGMNAME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-PGMNAME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">COPAUS2C</td>
+      <td class="var-desc">Interner Programmname, der zur Identifikation des Moduls in Fehlerprotokollen und Systemaufrufen verwendet wird. Ermöglicht die eindeutige Zuordnung von Fehlermeldungen zu diesem Service-Baustein.</td>
+    </tr>
+    
+    <tr id="var-WS-LENGTH">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-LENGTH
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) COMP</td>
+      <td class="var-pic">ZERO</td>
+      <td class="var-desc">Längenfeld für CICS-Kommunikationsaufrufe, z.B. zur Übergabe der COMMAREA-Länge beim Aufruf durch COPAUS1C. Wird für die korrekte Datenübertragung zwischen den Programmen benötigt.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-TIME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-AUTH-TIME
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Berechneter Autorisierungszeitpunkt als numerischer Wert, der aus dem komprimierten Zeitfeld der Originalnachricht rekonstruiert wird (999999999 minus PA-AUTH-TIME-9C). Dient als Zwischenwert zur Umwandlung in den lesbaren Timestamp WS-AUTH-TS.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-TIME-AN">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-AUTH-TIME-AN
+        
+        <br><span class="var-group">REDEFINES WS-AUTH-TIME</span>
+      </td>
+      <td class="var-pic">PIC X(09)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Alphanumerische Sicht auf den berechneten Autorisierungszeitpunkt. Ermöglicht den zeichenweisen Zugriff auf die einzelnen Zeitkomponenten (Stunden, Minuten, Sekunden), um diese in die formatierte Timestamp-Struktur WS-AUTH-TS zu übertragen.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-TS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-AUTH-TS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Vollständiger, lesbarer Autorisierungszeitstempel im Format 'YY-MM-DD HH.MI.SS.SSS', der als eindeutiger Schlüssel der Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert wird. Ermöglicht die revisionssichere Zuordnung der Betrugsmeldung zur exakten Originaltransaktion.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-YY">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-YY
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Jahreszahl (zweistellig) des Autorisierungszeitpunkts, z.B. '24' für 2024. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">'-'</td>
+      <td class="var-desc">Trennzeichen '-' zwischen Jahr und Monat im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-MM">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-MM
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Monat (zweistellig) des Autorisierungszeitpunkts, z.B. '03' für März. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">'-'</td>
+      <td class="var-desc">Trennzeichen '-' zwischen Monat und Tag im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-DD">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-DD
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Tag (zweistellig) des Autorisierungszeitpunkts, z.B. '15'. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">' '</td>
+      <td class="var-desc">Leerzeichen als Trennzeichen zwischen Datums- und Zeitanteil im Autorisierungszeitstempel. Trennt 'YY-MM-DD' von 'HH.MI.SS' für die lesbare Darstellung.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-HH">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-HH
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Stunde (zweistellig, 24h-Format) des Autorisierungszeitpunkts, z.B. '14'. Ermöglicht die genaue zeitliche Einordnung der Transaktion für die Betrugsdokumentation.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">'.'</td>
+      <td class="var-desc">Trennzeichen '.' zwischen Stunden und Minuten im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-MI">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-MI
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Minute (zweistellig) des Autorisierungszeitpunkts, z.B. '32'. Teil des präzisen Zeitstempels zur revisionssicheren Dokumentation des exakten Transaktionszeitpunkts.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">'.'</td>
+      <td class="var-desc">Trennzeichen '.' zwischen Minuten und Sekunden im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-SS">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-SS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Sekunde (zweistellig) des Autorisierungszeitpunkts, z.B. '47'. Ermöglicht zusammen mit den Millisekunden die sekundengenaue Identifikation der Transaktion als eindeutiger Schlüssel in der Betrugsdatenbank.</td>
+    </tr>
+    
+    <tr id="var-WS-AUTH-SSS">
+      <td class="var-level">10</td>
+      <td class="var-name">WS-AUTH-SSS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(03)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Millisekunden (dreistellig) des Autorisierungszeitpunkts. Erhöht die Eindeutigkeit des Timestamps als Schlüssel in der Betrugsdatenbank, um Kollisionen bei Transaktionen innerhalb derselben Sekunde zu vermeiden.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">10</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(03)</td>
+      <td class="var-pic">'000'</td>
+      <td class="var-desc">Auffüllwert '000' für den Mikrosekunden-Anteil des DB2-Timestamps. Da die Originalnachricht keine Mikrosekunden liefert, wird dieser Anteil fest auf null gesetzt, um das vollständige DB2-Timestamp-Format zu erfüllen.</td>
+    </tr>
+    
+    <tr id="var-WS-ERR-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERR-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">'N'</td>
+      <td class="var-desc">Fehlerindikator für die Verarbeitungssteuerung: Zeigt an, ob während der Datenbankoperation ein Fehler aufgetreten ist. Steuert den weiteren Programmablauf und die Rückmeldung an das aufrufende Programm COPAUS1C.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'Y'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass ein Fehler bei der Persistierung der Betrugsmeldung aufgetreten ist. Löst die Fehlerbehandlung aus und führt zur Rückmeldung eines Fehlerstatus an COPAUS1C.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-OF">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-OF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'N'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass die Datenbankoperation fehlerfrei verlaufen ist. Ermöglicht die Rückmeldung eines Erfolgsstatus ('ADD SUCCESS' oder 'UPDT SUCCESS') an das aufrufende Programm COPAUS1C.</td>
+    </tr>
+    
+    <tr id="var-WS-SQLCODE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-SQLCODE
+        
+        
+      </td>
+      <td class="var-pic">PIC +9(06)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Formatierter DB2-Rückgabecode für Protokollierungs- und Fehlermeldungszwecke. Enthält den SQLCODE als lesbaren Wert mit Vorzeichen, um im Fehlerfall eine aussagekräftige Fehlermeldung an COPAUS1C zurückzugeben (z.B. -803 bei Duplikat-Eintrag).</td>
+    </tr>
+    
+    <tr id="var-WS-SQLSTATE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-SQLSTATE
+        
+        
+      </td>
+      <td class="var-pic">PIC +9(09)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Formatierter DB2-SQLSTATE-Code für erweiterte Fehlerdiagnose. Ergänzt den SQLCODE um einen standardisierten Statuscode, der bei der Fehleranalyse der Datenbankoperation (INSERT/UPDATE in CARDDEMO.AUTHFRDS) hilft.</td>
+    </tr>
+    
+    <tr id="var-WS-ABS-TIME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ABS-TIME
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(15) COMP-3</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Absoluter Systemzeitstempel, der über CICS ASKTIME ermittelt wird. Dient als Grundlage zur Ermittlung des aktuellen Systemdatums (WS-CUR-DATE), das als Betrugsmeldedatum (PA-FRAUD-RPT-DATE) revisionssicher in der Datenbank gespeichert wird.</td>
+    </tr>
+    
+    <tr id="var-WS-CUR-DATE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CUR-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">Aktuelles Systemdatum zum Zeitpunkt der Betrugsmeldung im Format YYYYMMDD. Wird als Betrugsmeldedatum in der Datenbank gespeichert, um den genauen Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.</td>
+    </tr>
+    
+    <tr id="var-DFHCOMMAREA">
+      <td class="var-level">01</td>
+      <td class="var-name">DFHCOMMAREA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">CICS-Kommunikationsbereich für den Datenaustausch zwischen dem aufrufenden Programm COPAUS1C (Detailansicht) und diesem Service-Baustein. Enthält alle Ein- und Ausgabedaten der Betrugsmeldung: Kontodaten, Transaktionsdaten sowie das Ergebnis der Datenbankoperation.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCT-ID">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-ACCT-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(11)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Kontonummer des betroffenen Kreditkartenkontos. Wird zusammen mit der Kartennummer und dem Autorisierungszeitpunkt zur eindeutigen Identifikation der betrügerischen Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert.</td>
+    </tr>
+    
+    <tr id="var-WS-CUST-ID">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-CUST-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(9)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Kundennummer des Karteninhabers, dessen Transaktion als betrügerisch gemeldet oder entmarkiert wird. Wird in der Betrugsdatenbank gespeichert, um die vollständige Betrugsdokumentation dem richtigen Kunden zuordnen zu können.</td>
+    </tr>
+    
+    <tr id="var-WS-FRAUD-AUTH-RECORD">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-FRAUD-AUTH-RECORD
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Gruppenstruktur, die alle Transaktionsdaten der zu meldenden oder zu entmarkierenden Autorisierungstransaktion enthält (via COPY CIPAUDTY eingebunden). Liefert Händlerdaten, Betrag, Kartennummer und Autorisierungsdetails für die vollständige Betrugsdokumentation in CARDDEMO.AUTHFRDS.</td>
+    </tr>
+    
+    <tr id="var-WS-FRAUD-STATUS-RECORD">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-FRAUD-STATUS-RECORD
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Gruppenstruktur für die Steuerung und Rückmeldung der Betrugsaktion. Enthält die gewünschte Aktion (Melden oder Zurückziehen), das Ergebnis der Datenbankoperation sowie eine fachliche Rückmeldung an COPAUS1C.</td>
+    </tr>
+    
+    <tr id="var-WS-FRD-ACTION">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-FRD-ACTION
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Steuerfeld für die gewünschte Betrugsaktion, das von COPAUS1C gesetzt wird: 'F' = Transaktion als betrügerisch in CARDDEMO.AUTHFRDS melden, 'R' = bestehende Betrugsmeldung zurückziehen. Bestimmt, welches Betrugskennzeichen in der Datenbank gespeichert wird.</td>
+    </tr>
+    
+    <tr id="var-WS-REPORT-FRAUD">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-REPORT-FRAUD
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'F'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass die Transaktion als betrügerisch gemeldet werden soll. Löst einen INSERT oder UPDATE in CARDDEMO.AUTHFRDS mit dem Betrugskennzeichen 'F' aus.</td>
+    </tr>
+    
+    <tr id="var-WS-REMOVE-FRAUD">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-REMOVE-FRAUD
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'R'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass eine bestehende Betrugsmeldung zurückgezogen werden soll. Löst einen UPDATE in CARDDEMO.AUTHFRDS mit dem Kennzeichen 'R' aus, um den Betrugsstatus der Transaktion zu korrigieren.</td>
+    </tr>
+    
+    <tr id="var-WS-FRD-UPDATE-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-FRD-UPDATE-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Ergebnisstatus der Datenbankoperation, der nach der Persistierung an COPAUS1C zurückgegeben wird: 'S' = Betrugsmeldung erfolgreich gespeichert oder aktualisiert, 'F' = Datenbankoperation fehlgeschlagen. Ermöglicht COPAUS1C die korrekte Rückmeldung an den Sachbearbeiter.</td>
+    </tr>
+    
+    <tr id="var-WS-FRD-UPDT-SUCCESS">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-FRD-UPDT-SUCCESS
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'S'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass die Betrugsmeldung oder -entmarkierung erfolgreich in CARDDEMO.AUTHFRDS persistiert wurde. Führt zur Rückmeldung 'ADD SUCCESS' (Neuanlage) oder 'UPDT SUCCESS' (Aktualisierung) an COPAUS1C.</td>
+    </tr>
+    
+    <tr id="var-WS-FRD-UPDT-FAILED">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-FRD-UPDT-FAILED
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">'F'</td>
+      <td class="var-desc">Bedingungsname: Signalisiert, dass die Datenbankoperation fehlgeschlagen ist. Führt zur Rückmeldung einer Fehlerbeschreibung an COPAUS1C, damit der Sachbearbeiter über den Misserfolg der Betrugsmeldung informiert wird.</td>
+    </tr>
+    
+    <tr id="var-WS-FRD-ACT-MSG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-FRD-ACT-MSG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(50)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Fachliche Rückmeldung im Klartext an das aufrufende Programm COPAUS1C, z.B. 'ADD SUCCESS' bei erfolgreicher Neuanlage, 'UPDT SUCCESS' bei erfolgreicher Aktualisierung oder eine Fehlerbeschreibung mit SQLCODE bei gescheiterter Datenbankoperation. Dient der Anzeige des Verarbeitungsergebnisses für den Sachbearbeiter.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/app-authorization-ims-db2-mq/cbl/COPAUS2C.cbl
+  </footer>
+
+</main>
+</body>
+</html>
