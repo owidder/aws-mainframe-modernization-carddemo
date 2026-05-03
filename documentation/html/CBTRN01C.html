@@ -1,0 +1,4645 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBTRN01C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-1000-DALYTRAN-GET-NEXT">1000-DALYTRAN-GET-NEXT</a>
+  
+  <a href="#para-2000-LOOKUP-XREF">2000-LOOKUP-XREF</a>
+  
+  <a href="#para-3000-READ-ACCOUNT">3000-READ-ACCOUNT</a>
+  
+  <a href="#para-0000-DALYTRAN-OPEN">0000-DALYTRAN-OPEN</a>
+  
+  <a href="#para-0100-CUSTFILE-OPEN">0100-CUSTFILE-OPEN</a>
+  
+  <a href="#para-0200-XREFFILE-OPEN">0200-XREFFILE-OPEN</a>
+  
+  <a href="#para-0300-CARDFILE-OPEN">0300-CARDFILE-OPEN</a>
+  
+  <a href="#para-0400-ACCTFILE-OPEN">0400-ACCTFILE-OPEN</a>
+  
+  <a href="#para-0500-TRANFILE-OPEN">0500-TRANFILE-OPEN</a>
+  
+  <a href="#para-9000-DALYTRAN-CLOSE">9000-DALYTRAN-CLOSE</a>
+  
+  <a href="#para-9100-CUSTFILE-CLOSE">9100-CUSTFILE-CLOSE</a>
+  
+  <a href="#para-9200-XREFFILE-CLOSE">9200-XREFFILE-CLOSE</a>
+  
+  <a href="#para-9300-CARDFILE-CLOSE">9300-CARDFILE-CLOSE</a>
+  
+  <a href="#para-9400-ACCTFILE-CLOSE">9400-ACCTFILE-CLOSE</a>
+  
+  <a href="#para-9500-TRANFILE-CLOSE">9500-TRANFILE-CLOSE</a>
+  
+  <a href="#para-Z-ABEND-PROGRAM">Z-ABEND-PROGRAM</a>
+  
+  <a href="#para-Z-DISPLAY-IO-STATUS">Z-DISPLAY-IO-STATUS</a>
+  
+  
+
+  
+  <h2>Variables (55)</h2>
+  
+  <a href="#var-FD-TRAN-RECORD">FD-TRAN-RECORD</a>
+  
+  <a href="#var-FD-TRAN-ID">FD-TRAN-ID</a>
+  
+  <a href="#var-FD-CUST-DATA">FD-CUST-DATA</a>
+  
+  <a href="#var-FD-CUSTFILE-REC">FD-CUSTFILE-REC</a>
+  
+  <a href="#var-FD-CUST-ID">FD-CUST-ID</a>
+  
+  <a href="#var-FD-CUST-DATA">FD-CUST-DATA</a>
+  
+  <a href="#var-FD-XREFFILE-REC">FD-XREFFILE-REC</a>
+  
+  <a href="#var-FD-XREF-CARD-NUM">FD-XREF-CARD-NUM</a>
+  
+  <a href="#var-FD-XREF-DATA">FD-XREF-DATA</a>
+  
+  <a href="#var-FD-CARDFILE-REC">FD-CARDFILE-REC</a>
+  
+  <a href="#var-FD-CARD-NUM">FD-CARD-NUM</a>
+  
+  <a href="#var-FD-CARD-DATA">FD-CARD-DATA</a>
+  
+  <a href="#var-FD-ACCTFILE-REC">FD-ACCTFILE-REC</a>
+  
+  <a href="#var-FD-ACCT-ID">FD-ACCT-ID</a>
+  
+  <a href="#var-FD-ACCT-DATA">FD-ACCT-DATA</a>
+  
+  <a href="#var-FD-TRANFILE-REC">FD-TRANFILE-REC</a>
+  
+  <a href="#var-FD-TRANS-ID">FD-TRANS-ID</a>
+  
+  <a href="#var-FD-ACCT-DATA">FD-ACCT-DATA</a>
+  
+  <a href="#var-DALYTRAN-STATUS">DALYTRAN-STATUS</a>
+  
+  <a href="#var-DALYTRAN-STAT1">DALYTRAN-STAT1</a>
+  
+  <a href="#var-DALYTRAN-STAT2">DALYTRAN-STAT2</a>
+  
+  <a href="#var-CUSTFILE-STATUS">CUSTFILE-STATUS</a>
+  
+  <a href="#var-CUSTFILE-STAT1">CUSTFILE-STAT1</a>
+  
+  <a href="#var-CUSTFILE-STAT2">CUSTFILE-STAT2</a>
+  
+  <a href="#var-XREFFILE-STATUS">XREFFILE-STATUS</a>
+  
+  <a href="#var-XREFFILE-STAT1">XREFFILE-STAT1</a>
+  
+  <a href="#var-XREFFILE-STAT2">XREFFILE-STAT2</a>
+  
+  <a href="#var-CARDFILE-STATUS">CARDFILE-STATUS</a>
+  
+  <a href="#var-CARDFILE-STAT1">CARDFILE-STAT1</a>
+  
+  <a href="#var-CARDFILE-STAT2">CARDFILE-STAT2</a>
+  
+  <a href="#var-ACCTFILE-STATUS">ACCTFILE-STATUS</a>
+  
+  <a href="#var-ACCTFILE-STAT1">ACCTFILE-STAT1</a>
+  
+  <a href="#var-ACCTFILE-STAT2">ACCTFILE-STAT2</a>
+  
+  <a href="#var-TRANFILE-STATUS">TRANFILE-STATUS</a>
+  
+  <a href="#var-TRANFILE-STAT1">TRANFILE-STAT1</a>
+  
+  <a href="#var-TRANFILE-STAT2">TRANFILE-STAT2</a>
+  
+  <a href="#var-IO-STATUS">IO-STATUS</a>
+  
+  <a href="#var-IO-STAT1">IO-STAT1</a>
+  
+  <a href="#var-IO-STAT2">IO-STAT2</a>
+  
+  <a href="#var-TWO-BYTES-BINARY">TWO-BYTES-BINARY</a>
+  
+  
+  <a style="color:var(--comment);font-style:italic;">… and 15 more</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>CBTRN01C.CBL</h1>
+    <p>Batch program that reads daily credit card transactions and validates each transaction by verifying the card number and resolving it to a customer account, as a precursor to posting.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">The program sequentially reads all transactions from the daily transaction file and, for each transaction, performs a two-step lookup: first it uses the card number to find the corresponding account and customer via a cross-reference file, then it retrieves the full account record from the account master file. Transactions where the card number cannot be found in the cross-reference are flagged and skipped, while transactions where the resolved account cannot be found in the account file are also flagged. The program appears to be an earlier or lighter version of CBTRN02C, focused on the validation and lookup phase rather than the full posting of balances — it opens the transaction posting file but does not appear to write to it in the visible code. All files are opened in read-only (INPUT) mode, suggesting this may be a validation/reconciliation pass rather than a full posting run.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Every transaction must have a valid, recognisable card number — if the card number cannot be found in the cross-reference file, the transaction is skipped and not posted</li><li>Every card number must resolve to a valid, existing account — if the account cannot be found in the account master file, the transaction is flagged with an error message</li><li>Transactions are processed strictly in the sequential order they appear in the daily transaction file — no sorting or prioritisation is applied</li><li>Any file I/O error (other than end-of-file) on the daily transaction file causes an immediate abnormal termination (abend) of the program, protecting data integrity</li><li>The card-to-account cross-reference is the authoritative source for linking a card number to an account and customer — the card number alone is not sufficient to identify an account</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">DALYTRAN</td>
+            <td style="color:var(--subtext);">Daily transaction file — the source file containing all credit card transactions to be processed for the day</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CUSTFILE</td>
+            <td style="color:var(--subtext);">Customer master file — holds customer demographic and profile records, referenced by customer ID</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">XREFFILE</td>
+            <td style="color:var(--subtext);">Card-to-account cross-reference file — maps a credit card number to its associated account ID and customer ID</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CARDFILE</td>
+            <td style="color:var(--subtext);">Card master file — holds credit card records including card status and attributes</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">ACCTFILE</td>
+            <td style="color:var(--subtext);">Account master file — holds credit card account records including balances and credit limits</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">TRANFILE</td>
+            <td style="color:var(--subtext);">Transaction history file — the indexed file where validated/posted transactions are stored as permanent records</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Transaction</span>
+      
+      <span class="badge badge-copy">COPY CVTRA06Y</span>
+      
+      <span class="badge badge-copy">COPY CVCUS01Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT03Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT02Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT01Y</span>
+      
+      <span class="badge badge-copy">COPY CVTRA05Y</span>
+      
+      <span class="badge badge-meta">494 lines</span>
+      <span class="badge badge-meta">55 variables</span>
+      <span class="badge badge-meta">18 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA is the master orchestration routine for the daily transaction validation batch run. It opens all required files, drives a sequential loop that validates every transaction's card number and resolves it to a live account, then closes all files and terminates cleanly.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 155–201</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1000-DALYTRAN-GET-NEXT">
+    <h3><a href="#code-para-1000-DALYTRAN-GET-NEXT" style="color:inherit;text-decoration:none;">1000-DALYTRAN-GET-NEXT</a></h3>
+    <p>This paragraph advances the batch process by reading the next credit card transaction from the daily transaction file, then evaluates the outcome to either continue processing, signal that all transactions have been consumed, or halt the entire batch run if an unexpected file error occurs.</p>
+    <div class="para-meta"><a href="#code-para-1000-DALYTRAN-GET-NEXT" style="color:inherit;">Lines 202–226</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2000-LOOKUP-XREF">
+    <h3><a href="#code-para-2000-LOOKUP-XREF" style="color:inherit;text-decoration:none;">2000-LOOKUP-XREF</a></h3>
+    <p>This paragraph performs the authoritative lookup that links a credit card number to its owning account and customer by querying the card-to-account cross-reference file. It is the critical validation gate that determines whether a transaction can proceed to posting or must be skipped.</p>
+    <div class="para-meta"><a href="#code-para-2000-LOOKUP-XREF" style="color:inherit;">Lines 227–240</a></div>
+  </div>
+  
+  <div class="para-card" id="para-3000-READ-ACCOUNT">
+    <h3><a href="#code-para-3000-READ-ACCOUNT" style="color:inherit;text-decoration:none;">3000-READ-ACCOUNT</a></h3>
+    <p>Retrieves the full account record from the account master file using the account ID resolved from the card cross-reference lookup. If the account cannot be found, the transaction is flagged as invalid and will not be posted.</p>
+    <div class="para-meta"><a href="#code-para-3000-READ-ACCOUNT" style="color:inherit;">Lines 241–251</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0000-DALYTRAN-OPEN">
+    <h3><a href="#code-para-0000-DALYTRAN-OPEN" style="color:inherit;text-decoration:none;">0000-DALYTRAN-OPEN</a></h3>
+    <p>This paragraph opens the daily credit card transaction file in preparation for the batch validation run. If the file cannot be opened successfully, the program immediately halts to prevent any processing against an unavailable or corrupt transaction source.</p>
+    <div class="para-meta"><a href="#code-para-0000-DALYTRAN-OPEN" style="color:inherit;">Lines 252–270</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0100-CUSTFILE-OPEN">
+    <h3><a href="#code-para-0100-CUSTFILE-OPEN" style="color:inherit;text-decoration:none;">0100-CUSTFILE-OPEN</a></h3>
+    <p>This paragraph opens the customer master file so that customer profile data is available for transaction validation. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions without access to customer records.</p>
+    <div class="para-meta"><a href="#code-para-0100-CUSTFILE-OPEN" style="color:inherit;">Lines 271–288</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0200-XREFFILE-OPEN">
+    <h3><a href="#code-para-0200-XREFFILE-OPEN" style="color:inherit;text-decoration:none;">0200-XREFFILE-OPEN</a></h3>
+    <p>This paragraph opens the card-to-account cross-reference file in preparation for transaction validation. It is a critical startup step — if the cross-reference file cannot be opened, the entire batch run is immediately aborted, since no transaction can be validated without it.</p>
+    <div class="para-meta"><a href="#code-para-0200-XREFFILE-OPEN" style="color:inherit;">Lines 289–306</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0300-CARDFILE-OPEN">
+    <h3><a href="#code-para-0300-CARDFILE-OPEN" style="color:inherit;text-decoration:none;">0300-CARDFILE-OPEN</a></h3>
+    <p>This paragraph opens the credit card master file so that card records can be read during transaction validation. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions without access to card data.</p>
+    <div class="para-meta"><a href="#code-para-0300-CARDFILE-OPEN" style="color:inherit;">Lines 307–324</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0400-ACCTFILE-OPEN">
+    <h3><a href="#code-para-0400-ACCTFILE-OPEN" style="color:inherit;text-decoration:none;">0400-ACCTFILE-OPEN</a></h3>
+    <p>Opens the account master file so that account records can be retrieved and validated during transaction processing. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions against an inaccessible or potentially corrupt account store.</p>
+    <div class="para-meta"><a href="#code-para-0400-ACCTFILE-OPEN" style="color:inherit;">Lines 325–342</a></div>
+  </div>
+  
+  <div class="para-card" id="para-0500-TRANFILE-OPEN">
+    <h3><a href="#code-para-0500-TRANFILE-OPEN" style="color:inherit;text-decoration:none;">0500-TRANFILE-OPEN</a></h3>
+    <p>This paragraph opens the transaction history file in preparation for the batch run, ensuring the permanent transaction store is accessible before processing begins. If the file cannot be opened, the program halts immediately to prevent any processing against an unavailable or corrupt transaction store.</p>
+    <div class="para-meta"><a href="#code-para-0500-TRANFILE-OPEN" style="color:inherit;">Lines 343–360</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9000-DALYTRAN-CLOSE">
+    <h3><a href="#code-para-9000-DALYTRAN-CLOSE" style="color:inherit;text-decoration:none;">9000-DALYTRAN-CLOSE</a></h3>
+    <p>This paragraph closes the daily transaction file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates abnormally to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-9000-DALYTRAN-CLOSE" style="color:inherit;">Lines 361–378</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9100-CUSTFILE-CLOSE">
+    <h3><a href="#code-para-9100-CUSTFILE-CLOSE" style="color:inherit;text-decoration:none;">9100-CUSTFILE-CLOSE</a></h3>
+    <p>This paragraph safely closes the customer master file at the end of batch processing, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and halts immediately to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-9100-CUSTFILE-CLOSE" style="color:inherit;">Lines 379–396</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9200-XREFFILE-CLOSE">
+    <h3><a href="#code-para-9200-XREFFILE-CLOSE" style="color:inherit;text-decoration:none;">9200-XREFFILE-CLOSE</a></h3>
+    <p>This paragraph safely closes the card-to-account cross-reference file once all transaction lookups are complete, ensuring the file is properly released and terminating the program abnormally if the closure fails to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-9200-XREFFILE-CLOSE" style="color:inherit;">Lines 397–414</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9300-CARDFILE-CLOSE">
+    <h3><a href="#code-para-9300-CARDFILE-CLOSE" style="color:inherit;text-decoration:none;">9300-CARDFILE-CLOSE</a></h3>
+    <p>This paragraph safely closes the credit card master file after all card lookups have been completed, ensuring the file is properly released. If the file cannot be closed cleanly, the program halts immediately to prevent data corruption or resource leaks.</p>
+    <div class="para-meta"><a href="#code-para-9300-CARDFILE-CLOSE" style="color:inherit;">Lines 415–432</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9400-ACCTFILE-CLOSE">
+    <h3><a href="#code-para-9400-ACCTFILE-CLOSE" style="color:inherit;text-decoration:none;">9400-ACCTFILE-CLOSE</a></h3>
+    <p>This paragraph safely closes the account master file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates immediately to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-9400-ACCTFILE-CLOSE" style="color:inherit;">Lines 433–450</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9500-TRANFILE-CLOSE">
+    <h3><a href="#code-para-9500-TRANFILE-CLOSE" style="color:inherit;text-decoration:none;">9500-TRANFILE-CLOSE</a></h3>
+    <p>Closes the transaction history file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates abnormally to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-9500-TRANFILE-CLOSE" style="color:inherit;">Lines 451–468</a></div>
+  </div>
+  
+  <div class="para-card" id="para-Z-ABEND-PROGRAM">
+    <h3><a href="#code-para-Z-ABEND-PROGRAM" style="color:inherit;text-decoration:none;">Z-ABEND-PROGRAM</a></h3>
+    <p>This paragraph performs an immediate, controlled abnormal termination of the batch program when a critical, unrecoverable error is detected. It ensures the failure is clearly signalled to the operations team and the job scheduler, preventing any further processing that could compromise data integrity.</p>
+    <div class="para-meta"><a href="#code-para-Z-ABEND-PROGRAM" style="color:inherit;">Lines 469–475</a></div>
+  </div>
+  
+  <div class="para-card" id="para-Z-DISPLAY-IO-STATUS">
+    <h3><a href="#code-para-Z-DISPLAY-IO-STATUS" style="color:inherit;text-decoration:none;">Z-DISPLAY-IO-STATUS</a></h3>
+    <p>This paragraph formats and displays a human-readable file status code to the system log whenever a file I/O operation produces an error, supporting operator diagnosis and audit of file processing failures during the batch run.</p>
+    <div class="para-meta"><a href="#code-para-Z-DISPLAY-IO-STATUS" style="color:inherit;">Lines 476–494</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program     : CBTRN01C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Type        : BATCH COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Function    : Post the records from daily transaction file.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID.    CBTRN01C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.        AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       INPUT-OUTPUT SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-code">       FILE-CONTROL.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-code">           SELECT DALYTRAN-FILE ASSIGN TO DALYTRAN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS DALYTRAN-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-code">           SELECT CUSTOMER-FILE ASSIGN TO   CUSTFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS RANDOM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-CUST-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS CUSTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-code">           SELECT XREF-FILE ASSIGN TO   XREFFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS RANDOM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-XREF-CARD-NUM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS XREFFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-code">           SELECT CARD-FILE ASSIGN TO   CARDFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS RANDOM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-CARD-NUM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS CARDFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-code">           SELECT ACCOUNT-FILE ASSIGN TO   ACCTFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS RANDOM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-ACCT-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS ACCTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-code">           SELECT TRANSACT-FILE ASSIGN TO   TRANFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-code">                  ACCESS MODE  IS RANDOM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-code">                  RECORD KEY   IS FD-TRANS-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-code">                  FILE STATUS  IS TRANFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-section-header">       FILE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-code">       FD  DALYTRAN-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">       01  FD-TRAN-RECORD.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-variable-declaration">           05 FD-TRAN-ID                        PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-variable-declaration">           05 FD-CUST-DATA                      PIC X(334).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-code">       FD  CUSTOMER-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-variable-declaration">       01  FD-CUSTFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-variable-declaration">           05 FD-CUST-ID                        PIC 9(09).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">           05 FD-CUST-DATA                      PIC X(491).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-code">       FD  XREF-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-variable-declaration">       01  FD-XREFFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-variable-declaration">           05 FD-XREF-CARD-NUM                  PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">           05 FD-XREF-DATA                      PIC X(34).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-code">       FD  CARD-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-variable-declaration">       01  FD-CARDFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-variable-declaration">           05 FD-CARD-NUM                       PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-variable-declaration">           05 FD-CARD-DATA                      PIC X(134).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-code">       FD  ACCOUNT-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-variable-declaration">       01  FD-ACCTFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-variable-declaration">           05 FD-ACCT-ID                        PIC 9(11).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">89</td>
+      <td class="code-cell t-variable-declaration">           05 FD-ACCT-DATA                      PIC X(289).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">90</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">91</td>
+      <td class="code-cell t-code">       FD  TRANSACT-FILE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">92</td>
+      <td class="code-cell t-variable-declaration">       01  FD-TRANFILE-REC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">93</td>
+      <td class="code-cell t-variable-declaration">           05 FD-TRANS-ID                       PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">94</td>
+      <td class="code-cell t-variable-declaration">           05 FD-ACCT-DATA                      PIC X(334).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">95</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">96</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">97</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">98</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">99</td>
+      <td class="code-cell t-copy-statement">       COPY CVTRA06Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">100</td>
+      <td class="code-cell t-variable-declaration">       01  DALYTRAN-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">101</td>
+      <td class="code-cell t-variable-declaration">           05  DALYTRAN-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">102</td>
+      <td class="code-cell t-variable-declaration">           05  DALYTRAN-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">103</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">104</td>
+      <td class="code-cell t-copy-statement">       COPY CVCUS01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">105</td>
+      <td class="code-cell t-variable-declaration">       01  CUSTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">106</td>
+      <td class="code-cell t-variable-declaration">           05  CUSTFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">107</td>
+      <td class="code-cell t-variable-declaration">           05  CUSTFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">108</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">109</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT03Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">110</td>
+      <td class="code-cell t-variable-declaration">       01  XREFFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">111</td>
+      <td class="code-cell t-variable-declaration">           05  XREFFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">112</td>
+      <td class="code-cell t-variable-declaration">           05  XREFFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">113</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">114</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT02Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">115</td>
+      <td class="code-cell t-variable-declaration">       01  CARDFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">116</td>
+      <td class="code-cell t-variable-declaration">           05  CARDFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">117</td>
+      <td class="code-cell t-variable-declaration">           05  CARDFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">118</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">119</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">120</td>
+      <td class="code-cell t-variable-declaration">       01  ACCTFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">121</td>
+      <td class="code-cell t-variable-declaration">           05  ACCTFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">122</td>
+      <td class="code-cell t-variable-declaration">           05  ACCTFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">123</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">124</td>
+      <td class="code-cell t-copy-statement">       COPY CVTRA05Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">125</td>
+      <td class="code-cell t-variable-declaration">       01  TRANFILE-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">126</td>
+      <td class="code-cell t-variable-declaration">           05  TRANFILE-STAT1      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">127</td>
+      <td class="code-cell t-variable-declaration">           05  TRANFILE-STAT2      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">128</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">129</td>
+      <td class="code-cell t-variable-declaration">       01  IO-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">130</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STAT1            PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">131</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STAT2            PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">132</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">133</td>
+      <td class="code-cell t-variable-declaration">       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">134</td>
+      <td class="code-cell t-variable-declaration">       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">135</td>
+      <td class="code-cell t-variable-declaration">           05  TWO-BYTES-LEFT      PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">136</td>
+      <td class="code-cell t-variable-declaration">           05  TWO-BYTES-RIGHT     PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">137</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">138</td>
+      <td class="code-cell t-variable-declaration">       01  IO-STATUS-04.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">139</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STATUS-0401      PIC 9   VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">140</td>
+      <td class="code-cell t-variable-declaration">           05  IO-STATUS-0403      PIC 999 VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">141</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">142</td>
+      <td class="code-cell t-variable-declaration">       01  APPL-RESULT             PIC S9(9)   COMP.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">143</td>
+      <td class="code-cell t-variable-declaration">           88  APPL-AOK            VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">144</td>
+      <td class="code-cell t-variable-declaration">           88  APPL-EOF            VALUE 16.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">145</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">146</td>
+      <td class="code-cell t-variable-declaration">       01  END-OF-DAILY-TRANS-FILE             PIC X(01)    VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">147</td>
+      <td class="code-cell t-variable-declaration">       01  ABCODE                  PIC S9(9) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">148</td>
+      <td class="code-cell t-variable-declaration">       01  TIMING                  PIC S9(9) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">149</td>
+      <td class="code-cell t-variable-declaration">       01  WS-MISC-VARIABLES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">150</td>
+      <td class="code-cell t-variable-declaration">           05 WS-XREF-READ-STATUS  PIC 9(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">151</td>
+      <td class="code-cell t-variable-declaration">           05 WS-ACCT-READ-STATUS  PIC 9(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">152</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">153</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">154</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">155</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
+      <td class="expl-cell">Entry point of the program — all batch processing begins here.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">           DISPLAY 'START OF EXECUTION OF PROGRAM CBTRN01C'.</td>
+      <td class="expl-cell">Writes a start-of-run marker to the system log so operators can confirm the batch job launched successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">157</td>
+      <td class="code-cell t-statement">           PERFORM 0000-DALYTRAN-OPEN.</td>
+      <td class="expl-cell">Opens the daily transaction file so the program can begin reading today's credit card transactions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">           PERFORM 0100-CUSTFILE-OPEN.</td>
+      <td class="expl-cell">Opens the customer master file so customer profile records are available for reference during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">           PERFORM 0200-XREFFILE-OPEN.</td>
+      <td class="expl-cell">Opens the card-to-account cross-reference file, which is the authoritative source for linking a card number to an account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">           PERFORM 0300-CARDFILE-OPEN.</td>
+      <td class="expl-cell">Opens the card master file so individual card attributes and status information are accessible.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">           PERFORM 0400-ACCTFILE-OPEN.</td>
+      <td class="expl-cell">Opens the account master file so full account records, including balances and credit limits, can be retrieved.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">162</td>
+      <td class="code-cell t-statement">           PERFORM 0500-TRANFILE-OPEN.</td>
+      <td class="expl-cell">Opens the transaction history file where validated transactions would be permanently recorded.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">163</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">           PERFORM UNTIL END-OF-DAILY-TRANS-FILE = 'Y'</td>
+      <td class="expl-cell">Begins the main processing loop — continues reading and validating transactions until every record in the daily file has been processed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">165</td>
+      <td class="code-cell t-statement">               IF  END-OF-DAILY-TRANS-FILE = 'N'</td>
+      <td class="expl-cell">Guards against re-processing after the end of the daily transaction file has been reached — ensures only live, unprocessed transactions are handled.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">                   PERFORM 1000-DALYTRAN-GET-NEXT</td>
+      <td class="expl-cell">Reads the next credit card transaction from the daily file for validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">                   IF  END-OF-DAILY-TRANS-FILE = 'N'</td>
+      <td class="expl-cell">Confirms a valid transaction record was actually retrieved before attempting to process it — skips display if the file is now exhausted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">                       DISPLAY DALYTRAN-RECORD</td>
+      <td class="expl-cell">Prints the full transaction details to the system log for audit and traceability purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">                   END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">                   MOVE 0                 TO WS-XREF-READ-STATUS</td>
+      <td class="expl-cell">Resets the cross-reference lookup outcome to 'success' before attempting the card number lookup, ensuring no stale result from a prior transaction influences this one.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">                   MOVE DALYTRAN-CARD-NUM TO XREF-CARD-NUM</td>
+      <td class="expl-cell">Loads the card number from the current transaction into the cross-reference lookup key, preparing to identify which account this card belongs to.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">                   PERFORM 2000-LOOKUP-XREF</td>
+      <td class="expl-cell">Performs the cross-reference lookup to resolve the card number to its associated account and customer.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">                   IF WS-XREF-READ-STATUS = 0</td>
+      <td class="expl-cell">Checks whether the card number was successfully found in the cross-reference — only proceeds with account retrieval if the card is recognised.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">                     MOVE 0            TO WS-ACCT-READ-STATUS</td>
+      <td class="expl-cell">Resets the account retrieval outcome to 'success' before attempting to fetch the account record, ensuring a clean state for this lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">175</td>
+      <td class="code-cell t-statement">                     MOVE XREF-ACCT-ID TO ACCT-ID</td>
+      <td class="expl-cell">Loads the account ID resolved from the cross-reference into the account lookup key, preparing to retrieve the full account record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">                     PERFORM 3000-READ-ACCOUNT</td>
+      <td class="expl-cell">Retrieves the full account record from the account master file using the account ID resolved from the card cross-reference.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">                     IF WS-ACCT-READ-STATUS NOT = 0</td>
+      <td class="expl-cell">Checks whether the account record was actually found — flags the situation if the resolved account does not exist in the master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">                         DISPLAY 'ACCOUNT ' ACCT-ID ' NOT FOUND'</td>
+      <td class="expl-cell">Writes an error message to the system log identifying the specific account that could not be located, so operations staff can investigate.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">                     END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">                   ELSE</td>
+      <td class="expl-cell">Handles the case where the card number could not be resolved — the transaction cannot be processed without a valid card-to-account link.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">                     DISPLAY 'CARD NUMBER ' DALYTRAN-CARD-NUM</td>
+      <td class="expl-cell">Writes a warning to the system log identifying the unrecognised card number that triggered the skip.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">                     ' COULD NOT BE VERIFIED. SKIPPING TRANSACTION ID-'</td>
+      <td class="expl-cell">Continues the warning message, explaining that the transaction is being skipped because the card could not be verified.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">                     DALYTRAN-ID</td>
+      <td class="expl-cell">Appends the unique transaction identifier to the warning message so the specific skipped transaction can be traced in the audit log.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">                   END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">           END-PERFORM.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">187</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">           PERFORM 9000-DALYTRAN-CLOSE.</td>
+      <td class="expl-cell">Closes the daily transaction file after all records have been processed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">           PERFORM 9100-CUSTFILE-CLOSE.</td>
+      <td class="expl-cell">Closes the customer master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">           PERFORM 9200-XREFFILE-CLOSE.</td>
+      <td class="expl-cell">Closes the card-to-account cross-reference file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">           PERFORM 9300-CARDFILE-CLOSE.</td>
+      <td class="expl-cell">Closes the card master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">           PERFORM 9400-ACCTFILE-CLOSE.</td>
+      <td class="expl-cell">Closes the account master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">193</td>
+      <td class="code-cell t-statement">           PERFORM 9500-TRANFILE-CLOSE.</td>
+      <td class="expl-cell">Closes the transaction history file.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">194</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">195</td>
+      <td class="code-cell t-statement">           DISPLAY 'END OF EXECUTION OF PROGRAM CBTRN01C'.</td>
+      <td class="expl-cell">Writes an end-of-run marker to the system log so operators can confirm the batch job completed normally.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">196</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">197</td>
+      <td class="code-cell t-statement">           GOBACK.</td>
+      <td class="expl-cell">Returns control to the operating system, signalling a clean and orderly end to the batch program.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">198</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">199</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">200</td>
+      <td class="code-cell t-comment">      * READS FILE                                                    *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">201</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">202</td>
+      <td class="code-cell t-paragraph-header">       1000-DALYTRAN-GET-NEXT.</td>
+      <td class="expl-cell">Entry point for the routine that fetches the next daily transaction to be validated.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">           READ DALYTRAN-FILE INTO DALYTRAN-RECORD.</td>
+      <td class="expl-cell">Reads the next credit card transaction record from the daily transaction file into working memory for processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">           IF  DALYTRAN-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the transaction was read successfully without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">205</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the read operation completed successfully — the transaction is available for validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">206</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">207</td>
+      <td class="code-cell t-statement">               IF  DALYTRAN-STATUS = '10'</td>
+      <td class="expl-cell">Checks whether the file has been fully exhausted, meaning there are no more transactions left to process today.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">                   MOVE 16 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the end of the daily transaction file has been reached — the batch loop should stop.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">210</td>
+      <td class="code-cell t-statement">                   MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that an unexpected, unrecoverable file error occurred while trying to read a transaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">211</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Checks whether the last read operation completed without any issue, allowing normal processing to continue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">214</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — the transaction was read successfully and processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">215</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">               IF  APPL-EOF</td>
+      <td class="expl-cell">Checks whether the daily transaction file has been fully processed with no more records remaining.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">217</td>
+      <td class="code-cell t-statement">                   MOVE 'Y' TO END-OF-DAILY-TRANS-FILE</td>
+      <td class="expl-cell">Signals to the main processing loop that all of today's transactions have been read and the batch run should conclude.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">218</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">                   DISPLAY 'ERROR READING DAILY TRANSACTION FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that a serious, unexpected failure occurred while reading the daily transaction file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">                   MOVE DALYTRAN-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file error code so it can be displayed in the diagnostic output for investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">221</td>
+      <td class="code-cell t-statement">                   PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed technical file status information to assist operations staff in diagnosing the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">222</td>
+      <td class="code-cell t-statement">                   PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Immediately terminates the entire batch program abnormally to prevent any further processing on a corrupted or unreadable transaction file, protecting data integrity.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this routine and returns control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-DALYTRAN-GET-NEXT">
+      <td class="ln">226</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">227</td>
+      <td class="code-cell t-paragraph-header">       2000-LOOKUP-XREF.</td>
+      <td class="expl-cell">Entry point for the cross-reference lookup step, executed once per transaction read from the daily transaction file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">228</td>
+      <td class="code-cell t-statement">           MOVE XREF-CARD-NUM TO FD-XREF-CARD-NUM</td>
+      <td class="expl-cell">Positions the cross-reference file index using the card number extracted from the current transaction, so the correct cross-reference record can be retrieved.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">229</td>
+      <td class="code-cell t-statement">           READ XREF-FILE  RECORD INTO CARD-XREF-RECORD</td>
+      <td class="expl-cell">Attempts to retrieve the cross-reference record that maps the transaction's card number to an account and customer.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">230</td>
+      <td class="code-cell t-statement">           KEY IS FD-XREF-CARD-NUM</td>
+      <td class="expl-cell">Specifies that the search key for this lookup is the credit card number from the current transaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">                INVALID KEY</td>
+      <td class="expl-cell">Begins handling the case where the card number does not exist in the cross-reference file — meaning the card is unrecognised.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">232</td>
+      <td class="code-cell t-statement">                  DISPLAY 'INVALID CARD NUMBER FOR XREF'</td>
+      <td class="expl-cell">Writes a diagnostic message to the system log indicating that the card number on the transaction could not be matched to any known account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">                  MOVE 4 TO WS-XREF-READ-STATUS</td>
+      <td class="expl-cell">Marks the cross-reference lookup as failed (not found), signalling downstream logic to skip this transaction rather than attempt posting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">234</td>
+      <td class="code-cell t-statement">                NOT INVALID KEY</td>
+      <td class="expl-cell">Begins handling the successful case where the card number was found and resolved to a known account and customer.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">235</td>
+      <td class="code-cell t-statement">                  DISPLAY 'SUCCESSFUL READ OF XREF'</td>
+      <td class="expl-cell">Writes a confirmation message to the system log indicating the card number was successfully validated against the cross-reference.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">                  DISPLAY 'CARD NUMBER: ' XREF-CARD-NUM</td>
+      <td class="expl-cell">Logs the validated credit card number to the system output for audit and traceability purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">237</td>
+      <td class="code-cell t-statement">                  DISPLAY 'ACCOUNT ID : ' XREF-ACCT-ID</td>
+      <td class="expl-cell">Logs the resolved account identifier to the system output, confirming which account this transaction will be applied to.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">238</td>
+      <td class="code-cell t-statement">                  DISPLAY 'CUSTOMER ID: ' XREF-CUST-ID</td>
+      <td class="expl-cell">Logs the resolved customer identifier to the system output, confirming which cardholder is associated with this transaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">239</td>
+      <td class="code-cell t-statement">           END-READ.</td>
+      <td class="expl-cell">Closes the conditional read block, completing the cross-reference lookup attempt for the current transaction.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-LOOKUP-XREF">
+      <td class="ln">240</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">241</td>
+      <td class="code-cell t-paragraph-header">       3000-READ-ACCOUNT.</td>
+      <td class="expl-cell">Entry point for the account lookup step — executed once per transaction after the card number has been successfully resolved to an account ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">242</td>
+      <td class="code-cell t-statement">           MOVE ACCT-ID TO FD-ACCT-ID</td>
+      <td class="expl-cell">Prepares the account master file search by loading the account ID (previously resolved from the card cross-reference) as the lookup key.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">           READ ACCOUNT-FILE RECORD INTO ACCOUNT-RECORD</td>
+      <td class="expl-cell">Attempts to retrieve the full account record — including balances and credit limits — from the account master file using the resolved account ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">244</td>
+      <td class="code-cell t-statement">           KEY IS FD-ACCT-ID</td>
+      <td class="expl-cell">Specifies that the search is performed by account ID, ensuring the correct account record is targeted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">                INVALID KEY</td>
+      <td class="expl-cell">Begins the error handling branch triggered when no matching account record exists in the account master file for the resolved account ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">246</td>
+      <td class="code-cell t-statement">                  DISPLAY 'INVALID ACCOUNT NUMBER FOUND'</td>
+      <td class="expl-cell">Writes an alert to the system log indicating that the account ID resolved from the cross-reference does not correspond to any known account — signalling a data integrity issue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">247</td>
+      <td class="code-cell t-statement">                  MOVE 4 TO WS-ACCT-READ-STATUS</td>
+      <td class="expl-cell">Marks the account lookup as failed (not found), so the calling logic can identify this transaction as unresolvable and skip it from posting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">248</td>
+      <td class="code-cell t-statement">                NOT INVALID KEY</td>
+      <td class="expl-cell">Begins the success branch executed when a matching account record is successfully located in the account master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">249</td>
+      <td class="code-cell t-statement">                  DISPLAY 'SUCCESSFUL READ OF ACCOUNT FILE'</td>
+      <td class="expl-cell">Writes a confirmation to the system log indicating the account record was retrieved successfully and the transaction can proceed to the next validation step.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">250</td>
+      <td class="code-cell t-statement">           END-READ.</td>
+      <td class="expl-cell">Closes the account file read operation, completing the lookup attempt regardless of whether the account was found or not.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-READ-ACCOUNT">
+      <td class="ln">251</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">252</td>
+      <td class="code-cell t-paragraph-header">       0000-DALYTRAN-OPEN.</td>
+      <td class="expl-cell">Entry point for the routine that opens the daily transaction file before batch processing begins.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">253</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Sets the processing status to a pending/uncertain state (8) before attempting to open the file, ensuring no false success is assumed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">           OPEN INPUT DALYTRAN-FILE</td>
+      <td class="expl-cell">Opens the daily credit card transaction file in read-only mode, ready for sequential processing of today's transactions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">255</td>
+      <td class="code-cell t-statement">           IF  DALYTRAN-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the daily transaction file opened successfully without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">256</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a successful file-open outcome, allowing batch processing to proceed normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">257</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">258</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a failed file-open outcome (code 12), signalling that the transaction file is unavailable and processing cannot continue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">259</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">260</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file opened successfully and the batch run is safe to proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">261</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — the file is open and the program can move on to reading transactions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">262</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">263</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING DAILY TRANSACTION FILE'</td>
+      <td class="expl-cell">Writes a human-readable error message to the operator log indicating the daily transaction file could not be opened.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">264</td>
+      <td class="code-cell t-statement">               MOVE DALYTRAN-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed to help diagnose why the file failed to open.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">265</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed technical file status code to the operator log to support error investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">266</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an abnormal termination of the batch job, preventing any further processing when the transaction source file is inaccessible.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">268</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-open routine and returns control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">269</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0000-DALYTRAN-OPEN">
+      <td class="ln">270</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">271</td>
+      <td class="code-cell t-paragraph-header">       0100-CUSTFILE-OPEN.</td>
+      <td class="expl-cell">Entry point for the routine that opens the customer master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Sets the operation's internal status to a pending/unknown state before attempting to open the file, ensuring no stale result is carried forward.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">273</td>
+      <td class="code-cell t-statement">           OPEN INPUT CUSTOMER-FILE</td>
+      <td class="expl-cell">Opens the customer master file in read-only mode, making customer profile records accessible for lookup during transaction validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">274</td>
+      <td class="code-cell t-statement">           IF  CUSTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the customer master file opened successfully without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">275</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file opened successfully, allowing processing to continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">276</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">277</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure code indicating the customer master file could not be opened, which will trigger an abnormal termination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">279</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file open operation completed without error before deciding how to proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action is taken — processing continues normally because the customer master file is available.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING CUSTOMER FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log to alert operators that the customer master file could not be opened.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">               MOVE CUSTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed in a diagnostic message for operator investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error code to the operator log to assist in diagnosing why the customer master file failed to open.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">285</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Immediately terminates the entire batch run abnormally, preventing any transactions from being processed without access to customer data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">286</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">287</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-open routine and returns control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0100-CUSTFILE-OPEN">
+      <td class="ln">288</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">289</td>
+      <td class="code-cell t-paragraph-header">       0200-XREFFILE-OPEN.</td>
+      <td class="expl-cell">Entry point for the routine that opens the card-to-account cross-reference file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Sets the internal processing status to a 'pending/unknown' state before attempting to open the file, ensuring no false success is assumed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">291</td>
+      <td class="code-cell t-statement">           OPEN INPUT XREF-FILE</td>
+      <td class="expl-cell">Opens the card-to-account cross-reference file in read-only mode, ready for card number lookups during transaction validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">292</td>
+      <td class="code-cell t-statement">           IF  XREFFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the cross-reference file opened successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file opened successfully, allowing processing to continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Handles the case where the file did not open successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure status, signalling that the cross-reference file is unavailable and the batch cannot proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the success/failure evaluation block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">297</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Checks whether the cross-reference file is confirmed open and ready for use.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">298</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — processing continues normally when the file is available.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">299</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Handles the failure path when the cross-reference file could not be opened.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">300</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING CROSS REF FILE'</td>
+      <td class="expl-cell">Writes a human-readable error message to the operator log, identifying that the card-to-account cross-reference file failed to open.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">301</td>
+      <td class="code-cell t-statement">               MOVE XREFFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed for diagnosis by operations staff.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">302</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed technical file error code to assist support teams in diagnosing the root cause of the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the batch program, preventing any transaction processing from occurring without a valid cross-reference file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">304</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the failure-handling block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">305</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-open routine, returning control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0200-XREFFILE-OPEN">
+      <td class="ln">306</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">307</td>
+      <td class="code-cell t-paragraph-header">       0300-CARDFILE-OPEN.</td>
+      <td class="expl-cell">Entry point for the routine that opens the credit card master file for reading.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">308</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Assumes the worst-case outcome (failure) before attempting to open the file, ensuring no false success is recorded.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">309</td>
+      <td class="code-cell t-statement">           OPEN INPUT CARD-FILE</td>
+      <td class="expl-cell">Opens the credit card master file in read-only mode, ready for card record lookups during transaction validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">310</td>
+      <td class="code-cell t-statement">           IF  CARDFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the credit card master file opened successfully without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">311</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a successful file-open outcome, allowing processing to continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">312</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">313</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure outcome, indicating the credit card master file could not be opened.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">314</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">315</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file-open attempt ended in a healthy, processable state.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">316</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — the file opened successfully and the batch can proceed with card lookups.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">317</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">318</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING CARD FILE'</td>
+      <td class="expl-cell">Writes a human-readable error message to the system log, alerting operators that the credit card master file is unavailable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">319</td>
+      <td class="code-cell t-statement">               MOVE CARDFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed in a diagnostic message for operator investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">320</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed technical file error code to assist operators in diagnosing why the credit card master file failed to open.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">321</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Immediately terminates the entire batch run abnormally, preventing any transaction processing from occurring without access to card data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">322</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">323</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-open routine and returns control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0300-CARDFILE-OPEN">
+      <td class="ln">324</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">325</td>
+      <td class="code-cell t-paragraph-header">       0400-ACCTFILE-OPEN.</td>
+      <td class="expl-cell">Entry point for the routine that opens the account master file in preparation for transaction validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">326</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Sets the operation's internal status to a 'pending/unknown' state before attempting to open the file, ensuring no stale success result is carried forward.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">327</td>
+      <td class="code-cell t-statement">           OPEN INPUT ACCOUNT-FILE</td>
+      <td class="expl-cell">Opens the account master file in read-only mode, making account records available for lookup during transaction validation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">328</td>
+      <td class="code-cell t-statement">           IF  ACCTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the account master file opened successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">329</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file opened successfully, allowing processing to continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">330</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">331</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure code indicating the account master file could not be opened.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">332</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">333</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Checks whether the file open operation completed without error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">334</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — the file is open and the program can proceed to validate transactions against account records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">335</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">336</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING ACCOUNT FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that the account master file is unavailable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">337</td>
+      <td class="code-cell t-statement">               MOVE ACCTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code for diagnostic display, so operators can identify the root cause of the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">338</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error code to the operator console to assist with troubleshooting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">339</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an abnormal termination of the entire batch run, preventing any transactions from being processed without access to account records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">340</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">341</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-open routine and returns control to the calling process.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0400-ACCTFILE-OPEN">
+      <td class="ln">342</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">343</td>
+      <td class="code-cell t-paragraph-header">       0500-TRANFILE-OPEN.</td>
+      <td class="expl-cell">Entry point for the paragraph that opens the transaction history file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">344</td>
+      <td class="code-cell t-statement">           MOVE 8 TO APPL-RESULT.</td>
+      <td class="expl-cell">Assumes the worst-case outcome (failure) before attempting to open the file, ensuring no false success is recorded if the open is never attempted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">345</td>
+      <td class="code-cell t-statement">           OPEN INPUT TRANSACT-FILE</td>
+      <td class="expl-cell">Attempts to open the transaction history file — the permanent indexed store where validated transactions are recorded — in read-only mode.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">346</td>
+      <td class="code-cell t-statement">           IF  TRANFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the transaction history file opened successfully without any file system errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">347</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Confirms a successful open by recording a clean status, allowing processing to continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">348</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">349</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure code indicating the transaction history file could not be opened, triggering the error path.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">350</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">351</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file open completed without error and the batch run may safely proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">352</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action needed — the file is open and the batch can continue to the next step.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">353</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">354</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR OPENING TRANSACTION FILE'</td>
+      <td class="expl-cell">Writes a human-readable error message to the operator console identifying that the transaction history file failed to open.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">355</td>
+      <td class="code-cell t-statement">               MOVE TRANFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed to help diagnose the root cause of the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">356</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error code to the operator console to support investigation and resolution.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">357</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the batch program, preventing any processing from continuing without access to the transaction history file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">358</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">359</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this paragraph and returns control to the calling routine.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0500-TRANFILE-OPEN">
+      <td class="ln">360</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">361</td>
+      <td class="code-cell t-paragraph-header">       9000-DALYTRAN-CLOSE.</td>
+      <td class="expl-cell">Entry point for the routine responsible for closing the daily transaction file after all transactions have been processed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">362</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Assumes a failure state by default before attempting to close the file, ensuring any unexpected outcome is treated as an error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">363</td>
+      <td class="code-cell t-statement">           CLOSE DALYTRAN-FILE</td>
+      <td class="expl-cell">Closes the daily transaction file, releasing it from the batch job and signalling the operating system that processing is complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">364</td>
+      <td class="code-cell t-statement">           IF  DALYTRAN-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the daily transaction file closed successfully without any I/O errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">365</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Confirms the file closure was successful by recording a clean completion status.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">366</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Handles the case where the file did not close successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">367</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure status indicating the daily transaction file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">368</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Ends the file closure status check.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">369</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Checks whether the overall file closure operation completed without errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">370</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action is taken when the file closes successfully — processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">371</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Handles the error path when the daily transaction file failed to close correctly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">372</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING CUSTOMER FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that the customer file could not be closed — note this message appears to reference the wrong file and may be a copy-paste defect.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">373</td>
+      <td class="code-cell t-statement">               MOVE CUSTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific I/O error code from the customer file status for diagnostic reporting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">374</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed I/O error information to assist operations staff in diagnosing the file closure failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">375</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Terminates the program abnormally, preventing any further processing and alerting operations to the unresolved file closure error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">376</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Ends the error-handling block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">377</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this paragraph and returns control to the calling routine.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9000-DALYTRAN-CLOSE">
+      <td class="ln">378</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">379</td>
+      <td class="code-cell t-paragraph-header">       9100-CUSTFILE-CLOSE.</td>
+      <td class="expl-cell">Entry point for the routine responsible for closing the customer master file after all processing is complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">380</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Initialises the operation outcome to a failure state as a precaution, so any unexpected path defaults to an error condition rather than a false success.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">381</td>
+      <td class="code-cell t-statement">           CLOSE CUSTOMER-FILE</td>
+      <td class="expl-cell">Closes the customer master file, releasing the file resource and signalling to the operating system that the batch program has finished reading customer records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">382</td>
+      <td class="code-cell t-statement">           IF  CUSTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the customer master file was closed successfully by the operating system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">383</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure completed successfully, clearing the precautionary failure state set earlier.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">384</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">385</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure failed, setting the outcome to a critical error code indicating a serious file handling problem.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">386</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Ends the success/failure evaluation of the file closure attempt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">387</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Checks whether the customer master file was closed without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">388</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">If the file closed successfully, no further action is needed and processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">389</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">390</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING CUSTOMER FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log alerting operations staff that the customer master file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">391</td>
+      <td class="code-cell t-statement">               MOVE CUSTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed in a human-readable diagnostic message for the operations team.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">392</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error code to help operations staff diagnose the exact cause of the file closure failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">393</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Immediately terminates the batch program abnormally, ensuring the failure is visible to job schedulers and operations staff and preventing any further processing in an unsafe state.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">394</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Ends the error-handling block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">395</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this paragraph, returning control to the calling routine.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9100-CUSTFILE-CLOSE">
+      <td class="ln">396</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">397</td>
+      <td class="code-cell t-paragraph-header">       9200-XREFFILE-CLOSE.</td>
+      <td class="expl-cell">Entry point for the routine responsible for closing the card-to-account cross-reference file at the end of batch processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">398</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Pre-sets the operation result to a failure state before attempting the file closure, ensuring any unexpected path is treated as an error by default.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">399</td>
+      <td class="code-cell t-statement">           CLOSE XREF-FILE</td>
+      <td class="expl-cell">Closes the card-to-account cross-reference file, releasing it from the batch job so no further card number lookups can be performed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">400</td>
+      <td class="code-cell t-statement">           IF  XREFFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the cross-reference file closed successfully without any system-level errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">401</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure completed successfully, allowing the program to continue its normal shutdown sequence.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">402</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">403</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure encountered an error, flagging the shutdown as failed for subsequent error handling.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">404</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">405</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the cross-reference file was closed without error before deciding how to proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">406</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No action is taken — the file closed cleanly and the program can continue its normal end-of-job processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">407</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">408</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING CROSS REF FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that the cross-reference file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">409</td>
+      <td class="code-cell t-statement">               MOVE XREFFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed in a standardised diagnostic format for operations staff.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">410</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error information to assist operations staff in diagnosing the closure failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">411</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Forces an immediate abnormal termination of the batch job, preventing any further processing and ensuring the failure is visible for investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">412</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">413</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this paragraph and returns control to the calling routine if the file closed successfully.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9200-XREFFILE-CLOSE">
+      <td class="ln">414</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">415</td>
+      <td class="code-cell t-paragraph-header">       9300-CARDFILE-CLOSE.</td>
+      <td class="expl-cell">Entry point for the routine responsible for closing the credit card master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">416</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Assumes failure by default before attempting the close — a defensive measure ensuring any unexpected exit is treated as an error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">417</td>
+      <td class="code-cell t-statement">           CLOSE CARD-FILE</td>
+      <td class="expl-cell">Releases the credit card master file, signalling to the operating system that the program has finished reading card records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">418</td>
+      <td class="code-cell t-statement">           IF  CARDFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the credit card master file was closed successfully without any system-level errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">419</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Confirms the close operation succeeded — the file has been cleanly released.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">420</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">421</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file close operation failed, flagging a critical file-handling error for subsequent checks.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">422</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">423</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file was closed without error before deciding how to proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">424</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">No further action needed — the credit card master file closed successfully and processing can continue normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">425</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">426</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING CARD FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that the credit card master file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">427</td>
+      <td class="code-cell t-statement">               MOVE CARDFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed for diagnosis by operations staff.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">428</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file error code to the system log to assist technical staff in diagnosing the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">429</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an abnormal program termination, halting the batch run immediately to prevent further processing in an unstable state.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">430</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">431</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this file-close routine and returns control to the calling paragraph.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9300-CARDFILE-CLOSE">
+      <td class="ln">432</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">433</td>
+      <td class="code-cell t-paragraph-header">       9400-ACCTFILE-CLOSE.</td>
+      <td class="expl-cell">Entry point for the account master file closure routine.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">434</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Initialises the operation outcome to a failure state as a precaution, so any unexpected path is treated as an error by default.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">435</td>
+      <td class="code-cell t-statement">           CLOSE ACCOUNT-FILE</td>
+      <td class="expl-cell">Closes the account master file, releasing the file resource back to the operating system after all account lookups are complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">436</td>
+      <td class="code-cell t-statement">           IF  ACCTFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the account master file was closed successfully by the operating system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">437</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure completed successfully, allowing normal processing to continue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">438</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">439</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure failed, flagging the operation as critically unsuccessful.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">440</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">441</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file closure completed without error before deciding how to proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">442</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">If the closure was successful, no further action is needed and processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">443</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">444</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING ACCOUNT FILE'</td>
+      <td class="expl-cell">Writes an error message to the system log indicating that the account master file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">445</td>
+      <td class="code-cell t-statement">               MOVE ACCTFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed for diagnosis by operations staff.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">446</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error code to the operator log to assist in diagnosing the closure failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">447</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an abnormal program termination, halting the batch job immediately to prevent any further processing in an unsafe state.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">448</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">449</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this paragraph and returns control to the calling routine if closure was successful.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9400-ACCTFILE-CLOSE">
+      <td class="ln">450</td>
+      <td class="code-cell t-comment">      *---------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">451</td>
+      <td class="code-cell t-paragraph-header">       9500-TRANFILE-CLOSE.</td>
+      <td class="expl-cell">Entry point for the routine that shuts down access to the transaction history file after batch processing is complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">452</td>
+      <td class="code-cell t-statement">           ADD 8 TO ZERO GIVING APPL-RESULT.</td>
+      <td class="expl-cell">Pre-sets the operation outcome to a failure state, ensuring any unexpected path is treated as an error rather than a silent success.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">453</td>
+      <td class="code-cell t-statement">           CLOSE TRANSACT-FILE</td>
+      <td class="expl-cell">Releases the transaction history file, signalling to the operating system that the batch program has finished accessing it.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">454</td>
+      <td class="code-cell t-statement">           IF  TRANFILE-STATUS = '00'</td>
+      <td class="expl-cell">Checks whether the file was closed successfully by the system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">455</td>
+      <td class="code-cell t-statement">               MOVE 0 TO APPL-RESULT</td>
+      <td class="expl-cell">Records that the file closure completed without error, confirming the transaction history file was safely released.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">456</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">457</td>
+      <td class="code-cell t-statement">               MOVE 12 TO APPL-RESULT</td>
+      <td class="expl-cell">Records a critical failure code indicating the transaction history file could not be closed properly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">458</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">459</td>
+      <td class="code-cell t-statement">           IF  APPL-AOK</td>
+      <td class="expl-cell">Evaluates whether the file closure was successful before allowing the program to continue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">460</td>
+      <td class="code-cell t-statement">               CONTINUE</td>
+      <td class="expl-cell">If the closure succeeded, no further action is needed and processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">461</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">462</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR CLOSING TRANSACTION FILE'</td>
+      <td class="expl-cell">Writes an alert to the system log indicating that the transaction history file failed to close, flagging a potential data integrity risk.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">463</td>
+      <td class="code-cell t-statement">               MOVE TRANFILE-STATUS TO IO-STATUS</td>
+      <td class="expl-cell">Captures the specific file system error code so it can be displayed for diagnosis by operations staff.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">464</td>
+      <td class="code-cell t-statement">               PERFORM Z-DISPLAY-IO-STATUS</td>
+      <td class="expl-cell">Displays the detailed file system error information to assist technical staff in identifying the root cause of the closure failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">465</td>
+      <td class="code-cell t-statement">               PERFORM Z-ABEND-PROGRAM</td>
+      <td class="expl-cell">Terminates the program abnormally, preventing any further processing and ensuring the failure is escalated for immediate investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">466</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">467</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Marks the end of this routine, returning control to the calling process if normal termination occurred.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-9500-TRANFILE-CLOSE">
+      <td class="ln">468</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">469</td>
+      <td class="code-cell t-paragraph-header">       Z-ABEND-PROGRAM.</td>
+      <td class="expl-cell">Entry point for the emergency shutdown routine, invoked whenever a fatal processing error is encountered.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">470</td>
+      <td class="code-cell t-statement">           DISPLAY 'ABENDING PROGRAM'</td>
+      <td class="expl-cell">Writes a clear message to the system log so operators monitoring the batch job are immediately alerted that the program is terminating abnormally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">471</td>
+      <td class="code-cell t-statement">           MOVE 0 TO TIMING</td>
+      <td class="expl-cell">Specifies that the abnormal termination should occur immediately at the current point of failure, with no deferred or timed delay.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">472</td>
+      <td class="code-cell t-statement">           MOVE 999 TO ABCODE</td>
+      <td class="expl-cell">Sets a recognisable failure code (999) that will appear in the job log and abend report, allowing operations staff to identify this as a critical batch processing failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">473</td>
+      <td class="code-cell t-statement">           CALL 'CEE3ABD' USING ABCODE, TIMING.</td>
+      <td class="expl-cell">Calls the IBM Language Environment utility to force an immediate abnormal termination of the program, using the failure code and timing settings above, so the job scheduler registers the job as failed and downstream dependent jobs are held.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">474</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-Z-ABEND-PROGRAM">
+      <td class="ln">475</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">476</td>
+      <td class="code-cell t-paragraph-header">       Z-DISPLAY-IO-STATUS.</td>
+      <td class="expl-cell">Entry point for the file error status reporting routine.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">477</td>
+      <td class="code-cell t-statement">           IF  IO-STATUS NOT NUMERIC</td>
+      <td class="expl-cell">Checks whether the file status code returned by the operating system is non-numeric — a sign of a severe or system-level I/O error rather than a standard application-level condition.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">478</td>
+      <td class="code-cell t-statement">           OR  IO-STAT1 = '9'</td>
+      <td class="expl-cell">Also triggers the special formatting path if the status indicates a hardware or system-level failure (status category 9), which requires a different decoding method than standard file status codes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">479</td>
+      <td class="code-cell t-statement">               MOVE IO-STAT1 TO IO-STATUS-04(1:1)</td>
+      <td class="expl-cell">Captures the primary error category digit of the file status into the first position of the display buffer being assembled for the operator message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">480</td>
+      <td class="code-cell t-statement">               MOVE 0        TO TWO-BYTES-BINARY</td>
+      <td class="expl-cell">Clears a binary working area to zero in preparation for converting the secondary error detail byte into a printable numeric value.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">481</td>
+      <td class="code-cell t-statement">               MOVE IO-STAT2 TO TWO-BYTES-RIGHT</td>
+      <td class="expl-cell">Loads the secondary error detail byte — which carries the specific system error sub-code — into the low-order position of the binary conversion area.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">482</td>
+      <td class="code-cell t-statement">               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403</td>
+      <td class="expl-cell">Converts the raw binary system error sub-code into a numeric value that can be displayed meaningfully in the operator error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">483</td>
+      <td class="code-cell t-statement">               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04</td>
+      <td class="expl-cell">Writes the fully assembled four-digit file status code to the system log, allowing operators and support staff to identify the exact nature of the file failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">484</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell">Begins the alternative path for standard, numeric file status codes that do not represent system-level failures.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">485</td>
+      <td class="code-cell t-statement">               MOVE '0000' TO IO-STATUS-04</td>
+      <td class="expl-cell">Initialises the display buffer to zeros, ensuring no residual data contaminates the status code shown to the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">486</td>
+      <td class="code-cell t-statement">               MOVE IO-STATUS TO IO-STATUS-04(3:2)</td>
+      <td class="expl-cell">Inserts the two-digit standard file status code into the correct position within the four-character display buffer so it is presented in a consistent format.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">487</td>
+      <td class="code-cell t-statement">               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04</td>
+      <td class="expl-cell">Writes the formatted standard file status code to the system log, giving operators the information needed to determine whether the error is recoverable or requires intervention.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">488</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the conditional formatting logic.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">489</td>
+      <td class="code-cell t-statement">           EXIT.</td>
+      <td class="expl-cell">Returns control to the calling routine after the error status has been logged.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">490</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">491</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">492</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">493</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:28 CDT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-Z-DISPLAY-IO-STATUS">
+      <td class="ln">494</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-FD-TRAN-RECORD">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-TRAN-RECORD
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the transaction history file (TRANFILE). Represents the physical layout of a posted transaction record as it is written to permanent storage. Acts as the I/O bridge between working storage and the on-disk transaction history.</td>
+    </tr>
+    
+    <tr id="var-FD-TRAN-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-TRAN-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The unique transaction identifier in the transaction history file record. Serves as the indexed key that allows a specific posted transaction to be retrieved from the permanent transaction history file.</td>
+    </tr>
+    
+    <tr id="var-FD-CUST-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-CUST-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(334)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the transaction history file record beyond the transaction ID. Contains all other transaction details (type, amount, merchant, card number, timestamps, etc.) as a raw block, completing the 350-byte transaction record layout.</td>
+    </tr>
+    
+    <tr id="var-FD-CUSTFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-CUSTFILE-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the customer master file (CUSTFILE). Represents the physical layout of a customer record as read from disk, providing the I/O bridge to access cardholder demographic and profile information.</td>
+    </tr>
+    
+    <tr id="var-FD-CUST-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-CUST-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The unique customer identifier in the customer master file record. Serves as the indexed key used to locate a specific cardholder's profile record when verifying the customer associated with a transaction.</td>
+    </tr>
+    
+    <tr id="var-FD-CUST-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-CUST-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(491)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the customer master file record beyond the customer ID. Contains all other customer details (name, address, SSN, FICO score, etc.) as a raw block, completing the 500-byte customer record layout.</td>
+    </tr>
+    
+    <tr id="var-FD-XREFFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-XREFFILE-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the card-to-account cross-reference file (XREFFILE). Represents the physical layout of a cross-reference record as read from disk, enabling the program to map a credit card number to its associated account and customer.</td>
+    </tr>
+    
+    <tr id="var-FD-XREF-CARD-NUM">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-XREF-CARD-NUM
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The credit card number as stored in the cross-reference file record. Serves as the indexed key used to look up which account and customer a given card number belongs to — the primary linkage between a transaction's card number and the cardholder's account.</td>
+    </tr>
+    
+    <tr id="var-FD-XREF-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-XREF-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(34)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the cross-reference file record beyond the card number. Contains the associated customer ID and account ID as a raw block, completing the 50-byte cross-reference record layout.</td>
+    </tr>
+    
+    <tr id="var-FD-CARDFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-CARDFILE-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the card master file (CARDFILE). Represents the physical layout of a credit card record as read from disk, providing the I/O bridge to access card-level attributes such as status, CVV, and expiration date.</td>
+    </tr>
+    
+    <tr id="var-FD-CARD-NUM">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-CARD-NUM
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The credit card number as stored in the card master file record. Serves as the indexed key used to retrieve the full card record, enabling validation of card-level attributes (e.g., active status, expiration) for a transaction being processed.</td>
+    </tr>
+    
+    <tr id="var-FD-CARD-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-CARD-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(134)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the card master file record beyond the card number. Contains all other card attributes (account ID, CVV, embossed name, expiration date, active status, etc.) as a raw block, completing the 150-byte card record layout.</td>
+    </tr>
+    
+    <tr id="var-FD-ACCTFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-ACCTFILE-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the account master file (ACCTFILE). Represents the physical layout of a credit card account record as read from disk, providing the I/O bridge to access account balances, credit limits, and account status.</td>
+    </tr>
+    
+    <tr id="var-FD-ACCT-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-ACCT-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(11)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The unique account identifier in the account master file record. Serves as the indexed key used to retrieve the full account record for a cardholder, enabling verification that the account resolved from the cross-reference actually exists and is accessible.</td>
+    </tr>
+    
+    <tr id="var-FD-ACCT-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-ACCT-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(289)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the account master file record beyond the account ID. Contains all other account details (balance, credit limit, status, dates, etc.) as a raw block, completing the 300-byte account record layout.</td>
+    </tr>
+    
+    <tr id="var-FD-TRANFILE-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">FD-TRANFILE-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">File buffer record for the transaction history output file (TRANFILE). Represents the physical layout of a validated transaction record as it is written to the permanent transaction history, completing the posting process for each successfully validated transaction.</td>
+    </tr>
+    
+    <tr id="var-FD-TRANS-ID">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-TRANS-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The unique transaction identifier written to the transaction history file. Acts as the indexed key for the posted transaction record, enabling future retrieval of any specific transaction from the permanent history.</td>
+    </tr>
+    
+    <tr id="var-FD-ACCT-DATA">
+      <td class="var-level">05</td>
+      <td class="var-name">FD-ACCT-DATA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(334)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The remaining payload of the transaction history output record beyond the transaction ID. Contains all other transaction details (type, amount, merchant, card number, timestamps, etc.) as a raw block, completing the 350-byte posted transaction record layout.</td>
+    </tr>
+    
+    <tr id="var-DALYTRAN-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">DALYTRAN-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned by the operating system after every I/O operation on the daily transaction file (DALYTRAN). Used to determine whether each read succeeded, reached end-of-file, or encountered an error that would require aborting the batch run.</td>
+    </tr>
+    
+    <tr id="var-DALYTRAN-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">DALYTRAN-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the daily transaction file status code. A value of '0' indicates a successful read; '1' indicates end-of-file has been reached, signalling that all transactions for the day have been processed.</td>
+    </tr>
+    
+    <tr id="var-DALYTRAN-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">DALYTRAN-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the daily transaction file status code. Provides additional detail about the outcome of the I/O operation on the daily transaction file, used together with DALYTRAN-STAT1 to diagnose specific error conditions.</td>
+    </tr>
+    
+    <tr id="var-CUSTFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">CUSTFILE-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned after every I/O operation on the customer master file (CUSTFILE). Used to confirm whether a customer record was successfully retrieved or whether an error occurred during the customer lookup.</td>
+    </tr>
+    
+    <tr id="var-CUSTFILE-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">CUSTFILE-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the customer master file status code. A value of '0' indicates the customer record was found and read successfully; other values indicate the customer could not be located or an I/O error occurred.</td>
+    </tr>
+    
+    <tr id="var-CUSTFILE-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">CUSTFILE-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the customer master file status code. Provides supplementary detail about the result of the customer file I/O operation, used together with CUSTFILE-STAT1 for precise error diagnosis.</td>
+    </tr>
+    
+    <tr id="var-XREFFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">XREFFILE-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned after every I/O operation on the card-to-account cross-reference file (XREFFILE). Critical for determining whether a transaction's card number was successfully resolved to an account — a failed lookup means the transaction must be skipped.</td>
+    </tr>
+    
+    <tr id="var-XREFFILE-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">XREFFILE-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the cross-reference file status code. A value of '0' means the card number was found and the account/customer linkage was successfully resolved; other values indicate the card number is unrecognised and the transaction cannot be posted.</td>
+    </tr>
+    
+    <tr id="var-XREFFILE-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">XREFFILE-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the cross-reference file status code. Provides additional detail about the cross-reference lookup result, used together with XREFFILE-STAT1 to distinguish between 'not found' and other error conditions.</td>
+    </tr>
+    
+    <tr id="var-CARDFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">CARDFILE-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned after every I/O operation on the card master file (CARDFILE). Used to confirm whether a card record was successfully retrieved when validating card-level attributes for a transaction.</td>
+    </tr>
+    
+    <tr id="var-CARDFILE-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">CARDFILE-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the card master file status code. A value of '0' indicates the card record was found and read successfully; other values indicate the card could not be located or an I/O error occurred during card validation.</td>
+    </tr>
+    
+    <tr id="var-CARDFILE-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">CARDFILE-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the card master file status code. Provides supplementary detail about the card file I/O result, used together with CARDFILE-STAT1 for precise error diagnosis during card validation.</td>
+    </tr>
+    
+    <tr id="var-ACCTFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">ACCTFILE-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned after every I/O operation on the account master file (ACCTFILE). Used to verify whether the account resolved from the cross-reference actually exists in the account master — a failed lookup means the transaction cannot be posted.</td>
+    </tr>
+    
+    <tr id="var-ACCTFILE-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">ACCTFILE-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the account master file status code. A value of '0' means the account record was found and retrieved successfully; other values indicate the account does not exist or an I/O error occurred, triggering an error message for the transaction.</td>
+    </tr>
+    
+    <tr id="var-ACCTFILE-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">ACCTFILE-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the account master file status code. Provides additional detail about the account lookup result, used together with ACCTFILE-STAT1 to distinguish between 'account not found' and other error conditions.</td>
+    </tr>
+    
+    <tr id="var-TRANFILE-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">TRANFILE-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The two-character file status code returned after every I/O operation on the transaction history output file (TRANFILE). Used to confirm whether a validated transaction was successfully written to the permanent transaction history.</td>
+    </tr>
+    
+    <tr id="var-TRANFILE-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">TRANFILE-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the transaction history file status code. A value of '0' confirms the transaction was successfully posted to the permanent history file; other values indicate a write failure that would need to be investigated.</td>
+    </tr>
+    
+    <tr id="var-TRANFILE-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">TRANFILE-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the transaction history file status code. Provides supplementary detail about the write operation result, used together with TRANFILE-STAT1 for precise diagnosis of any posting failure.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">IO-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A general-purpose two-character I/O status holder used to capture and evaluate file operation results in a centralised error-handling routine. Consolidates status codes from any file into a single location for uniform error reporting and abend decisions.</td>
+    </tr>
+    
+    <tr id="var-IO-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">IO-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The first (major) character of the general I/O status code. Used in the centralised error handler to determine the broad category of any file operation failure across all files in the batch program.</td>
+    </tr>
+    
+    <tr id="var-IO-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">IO-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The second (minor) character of the general I/O status code. Provides additional detail to the centralised error handler, enabling precise identification of the specific I/O error condition that occurred.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-BINARY">
+      <td class="var-level">01</td>
+      <td class="var-name">TWO-BYTES-BINARY
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A two-byte binary work field used to convert a two-character file status code into a numeric value. Enables the program to perform arithmetic comparisons on I/O status codes for error evaluation and abend code generation.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-ALPHA">
+      <td class="var-level">01</td>
+      <td class="var-name">TWO-BYTES-ALPHA
+        <br><span class="var-group">Group field</span>
+        <br><span class="var-group">REDEFINES TWO-BYTES-BINARY</span>
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">An alphanumeric overlay of the TWO-BYTES-BINARY field. Allows the same two bytes of memory to be read as individual characters, so that a file status code (two characters) can be loaded into the binary field and then interpreted numerically for error handling.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-LEFT">
+      <td class="var-level">05</td>
+      <td class="var-name">TWO-BYTES-LEFT
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The left (first) character byte of the two-byte status conversion field. Receives the first character of a file status code so it can be combined with the right byte and interpreted as a binary number for error code processing.</td>
+    </tr>
+    
+    <tr id="var-TWO-BYTES-RIGHT">
+      <td class="var-level">05</td>
+      <td class="var-name">TWO-BYTES-RIGHT
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The right (second) character byte of the two-byte status conversion field. Receives the second character of a file status code so it can be combined with the left byte and interpreted as a binary number for error code processing.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS-04">
+      <td class="var-level">01</td>
+      <td class="var-name">IO-STATUS-04
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A structured work area used to decompose and display a numeric I/O status code in a human-readable format for error reporting. Splits the status number into a single leading digit and a three-digit remainder to facilitate formatted error messages.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS-0401">
+      <td class="var-level">05</td>
+      <td class="var-name">IO-STATUS-0401
+        
+        
+      </td>
+      <td class="var-pic">PIC 9</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">The leading single digit of the formatted I/O error status code. Represents the major category digit of the file status for inclusion in error messages, helping operations staff identify the class of I/O failure that caused a batch abend.</td>
+    </tr>
+    
+    <tr id="var-IO-STATUS-0403">
+      <td class="var-level">05</td>
+      <td class="var-name">IO-STATUS-0403
+        
+        
+      </td>
+      <td class="var-pic">PIC 999</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">The three-digit minor portion of the formatted I/O error status code. Represents the detailed sub-code of the file status for inclusion in error messages, providing operations staff with the specific error detail needed to diagnose and resolve a batch failure.</td>
+    </tr>
+    
+    <tr id="var-APPL-RESULT">
+      <td class="var-level">01</td>
+      <td class="var-name">APPL-RESULT
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(9) COMP</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A numeric result code that captures the outcome of key processing steps within the batch run. Acts as a central indicator of whether the program is proceeding normally, has reached the end of the transaction file, or has encountered a condition requiring special handling.</td>
+    </tr>
+    
+    <tr id="var-APPL-AOK">
+      <td class="var-level">88</td>
+      <td class="var-name">APPL-AOK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">A condition name that evaluates to true when the last processing step completed successfully (result code = 0). Used as a readable business condition to confirm that a transaction read or validation step proceeded without error.</td>
+    </tr>
+    
+    <tr id="var-APPL-EOF">
+      <td class="var-level">88</td>
+      <td class="var-name">APPL-EOF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">16</td>
+      <td class="var-desc">A condition name that evaluates to true when the end of the daily transaction file has been reached (result code = 16). Signals that all transactions for the day have been read and the batch processing loop should terminate normally.</td>
+    </tr>
+    
+    <tr id="var-END-OF-DAILY-TRANS-FILE">
+      <td class="var-level">01</td>
+      <td class="var-name">END-OF-DAILY-TRANS-FILE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">A processing control flag that tracks whether all daily transactions have been read. Initialised to 'N' (not finished) at the start of the batch run and set to 'Y' when the end of the daily transaction file is reached, causing the main processing loop to stop and end-of-day wrap-up to begin.</td>
+    </tr>
+    
+    <tr id="var-ABCODE">
+      <td class="var-level">01</td>
+      <td class="var-name">ABCODE
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(9) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The abnormal termination (abend) code passed to the operating system when the batch program encounters a fatal error it cannot recover from, such as an unexpected I/O failure on the daily transaction file. Allows operations staff and job schedulers to identify the specific reason the batch job failed.</td>
+    </tr>
+    
+    <tr id="var-TIMING">
+      <td class="var-level">01</td>
+      <td class="var-name">TIMING
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(9) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A numeric work field used to capture or pass timing-related information during the batch run, typically used in conjunction with system service calls for performance measurement or elapsed-time tracking of the batch transaction processing job.</td>
+    </tr>
+    
+    <tr id="var-WS-MISC-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-MISC-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A working-storage group containing miscellaneous status indicators used during transaction validation. Holds the results of the two critical lookups — the card-to-account cross-reference and the account master retrieval — that determine whether each transaction can be posted.</td>
+    </tr>
+    
+    <tr id="var-WS-XREF-READ-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-XREF-READ-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(04)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Records whether the card number on a transaction was successfully found in the card-to-account cross-reference file. A value of 0 means the card number is recognised and has been linked to an account and customer; a value of 4 means the card number is unknown and the transaction must be skipped and not posted.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCT-READ-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ACCT-READ-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(04)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Records whether the account identified through the cross-reference lookup was successfully retrieved from the account master file. A value of 0 confirms the account exists and its details are available for posting; a value of 4 means the account record is missing, triggering an error message and preventing the transaction from being posted.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/CBTRN01C.cbl
+  </footer>
+
+</main>
+</body>
+</html>

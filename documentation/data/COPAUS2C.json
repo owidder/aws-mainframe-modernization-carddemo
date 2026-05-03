@@ -4,22 +4,22 @@
     "file_path": "app/app-authorization-ims-db2-mq/cbl/COPAUS2C.cbl",
     "analyzed_at": "2026-05-02T18:34:40.926708",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Persistierung einer Betrugsmeldung oder Betrugsentmarkierung für eine Kreditkarten-Autorisierungstransaktion in der Betrugsdatenbank.",
-    "process_description": "Das Programm empfängt eine Autorisierungsnachricht mit Betrugsstatus-Kennzeichnung (Betrug melden oder Betrug entfernen) und schreibt diese in die Betrugstabelle AUTHFRDS. Dabei werden alle relevanten Transaktionsdaten (Kartennummer, Händlerinformationen, Beträge, Autorisierungscodes) zusammen mit dem Betrugsstatus und dem aktuellen Meldedatum gespeichert. Existiert bereits ein Eintrag für dieselbe Karte und denselben Autorisierungszeitpunkt (Duplikat-Fehler -803), wird der bestehende Datensatz mit dem neuen Betrugsstatus und dem aktuellen Datum aktualisiert statt neu angelegt. Das Programm gibt dem aufrufenden Programm (COPAUS1C) über das Communication Area eine Erfolgs- oder Fehlermeldung zurück.",
+    "description": "Persistence of a fraud report or fraud de-marking for a credit card authorization transaction in the fraud database.",
+    "process_description": "The program receives an authorization message with a fraud status indicator (report fraud or remove fraud) and writes it to the fraud table AUTHFRDS. All relevant transaction data (card number, merchant information, amounts, authorization codes) are stored together with the fraud status and the current reporting date. If an entry already exists for the same card and the same authorization timestamp (duplicate error -803), the existing record is updated with the new fraud status and the current date instead of being newly created. The program returns a success or error message to the calling program (COPAUS1C) via the Communication Area.",
     "type": "CICS Online",
     "module": "Authentication",
     "files": {
-      "CARDDEMO.AUTHFRDS": "Betrugsdatenbank-Tabelle, die gemeldete oder entmarkierte betrügerische Kreditkarten-Autorisierungstransaktionen mit allen Transaktions- und Händlerdetails sowie dem Betrugsstatus persistiert",
-      "CIPAUDTY": "Copybook mit der Datenstruktur einer Autorisierungsnachricht (Kartennummer, Autorisierungsdetails, Händlerdaten, Beträge, Transaktions-ID)",
-      "AUTHFRDS": "SQL-Include mit der Host-Variablen-Struktur für die DB2-Tabelle CARDDEMO.AUTHFRDS"
+      "CARDDEMO.AUTHFRDS": "Fraud database table that persists reported or de-flagged fraudulent credit card authorization transactions with all transaction and merchant details as well as the fraud status",
+      "CIPAUDTY": "Copybook containing the data structure of an authorization message (card number, authorization details, merchant data, amounts, transaction ID)",
+      "AUTHFRDS": "SQL include containing the host variable structure for the DB2 table CARDDEMO.AUTHFRDS"
     },
     "business_rules": [
-      "Eine Transaktion kann entweder als betrügerisch markiert ('F') oder eine bestehende Betrugsmeldung kann zurückgezogen werden ('R') – beide Aktionen werden dauerhaft in der Betrugsdatenbank protokolliert.",
-      "Existiert für eine Kartennummer und einen Autorisierungszeitpunkt bereits ein Betrugseintrag, wird dieser aktualisiert (kein Duplikat), um Statusänderungen (z.B. Betrug → kein Betrug) zu ermöglichen.",
-      "Das Meldedatum wird immer auf das aktuelle Systemdatum gesetzt, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren.",
-      "Der Autorisierungszeitpunkt wird aus einem komprimierten Zeitformat der Originalnachricht rekonstruiert (999999999 minus Zeitwert) und als lesbarer Timestamp gespeichert.",
-      "Alle relevanten Transaktionsdaten (Händler, Betrag, Autorisierungscode, POS-Eingabemodus, Ländercode) werden zusammen mit der Betrugsmeldung gespeichert, um eine vollständige Betrugsdokumentation zu gewährleisten.",
-      "Das Programm ist ein reiner Service-Baustein ohne eigene Benutzeroberfläche – es wird ausschließlich von COPAUS1C (Detailansicht) aufgerufen und gibt das Ergebnis über die COMMAREA zurück."
+      "A transaction can either be flagged as fraudulent ('F') or an existing fraud report can be withdrawn ('R') – both actions are permanently logged in the fraud database.",
+      "If a fraud entry already exists for a card number and an authorization timestamp, it is updated (no duplicate) to allow status changes (e.g., fraud → no fraud).",
+      "The report date is always set to the current system date to document the point in time of the fraud decision in an audit-proof manner.",
+      "The authorization timestamp is reconstructed from a compressed time format of the original message (999999999 minus time value) and stored as a readable timestamp.",
+      "All relevant transaction data (merchant, amount, authorization code, POS entry mode, country code) are stored together with the fraud report to ensure complete fraud documentation.",
+      "The program is a pure service component with no user interface of its own – it is called exclusively by COPAUS1C (detail view) and returns the result via the COMMAREA."
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -833,7 +833,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag."
+      "explanation": "MAIN-PARA controls the complete flow of fraud persistence: it determines the current reporting date, reconstructs the authorization timestamp, populates the fraud record with all transaction details, and writes it to the fraud database – with automatic update if an entry already exists."
     },
     {
       "number": 90,
@@ -851,7 +851,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Ermittelt die aktuelle Systemzeit als Grundlage für das revisionssichere Betrugsmeldedatum."
+      "explanation": "Retrieves the current system time as the basis for the audit-proof fraud reporting date."
     },
     {
       "number": 92,
@@ -887,7 +887,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Formatiert die Systemzeit in ein lesbares Datumsformat (MM/DD/YY) für die Betrugsmeldung."
+      "explanation": "Formats the system time into a readable date format (MM/DD/YY) for the fraud report."
     },
     {
       "number": 96,
@@ -941,7 +941,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt das Betrugsmeldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+      "explanation": "Sets the fraud reporting date to the current system date to document the point in time of the fraud decision in an audit-proof manner."
     },
     {
       "number": 102,
@@ -959,7 +959,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert das Jahr aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+      "explanation": "Extracts the year from the compressed original date of the authorization message to reconstruct the authorization timestamp."
     },
     {
       "number": 104,
@@ -968,7 +968,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert den Monat aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+      "explanation": "Extracts the month from the compressed original date of the authorization message to reconstruct the authorization timestamp."
     },
     {
       "number": 105,
@@ -977,7 +977,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert den Tag aus dem komprimierten Originaldatum der Autorisierungsnachricht zur Rekonstruktion des Autorisierungszeitpunkts."
+      "explanation": "Extracts the day from the compressed original date of the authorization message to reconstruct the authorization timestamp."
     },
     {
       "number": 106,
@@ -995,7 +995,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Dekodiert den komprimierten Autorisierungszeitwert der Originalnachricht (999999999 minus Zeitwert) in einen lesbaren Zeitstempel."
+      "explanation": "Decodes the compressed authorization time value of the original message (999999999 minus time value) into a readable timestamp."
     },
     {
       "number": 108,
@@ -1004,7 +1004,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert die Stunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+      "explanation": "Extracts the hours from the decoded authorization timestamp for the readable time representation."
     },
     {
       "number": 109,
@@ -1013,7 +1013,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert die Minuten aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+      "explanation": "Extracts the minutes from the decoded authorization timestamp for the readable time representation."
     },
     {
       "number": 110,
@@ -1022,7 +1022,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert die Sekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+      "explanation": "Extracts the seconds from the decoded authorization timestamp for the readable time representation."
     },
     {
       "number": 111,
@@ -1031,7 +1031,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Extrahiert die Millisekunden aus dem dekodierten Autorisierungszeitstempel für die lesbare Zeitdarstellung."
+      "explanation": "Extracts the milliseconds from the decoded authorization timestamp for the readable time representation."
     },
     {
       "number": 112,
@@ -1049,7 +1049,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Kreditkartennummer der betroffenen Transaktion in den Betrugsdatensatz."
+      "explanation": "Transfers the credit card number of the affected transaction into the fraud record."
     },
     {
       "number": 114,
@@ -1058,7 +1058,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den vollständigen Autorisierungszeitstempel als eindeutigen Schlüssel der Transaktion in den Betrugsdatensatz."
+      "explanation": "Transfers the complete authorization timestamp as the unique key of the transaction into the fraud record."
     },
     {
       "number": 115,
@@ -1067,7 +1067,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Autorisierungstyp der Transaktion (z.B. Kauf, Rückbuchung) in den Betrugsdatensatz."
+      "explanation": "Transfers the authorization type of the transaction (e.g., purchase, chargeback) into the fraud record."
     },
     {
       "number": 116,
@@ -1076,7 +1076,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt das Ablaufdatum der Kreditkarte in den Betrugsdatensatz zur vollständigen Kartendokumentation."
+      "explanation": "Transfers the credit card expiry date into the fraud record for complete card documentation."
     },
     {
       "number": 117,
@@ -1085,7 +1085,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Nachrichtentyp der Autorisierungsnachricht in den Betrugsdatensatz."
+      "explanation": "Transfers the message type of the authorization message into the fraud record."
     },
     {
       "number": 118,
@@ -1094,7 +1094,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Nachrichtenquelle (Herkunftskanal der Autorisierung) in den Betrugsdatensatz."
+      "explanation": "Transfers the message source (originating channel of the authorization) into the fraud record."
     },
     {
       "number": 119,
@@ -1103,7 +1103,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Autorisierungscode der genehmigten Transaktion in den Betrugsdatensatz."
+      "explanation": "Transfers the authorization code of the approved transaction into the fraud record."
     },
     {
       "number": 120,
@@ -1112,7 +1112,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Antwortcode des Autorisierungssystems in den Betrugsdatensatz."
+      "explanation": "Transfers the response code of the authorization system into the fraud record."
     },
     {
       "number": 121,
@@ -1121,7 +1121,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Ablehnungs- bzw. Genehmigungsgrund der Autorisierung in den Betrugsdatensatz."
+      "explanation": "Transfers the decline or approval reason of the authorization into the fraud record."
     },
     {
       "number": 122,
@@ -1130,7 +1130,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Verarbeitungscode (Art der Finanztransaktion) in den Betrugsdatensatz."
+      "explanation": "Transfers the processing code (type of financial transaction) into the fraud record."
     },
     {
       "number": 123,
@@ -1139,7 +1139,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den ursprünglichen Transaktionsbetrag in den Betrugsdatensatz."
+      "explanation": "Transfers the original transaction amount into the fraud record."
     },
     {
       "number": 124,
@@ -1148,7 +1148,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den tatsächlich genehmigten Betrag in den Betrugsdatensatz."
+      "explanation": "Transfers the actually approved amount into the fraud record."
     },
     {
       "number": 125,
@@ -1157,7 +1157,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Händlerkategoriecode (MCC) zur Klassifizierung der Betrugsart in den Betrugsdatensatz."
+      "explanation": "Transfers the merchant category code (MCC) for classifying the type of fraud into the fraud record."
     },
     {
       "number": 126,
@@ -1175,7 +1175,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Ländercode des Acquirers (kartenakzeptierendes Institut) in den Betrugsdatensatz."
+      "explanation": "Transfers the acquirer country code (card-accepting institution) into the fraud record."
     },
     {
       "number": 128,
@@ -1184,7 +1184,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den POS-Eingabemodus (z.B. Chip, Magnetstreifen, kontaktlos) in den Betrugsdatensatz."
+      "explanation": "Transfers the POS entry mode (e.g., chip, magnetic stripe, contactless) into the fraud record."
     },
     {
       "number": 129,
@@ -1193,7 +1193,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die eindeutige Händler-ID des betroffenen Akzeptanzpunkts in den Betrugsdatensatz."
+      "explanation": "Transfers the unique merchant ID of the affected acceptance point into the fraud record."
     },
     {
       "number": 130,
@@ -1202,7 +1202,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Ermittelt die Länge des Händlernamens für die korrekte Speicherung in der Betrugsdatenbank."
+      "explanation": "Determines the length of the merchant name for correct storage in the fraud database."
     },
     {
       "number": 131,
@@ -1211,7 +1211,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Händlernamen des betroffenen Akzeptanzpunkts in den Betrugsdatensatz."
+      "explanation": "Transfers the merchant name of the affected acceptance point into the fraud record."
     },
     {
       "number": 132,
@@ -1220,7 +1220,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Stadt des Händlers in den Betrugsdatensatz zur geografischen Betrugsdokumentation."
+      "explanation": "Transfers the merchant city into the fraud record for geographic fraud documentation."
     },
     {
       "number": 133,
@@ -1229,7 +1229,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt das Bundesland/den Staat des Händlers in den Betrugsdatensatz."
+      "explanation": "Transfers the merchant state/region into the fraud record."
     },
     {
       "number": 134,
@@ -1238,7 +1238,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Postleitzahl des Händlers in den Betrugsdatensatz."
+      "explanation": "Transfers the merchant postal code into the fraud record."
     },
     {
       "number": 135,
@@ -1247,7 +1247,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die eindeutige Transaktions-ID in den Betrugsdatensatz zur lückenlosen Nachverfolgbarkeit."
+      "explanation": "Transfers the unique transaction ID into the fraud record for complete traceability."
     },
     {
       "number": 136,
@@ -1256,7 +1256,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt den Abgleichsstatus der Transaktion (z.B. Treffer in Betrugslisten) in den Betrugsdatensatz."
+      "explanation": "Transfers the match status of the transaction (e.g., hit in fraud lists) into the fraud record."
     },
     {
       "number": 137,
@@ -1265,7 +1265,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt das Betrugskennzeichen ('F'=Betrug melden / 'R'=Betrugsmeldung zurückziehen) im Betrugsdatensatz."
+      "explanation": "Sets the fraud indicator ('F' = report fraud / 'R' = withdraw fraud report) in the fraud record."
     },
     {
       "number": 138,
@@ -1274,7 +1274,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Kontonummer des betroffenen Kreditkartenkontos in den Betrugsdatensatz."
+      "explanation": "Transfers the account number of the affected credit card account into the fraud record."
     },
     {
       "number": 139,
@@ -1283,7 +1283,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Überträgt die Kundennummer des Karteninhabers in den Betrugsdatensatz."
+      "explanation": "Transfers the customer number of the cardholder into the fraud record."
     },
     {
       "number": 140,
@@ -1301,7 +1301,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Schreibt den vollständigen Betrugsdatensatz mit allen Transaktions-, Händler- und Betrugsinformationen in die Betrugsdatenbank CARDDEMO.AUTHFRDS."
+      "explanation": "Writes the complete fraud record with all transaction, merchant, and fraud information to the fraud database CARDDEMO.AUTHFRDS."
     },
     {
       "number": 142,
@@ -1823,7 +1823,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob der Betrugsdatensatz erfolgreich neu in die Datenbank eingetragen wurde (kein Fehler aufgetreten)."
+      "explanation": "Checks whether the fraud record was successfully inserted into the database as a new entry (no error occurred)."
     },
     {
       "number": 200,
@@ -1832,7 +1832,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen."
+      "explanation": "Marks the database operation internally as successfully completed."
     },
     {
       "number": 201,
@@ -1841,7 +1841,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Meldet dem aufrufenden Programm COPAUS1C, dass die Betrugsmeldung erfolgreich neu angelegt wurde ('ADD SUCCESS')."
+      "explanation": "Reports to the calling program COPAUS1C that the fraud report was successfully created as a new entry ('ADD SUCCESS')."
     },
     {
       "number": 202,
@@ -1859,7 +1859,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob für diese Kartennummer und diesen Autorisierungszeitpunkt bereits ein Betrugseintrag existiert (Duplikat-Fehler -803)."
+      "explanation": "Checks whether a fraud entry already exists for this card number and authorization timestamp (duplicate error -803)."
     },
     {
       "number": 204,
@@ -1868,7 +1868,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Aktualisiert den bestehenden Betrugseintrag mit dem neuen Betrugsstatus und dem aktuellen Meldedatum, anstatt einen Duplikateintrag anzulegen."
+      "explanation": "Updates the existing fraud entry with the new fraud status and the current reporting date, instead of creating a duplicate entry."
     },
     {
       "number": 205,
@@ -1886,7 +1886,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Kennzeichnet die Datenbankoperation als fehlgeschlagen, da ein unerwarteter Datenbankfehler aufgetreten ist."
+      "explanation": "Marks the database operation as failed because an unexpected database error occurred."
     },
     {
       "number": 207,
@@ -1904,7 +1904,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Sichert den DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm."
+      "explanation": "Saves the DB2 error code for the error message to the calling program."
     },
     {
       "number": 209,
@@ -1913,7 +1913,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Sichert den DB2-Fehlerstatus für die Fehlermeldung an das aufrufende Programm."
+      "explanation": "Saves the DB2 error status for the error message to the calling program."
     },
     {
       "number": 210,
@@ -1931,7 +1931,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und -status zur Rückgabe an das aufrufende Programm COPAUS1C."
+      "explanation": "Creates a functional error message containing the DB2 error code and status for return to the calling program COPAUS1C."
     },
     {
       "number": 212,
@@ -1994,7 +1994,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Beendet die Programmverarbeitung und gibt die Erfolgs- oder Fehlermeldung über die COMMAREA an das aufrufende Programm COPAUS1C zurück."
+      "explanation": "Terminates program processing and returns the success or error message via the COMMAREA to the calling program COPAUS1C."
     },
     {
       "number": 219,
@@ -2021,7 +2021,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Einstiegspunkt für die Aktualisierung eines vorhandenen Betrugseintrags in der Datenbank."
+      "explanation": "Entry point for updating an existing fraud entry in the database."
     },
     {
       "number": 222,
@@ -2030,7 +2030,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Startet die Datenbankoperation zur Aktualisierung des bestehenden Betrugsdatensatzes."
+      "explanation": "Initiates the database operation to update the existing fraud record."
     },
     {
       "number": 223,
@@ -2039,7 +2039,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Zieldatensatz in der Betrugsdatenbank CARDDEMO.AUTHFRDS, der aktualisiert werden soll."
+      "explanation": "Target record in the fraud database CARDDEMO.AUTHFRDS to be updated."
     },
     {
       "number": 224,
@@ -2048,7 +2048,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Überschreibt das gespeicherte Betrugskennzeichen mit dem neuen Status ('F' = betrügerisch oder 'R' = Betrugsmeldung zurückgezogen)."
+      "explanation": "Overwrites the stored fraud indicator with the new status ('F' = fraudulent or 'R' = fraud report withdrawn)."
     },
     {
       "number": 225,
@@ -2057,7 +2057,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Setzt das Meldedatum auf das aktuelle Systemdatum, um den Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+      "explanation": "Sets the reporting date to the current system date to document the point in time of the fraud decision in an audit-proof manner."
     },
     {
       "number": 226,
@@ -2066,7 +2066,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Schränkt die Aktualisierung auf den Datensatz der betroffenen Kreditkartennummer ein."
+      "explanation": "Restricts the update to the record of the affected credit card number."
     },
     {
       "number": 227,
@@ -2075,7 +2075,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Schränkt die Aktualisierung zusätzlich auf den exakten Autorisierungszeitpunkt ein, um eindeutig die richtige Transaktion zu identifizieren."
+      "explanation": "Further restricts the update to the exact authorization timestamp in order to uniquely identify the correct transaction."
     },
     {
       "number": 228,
@@ -2084,7 +2084,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Wandelt den gespeicherten Autorisierungszeitstempel in das DB2-Timestamp-Format um, damit der Datenbankvergleich korrekt durchgeführt werden kann."
+      "explanation": "Converts the stored authorization timestamp into the DB2 timestamp format so that the database comparison can be performed correctly."
     },
     {
       "number": 229,
@@ -2093,7 +2093,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Abschluss der Datenbankoperation."
+      "explanation": "Completion of the database operation."
     },
     {
       "number": 230,
@@ -2102,7 +2102,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Prüft, ob die Aktualisierung des Betrugseintrags in der Datenbank erfolgreich abgeschlossen wurde."
+      "explanation": "Checks whether the update of the fraud entry in the database was completed successfully."
     },
     {
       "number": 231,
@@ -2111,7 +2111,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Kennzeichnet die Datenbankoperation intern als erfolgreich abgeschlossen."
+      "explanation": "Marks the database operation internally as successfully completed."
     },
     {
       "number": 232,
@@ -2120,7 +2120,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Setzt die Rückmeldung an das aufrufende Programm COPAUS1C auf 'UPDT SUCCESS', um die erfolgreiche Aktualisierung des Betrugseintrags zu bestätigen."
+      "explanation": "Sets the response to the calling program COPAUS1C to 'UPDT SUCCESS' to confirm the successful update of the fraud record."
     },
     {
       "number": 233,
@@ -2129,7 +2129,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Behandelt den Fall, dass die Datenbankaktualisierung fehlgeschlagen ist."
+      "explanation": "Handles the case where the database update has failed."
     },
     {
       "number": 234,
@@ -2138,7 +2138,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Kennzeichnet die Datenbankoperation intern als fehlgeschlagen, um nachgelagerte Fehlerbehandlung zu ermöglichen."
+      "explanation": "Flags the database operation internally as failed to enable downstream error handling."
     },
     {
       "number": 235,
@@ -2156,7 +2156,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Sichert den technischen DB2-Fehlercode für die Fehlermeldung an das aufrufende Programm."
+      "explanation": "Saves the technical DB2 error code for the error message returned to the calling program."
     },
     {
       "number": 237,
@@ -2165,7 +2165,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Sichert den DB2-Statuscode (SQLSTATE) für eine detailliertere Fehlerdiagnose."
+      "explanation": "Saves the DB2 status code (SQLSTATE) for more detailed error diagnosis."
     },
     {
       "number": 238,
@@ -2183,7 +2183,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Erstellt eine fachliche Fehlermeldung mit DB2-Fehlercode und Statuscode für die Rückmeldung an COPAUS1C."
+      "explanation": "Constructs a functional error message containing the DB2 error code and status code for the response to COPAUS1C."
     },
     {
       "number": 240,
@@ -2192,7 +2192,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Fügt den DB2-Statuscode zur Fehlermeldung hinzu, um eine vollständige Fehlerdiagnose zu ermöglichen."
+      "explanation": "Appends the DB2 status code to the error message to enable complete error diagnosis."
     },
     {
       "number": 241,
@@ -2201,7 +2201,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Schreibt die zusammengesetzte Fehlermeldung in das Rückgabefeld für das aufrufende Programm COPAUS1C."
+      "explanation": "Writes the composed error message to the return field for the calling program COPAUS1C."
     },
     {
       "number": 242,
@@ -2210,7 +2210,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Abschluss der Fehlermeldungs-Zusammensetzung."
+      "explanation": "End of error message composition."
     },
     {
       "number": 243,
@@ -2219,7 +2219,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "FRAUD-UPDATE",
-      "explanation": "Abschluss der Erfolgs-/Fehlerbehandlung nach der Datenbankaktualisierung."
+      "explanation": "End of success/error handling following the database update."
     },
     {
       "number": 244,
@@ -2240,7 +2240,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Übergeordnete Gruppenstruktur für alle internen Arbeitsvariablen des Programms COPAUS2C, die zur Verarbeitung der Betrugsmeldung benötigt werden."
+      "description": "Top-level group structure for all internal working variables of program COPAUS2C required for processing the fraud report."
     },
     {
       "name": "WS-PGMNAME",
@@ -2250,7 +2250,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Interner Programmname, der zur Identifikation des Moduls in Fehlerprotokollen und Systemaufrufen verwendet wird. Ermöglicht die eindeutige Zuordnung von Fehlermeldungen zu diesem Service-Baustein."
+      "description": "Internal program name used to identify the module in error logs and system calls. Enables unambiguous assignment of error messages to this service component."
     },
     {
       "name": "WS-LENGTH",
@@ -2260,7 +2260,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Längenfeld für CICS-Kommunikationsaufrufe, z.B. zur Übergabe der COMMAREA-Länge beim Aufruf durch COPAUS1C. Wird für die korrekte Datenübertragung zwischen den Programmen benötigt."
+      "description": "Length field for CICS communication calls, e.g. for passing the COMMAREA length when called by COPAUS1C. Required for correct data transfer between programs."
     },
     {
       "name": "WS-AUTH-TIME",
@@ -2270,7 +2270,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Berechneter Autorisierungszeitpunkt als numerischer Wert, der aus dem komprimierten Zeitfeld der Originalnachricht rekonstruiert wird (999999999 minus PA-AUTH-TIME-9C). Dient als Zwischenwert zur Umwandlung in den lesbaren Timestamp WS-AUTH-TS."
+      "description": "Calculated authorization timestamp as a numeric value reconstructed from the compressed time field of the original message (999999999 minus PA-AUTH-TIME-9C). Serves as an intermediate value for conversion into the readable timestamp WS-AUTH-TS."
     },
     {
       "name": "WS-AUTH-TIME-AN",
@@ -2280,7 +2280,7 @@
       "redefines": "WS-AUTH-TIME",
       "occurs": null,
       "is_group": false,
-      "description": "Alphanumerische Sicht auf den berechneten Autorisierungszeitpunkt. Ermöglicht den zeichenweisen Zugriff auf die einzelnen Zeitkomponenten (Stunden, Minuten, Sekunden), um diese in die formatierte Timestamp-Struktur WS-AUTH-TS zu übertragen."
+      "description": "Alphanumeric view of the calculated authorization timestamp. Enables character-by-character access to the individual time components (hours, minutes, seconds) in order to transfer them into the formatted timestamp structure WS-AUTH-TS."
     },
     {
       "name": "WS-AUTH-TS",
@@ -2290,7 +2290,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Vollständiger, lesbarer Autorisierungszeitstempel im Format 'YY-MM-DD HH.MI.SS.SSS', der als eindeutiger Schlüssel der Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert wird. Ermöglicht die revisionssichere Zuordnung der Betrugsmeldung zur exakten Originaltransaktion."
+      "description": "Complete, human-readable authorization timestamp in the format 'YY-MM-DD HH.MI.SS.SSS', stored as the unique transaction key in the fraud database CARDDEMO.AUTHFRDS. Enables audit-proof assignment of the fraud report to the exact original transaction."
     },
     {
       "name": "WS-AUTH-YY",
@@ -2300,7 +2300,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Jahreszahl (zweistellig) des Autorisierungszeitpunkts, z.B. '24' für 2024. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+      "description": "Two-digit year of the authorization timestamp, e.g. '24' for 2024. Part of the composite timestamp for unique identification of the original transaction in the fraud database."
     },
     {
       "name": "FILLER",
@@ -2310,7 +2310,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen '-' zwischen Jahr und Monat im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp."
+      "description": "Separator '-' between year and month in the authorization timestamp. Ensures the human-readable date format 'YY-MM-DD' in the stored timestamp."
     },
     {
       "name": "WS-AUTH-MM",
@@ -2320,7 +2320,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Monat (zweistellig) des Autorisierungszeitpunkts, z.B. '03' für März. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+      "description": "Two-digit month of the authorization timestamp, e.g. '03' for March. Part of the composite timestamp for unique identification of the original transaction in the fraud database."
     },
     {
       "name": "FILLER",
@@ -2330,7 +2330,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen '-' zwischen Monat und Tag im Autorisierungszeitstempel. Sorgt für die lesbare Datumsformatierung 'YY-MM-DD' im gespeicherten Timestamp."
+      "description": "Separator '-' between month and day in the authorization timestamp. Ensures the human-readable date format 'YY-MM-DD' in the stored timestamp."
     },
     {
       "name": "WS-AUTH-DD",
@@ -2340,7 +2340,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Tag (zweistellig) des Autorisierungszeitpunkts, z.B. '15'. Teil des zusammengesetzten Timestamps zur eindeutigen Identifikation der Originaltransaktion in der Betrugsdatenbank."
+      "description": "Two-digit day of the authorization timestamp, e.g. '15'. Part of the composite timestamp for unique identification of the original transaction in the fraud database."
     },
     {
       "name": "FILLER",
@@ -2350,7 +2350,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Leerzeichen als Trennzeichen zwischen Datums- und Zeitanteil im Autorisierungszeitstempel. Trennt 'YY-MM-DD' von 'HH.MI.SS' für die lesbare Darstellung."
+      "description": "Space character as separator between the date and time portions of the authorization timestamp. Separates 'YY-MM-DD' from 'HH.MI.SS' for human-readable representation."
     },
     {
       "name": "WS-AUTH-HH",
@@ -2360,7 +2360,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Stunde (zweistellig, 24h-Format) des Autorisierungszeitpunkts, z.B. '14'. Ermöglicht die genaue zeitliche Einordnung der Transaktion für die Betrugsdokumentation."
+      "description": "Two-digit hour (24h format) of the authorization timestamp, e.g. '14'. Enables precise temporal classification of the transaction for fraud documentation."
     },
     {
       "name": "FILLER",
@@ -2370,7 +2370,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen '.' zwischen Stunden und Minuten im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'."
+      "description": "Separator '.' between hours and minutes in the time portion of the authorization timestamp. Conforms to the DB2 timestamp format 'HH.MI.SS'."
     },
     {
       "name": "WS-AUTH-MI",
@@ -2380,7 +2380,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Minute (zweistellig) des Autorisierungszeitpunkts, z.B. '32'. Teil des präzisen Zeitstempels zur revisionssicheren Dokumentation des exakten Transaktionszeitpunkts."
+      "description": "Two-digit minute of the authorization timestamp, e.g. '32'. Part of the precise timestamp for audit-proof documentation of the exact transaction time."
     },
     {
       "name": "FILLER",
@@ -2390,7 +2390,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen '.' zwischen Minuten und Sekunden im Zeitanteil des Autorisierungszeitstempels. Entspricht dem DB2-Timestamp-Format 'HH.MI.SS'."
+      "description": "Separator '.' between minutes and seconds in the time portion of the authorization timestamp. Conforms to the DB2 timestamp format 'HH.MI.SS'."
     },
     {
       "name": "WS-AUTH-SS",
@@ -2400,7 +2400,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Sekunde (zweistellig) des Autorisierungszeitpunkts, z.B. '47'. Ermöglicht zusammen mit den Millisekunden die sekundengenaue Identifikation der Transaktion als eindeutiger Schlüssel in der Betrugsdatenbank."
+      "description": "Two-digit second of the authorization timestamp, e.g. '47'. Together with the milliseconds, enables second-precise identification of the transaction as a unique key in the fraud database."
     },
     {
       "name": "WS-AUTH-SSS",
@@ -2410,7 +2410,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Millisekunden (dreistellig) des Autorisierungszeitpunkts. Erhöht die Eindeutigkeit des Timestamps als Schlüssel in der Betrugsdatenbank, um Kollisionen bei Transaktionen innerhalb derselben Sekunde zu vermeiden."
+      "description": "Three-digit milliseconds of the authorization timestamp. Increases the uniqueness of the timestamp as a key in the fraud database to avoid collisions for transactions occurring within the same second."
     },
     {
       "name": "FILLER",
@@ -2420,7 +2420,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Auffüllwert '000' für den Mikrosekunden-Anteil des DB2-Timestamps. Da die Originalnachricht keine Mikrosekunden liefert, wird dieser Anteil fest auf null gesetzt, um das vollständige DB2-Timestamp-Format zu erfüllen."
+      "description": "Padding value '000' for the microseconds portion of the DB2 timestamp. Since the original message does not supply microseconds, this portion is fixed at zero to satisfy the complete DB2 timestamp format."
     },
     {
       "name": "WS-ERR-FLG",
@@ -2430,7 +2430,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fehlerindikator für die Verarbeitungssteuerung: Zeigt an, ob während der Datenbankoperation ein Fehler aufgetreten ist. Steuert den weiteren Programmablauf und die Rückmeldung an das aufrufende Programm COPAUS1C."
+      "description": "Error indicator for processing control: indicates whether an error occurred during the database operation. Controls the subsequent program flow and the response returned to the calling program COPAUS1C."
     },
     {
       "name": "ERR-FLG-ON",
@@ -2440,7 +2440,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass ein Fehler bei der Persistierung der Betrugsmeldung aufgetreten ist. Löst die Fehlerbehandlung aus und führt zur Rückmeldung eines Fehlerstatus an COPAUS1C."
+      "description": "Condition name: signals that an error occurred while persisting the fraud report. Triggers error handling and causes an error status to be returned to COPAUS1C."
     },
     {
       "name": "ERR-FLG-OF",
@@ -2450,7 +2450,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass die Datenbankoperation fehlerfrei verlaufen ist. Ermöglicht die Rückmeldung eines Erfolgsstatus ('ADD SUCCESS' oder 'UPDT SUCCESS') an das aufrufende Programm COPAUS1C."
+      "description": "Condition name: signals that the database operation completed without errors. Enables a success status ('ADD SUCCESS' or 'UPDT SUCCESS') to be returned to the calling program COPAUS1C."
     },
     {
       "name": "WS-SQLCODE",
@@ -2460,7 +2460,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Formatierter DB2-Rückgabecode für Protokollierungs- und Fehlermeldungszwecke. Enthält den SQLCODE als lesbaren Wert mit Vorzeichen, um im Fehlerfall eine aussagekräftige Fehlermeldung an COPAUS1C zurückzugeben (z.B. -803 bei Duplikat-Eintrag)."
+      "description": "Formatted DB2 return code for logging and error message purposes. Contains the SQLCODE as a human-readable signed value so that a meaningful error message can be returned to COPAUS1C in the event of an error (e.g. -803 for a duplicate entry)."
     },
     {
       "name": "WS-SQLSTATE",
@@ -2470,7 +2470,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Formatierter DB2-SQLSTATE-Code für erweiterte Fehlerdiagnose. Ergänzt den SQLCODE um einen standardisierten Statuscode, der bei der Fehleranalyse der Datenbankoperation (INSERT/UPDATE in CARDDEMO.AUTHFRDS) hilft."
+      "description": "Formatted DB2 SQLSTATE code for extended error diagnosis. Supplements the SQLCODE with a standardized status code that assists in analyzing errors from the database operation (INSERT/UPDATE in CARDDEMO.AUTHFRDS)."
     },
     {
       "name": "WS-ABS-TIME",
@@ -2480,7 +2480,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Absoluter Systemzeitstempel, der über CICS ASKTIME ermittelt wird. Dient als Grundlage zur Ermittlung des aktuellen Systemdatums (WS-CUR-DATE), das als Betrugsmeldedatum (PA-FRAUD-RPT-DATE) revisionssicher in der Datenbank gespeichert wird."
+      "description": "Absolute system timestamp retrieved via CICS ASKTIME. Serves as the basis for determining the current system date (WS-CUR-DATE), which is stored audit-proof in the database as the fraud report date (PA-FRAUD-RPT-DATE)."
     },
     {
       "name": "WS-CUR-DATE",
@@ -2490,7 +2490,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Aktuelles Systemdatum zum Zeitpunkt der Betrugsmeldung im Format YYYYMMDD. Wird als Betrugsmeldedatum in der Datenbank gespeichert, um den genauen Zeitpunkt der Betrugsentscheidung revisionssicher zu dokumentieren."
+      "description": "Current system date at the time of the fraud report in the format YYYYMMDD. Stored as the fraud report date in the database to document the exact point in time of the fraud decision in an audit-proof manner."
     },
     {
       "name": "DFHCOMMAREA",
@@ -2500,7 +2500,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "CICS-Kommunikationsbereich für den Datenaustausch zwischen dem aufrufenden Programm COPAUS1C (Detailansicht) und diesem Service-Baustein. Enthält alle Ein- und Ausgabedaten der Betrugsmeldung: Kontodaten, Transaktionsdaten sowie das Ergebnis der Datenbankoperation."
+      "description": "CICS communication area for data exchange between the calling program COPAUS1C (detail view) and this service component. Contains all input and output data of the fraud report: account data, transaction data, and the result of the database operation."
     },
     {
       "name": "WS-ACCT-ID",
@@ -2510,7 +2510,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Kontonummer des betroffenen Kreditkartenkontos. Wird zusammen mit der Kartennummer und dem Autorisierungszeitpunkt zur eindeutigen Identifikation der betrügerischen Transaktion in der Betrugsdatenbank CARDDEMO.AUTHFRDS gespeichert."
+      "description": "Account number of the affected credit card account. Stored together with the card number and the authorization timestamp to uniquely identify the fraudulent transaction in the fraud database CARDDEMO.AUTHFRDS."
     },
     {
       "name": "WS-CUST-ID",
@@ -2520,7 +2520,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Kundennummer des Karteninhabers, dessen Transaktion als betrügerisch gemeldet oder entmarkiert wird. Wird in der Betrugsdatenbank gespeichert, um die vollständige Betrugsdokumentation dem richtigen Kunden zuordnen zu können."
+      "description": "Customer number of the cardholder whose transaction is being reported as fraudulent or unmarked. Stored in the fraud database to assign the complete fraud documentation to the correct customer."
     },
     {
       "name": "WS-FRAUD-AUTH-RECORD",
@@ -2530,7 +2530,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenstruktur, die alle Transaktionsdaten der zu meldenden oder zu entmarkierenden Autorisierungstransaktion enthält (via COPY CIPAUDTY eingebunden). Liefert Händlerdaten, Betrag, Kartennummer und Autorisierungsdetails für die vollständige Betrugsdokumentation in CARDDEMO.AUTHFRDS."
+      "description": "Group structure containing all transaction data of the authorization transaction to be reported or unmarked (included via COPY CIPAUDTY). Provides merchant data, amount, card number, and authorization details for complete fraud documentation in CARDDEMO.AUTHFRDS."
     },
     {
       "name": "WS-FRAUD-STATUS-RECORD",
@@ -2540,7 +2540,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenstruktur für die Steuerung und Rückmeldung der Betrugsaktion. Enthält die gewünschte Aktion (Melden oder Zurückziehen), das Ergebnis der Datenbankoperation sowie eine fachliche Rückmeldung an COPAUS1C."
+      "description": "Group structure for controlling and returning the result of the fraud action. Contains the requested action (report or withdraw), the result of the database operation, and a business-level response to COPAUS1C."
     },
     {
       "name": "WS-FRD-ACTION",
@@ -2550,7 +2550,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Steuerfeld für die gewünschte Betrugsaktion, das von COPAUS1C gesetzt wird: 'F' = Transaktion als betrügerisch in CARDDEMO.AUTHFRDS melden, 'R' = bestehende Betrugsmeldung zurückziehen. Bestimmt, welches Betrugskennzeichen in der Datenbank gespeichert wird."
+      "description": "Control field for the requested fraud action, set by COPAUS1C: 'F' = report the transaction as fraudulent in CARDDEMO.AUTHFRDS, 'R' = withdraw an existing fraud report. Determines which fraud indicator is stored in the database."
     },
     {
       "name": "WS-REPORT-FRAUD",
@@ -2560,7 +2560,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass die Transaktion als betrügerisch gemeldet werden soll. Löst einen INSERT oder UPDATE in CARDDEMO.AUTHFRDS mit dem Betrugskennzeichen 'F' aus."
+      "description": "Condition name: signals that the transaction is to be reported as fraudulent. Triggers an INSERT or UPDATE in CARDDEMO.AUTHFRDS with the fraud indicator 'F'."
     },
     {
       "name": "WS-REMOVE-FRAUD",
@@ -2570,7 +2570,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass eine bestehende Betrugsmeldung zurückgezogen werden soll. Löst einen UPDATE in CARDDEMO.AUTHFRDS mit dem Kennzeichen 'R' aus, um den Betrugsstatus der Transaktion zu korrigieren."
+      "description": "Condition name: signals that an existing fraud report is to be withdrawn. Triggers an UPDATE in CARDDEMO.AUTHFRDS with the indicator 'R' to correct the fraud status of the transaction."
     },
     {
       "name": "WS-FRD-UPDATE-STATUS",
@@ -2580,7 +2580,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Ergebnisstatus der Datenbankoperation, der nach der Persistierung an COPAUS1C zurückgegeben wird: 'S' = Betrugsmeldung erfolgreich gespeichert oder aktualisiert, 'F' = Datenbankoperation fehlgeschlagen. Ermöglicht COPAUS1C die korrekte Rückmeldung an den Sachbearbeiter."
+      "description": "Result status of the database operation returned to COPAUS1C after persistence: 'S' = fraud report successfully saved or updated, 'F' = database operation failed. Enables COPAUS1C to provide the correct feedback to the clerk."
     },
     {
       "name": "WS-FRD-UPDT-SUCCESS",
@@ -2590,7 +2590,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass die Betrugsmeldung oder -entmarkierung erfolgreich in CARDDEMO.AUTHFRDS persistiert wurde. Führt zur Rückmeldung 'ADD SUCCESS' (Neuanlage) oder 'UPDT SUCCESS' (Aktualisierung) an COPAUS1C."
+      "description": "Condition name: signals that the fraud report or unmarking was successfully persisted in CARDDEMO.AUTHFRDS. Results in the response 'ADD SUCCESS' (new record) or 'UPDT SUCCESS' (update) being returned to COPAUS1C."
     },
     {
       "name": "WS-FRD-UPDT-FAILED",
@@ -2600,7 +2600,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Signalisiert, dass die Datenbankoperation fehlgeschlagen ist. Führt zur Rückmeldung einer Fehlerbeschreibung an COPAUS1C, damit der Sachbearbeiter über den Misserfolg der Betrugsmeldung informiert wird."
+      "description": "Condition name: signals that the database operation failed. Results in an error description being returned to COPAUS1C so that the clerk is informed of the failure of the fraud report."
     },
     {
       "name": "WS-FRD-ACT-MSG",
@@ -2610,7 +2610,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Rückmeldung im Klartext an das aufrufende Programm COPAUS1C, z.B. 'ADD SUCCESS' bei erfolgreicher Neuanlage, 'UPDT SUCCESS' bei erfolgreicher Aktualisierung oder eine Fehlerbeschreibung mit SQLCODE bei gescheiterter Datenbankoperation. Dient der Anzeige des Verarbeitungsergebnisses für den Sachbearbeiter."
+      "description": "Plain-text business response to the calling program COPAUS1C, e.g. 'ADD SUCCESS' for a successful new record, 'UPDT SUCCESS' for a successful update, or an error description including the SQLCODE for a failed database operation. Used to display the processing result to the clerk."
     }
   ],
   "paragraphs": [
@@ -2618,13 +2618,13 @@
       "name": "MAIN-PARA",
       "line_start": 89,
       "line_end": 220,
-      "description": "MAIN-PARA steuert den vollständigen Ablauf der Betrugspersistierung: Er ermittelt das aktuelle Meldedatum, rekonstruiert den Autorisierungszeitpunkt, befüllt den Betrugsdatensatz mit allen Transaktionsdetails und schreibt diesen in die Betrugsdatenbank – mit automatischer Aktualisierung bei bereits vorhandenem Eintrag."
+      "description": "MAIN-PARA controls the complete flow of fraud persistence: it determines the current reporting date, reconstructs the authorization timestamp, populates the fraud record with all transaction details, and writes it to the fraud database – with automatic update if an entry already exists."
     },
     {
       "name": "FRAUD-UPDATE",
       "line_start": 221,
       "line_end": 244,
-      "description": "Aktualisiert einen bestehenden Betrugseintrag in der Betrugsdatenbank mit dem neuen Betrugsstatus und dem aktuellen Meldedatum. Dieser Paragraph wird aufgerufen, wenn für die betreffende Karte und den Autorisierungszeitpunkt bereits ein Datensatz existiert (Duplikat-Fall)."
+      "description": "Updates an existing fraud entry in the fraud database with the new fraud status and the current reporting date. This paragraph is called when a record already exists for the relevant card and authorization timestamp (duplicate case)."
     }
   ],
   "copybooks": [

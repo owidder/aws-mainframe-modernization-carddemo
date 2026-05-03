@@ -1,0 +1,2858 @@
+{
+  "meta": {
+    "program_name": "COADM01C",
+    "file_path": "app/cbl/COADM01C.cbl",
+    "analyzed_at": "2026-05-03T12:44:50.347941",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Presents and manages the administrative navigation menu for authorised admin users in the CardDemo credit card management system.",
+    "process_description": "When an admin user successfully logs in, this program displays a role-specific menu screen listing up to 10 administrative functions available within the CardDemo system. The user selects a numbered option, and the program validates the selection before transferring control to the corresponding administrative sub-program. If the selected option corresponds to a function that has not yet been installed or activated (marked as 'DUMMY'), the program informs the user that the option is unavailable rather than attempting to launch it. If no valid session context exists (communication area is empty), the user is redirected back to the sign-on screen, enforcing session integrity.",
+    "type": "CICS Online",
+    "module": "Admin",
+    "files": {
+      "USRSEC": "User security file used to validate and retrieve user credentials and role information for access control"
+    },
+    "business_rules": [
+      "Only authenticated admin users with a valid session (non-empty communication area) may access the admin menu; unauthenticated or session-less users are immediately redirected to the sign-on screen.",
+      "A user-entered menu option must be numeric, non-zero, and must not exceed the total number of configured administrative options; any invalid entry results in an error message and the menu is re-displayed.",
+      "Administrative menu options flagged as 'DUMMY' are recognised as not yet installed; the system informs the user the option is unavailable and does not attempt to launch the corresponding program.",
+      "Pressing PF3 at any point returns the user to the sign-on screen, providing a controlled and secure exit from the admin menu.",
+      "The menu supports a maximum of 10 displayable administrative options; any options beyond 10 configured in the system are silently ignored in the display.",
+      "Control is transferred to sub-programs via CICS XCTL, passing the shared communication area to maintain session context and navigation history across the admin workflow.",
+      "Any key press other than Enter or PF3 is treated as invalid and results in an 'invalid key' error message, preventing unintended navigation actions."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "COCOM01Y",
+        "COADM02Y",
+        "COADM01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COMEN01C",
+        "COPAUS2C",
+        "COPAUA0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COADM01C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Admin Menu for Admin users",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COADM01C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                     WORKING STORAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COADM01C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "         05 WS-TRANID                  PIC X(04) VALUE 'CA00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "         05 WS-OPTION-X                PIC X(02) JUST RIGHT.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "         05 WS-OPTION                  PIC 9(02) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "         05 WS-IDX                     PIC S9(04) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "         05 WS-ADMIN-OPT-TXT           PIC X(40) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "       COPY COCOM01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "       COPY COADM02Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       COPY COADM01.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "       COPY COTTL01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "       COPY CSDAT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       COPY CSMSG01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "       COPY CSUSR01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "       COPY DFHAID.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "       COPY DFHBMSCA.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "      *                        LINKAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "         05  LK-COMMAREA                           PIC X(01)",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.",
+      "type": "code",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "      *                       PROCEDURE DIVISION",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Entry point of the main controlling paragraph that governs the entire admin menu interaction lifecycle."
+    },
+    {
+      "number": 76,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "           EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Registers an error handler so that if a target administrative sub-program cannot be found on the system, the failure is caught gracefully rather than causing an abend."
+    },
+    {
+      "number": 78,
+      "code": "                HANDLE CONDITION PGMIDERR(PGMIDERR-ERR-PARA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "           END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "           SET ERR-FLG-OFF TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any previously raised error condition, assuming the current interaction starts in a clean, error-free state."
+    },
+    {
+      "number": 82,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           MOVE SPACES TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any previous status or validation message from the working area and from the visible message field on the admin menu screen, ensuring no stale text is shown to the user."
+    },
+    {
+      "number": 84,
+      "code": "                          ERRMSGO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "           IF EIBCALEN = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether a valid session context exists — if no communication area was passed, the user has no authenticated session and must be redirected."
+    },
+    {
+      "number": 87,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Records that the user should be treated as arriving from the sign-on screen, establishing the correct navigation origin before redirecting."
+    },
+    {
+      "number": 88,
+      "code": "               PERFORM RETURN-TO-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Redirects the unauthenticated or session-less user back to the sign-on screen, enforcing the rule that only users with a valid session may access the admin menu."
+    },
+    {
+      "number": 89,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Restores the full shared session context from the communication area passed by the previous program, making all user identity, role, and navigation history available for this interaction."
+    },
+    {
+      "number": 91,
+      "code": "               IF NOT CDEMO-PGM-REENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this is the user's first arrival at the admin menu (as opposed to returning after a sub-program has completed or after a validation error)."
+    },
+    {
+      "number": 92,
+      "code": "                   SET CDEMO-PGM-REENTER    TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Marks the session as having now entered the admin menu, so that on the next interaction the program knows the user is returning rather than arriving for the first time."
+    },
+    {
+      "number": 93,
+      "code": "                   MOVE LOW-VALUES          TO COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears the admin menu screen output area to blank, ensuring no residual data from a previous session is displayed to the user."
+    },
+    {
+      "number": 94,
+      "code": "                   PERFORM SEND-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Displays the admin menu screen to the user for the first time, presenting the list of available administrative functions."
+    },
+    {
+      "number": 95,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "                   PERFORM RECEIVE-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Reads back the admin menu screen data submitted by the returning user, capturing the menu option they entered."
+    },
+    {
+      "number": 97,
+      "code": "                   EVALUATE EIBAID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Evaluates which key the user pressed to submit the screen, in order to route control to the correct business action."
+    },
+    {
+      "number": 98,
+      "code": "                       WHEN DFHENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed Enter, indicating they have made a menu selection and wish to proceed."
+    },
+    {
+      "number": 99,
+      "code": "                           PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Processes the admin menu option the user selected by validating it and transferring control to the corresponding administrative function."
+    },
+    {
+      "number": 100,
+      "code": "                       WHEN DFHPF3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed PF3, which is the designated key for a controlled, secure exit from the admin menu."
+    },
+    {
+      "number": 101,
+      "code": "                           MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Records the sign-on screen as the intended destination so that the navigation history is correctly maintained when returning to sign-on."
+    },
+    {
+      "number": 102,
+      "code": "                           PERFORM RETURN-TO-SIGNON-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns the user to the sign-on screen as a secure and deliberate exit from the admin menu workflow."
+    },
+    {
+      "number": 103,
+      "code": "                       WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Catches any key press other than Enter or PF3, which are the only two valid interaction keys on this screen."
+    },
+    {
+      "number": 104,
+      "code": "                           MOVE 'Y'                       TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Raises an error condition to indicate that an invalid key was pressed, which will cause the menu to be re-displayed with an error message."
+    },
+    {
+      "number": 105,
+      "code": "                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the screen message to inform the user that the key they pressed is not recognised or supported on this screen."
+    },
+    {
+      "number": 106,
+      "code": "                           PERFORM SEND-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Re-displays the admin menu screen with the invalid-key error message so the user can make a valid selection."
+    },
+    {
+      "number": 107,
+      "code": "                   END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns control to the CICS transaction manager, keeping the admin menu transaction active and passing the current session context forward so the next user interaction returns to this program."
+    },
+    {
+      "number": 112,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 114,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "      *                      PROCESS-ENTER-KEY",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "       PROCESS-ENTER-KEY.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Entry point for handling the Enter key press on the admin menu screen."
+    },
+    {
+      "number": 120,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 121,
+      "code": "           PERFORM VARYING WS-IDX",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Scans the user's raw input from right to left, walking backwards through each character position to find where the actual typed content ends."
+    },
+    {
+      "number": 122,
+      "code": "                   FROM LENGTH OF OPTIONI OF COADM1AI BY -1 UNTIL",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Starts the scan from the last character position of the menu option input field, moving one character at a time toward the beginning."
+    },
+    {
+      "number": 123,
+      "code": "                   OPTIONI OF COADM1AI(WS-IDX:1) NOT = SPACES OR",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Continues scanning backwards until a non-blank character is found, identifying the true end of the user's typed selection."
+    },
+    {
+      "number": 124,
+      "code": "                   WS-IDX = 1",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Stops the scan at the first character position at the latest, preventing an infinite loop if the entire field is blank."
+    },
+    {
+      "number": 125,
+      "code": "           END-PERFORM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ends the backward-scanning loop once the last meaningful character in the input has been located."
+    },
+    {
+      "number": 126,
+      "code": "           MOVE OPTIONI OF COADM1AI(1:WS-IDX) TO WS-OPTION-X",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Extracts only the meaningful portion of the user's input, discarding any trailing blank spaces from the raw entry field."
+    },
+    {
+      "number": 127,
+      "code": "           INSPECT WS-OPTION-X REPLACING ALL ' ' BY '0'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Converts any remaining internal blank spaces within the cleaned input into zeros, ensuring the value can be interpreted as a proper number."
+    },
+    {
+      "number": 128,
+      "code": "           MOVE WS-OPTION-X              TO WS-OPTION",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Converts the cleaned alphanumeric input into a numeric value representing the admin's chosen menu option number."
+    },
+    {
+      "number": 129,
+      "code": "           MOVE WS-OPTION                TO OPTIONO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Reflects the interpreted option number back onto the menu screen so the user can see what selection the system has registered."
+    },
+    {
+      "number": 130,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "           IF WS-OPTION IS NOT NUMERIC OR",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Checks whether the entered value is a valid number, is not zero, and does not exceed the total number of configured administrative options."
+    },
+    {
+      "number": 132,
+      "code": "              WS-OPTION > CDEMO-ADMIN-OPT-COUNT OR",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ensures the selected option number does not exceed the total count of administrative functions available in the system."
+    },
+    {
+      "number": 133,
+      "code": "              WS-OPTION = ZEROS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Rejects a selection of zero, as zero does not correspond to any valid administrative function."
+    },
+    {
+      "number": 134,
+      "code": "               MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Raises an error flag to indicate that the user's input has failed validation and the menu must be re-displayed with an error message."
+    },
+    {
+      "number": 135,
+      "code": "               MOVE 'Please enter a valid option number...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Sets the on-screen message to instruct the user to enter a valid option number from the displayed list."
+    },
+    {
+      "number": 136,
+      "code": "                                       WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Continues the error message text directing the user to make a correct selection."
+    },
+    {
+      "number": 137,
+      "code": "               PERFORM SEND-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Re-displays the admin menu screen with the validation error message so the user can correct their input."
+    },
+    {
+      "number": 138,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Closes the input validation block."
+    },
+    {
+      "number": 139,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceeds to launch the selected function only if no validation error was raised in the previous step."
+    },
+    {
+      "number": 141,
+      "code": "               IF CDEMO-ADMIN-OPT-PGMNAME(WS-OPTION)(1:5) NOT = 'DUMMY'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Checks whether the administrative function mapped to the selected option number has been fully installed and activated, or is merely a placeholder."
+    },
+    {
+      "number": 142,
+      "code": "                   MOVE WS-TRANID    TO CDEMO-FROM-TRANID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Records the current transaction identifier in the shared session context so the system knows which transaction to return to after the sub-program completes."
+    },
+    {
+      "number": 143,
+      "code": "                   MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Records the current program name in the shared session context to maintain a clear navigation trail across the admin workflow."
+    },
+    {
+      "number": 144,
+      "code": "                   MOVE ZEROS        TO CDEMO-PGM-CONTEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Resets the program context flag in the shared session area to indicate a fresh entry into the next administrative sub-program."
+    },
+    {
+      "number": 145,
+      "code": "                   EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Begins the instruction to transfer control to another program."
+    },
+    {
+      "number": 146,
+      "code": "                       XCTL PROGRAM(CDEMO-ADMIN-OPT-PGMNAME(WS-OPTION))",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Transfers full control of the CICS session to the administrative sub-program that corresponds to the user's validated menu selection."
+    },
+    {
+      "number": 147,
+      "code": "                       COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Passes the shared session communication area to the launched sub-program so it inherits the current user's session, role, and navigation context."
+    },
+    {
+      "number": 148,
+      "code": "                   END-EXEC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ends the control transfer instruction."
+    },
+    {
+      "number": 149,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Closes the block that handles launching an installed administrative function."
+    },
+    {
+      "number": 150,
+      "code": "               MOVE SPACES             TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clears any previous status message from the screen before composing the 'not installed' notification."
+    },
+    {
+      "number": 151,
+      "code": "               MOVE DFHGREEN           TO ERRMSGC  OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Sets the colour of the error message area to green to visually distinguish this informational notice from a hard error."
+    },
+    {
+      "number": 152,
+      "code": "               STRING 'This option '       DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Begins composing the message that will inform the user the selected option is not yet available, starting with introductory text."
+    },
+    {
+      "number": 153,
+      "code": "      *                CDEMO-ADMIN-OPT-NAME(WS-OPTION)",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Commented-out line that would have included the display name of the selected option in the message."
+    },
+    {
+      "number": 154,
+      "code": "      *                                DELIMITED BY SIZE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Continuation of the commented-out option name inclusion."
+    },
+    {
+      "number": 155,
+      "code": "                       'is not installed ...'   DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Appends the core notification text informing the user that the chosen administrative function has not yet been installed."
+    },
+    {
+      "number": 156,
+      "code": "                  INTO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Directs the composed 'not installed' message into the on-screen message field for display."
+    },
+    {
+      "number": 157,
+      "code": "               PERFORM SEND-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Re-displays the admin menu screen with the 'not installed' notification so the user can choose a different, available option."
+    },
+    {
+      "number": 158,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Closes the block that handles the case where no validation error occurred but the selected option is not yet installed."
+    },
+    {
+      "number": 159,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "      *                      RETURN-TO-SIGNON-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 162,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 163,
+      "code": "       RETURN-TO-SIGNON-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Entry point for the logic that returns the user to the sign-on screen."
+    },
+    {
+      "number": 164,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 165,
+      "code": "           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Checks whether a target sign-on destination has already been recorded in the shared session context; if not, a default sign-on screen must be assigned."
+    },
+    {
+      "number": 166,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Defaults the navigation destination to the standard CardDemo sign-on screen, ensuring the user always has a valid and secure landing point even if no prior destination was recorded."
+    },
+    {
+      "number": 167,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 168,
+      "code": "           EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Begins the instruction to hand off control to another screen within the bank's CICS transaction environment."
+    },
+    {
+      "number": 169,
+      "code": "               XCTL PROGRAM(CDEMO-TO-PROGRAM)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Transfers full control of the session to the sign-on screen, terminating the admin menu session and requiring the user to authenticate again before accessing any further functionality."
+    },
+    {
+      "number": 170,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": "Closes the control-transfer instruction."
+    },
+    {
+      "number": 171,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 172,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "      *                      SEND-MENU-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "       SEND-MENU-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Entry point for the routine responsible for displaying the administrative menu screen to the user."
+    },
+    {
+      "number": 176,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "           PERFORM POPULATE-HEADER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Populates the screen header area with standard information such as application title, current date, time, and the logged-in user's identity."
+    },
+    {
+      "number": 178,
+      "code": "           PERFORM BUILD-MENU-OPTIONS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Builds the numbered list of available administrative functions to be displayed on the menu screen, based on the system-configured options."
+    },
+    {
+      "number": 179,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 180,
+      "code": "           MOVE WS-MESSAGE TO ERRMSGO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Places any current status or validation error message into the designated error/message area of the menu screen, so the user is informed of any issues with their previous selection."
+    },
+    {
+      "number": 181,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 182,
+      "code": "           EXEC CICS SEND",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Initiates the transmission of the fully assembled menu screen to the user's terminal."
+    },
+    {
+      "number": 183,
+      "code": "                     MAP('COADM1A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Specifies the particular screen layout (the admin menu display format) to be rendered on the terminal."
+    },
+    {
+      "number": 184,
+      "code": "                     MAPSET('COADM01')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "References the screen definition library that contains the admin menu layout and field definitions."
+    },
+    {
+      "number": 185,
+      "code": "                     FROM(COADM1AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Supplies the fully populated screen data — including header, menu options, and messages — as the content to be sent to the terminal."
+    },
+    {
+      "number": 186,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Clears any previously displayed content from the terminal before rendering the updated admin menu screen, ensuring a clean display."
+    },
+    {
+      "number": 187,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": "Closes the screen transmission instruction."
+    },
+    {
+      "number": 188,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 189,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "      *                      RECEIVE-MENU-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 191,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "       RECEIVE-MENU-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Entry point for reading the admin user's input from the menu screen."
+    },
+    {
+      "number": 193,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 194,
+      "code": "           EXEC CICS RECEIVE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Initiates the process of receiving the data the admin user has submitted from their terminal screen."
+    },
+    {
+      "number": 195,
+      "code": "                     MAP('COADM1A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Identifies the specific screen layout (the admin menu display) from which the user's input is being collected."
+    },
+    {
+      "number": 196,
+      "code": "                     MAPSET('COADM01')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Specifies the screen definition set that contains the admin menu layout, ensuring the correct field structure is used to interpret the submitted data."
+    },
+    {
+      "number": 197,
+      "code": "                     INTO(COADM1AI)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Stores the captured screen input — including the admin user's selected menu option — into the working area for subsequent validation and processing."
+    },
+    {
+      "number": 198,
+      "code": "                     RESP(WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Records whether the screen data was received successfully or whether a system-level error occurred during the capture."
+    },
+    {
+      "number": 199,
+      "code": "                     RESP2(WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Captures a secondary system response code providing additional detail if the screen receive operation encountered a problem."
+    },
+    {
+      "number": 200,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Marks the end of the screen receive operation."
+    },
+    {
+      "number": 201,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 202,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": "Section divider indicating that the next logical block of processing will populate the screen header with contextual information."
+    },
+    {
+      "number": 203,
+      "code": "      *                      POPULATE-HEADER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 204,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 205,
+      "code": "       POPULATE-HEADER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Prepares the standard header information displayed at the top of the administrative menu screen, including application titles, the current date and time, and identifiers that allow the user and support staff to identify which screen and transaction they are working in."
+    },
+    {
+      "number": 206,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 207,
+      "code": "           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Retrieves the current system date and time so the menu screen can display an accurate timestamp to the admin user."
+    },
+    {
+      "number": 208,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 209,
+      "code": "           MOVE CCDA-TITLE01           TO TITLE01O OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the first line of the application's official title onto the menu screen header."
+    },
+    {
+      "number": 210,
+      "code": "           MOVE CCDA-TITLE02           TO TITLE02O OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the second line of the application's official title onto the menu screen header."
+    },
+    {
+      "number": 211,
+      "code": "           MOVE WS-TRANID              TO TRNNAMEO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the transaction identifier on the screen header, allowing support staff and users to reference the active session transaction."
+    },
+    {
+      "number": 212,
+      "code": "           MOVE WS-PGMNAME             TO PGMNAMEO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the current program name on the screen header, providing a navigation reference so users and support staff know which screen they are on."
+    },
+    {
+      "number": 213,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 214,
+      "code": "           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the month portion of today's date to format it for display on the screen."
+    },
+    {
+      "number": 215,
+      "code": "           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the day portion of today's date to format it for display on the screen."
+    },
+    {
+      "number": 216,
+      "code": "           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the two-digit year portion of today's date to format it for display on the screen."
+    },
+    {
+      "number": 217,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 218,
+      "code": "           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays today's date in MM/DD/YY format on the admin menu screen header, giving the user a current date reference."
+    },
+    {
+      "number": 219,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 220,
+      "code": "           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the hours portion of the current time to format it for display on the screen."
+    },
+    {
+      "number": 221,
+      "code": "           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the minutes portion of the current time to format it for display on the screen."
+    },
+    {
+      "number": 222,
+      "code": "           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the seconds portion of the current time to format it for display on the screen."
+    },
+    {
+      "number": 223,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 224,
+      "code": "           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COADM1AO.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the current time in HH:MM:SS format on the admin menu screen header, giving the user an accurate time reference."
+    },
+    {
+      "number": 225,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 226,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 227,
+      "code": "      *                      BUILD-MENU-OPTIONS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 229,
+      "code": "       BUILD-MENU-OPTIONS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Entry point for the routine that builds the visible menu option list on the admin screen."
+    },
+    {
+      "number": 230,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 231,
+      "code": "           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Begins iterating through each configured administrative function, starting from the first and advancing one at a time."
+    },
+    {
+      "number": 232,
+      "code": "                           WS-IDX > CDEMO-ADMIN-OPT-COUNT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Continues the loop until all configured administrative functions have been processed for display."
+    },
+    {
+      "number": 233,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 234,
+      "code": "               MOVE SPACES             TO WS-ADMIN-OPT-TXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Clears the working text buffer before formatting the next menu entry, preventing leftover text from a previous option contaminating the current one."
+    },
+    {
+      "number": 235,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 236,
+      "code": "               STRING CDEMO-ADMIN-OPT-NUM(WS-IDX)  DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Begins assembling the display text for the current menu entry by writing its sequential option number."
+    },
+    {
+      "number": 237,
+      "code": "                      '. '                         DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Appends a period and space after the option number to visually separate the number from the function name in the display."
+    },
+    {
+      "number": 238,
+      "code": "                      CDEMO-ADMIN-OPT-NAME(WS-IDX) DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Appends the human-readable name of the administrative function to complete the formatted menu entry text."
+    },
+    {
+      "number": 239,
+      "code": "                 INTO WS-ADMIN-OPT-TXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Stores the fully assembled, formatted menu entry text into the working buffer ready for placement on screen."
+    },
+    {
+      "number": 240,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "               EVALUATE WS-IDX",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Evaluates which position in the menu list is currently being built, to place the formatted text in the correct screen slot."
+    },
+    {
+      "number": 242,
+      "code": "                   WHEN 1",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the first menu position."
+    },
+    {
+      "number": 243,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN001O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted first administrative function into the first visible slot on the menu screen."
+    },
+    {
+      "number": 244,
+      "code": "                   WHEN 2",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the second menu position."
+    },
+    {
+      "number": 245,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN002O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted second administrative function into the second visible slot on the menu screen."
+    },
+    {
+      "number": 246,
+      "code": "                   WHEN 3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the third menu position."
+    },
+    {
+      "number": 247,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN003O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted third administrative function into the third visible slot on the menu screen."
+    },
+    {
+      "number": 248,
+      "code": "                   WHEN 4",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the fourth menu position."
+    },
+    {
+      "number": 249,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN004O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted fourth administrative function into the fourth visible slot on the menu screen."
+    },
+    {
+      "number": 250,
+      "code": "                   WHEN 5",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the fifth menu position."
+    },
+    {
+      "number": 251,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN005O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted fifth administrative function into the fifth visible slot on the menu screen."
+    },
+    {
+      "number": 252,
+      "code": "                   WHEN 6",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the sixth menu position."
+    },
+    {
+      "number": 253,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN006O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted sixth administrative function into the sixth visible slot on the menu screen."
+    },
+    {
+      "number": 254,
+      "code": "                   WHEN 7",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the seventh menu position."
+    },
+    {
+      "number": 255,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN007O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted seventh administrative function into the seventh visible slot on the menu screen."
+    },
+    {
+      "number": 256,
+      "code": "                   WHEN 8",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the eighth menu position."
+    },
+    {
+      "number": 257,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN008O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted eighth administrative function into the eighth visible slot on the menu screen."
+    },
+    {
+      "number": 258,
+      "code": "                   WHEN 9",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the ninth menu position."
+    },
+    {
+      "number": 259,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN009O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted ninth administrative function into the ninth visible slot on the menu screen."
+    },
+    {
+      "number": 260,
+      "code": "                   WHEN 10",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Checks whether the current entry is the tenth and final displayable menu position."
+    },
+    {
+      "number": 261,
+      "code": "                       MOVE WS-ADMIN-OPT-TXT TO OPTN010O",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Places the formatted tenth administrative function into the tenth and last visible slot on the menu screen."
+    },
+    {
+      "number": 262,
+      "code": "                   WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Handles any configured administrative functions beyond the tenth position."
+    },
+    {
+      "number": 263,
+      "code": "                       CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Silently skips any administrative functions configured beyond the tenth position, as the screen supports a maximum of 10 displayed options."
+    },
+    {
+      "number": 264,
+      "code": "               END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Closes the menu slot selection logic for the current administrative function."
+    },
+    {
+      "number": 265,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 266,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": "Ends the loop once all configured administrative functions have been formatted and placed on the menu screen."
+    },
+    {
+      "number": 267,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 268,
+      "code": "      *      PGMIDERROR     HANDLE-MISSING MENU OPTIONS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 269,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "explanation": ""
+    },
+    {
+      "number": 270,
+      "code": "       PGMIDERR-ERR-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Entry point triggered when the admin user selects a menu option that is flagged as not yet installed."
+    },
+    {
+      "number": 271,
+      "code": "           MOVE SPACES             TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Clears any previous status or error message from the screen message area to ensure a clean, accurate message is displayed."
+    },
+    {
+      "number": 272,
+      "code": "           MOVE DFHGREEN           TO ERRMSGC  OF COADM1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Sets the colour of the error message on screen to green, providing a visual indicator to the admin user that this is an informational notice rather than a critical system error."
+    },
+    {
+      "number": 273,
+      "code": "           STRING 'This option '       DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Begins constructing the user-facing message, opening with the phrase 'This option' to contextualise the notification about the unavailable function."
+    },
+    {
+      "number": 274,
+      "code": "      *                CDEMO-ADMIN-OPT-NAME(WS-OPTION)",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Comment indicating that the display name of the selected menu option was considered for inclusion in the message but was intentionally excluded from the final implementation."
+    },
+    {
+      "number": 275,
+      "code": "      *                                DELIMITED BY SIZE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Continuation of the comment noting the omission of the selected option's display name from the message string."
+    },
+    {
+      "number": 276,
+      "code": "                       'is not installed ...'   DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Appends the phrase 'is not installed ...' to complete the message, clearly communicating to the admin user that the selected function is not yet available in the system."
+    },
+    {
+      "number": 277,
+      "code": "           INTO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Directs the fully constructed unavailability message into the screen message field so it will be visible to the admin user on the menu."
+    },
+    {
+      "number": 278,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 279,
+      "code": "           PERFORM SEND-MENU-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Redraws the administrative menu screen, displaying the unavailability message so the admin user can review it and make a different selection."
+    },
+    {
+      "number": 280,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Suspends the current program and returns control to the CICS transaction manager, keeping the admin session alive for the next user interaction."
+    },
+    {
+      "number": 281,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Specifies that control should return to this same administrative menu transaction when the user next interacts, preserving the conversational session flow."
+    },
+    {
+      "number": 282,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Passes the shared session context — including user identity, role, and navigation history — back through the system so the admin session remains intact."
+    },
+    {
+      "number": 283,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": "Closes the CICS return instruction block."
+    },
+    {
+      "number": 284,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 285,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 286,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 287,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:32 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 288,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PGMIDERR-ERR-PARA",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Top-level working storage group that holds all operational variables used by the admin menu program during a user's session, including navigation state, error handling, and user input processing."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COADM01C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The name of the current admin menu program (COADM01C). This is passed through the communication area so that sub-programs and the CICS runtime know which screen the admin user came from, enabling correct back-navigation and audit trail tracking across the admin workflow."
+    },
+    {
+      "name": "WS-TRANID",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": "CA00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS transaction identifier (CA00) for the admin menu. When a sub-program finishes its task and needs to return control to the admin menu, this transaction ID is used to re-invoke the correct menu screen, maintaining the continuity of the admin user's session."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The feedback message displayed to the admin user on the menu screen. This communicates the outcome of their last action — for example, notifying them that they entered an invalid menu option, that a selected function is not yet available, or that they pressed an unrecognised key."
+    },
+    {
+      "name": "WS-USRSEC-FILE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "USRSEC  ",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The logical file name of the User Security file (USRSEC). This file is used to validate that the person accessing the admin menu is an authenticated user with the appropriate administrative role, enforcing access control before the menu is displayed."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "An error indicator that tracks whether the admin user's menu option selection has failed validation. When set to 'Y', it signals that the menu must be re-displayed with an appropriate error message rather than proceeding to launch an administrative function."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A named condition that is true when a validation error has occurred during menu option selection (e.g., non-numeric input, out-of-range option, or unavailable function). Used in business logic to trigger re-display of the menu with an error message."
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A named condition that is true when no validation error has occurred, meaning the admin user's menu selection is valid and the system can proceed to transfer control to the selected administrative function."
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS response code returned after executing a CICS command (such as reading the user security file or transferring control to a sub-program). Used to detect whether a system-level operation succeeded or failed, enabling appropriate error handling to protect the integrity of the admin session."
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS reason code that accompanies the response code, providing additional detail about why a CICS operation failed. Together with WS-RESP-CD, this helps diagnose specific failure conditions such as a missing security record or an unavailable program during admin navigation."
+    },
+    {
+      "name": "WS-OPTION-X",
+      "level": "05",
+      "picture": "PIC X(02) JUST RIGHT",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A working field that holds the raw menu option entered by the admin user as alphanumeric text, right-justified. It is used as an intermediate step to clean and validate the user's input (e.g., stripping spaces) before converting it into a numeric value for range checking and program selection."
+    },
+    {
+      "name": "WS-OPTION",
+      "level": "05",
+      "picture": "PIC 9(02)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The validated numeric menu option chosen by the admin user. This numeric value is used to look up the corresponding administrative function (e.g., User List, Account Management) in the menu options table and determine which sub-program to launch via CICS transfer of control."
+    },
+    {
+      "name": "WS-IDX",
+      "level": "05",
+      "picture": "PIC S9(04) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A loop counter used when iterating through the list of configured administrative menu options — for example, when building the on-screen display of available options or when trimming trailing spaces from user input. It ensures each option is processed in sequence up to the configured maximum."
+    },
+    {
+      "name": "WS-ADMIN-OPT-TXT",
+      "level": "05",
+      "picture": "PIC X(40)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A working field that temporarily holds the display name of an administrative menu option (e.g., 'User List (Security)') while it is being prepared for rendering on the admin menu screen. It acts as a staging area to format and present each option's label to the admin user."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The CICS communication area passed between programs during the admin session. Its presence (non-empty) confirms that the user has an active, authenticated session. It carries session context — including user identity, role, and navigation history — across all programs in the CardDemo admin workflow."
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The linkage section representation of the CICS communication area, defined minimally as a single byte. Its primary business purpose is to detect whether a communication area was passed to this program at all — if it is empty or absent, the user has no valid session and must be redirected to the sign-on screen for authentication."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 75,
+      "line_end": 118,
+      "description": "MAIN-PARA is the central orchestration entry point of the admin menu program. It enforces session integrity, controls first-time versus returning screen display, routes user key presses to the appropriate business action, and ensures the CICS session is kept alive for continued admin navigation."
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "line_start": 119,
+      "line_end": 162,
+      "description": "This paragraph processes the admin user's menu selection when they press Enter, validating the chosen option number and either launching the corresponding administrative function or informing the user that the selected option is not yet available."
+    },
+    {
+      "name": "RETURN-TO-SIGNON-SCREEN",
+      "line_start": 163,
+      "line_end": 174,
+      "description": "This paragraph handles the secure exit from the admin menu by redirecting the user back to the bank's sign-on screen, ensuring no admin session remains open without proper re-authentication. It acts as the controlled logout pathway, enforcing session integrity by always landing the user at a known, safe entry point."
+    },
+    {
+      "name": "SEND-MENU-SCREEN",
+      "line_start": 175,
+      "line_end": 191,
+      "description": "This paragraph assembles and renders the administrative navigation menu screen for the authenticated admin user. It combines header information, the list of available administrative functions, and any status or error messages before presenting the fully built screen to the user."
+    },
+    {
+      "name": "RECEIVE-MENU-SCREEN",
+      "line_start": 192,
+      "line_end": 204,
+      "description": "Captures the admin user's menu selection submitted from the administrative navigation screen. This step collects whatever option the user has entered before the system proceeds to validate and act on their choice."
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "line_start": 205,
+      "line_end": 228,
+      "description": "Prepares the standard header information displayed at the top of the administrative menu screen, including application titles, the current date and time, and identifiers that allow the user and support staff to identify which screen and transaction they are working in."
+    },
+    {
+      "name": "BUILD-MENU-OPTIONS",
+      "line_start": 229,
+      "line_end": 269,
+      "description": "Constructs and populates the administrative menu screen by formatting each configured administrative function as a numbered display entry. This ensures the admin user sees a clean, sequentially numbered list of available system functions, limited to a maximum of 10 visible options."
+    },
+    {
+      "name": "PGMIDERR-ERR-PARA",
+      "line_start": 270,
+      "line_end": 288,
+      "description": "This paragraph handles the scenario where an admin user selects a menu option that has not yet been installed or activated in the system. It informs the user that the chosen function is unavailable and returns them to the admin menu, maintaining their active session."
+    }
+  ],
+  "copybooks": [
+    "COCOM01Y",
+    "COADM02Y",
+    "COADM01",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CSUSR01Y",
+    "DFHAID",
+    "DFHBMSCA"
+  ]
+}

@@ -4,23 +4,23 @@
     "file_path": "app/app-authorization-ims-db2-mq/cbl/DBUNLDGS.CBL",
     "analyzed_at": "2026-05-02T18:40:05.229144",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Entladen (Unload) ausstehender Autorisierungsdaten aus der IMS-Datenbank in sequentielle GSAM-Ausgabedateien zur Archivierung oder Weiterverarbeitung.",
-    "process_description": "Das Programm liest vollständig alle ausstehenden Kreditkarten-Autorisierungsdatensätze aus einer hierarchischen IMS-Datenbank aus. Es verarbeitet dabei eine zweistufige Hierarchie: Für jeden Autorisierungs-Zusammenfassungssatz (Summary/Root-Segment, z.B. Kontoinformationen) werden alle zugehörigen Autorisierungs-Detailsätze (Child-Segmente) gelesen. Sowohl die Zusammenfassungssätze als auch die Detailsätze werden in separate GSAM-Ausgabedateien (Sequential Access Method für IMS) geschrieben, wobei der Kontoschlüssel als Verknüpfungsschlüssel dient. Das Programm dient typischerweise als erster Schritt in einem Batch-Verarbeitungszyklus, um Autorisierungsdaten für nachgelagerte Prozesse (z.B. Bereinigung, Migration, Reporting) bereitzustellen.",
+    "description": "Unload of outstanding authorization data from the IMS database into sequential GSAM output files for archiving or further processing.",
+    "process_description": "The program fully reads all outstanding credit card authorization records from a hierarchical IMS database. It processes a two-level hierarchy: for each authorization summary record (summary/root segment, e.g., account information), all associated authorization detail records (child segments) are read. Both the summary records and the detail records are written to separate GSAM output files (Sequential Access Method for IMS), with the account key serving as the linking key. The program typically serves as the first step in a batch processing cycle to provide authorization data for downstream processes (e.g., cleanup, migration, reporting).",
     "type": "Batch",
     "module": "Transaction",
     "files": {
-      "PAUTBPCB": "IMS-Datenbankzugriff auf die Pending-Autorisierungsdatenbank (Quelle der Autorisierungsdaten)",
-      "PASFLPCB": "GSAM-Ausgabedatei für Autorisierungs-Zusammenfassungssätze (Summary/Root-Segmente)",
-      "PADFLPCB": "GSAM-Ausgabedatei für Autorisierungs-Detailsätze (Child-Segmente)",
-      "PAUTSUM0": "IMS-Segment: Zusammenfassung ausstehender Autorisierungen (Root-Segment, je Konto)",
+      "PAUTBPCB": "IMS database access to the pending authorization database (source of authorization data)",
+      "PASFLPCB": "GSAM output file for authorization summary records (summary/root segments)",
+      "PADFLPCB": "GSAM output file for authorization detail records (child segments)",
+      "PAUTSUM0": "IMS segment: summary of pending authorizations (root segment, per account)",
       "PAUTDTL1": "IMS-Segment: Einzelne Autorisierungsdetails (Child-Segment, je Autorisierungsvorgang)"
     },
     "business_rules": [
-      "Nur Autorisierungs-Zusammenfassungssätze mit einer gültigen (numerischen) Kontonummer (PA-ACCT-ID IS NUMERIC) werden in die Ausgabedatei geschrieben und deren Detailsätze verarbeitet.",
-      "Die hierarchische Beziehung zwischen Konto-Zusammenfassung und Autorisierungsdetails bleibt erhalten: Detailsätze werden nur im Kontext ihres übergeordneten Summary-Satzes gelesen (GNP - Get Next within Parent).",
-      "Bei einem Datenbankfehler (Status ungleich Leerzeichen oder Dateiende) bricht das Programm mit Return-Code 16 ab (Hard Abend), um Datenverlust oder inkonsistente Ausgaben zu verhindern.",
-      "Das Programm verarbeitet alle ausstehenden Autorisierungen vollständig (Full Unload) ohne Filterung nach Datum oder Status – es ist ein vollständiger Datenabzug der gesamten Pending-Autorisierungsdatenbank.",
-      "Checkpoint-Mechanismus (RMAD-Präfix) ist für Batch-Restart-Fähigkeit vorgesehen, um bei Abbruch den Lauf wiederaufnehmen zu können."
+      "Only authorization summary records with a valid (numeric) account number (PA-ACCT-ID IS NUMERIC) are written to the output file and their detail records are processed.",
+      "The hierarchical relationship between account summary and authorization details is preserved: detail records are only read in the context of their parent summary record (GNP – Get Next within Parent).",
+      "In the event of a database error (status not equal to spaces or end-of-file), the program terminates with return code 16 (hard abend) to prevent data loss or inconsistent output.",
+      "The program processes all pending authorizations in full (Full Unload) without filtering by date or status – it is a complete data extract of the entire pending authorization database.",
+      "The checkpoint mechanism (RMAD prefix) is intended for batch restart capability, allowing the run to be resumed in the event of an abend."
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -1513,7 +1513,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA ist der zentrale Steuerungsrahmen des Batch-Laufs: Er orchestriert den vollständigen Entladevorgang aller ausstehenden Kreditkarten-Autorisierungsdaten aus der IMS-Datenbank in die sequentiellen Ausgabedateien."
+      "explanation": "MAIN-PARA is the central control framework of the batch run: it orchestrates the complete unload of all pending credit card authorization data from the IMS database into the sequential output files."
     },
     {
       "number": 165,
@@ -1522,7 +1522,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Registriert das Programm als IMS-Batch-Einstiegspunkt und stellt die Verbindung zur Pending-Autorisierungsdatenbank sowie zu beiden GSAM-Ausgabedateien her."
+      "explanation": "Registers the program as an IMS batch entry point and establishes the connection to the pending authorization database as well as to both GSAM output files."
     },
     {
       "number": 166,
@@ -1531,7 +1531,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Bindet die GSAM-Ausgabedatei für Autorisierungs-Zusammenfassungssätze (Summary/Root-Segmente) in den IMS-Verarbeitungskontext ein."
+      "explanation": "Binds the GSAM output file for authorization summary records (summary/root segments) into the IMS processing context."
     },
     {
       "number": 167,
@@ -1540,7 +1540,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Bindet die GSAM-Ausgabedatei für Autorisierungs-Detailsätze (Child-Segmente) in den IMS-Verarbeitungskontext ein."
+      "explanation": "Binds the GSAM output file for authorization detail records (child segments) into the IMS processing context."
     },
     {
       "number": 168,
@@ -1567,7 +1567,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Führt alle Vorbereitungsschritte für den Batch-Lauf durch: Initialisierung der Zähler, Einlesen der Steuerparameter (Ablaufzeitraum, Checkpoint-Frequenz) und Positionierung auf den ersten Datenbankdatensatz."
+      "explanation": "Performs all preparatory steps for the batch run: initialization of counters, reading of control parameters (expiry period, checkpoint frequency), and positioning to the first database record."
     },
     {
       "number": 171,
@@ -1585,7 +1585,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Verarbeitet iterativ jeden ausstehenden Autorisierungs-Zusammenfassungssatz (je Konto) aus der IMS-Datenbank und schreibt ihn samt seiner Detailsätze in die Ausgabedateien."
+      "explanation": "Iteratively processes each pending authorization summary record (per account) from the IMS database and writes it together with its detail records to the output files."
     },
     {
       "number": 173,
@@ -1594,7 +1594,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Steuert die Verarbeitungsschleife: Alle Konten werden so lange verarbeitet, bis die gesamte Pending-Autorisierungsdatenbank vollständig entladen wurde."
+      "explanation": "Controls the processing loop: all accounts are processed until the entire pending authorization database has been completely unloaded."
     },
     {
       "number": 174,
@@ -1612,7 +1612,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Schließt nach Abschluss des vollständigen Datenabzugs die GSAM-Ausgabedateien ordnungsgemäß ab und sichert damit die Integrität der entladenen Autorisierungsdaten."
+      "explanation": "After completion of the full data extract, properly closes the GSAM output files, thereby ensuring the integrity of the unloaded authorization data."
     },
     {
       "number": 176,
@@ -1648,7 +1648,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Beendet den Batch-Lauf und gibt die Kontrolle an den IMS-Batch-Controller zurück, nachdem alle Autorisierungsdaten vollständig entladen wurden."
+      "explanation": "Terminates the batch run and returns control to the IMS batch controller after all authorization data has been completely unloaded."
     },
     {
       "number": 180,
@@ -1675,7 +1675,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Initialisiert den Batch-Lauf für den Autorisierungsdaten-Entladevorgang: Das Programm erfasst das aktuelle Verarbeitungsdatum und protokolliert den Startvorgang im Systemlog, um den Beginn des Datenabzugs nachvollziehbar zu dokumentieren."
+      "explanation": "Initializes the batch run for the authorization data unload process: the program captures the current processing date and logs the start event to the system log in order to document the beginning of the data extract in a traceable manner."
     },
     {
       "number": 183,
@@ -1702,7 +1702,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Systemdatum als Verarbeitungsdatum für den Batch-Lauf (Format JJMMTT)."
+      "explanation": "Determines the current system date as the processing date for the batch run (format YYMMDD)."
     },
     {
       "number": 186,
@@ -1711,7 +1711,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Datum im Julianischen Format (JJDDD) für interne Datumsberechnungen, z.B. zur Prüfung von Ablauffristen der Autorisierungen."
+      "explanation": "Determines the current date in Julian format (YYDDD) for internal date calculations, e.g. for checking authorization expiry deadlines."
     },
     {
       "number": 187,
@@ -1729,7 +1729,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Hinweis auf eine deaktivierte Funktion: Das Einlesen von Steuerparametern (z.B. Ablaufzeitraum P-EXPIRY-DAYS, Checkpoint-Frequenz P-CHKP-FREQ) aus dem SYSIN-Eingabestrom ist aktuell nicht aktiv."
+      "explanation": "Note on a disabled function: reading of control parameters (e.g. expiry period P-EXPIRY-DAYS, checkpoint frequency P-CHKP-FREQ) from the SYSIN input stream is currently not active."
     },
     {
       "number": 189,
@@ -1738,7 +1738,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Schreibt eine Startmeldung in das Batch-Protokoll, um den Beginn des Autorisierungsdaten-Entladevorgangs (Programm DBUNLDGS) für Monitoring und Fehleranalyse zu kennzeichnen."
+      "explanation": "Writes a start message to the batch log to mark the beginning of the authorization data unload process (program DBUNLDGS) for monitoring and error analysis."
     },
     {
       "number": 190,
@@ -1747,7 +1747,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Schreibt eine visuelle Trennlinie in das Batch-Protokoll zur besseren Lesbarkeit der Laufmeldungen."
+      "explanation": "Writes a visual separator line to the batch log to improve the readability of run messages."
     },
     {
       "number": 191,
@@ -1756,7 +1756,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert das aktuelle Verarbeitungsdatum im Batch-Log, um den Datenabzug einem konkreten Geschäftstag zuordnen zu können."
+      "explanation": "Logs the current processing date in the batch log so that the data extract can be assigned to a specific business day."
     },
     {
       "number": 192,
@@ -1765,7 +1765,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Schreibt eine Leerzeile in das Batch-Protokoll zur optischen Gliederung der Startmeldungen."
+      "explanation": "Writes a blank line to the batch log for visual structuring of the start messages."
     },
     {
       "number": 193,
@@ -1792,7 +1792,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Öffnen der ersten sequentiellen Ausgabedatei (GSAM) für die Autorisierungs-Zusammenfassungssätze – wurde durch IMS-GSAM-Verarbeitung ersetzt."
+      "explanation": "Disabled code: opening of the first sequential output file (GSAM) for authorization summary records – replaced by IMS GSAM processing."
     },
     {
       "number": 196,
@@ -1801,7 +1801,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Prüfung, ob die Ausgabedatei für Zusammenfassungssätze erfolgreich geöffnet wurde, um Datenverlust bei fehlerhafter Dateiinitialisierung zu verhindern."
+      "explanation": "Disabled code: check whether the output file for summary records was opened successfully, in order to prevent data loss in the event of a failed file initialization."
     },
     {
       "number": 197,
@@ -1810,7 +1810,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Erfolgsfall – Datei wurde korrekt geöffnet, Verarbeitung wird fortgesetzt."
+      "explanation": "Disabled code: success case – file was opened correctly, processing continues."
     },
     {
       "number": 198,
@@ -1819,7 +1819,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Fehlerfall – Ausgabedatei konnte nicht geöffnet werden."
+      "explanation": "Disabled code: error case – output file could not be opened."
     },
     {
       "number": 199,
@@ -1828,7 +1828,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Protokollierung des Dateistatus-Fehlercodes der ersten Ausgabedatei zur Fehlerdiagnose."
+      "explanation": "Disabled code: logging of the file status error code of the first output file for error diagnosis."
     },
     {
       "number": 200,
@@ -1837,7 +1837,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Kontrollierter Programmabbruch (Hard Abend) bei nicht öffenbarer Ausgabedatei für Zusammenfassungssätze, um inkonsistente Ausgaben zu verhindern."
+      "explanation": "Disabled code: controlled program abend (hard abend) if the output file for summary records cannot be opened, in order to prevent inconsistent output."
     },
     {
       "number": 201,
@@ -1864,7 +1864,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Öffnen der zweiten sequentiellen Ausgabedatei (GSAM) für die Autorisierungs-Detailsätze – wurde durch IMS-GSAM-Verarbeitung ersetzt."
+      "explanation": "Disabled code: opening of the second sequential output file (GSAM) for authorization detail records – replaced by IMS GSAM processing."
     },
     {
       "number": 204,
@@ -1873,7 +1873,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Prüfung, ob die Ausgabedatei für Detailsätze erfolgreich geöffnet wurde."
+      "explanation": "Disabled code: check whether the output file for detail records was opened successfully."
     },
     {
       "number": 205,
@@ -1882,7 +1882,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Erfolgsfall – Detaildatei wurde korrekt geöffnet, Verarbeitung wird fortgesetzt."
+      "explanation": "Disabled code: success case – detail file was opened correctly, processing continues."
     },
     {
       "number": 206,
@@ -1891,7 +1891,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Fehlerfall – Ausgabedatei für Detailsätze konnte nicht geöffnet werden."
+      "explanation": "Disabled code: error case – output file for detail records could not be opened."
     },
     {
       "number": 207,
@@ -1900,7 +1900,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Protokollierung des Dateistatus-Fehlercodes der zweiten Ausgabedatei zur Fehlerdiagnose."
+      "explanation": "Disabled code: logging of the file status error code of the second output file for error diagnosis."
     },
     {
       "number": 208,
@@ -1909,7 +1909,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktivierter Code: Kontrollierter Programmabbruch (Hard Abend) bei nicht öffenbarer Ausgabedatei für Detailsätze, um inkonsistente Ausgaben zu verhindern."
+      "explanation": "Disabled code: controlled program abend (hard abend) if the output file for detail records cannot be opened, in order to prevent inconsistent output."
     },
     {
       "number": 209,
@@ -1945,7 +1945,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Markiert das Ende des Initialisierungsblocks, der die Startparameter (Ablaufzeitraum, Checkpoint-Frequenz) und Zähler für den Autorisierungs-Unload-Lauf vorbereitet hat."
+      "explanation": "Marks the end of the initialization block that has prepared the start parameters (expiry period, checkpoint frequency) and counters for the authorization unload run."
     },
     {
       "number": 213,
@@ -1954,7 +1954,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Übergibt die Programmsteuerung zurück an den aufrufenden Ablaufabschnitt, sodass die eigentliche Verarbeitung der ausstehenden Autorisierungsdaten beginnen kann."
+      "explanation": "Returns program control to the calling section so that the actual processing of the pending authorization data can begin."
     },
     {
       "number": 214,
@@ -1972,7 +1972,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Trennt den Initialisierungsbereich vom nachfolgenden Verarbeitungsblock und gliedert damit den Batch-Ablauf in klar abgegrenzte fachliche Phasen."
+      "explanation": "Separates the initialization area from the subsequent processing block, thereby structuring the batch flow into clearly defined functional phases."
     },
     {
       "number": 216,
@@ -1981,7 +1981,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Dieser Paragraph sucht den nächsten ausstehenden Autorisierungs-Zusammenfassungssatz (Konto-Stammsatz) in der IMS-Datenbank und steuert die vollständige Verarbeitung aller zugehörigen Autorisierungsdetails für dieses Konto."
+      "explanation": "This paragraph searches for the next pending authorization summary record (account root record) in the IMS database and controls the complete processing of all associated authorization details for that account."
     },
     {
       "number": 217,
@@ -2026,7 +2026,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt den IMS-Datenbankstatus zurück, um eine saubere Statusprüfung nach dem nächsten Datenbankzugriff zu gewährleisten."
+      "explanation": "Resets the IMS database status to ensure a clean status check after the next database access."
     },
     {
       "number": 222,
@@ -2035,7 +2035,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Ruft den nächsten Konto-Zusammenfassungssatz (Root-Segment) aus der Pending-Autorisierungsdatenbank ab – sequentieller Lesezugriff ohne Filterkriterium."
+      "explanation": "Retrieves the next account summary record (root segment) from the pending authorization database – sequential read access without a filter criterion."
     },
     {
       "number": 223,
@@ -2053,7 +2053,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Zieldatensatz des Lesevorgangs: der Autorisierungs-Zusammenfassungssatz mit Kontoinformationen (PENDING-AUTH-SUMMARY)."
+      "explanation": "Target record of the read operation: the authorization summary record containing account information (PENDING-AUTH-SUMMARY)."
     },
     {
       "number": 225,
@@ -2062,7 +2062,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Liest den nächsten Root-Satz ohne Qualifikation, d.h. es wird kein spezifischer Kontoschlüssel vorgegeben – alle Konten werden sequentiell durchlaufen."
+      "explanation": "Reads the next root record without qualification, i.e. no specific account key is specified – all accounts are traversed sequentially."
     },
     {
       "number": 226,
@@ -2125,7 +2125,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Prüft, ob der Datenbankzugriff erfolgreich war: Ein leerer Status bedeutet, dass ein gültiger Konto-Zusammenfassungssatz gefunden wurde."
+      "explanation": "Checks whether the database access was successful: an empty status indicates that a valid account summary record was found."
     },
     {
       "number": 233,
@@ -2143,7 +2143,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Erhöht den Zähler der erfolgreich gelesenen Autorisierungs-Zusammenfassungssätze um 1 (Statistik für den Batch-Lauf)."
+      "explanation": "Increments the counter of successfully read authorization summary records by 1 (statistics for the batch run)."
     },
     {
       "number": 235,
@@ -2152,7 +2152,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Erhöht den Gesamtzähler aller verarbeiteten Autorisierungssätze (Summary + Detail) um 1 für die abschließende Laufstatistik."
+      "explanation": "Increments the total counter of all processed authorization records (summary + detail) by 1 for the final run statistics."
     },
     {
       "number": 236,
@@ -2161,7 +2161,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Überträgt den gelesenen Konto-Zusammenfassungssatz in den Ausgabepuffer der ersten GSAM-Ausgabedatei (Summary-Datei)."
+      "explanation": "Transfers the read account summary record into the output buffer of the first GSAM output file (summary file)."
     },
     {
       "number": 237,
@@ -2170,7 +2170,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt den Kontoschlüssel im Ausgabesatz zurück, um eine saubere Befüllung mit der aktuellen Kontonummer sicherzustellen."
+      "explanation": "Resets the account key in the output record to ensure a clean population with the current account number."
     },
     {
       "number": 238,
@@ -2179,7 +2179,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt den Detailsatz-Puffer zurück, um Überreste aus der Verarbeitung des vorherigen Kontos zu löschen."
+      "explanation": "Resets the detail record buffer to clear any residual data from the processing of the previous account."
     },
     {
       "number": 239,
@@ -2188,7 +2188,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Überträgt die Kontonummer des aktuellen Konto-Zusammenfassungssatzes als Verknüpfungsschlüssel in den Ausgabesatz, um Summary und Details eindeutig zuzuordnen."
+      "explanation": "Transfers the account number of the current account summary record as a linking key into the output record in order to uniquely associate summary and detail records."
     },
     {
       "number": 240,
@@ -2206,7 +2206,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Geschäftsregel: Nur Konten mit einer gültigen numerischen Kontonummer werden in die Ausgabedatei geschrieben und deren Autorisierungsdetails verarbeitet – ungültige Konten werden übersprungen."
+      "explanation": "Business rule: only accounts with a valid numeric account number are written to the output file and have their authorization details processed – invalid accounts are skipped."
     },
     {
       "number": 242,
@@ -2224,7 +2224,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Schreibt den Konto-Zusammenfassungssatz in die GSAM-Ausgabedatei für Summary-Datensätze (Archivierung/Weiterverarbeitung)."
+      "explanation": "Writes the account summary record to the GSAM output file for summary records (archiving/further processing)."
     },
     {
       "number": 244,
@@ -2233,7 +2233,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt das Steuerfeld für das Ende der Detailsätze zurück, bevor die Detailverarbeitung für das aktuelle Konto beginnt."
+      "explanation": "Resets the control field for the end of detail records before detail processing for the current account begins."
     },
     {
       "number": 245,
@@ -2242,7 +2242,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Startet die Verarbeitung aller ausstehenden Autorisierungsdetails (Einzeltransaktionen) für das aktuell gelesene Konto."
+      "explanation": "Initiates the processing of all pending authorization details (individual transactions) for the currently read account."
     },
     {
       "number": 246,
@@ -2251,7 +2251,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Wiederholt die Detailsatz-Verarbeitung so lange, bis alle Autorisierungsdetails des aktuellen Kontos vollständig ausgelesen und geschrieben wurden."
+      "explanation": "Repeats the detail record processing until all authorization details for the current account have been completely read and written."
     },
     {
       "number": 247,
@@ -2278,7 +2278,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Prüft, ob das Ende der gesamten Pending-Autorisierungsdatenbank erreicht wurde (IMS-Statuscode 'GB' = kein weiterer Satz vorhanden)."
+      "explanation": "Checks whether the end of the entire pending authorization database has been reached (IMS status code 'GB' = no further record available)."
     },
     {
       "number": 250,
@@ -2287,7 +2287,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt das interne IMS-Datenbankende-Flag, um den Verarbeitungsabbruch auf IMS-Ebene zu signalisieren."
+      "explanation": "Sets the internal IMS database end flag to signal a processing termination at the IMS level."
     },
     {
       "number": 251,
@@ -2296,7 +2296,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Signalisiert der übergeordneten Verarbeitungsschleife, dass alle Konto-Zusammenfassungssätze vollständig verarbeitet wurden und der Batch-Lauf beendet werden kann."
+      "explanation": "Signals to the parent processing loop that all account summary records have been completely processed and the batch run can be terminated."
     },
     {
       "number": 252,
@@ -2314,7 +2314,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist – weder erfolgreicher Lesezugriff noch reguläres Datenbankende."
+      "explanation": "Checks whether an unexpected database error has occurred – neither a successful read access nor a regular end of database."
     },
     {
       "number": 254,
@@ -2323,7 +2323,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Protokolliert den fehlerhaften IMS-Statuscode des Autorisierungs-Zusammenfassungslesevorgangs für die Fehleranalyse im Job-Log."
+      "explanation": "Logs the erroneous IMS status code of the authorization summary read operation for error analysis in the job log."
     },
     {
       "number": 255,
@@ -2332,7 +2332,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Protokolliert den IMS-Schlüssel-Feedback-Bereich, um den zuletzt verarbeiteten Datensatz bei der Fehleranalyse identifizieren zu können."
+      "explanation": "Logs the IMS key feedback area in order to identify the last processed record during error analysis."
     },
     {
       "number": 256,
@@ -2341,7 +2341,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Bricht den Batch-Lauf mit einem Hard Abend (Return-Code 16) ab, um Datenverlust oder inkonsistente Ausgaben durch fehlerhafte Datenbankzugriffe zu verhindern."
+      "explanation": "Abends the batch run with a hard abend (return code 16) to prevent data loss or inconsistent output caused by erroneous database accesses."
     },
     {
       "number": 257,
@@ -2359,7 +2359,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Abschlusspunkt des Verarbeitungsblocks 2000, der den vollständigen Lesezyklus aller ausstehenden Autorisierungsdaten aus der IMS-Datenbank kapselt."
+      "explanation": "End point of processing block 2000, which encapsulates the complete read cycle of all pending authorization data from the IMS database."
     },
     {
       "number": 259,
@@ -2368,7 +2368,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Geordnete Rückgabe der Programmsteuerung an den aufrufenden Batch-Ablauf, nachdem alle Autorisierungssätze verarbeitet wurden."
+      "explanation": "Orderly return of program control to the calling batch flow after all authorization records have been processed."
     },
     {
       "number": 260,
@@ -2395,7 +2395,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Visuelle Trennlinie zur Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Prozess."
+      "explanation": "Visual separator line to delimit the next processing section in the batch process."
     },
     {
       "number": 263,
@@ -2404,7 +2404,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Einstiegspunkt: Verarbeitung des nächsten Autorisierungs-Detailsatzes (Einzelvorgang) zum aktuellen Konto."
+      "explanation": "Entry point: processing of the next authorization detail record (individual transaction) for the current account."
     },
     {
       "number": 264,
@@ -2440,7 +2440,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Liest den nächsten Autorisierungs-Detailsatz (z.B. einzelne Kartentransaktion) aus der IMS-Datenbank – beschränkt auf die Kinder des aktuell gelesenen Konto-Zusammenfassungssatzes."
+      "explanation": "Reads the next authorization detail record (e.g., individual card transaction) from the IMS database – restricted to the children of the currently read account summary record."
     },
     {
       "number": 268,
@@ -2449,7 +2449,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Zugriff erfolgt auf die Pending-Autorisierungsdatenbank (Quelle aller ausstehenden Kartentransaktionen)."
+      "explanation": "Access is made to the pending authorization database (source of all outstanding card transactions)."
     },
     {
       "number": 269,
@@ -2458,7 +2458,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Zieldatenbereich: Die gelesenen Autorisierungsdetails (Betrag, Händler, Datum etc.) werden in diesen Puffer geladen."
+      "explanation": "Target data area: The read authorization details (amount, merchant, date, etc.) are loaded into this buffer."
     },
     {
       "number": 270,
@@ -2467,7 +2467,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Suchkriterium: Unqualifizierter Zugriff auf das Child-Segment – es wird der nächste Detailsatz ohne weitere Filterung gelesen."
+      "explanation": "Search criterion: Unqualified access to the child segment – the next detail record is read without further filtering."
     },
     {
       "number": 271,
@@ -2521,7 +2521,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Prüft, ob der Datenbankzugriff erfolgreich war (kein Fehler, Datensatz wurde gefunden und gelesen)."
+      "explanation": "Checks whether the database access was successful (no error, record was found and read)."
     },
     {
       "number": 277,
@@ -2530,7 +2530,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Signalisiert der Verarbeitungsschleife, dass weitere Autorisierungs-Detailsätze für dieses Konto vorhanden sind."
+      "explanation": "Signals to the processing loop that additional authorization detail records exist for this account."
     },
     {
       "number": 278,
@@ -2539,7 +2539,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Erhöht den Zähler der gelesenen Autorisierungs-Zusammenfassungssätze – hier fachlich als Zähler für erfolgreich verarbeitete Detailsätze genutzt."
+      "explanation": "Increments the counter of read authorization summary records – functionally used here as a counter for successfully processed detail records."
     },
     {
       "number": 279,
@@ -2548,7 +2548,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Erhöht den Gesamtzähler aller verarbeiteten Autorisierungssätze (Summary und Detail kombiniert) um diesen Detailsatz."
+      "explanation": "Increments the total counter of all processed authorization records (summary and detail combined) by this detail record."
     },
     {
       "number": 280,
@@ -2557,7 +2557,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Überträgt den gelesenen Autorisierungs-Detailsatz (Transaktionsdaten) in den Ausgabepuffer für die GSAM-Datei."
+      "explanation": "Transfers the read authorization detail record (transaction data) into the output buffer for the GSAM file."
     },
     {
       "number": 281,
@@ -2575,7 +2575,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Schreibt den Autorisierungs-Detailsatz (Einzeltransaktion) in die GSAM-Ausgabedatei für nachgelagerte Batch-Prozesse."
+      "explanation": "Writes the authorization detail record (individual transaction) to the GSAM output file for downstream batch processes."
     },
     {
       "number": 283,
@@ -2593,7 +2593,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Prüft, ob für das aktuelle Konto keine weiteren Autorisierungs-Detailsätze mehr in der Datenbank vorhanden sind (Ende der Kind-Segmente)."
+      "explanation": "Checks whether no further authorization detail records exist in the database for the current account (end of child segments)."
     },
     {
       "number": 285,
@@ -2611,7 +2611,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Setzt das Steuerfeld, das das Ende aller Detailsätze zum aktuellen Konto signalisiert und die Detailsatz-Schleife beendet."
+      "explanation": "Sets the control field that signals the end of all detail records for the current account and terminates the detail record loop."
     },
     {
       "number": 287,
@@ -2620,7 +2620,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Protokolliert in das Job-Log, dass alle Detailsätze des aktuellen Kontos vollständig verarbeitet wurden."
+      "explanation": "Logs to the job log that all detail records for the current account have been fully processed."
     },
     {
       "number": 288,
@@ -2647,7 +2647,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist – weder erfolgreicher Lesezugriff noch reguläres Dateiende."
+      "explanation": "Checks whether an unexpected database error has occurred – neither a successful read nor a regular end-of-file."
     },
     {
       "number": 291,
@@ -2656,7 +2656,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Protokolliert den fehlerhaften IMS-Statuscode für die Fehleranalyse im Batch-Protokoll."
+      "explanation": "Logs the erroneous IMS status code for error analysis in the batch log."
     },
     {
       "number": 292,
@@ -2665,7 +2665,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Protokolliert den Datenbankschlüssel (Key Feedback Area) des fehlerhaften Zugriffs zur genauen Fehlerlokalisation."
+      "explanation": "Logs the database key (Key Feedback Area) of the failed access for precise error localization."
     },
     {
       "number": 293,
@@ -2674,7 +2674,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Bricht den Batch-Lauf mit Return-Code 16 ab, um Datenverlust oder inkonsistente Ausgaben bei Datenbankfehler zu verhindern."
+      "explanation": "Aborts the batch run with return code 16 to prevent data loss or inconsistent output in the event of a database error."
     },
     {
       "number": 294,
@@ -2692,7 +2692,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Setzt den IMS-Statuscode zurück, damit er den nächsten Datenbankzugriff nicht fälschlicherweise beeinflusst."
+      "explanation": "Resets the IMS status code so that it does not incorrectly affect the next database access."
     },
     {
       "number": 296,
@@ -2701,7 +2701,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Abschlusspunkt der Detailsatz-Verarbeitungsroutine (3000er Block) für das Lesen ausstehender Autorisierungs-Detailsätze."
+      "explanation": "End point of the detail record processing routine (3000 block) for reading pending authorization detail records."
     },
     {
       "number": 297,
@@ -2710,7 +2710,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Beendet die Detailsatz-Verarbeitungsroutine und gibt die Programmsteuerung an den aufrufenden Verarbeitungsblock zurück."
+      "explanation": "Ends the detail record processing routine and returns program control to the calling processing block."
     },
     {
       "number": 298,
@@ -2728,7 +2728,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Ablauf."
+      "explanation": "Separator line for structural delimitation of the next processing section in the batch flow."
     },
     {
       "number": 300,
@@ -2737,7 +2737,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Einstiegspunkt: Sicherung eines Konto-Zusammenfassungssatzes in die sequentielle GSAM-Archivdatei."
+      "explanation": "Entry point: Saving an account summary record to the sequential GSAM archive file."
     },
     {
       "number": 301,
@@ -2746,7 +2746,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe zur Verfolgung des Schreibvorgangs (war nur für Entwicklungs-/Testzwecke aktiv)."
+      "explanation": "Disabled diagnostic output for tracing the write operation (was active only for development/testing purposes)."
     },
     {
       "number": 302,
@@ -2755,7 +2755,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Überträgt den aktuellen Autorisierungs-Zusammenfassungssatz (Kontodaten) per IMS-Insert-Funktion in die GSAM-Ausgabedatei."
+      "explanation": "Transfers the current authorization summary record (account data) into the GSAM output file via the IMS Insert function."
     },
     {
       "number": 303,
@@ -2764,7 +2764,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Zieldatei: GSAM-Ausgabedatei für Autorisierungs-Zusammenfassungssätze (eine Zeile je Konto)."
+      "explanation": "Target file: GSAM output file for authorization summary records (one record per account)."
     },
     {
       "number": 304,
@@ -2773,7 +2773,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Nutzdaten: Der vollständige Konto-Zusammenfassungssatz mit allen ausstehenden Autorisierungsinformationen des Kontos."
+      "explanation": "Payload: The complete account summary record containing all pending authorization information for the account."
     },
     {
       "number": 305,
@@ -2782,7 +2782,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Trennlinie für Diagnosezwecke – markierte den Beginn der Statusausgabe nach dem Schreibvorgang."
+      "explanation": "Disabled separator line for diagnostic purposes – marked the beginning of the status output after the write operation."
     },
     {
       "number": 306,
@@ -2791,7 +2791,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe zur Bestätigung des abgeschlossenen GSAM-Schreibvorgangs für den Summary-Satz."
+      "explanation": "Disabled diagnostic output confirming the completed GSAM write operation for the summary record."
     },
     {
       "number": 307,
@@ -2800,7 +2800,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Ausgabe des Datenbanknamens der GSAM-Datei – diente zur Verifikation der korrekten Zieldatei."
+      "explanation": "Disabled output of the GSAM file database name – used to verify the correct target file."
     },
     {
       "number": 308,
@@ -2809,7 +2809,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Ausgabe der Verarbeitungsoption der GSAM-PCB – diente zur Prüfung der Zugriffsberechtigungen."
+      "explanation": "Disabled output of the GSAM PCB processing option – used to verify access permissions."
     },
     {
       "number": 309,
@@ -2827,7 +2827,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Deaktivierte Trennlinie für Diagnosezwecke – markierte das Ende der Statusausgabe."
+      "explanation": "Disabled separator line for diagnostic purposes – marked the end of the status output."
     },
     {
       "number": 311,
@@ -2836,7 +2836,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Prüft, ob der Schreibvorgang in die GSAM-Datei erfolgreich war: Ein gesetzter Statuscode signalisiert einen Fehler beim Sichern des Kontosatzes."
+      "explanation": "Checks whether the write operation to the GSAM file was successful: a set status code signals an error when saving the account record."
     },
     {
       "number": 312,
@@ -2845,7 +2845,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Protokolliert den aufgetretenen GSAM-Fehlercode in das Job-Log, um die Fehlerursache beim Schreiben des Summary-Satzes nachvollziehen zu können."
+      "explanation": "Logs the GSAM error code that occurred to the job log in order to trace the cause of the error when writing the summary record."
     },
     {
       "number": 313,
@@ -2854,7 +2854,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Protokolliert den Key-Feedback-Bereich der GSAM-Datei, um den zuletzt verarbeiteten Datensatz bei der Fehleranalyse identifizieren zu können."
+      "explanation": "Logs the Key Feedback Area of the GSAM file to identify the last processed record during error analysis."
     },
     {
       "number": 314,
@@ -2863,7 +2863,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Löst einen kontrollierten Batch-Abbruch aus, um Datenverlust oder unvollständige Ausgabedateien durch den fehlgeschlagenen Schreibvorgang zu verhindern."
+      "explanation": "Triggers a controlled batch abort to prevent data loss or incomplete output files caused by the failed write operation."
     },
     {
       "number": 315,
@@ -2872,7 +2872,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-PARENT-SEG-GSAM",
-      "explanation": "Abschluss der Fehlerprüfung für den GSAM-Schreibvorgang des Konto-Zusammenfassungssatzes."
+      "explanation": "End of the error check for the GSAM write operation of the account summary record."
     },
     {
       "number": 316,
@@ -2881,7 +2881,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-EXIT",
-      "explanation": "Markiert das Ende des Verarbeitungsabschnitts für Autorisierungs-Detailsätze (3100-PROCESS-CHILD-SEGMENTS) und ermöglicht die Rückkehr zur übergeordneten Kontoverarbeitungsschleife."
+      "explanation": "Marks the end of the processing section for authorization detail records (3100-PROCESS-CHILD-SEGMENTS) and enables the return to the parent account processing loop."
     },
     {
       "number": 317,
@@ -2890,7 +2890,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-EXIT",
-      "explanation": "Gibt die Programmsteuerung an den aufrufenden Abschnitt zurück, sodass das Programm mit dem nächsten Autorisierungs-Zusammenfassungssatz (nächstes Konto) fortfahren kann."
+      "explanation": "Returns program control to the calling section so that the program can continue with the next authorization summary record (next account)."
     },
     {
       "number": 318,
@@ -2899,7 +2899,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-EXIT",
-      "explanation": "Visuelle Trennlinie zur Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Ablauf."
+      "explanation": "Visual separator line to delimit the next processing section in the batch flow."
     },
     {
       "number": 319,
@@ -2908,7 +2908,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Beginn des Verarbeitungsschritts: Persistierung eines Autorisierungs-Detailsatzes in die sequentielle Ausgabedatei."
+      "explanation": "Start of the processing step: Persisting an authorization detail record to the sequential output file."
     },
     {
       "number": 320,
@@ -2917,7 +2917,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe zur Laufzeitverfolgung – wurde während der Entwicklung zur Fehlersuche genutzt."
+      "explanation": "Disabled diagnostic output for runtime tracing – used during development for debugging."
     },
     {
       "number": 321,
@@ -2926,7 +2926,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Schreibt den aktuellen Autorisierungs-Detailsatz (z.B. Betrag, Händler, Datum eines einzelnen Autorisierungsvorgangs) in die GSAM-Ausgabedatei."
+      "explanation": "Writes the current authorization detail record (e.g., amount, merchant, date of an individual authorization event) to the GSAM output file."
     },
     {
       "number": 322,
@@ -2935,7 +2935,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Zieldatei: Die GSAM-Ausgabedatei für Autorisierungs-Detailsätze (PADFLPCB), in die der Datensatz persistiert wird."
+      "explanation": "Target file: The GSAM output file for authorization detail records (PADFLPCB), to which the record is persisted."
     },
     {
       "number": 323,
@@ -2944,7 +2944,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Quelldaten: Der vollständige Autorisierungs-Detailsatz (PENDING-AUTH-DETAILS) mit allen Einzelheiten des Autorisierungsvorgangs."
+      "explanation": "Source data: The complete authorization detail record (PENDING-AUTH-DETAILS) containing all details of the authorization event."
     },
     {
       "number": 324,
@@ -2953,7 +2953,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Trennlinie zur optischen Abgrenzung der Debugging-Informationen."
+      "explanation": "Disabled diagnostic output – separator line for visual delimitation of debugging information."
     },
     {
       "number": 325,
@@ -2962,7 +2962,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Markierung des Auswertungspunkts nach dem Schreibvorgang in die GSAM-Detaildatei."
+      "explanation": "Disabled diagnostic output – marker for the evaluation point after the write operation to the GSAM detail file."
     },
     {
       "number": 326,
@@ -2971,7 +2971,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Ausgabe des Datenbanknamens der GSAM-Detaildatei zur Identifikation der Zieldatei."
+      "explanation": "Disabled diagnostic output – output of the GSAM detail file database name for target file identification."
     },
     {
       "number": 327,
@@ -2980,7 +2980,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Ausgabe des PCB-Statusfeldes zur Prüfung des Schreibergebnisses."
+      "explanation": "Disabled diagnostic output – output of the PCB status field to verify the write result."
     },
     {
       "number": 328,
@@ -2989,7 +2989,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Ausgabe der Verarbeitungsoption der GSAM-Datei zur Laufzeitdiagnose."
+      "explanation": "Disabled diagnostic output – output of the GSAM file processing option for runtime diagnostics."
     },
     {
       "number": 329,
@@ -2998,7 +2998,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Deaktivierte Diagnoseausgabe – Abschließende Trennlinie der Debugging-Ausgaben."
+      "explanation": "Disabled diagnostic output – final separator line of the debugging output."
     },
     {
       "number": 330,
@@ -3007,7 +3007,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Prüft, ob der Schreibvorgang des Autorisierungs-Detailsatzes in die GSAM-Ausgabedatei erfolgreich war (kein Fehler-Statuscode)."
+      "explanation": "Checks whether the write operation of the authorization detail record to the GSAM output file was successful (no error status code)."
     },
     {
       "number": 331,
@@ -3016,7 +3016,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Gibt im Fehlerfall den technischen Statuscode des fehlgeschlagenen Schreibvorgangs in die GSAM-Detaildatei zur Fehlerdiagnose aus."
+      "explanation": "In the event of an error, outputs the technical status code of the failed write operation to the GSAM detail file for error diagnosis."
     },
     {
       "number": 332,
@@ -3025,7 +3025,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Gibt den Key-Feedback-Bereich aus, um den betroffenen Datensatz (Kontonummer/Autorisierungsschlüssel) im Fehlerprotokoll zu identifizieren."
+      "explanation": "Outputs the Key Feedback Area to identify the affected record (account number/authorization key) in the error log."
     },
     {
       "number": 333,
@@ -3034,7 +3034,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Löst bei einem Schreibfehler einen kontrollierten Programmabbruch (RC=16) aus, um inkonsistente oder unvollständige Ausgabedaten zu verhindern."
+      "explanation": "In the event of a write error, triggers a controlled program abort (RC=16) to prevent inconsistent or incomplete output data."
     },
     {
       "number": 334,
@@ -3043,7 +3043,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-CHILD-SEG-GSAM",
-      "explanation": "Abschluss der Fehlerprüfung für den Schreibvorgang des Autorisierungs-Detailsatzes."
+      "explanation": "End of the error check for the write operation of the authorization detail record."
     },
     {
       "number": 335,
@@ -3052,7 +3052,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Abschlusspunkt der Detail-Satz-Verarbeitungsroutine: Hier endet die Verarbeitung der Autorisierungsdetails für ein Konto und die Kontrolle kehrt zur übergeordneten Schleife zurück."
+      "explanation": "End point of the detail record processing routine: Here the processing of authorization details for an account ends and control returns to the parent loop."
     },
     {
       "number": 336,
@@ -3061,7 +3061,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Technischer Rücksprungpunkt, der die Verarbeitung aller Autorisierungs-Detailsätze eines Kontos als abgeschlossen kennzeichnet und den Batch-Fluss zur nächsten Kontoebene weiterleitet."
+      "explanation": "Technical return point that marks the processing of all authorization detail records for an account as complete and forwards the batch flow to the next account level."
     },
     {
       "number": 337,
@@ -3070,7 +3070,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Visuelle Trennlinie, die das Ende des Verarbeitungsabschnitts für Autorisierungs-Detailsätze markiert und den Übergang zum nächsten Programmabschnitt signalisiert."
+      "explanation": "Visual separator line marking the end of the processing section for authorization detail records and signaling the transition to the next program section."
     },
     {
       "number": 338,
@@ -3079,7 +3079,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Dieser Paragraph schließt die GSAM-Ausgabedateien für Zusammenfassungs- und Detailsätze nach Abschluss des vollständigen Datenabzugs. Die eigentliche Schließlogik ist aktuell deaktiviert, da GSAM-Dateien in IMS über den PCB-Mechanismus verwaltet werden und kein explizites CLOSE benötigen."
+      "explanation": "This paragraph closes the GSAM output files for summary and detail records after the complete data extract has finished. The actual close logic is currently disabled, as GSAM files in IMS are managed via the PCB mechanism and do not require an explicit CLOSE."
     },
     {
       "number": 339,
@@ -3088,7 +3088,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Protokolliert den Beginn der Datei-Abschlussphase im Batch-Lauf zur Nachvollziehbarkeit im Job-Log."
+      "explanation": "Logs the start of the file close phase in the batch run to the job log for traceability."
     },
     {
       "number": 340,
@@ -3097,7 +3097,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierter Schließbefehl für die erste Ausgabedatei (GSAM-Datei für Autorisierungs-Zusammenfassungssätze) – nicht erforderlich, da IMS GSAM-Dateien automatisch über den PCB geschlossen werden."
+      "explanation": "Disabled close command for the first output file (GSAM file for authorization summary records) – not required, as IMS closes GSAM files automatically via the PCB."
     },
     {
       "number": 341,
@@ -3115,7 +3115,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierte Prüfung, ob die erste Ausgabedatei (Summary-Sätze) fehlerfrei geschlossen wurde."
+      "explanation": "Disabled check whether the first output file (summary records) was closed without errors."
     },
     {
       "number": 343,
@@ -3124,7 +3124,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierter Erfolgspfad: Kein Handlungsbedarf bei fehlerfreiem Schließen der Summary-Ausgabedatei."
+      "explanation": "Disabled success path: No action required when the summary output file is closed without errors."
     },
     {
       "number": 344,
@@ -3142,7 +3142,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierte Fehlerprotokollierung: Würde einen Fehler beim Schließen der Summary-Ausgabedatei mit dem zugehörigen Statuscode im Job-Log sichtbar machen."
+      "explanation": "Disabled error logging: Would display an error closing the summary output file along with the associated status code in the job log."
     },
     {
       "number": 346,
@@ -3160,7 +3160,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierter Schließbefehl für die zweite Ausgabedatei (GSAM-Datei für Autorisierungs-Detailsätze) – ebenfalls nicht erforderlich bei IMS GSAM."
+      "explanation": "Disabled close command for the second output file (GSAM file for authorization detail records) – also not required for IMS GSAM."
     },
     {
       "number": 348,
@@ -3178,7 +3178,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierte Prüfung, ob die zweite Ausgabedatei (Detail-Sätze) fehlerfrei geschlossen wurde."
+      "explanation": "Disabled check whether the second output file (detail records) was closed without errors."
     },
     {
       "number": 350,
@@ -3187,7 +3187,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierter Erfolgspfad: Kein Handlungsbedarf bei fehlerfreiem Schließen der Detail-Ausgabedatei."
+      "explanation": "Disabled success path: No action required when the detail output file is closed without errors."
     },
     {
       "number": 351,
@@ -3205,7 +3205,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Deaktivierte Fehlerprotokollierung: Würde einen Fehler beim Schließen der Detail-Ausgabedatei mit dem zugehörigen Statuscode im Job-Log sichtbar machen."
+      "explanation": "Disabled error logging: Would display an error closing the detail output file along with the associated status code in the job log."
     },
     {
       "number": 353,
@@ -3223,7 +3223,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Markiert das Ende des Verarbeitungsblocks für die Detailsatz-Verarbeitung (Child-Segmente je Konto)."
+      "explanation": "Marks the end of the processing block for detail record processing (child segments per account)."
     },
     {
       "number": 355,
@@ -3232,7 +3232,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Schließt den Verarbeitungsblock formal ab und gibt die Kontrolle an den übergeordneten Prozessablauf zurück."
+      "explanation": "Formally concludes the processing block and returns control to the parent process flow."
     },
     {
       "number": 356,
@@ -3250,7 +3250,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Notfall-Abbruchroutine: Bei einem kritischen Fehler (z.B. Datenbankfehler) wird der Batch-Lauf kontrolliert abgebrochen, um Datenverlust oder inkonsistente Ausgaben in den Autorisierungsdateien zu verhindern."
+      "explanation": "Emergency abort routine: In the event of a critical error (e.g., database error), the batch run is terminated in a controlled manner to prevent data loss or inconsistent output in the authorization files."
     },
     {
       "number": 358,
@@ -3277,7 +3277,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Protokolliert den unkontrollierten Abbruch des Entlade-Prozesses im Systemlog zur Fehlerdiagnose durch den Batch-Betrieb."
+      "explanation": "Logs the uncontrolled termination of the unload process in the system log for error diagnosis by batch operations."
     },
     {
       "number": 361,
@@ -3295,7 +3295,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Setzt den Rückgabecode auf 16 (Hard Abend), um dem aufrufenden Job-Control-System einen kritischen Fehler zu signalisieren und nachgelagerte Batch-Schritte (z.B. Bereinigung, Migration) zu stoppen."
+      "explanation": "Sets the return code to 16 (hard abend) to signal a critical error to the calling job control system and to stop downstream batch steps (e.g., cleanup, migration)."
     },
     {
       "number": 363,
@@ -3304,7 +3304,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Beendet das Programm sofort und übergibt die Fehlermeldung an den Batch-Scheduler, damit keine weiteren Autorisierungsdaten verarbeitet werden."
+      "explanation": "Terminates the program immediately and passes the error message to the batch scheduler so that no further authorization data is processed."
     },
     {
       "number": 364,
@@ -3322,7 +3322,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Markiert den finalen Austrittspunkt des Unload-Programms nach vollständiger Verarbeitung aller ausstehenden Autorisierungsdaten."
+      "explanation": "Marks the final exit point of the unload program after complete processing of all pending authorization data."
     },
     {
       "number": 366,
@@ -3331,7 +3331,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Beendet den Batch-Lauf geordnet und gibt die Kontrolle an den übergeordneten Job-Scheduler zurück, nachdem alle Summary- und Detailsätze in die Ausgabedateien geschrieben wurden."
+      "explanation": "Terminates the batch run in an orderly manner and returns control to the parent job scheduler after all summary and detail records have been written to the output files."
     }
   ],
   "variables": [
@@ -3343,7 +3343,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "OPFIL2-REC.",
@@ -3353,7 +3353,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ROOT-SEG-KEY",
@@ -3363,7 +3363,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CHILD-SEG-REC",
@@ -3373,7 +3373,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-VARIABLES.",
@@ -3383,7 +3383,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGMNAME",
@@ -3393,7 +3393,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-DATE",
@@ -3403,7 +3403,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-YYDDD",
@@ -3413,7 +3413,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-DATE",
@@ -3423,7 +3423,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-EXPIRY-DAYS",
@@ -3433,7 +3433,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-DAY-DIFF",
@@ -3443,7 +3443,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IDX",
@@ -3453,7 +3453,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CURR-APP-ID",
@@ -3463,7 +3463,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-CHKP",
@@ -3473,7 +3473,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-SMRY-PROC-CNT",
@@ -3483,7 +3483,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-TOT-REC-WRITTEN",
@@ -3493,7 +3493,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-READ",
@@ -3503,7 +3503,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-DELETED",
@@ -3513,7 +3513,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-READ",
@@ -3523,7 +3523,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-DELETED",
@@ -3533,7 +3533,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-ERR-FLG",
@@ -3543,7 +3543,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-ON",
@@ -3553,7 +3553,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-OFF",
@@ -3563,7 +3563,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-AUTHDB-FLAG",
@@ -3573,7 +3573,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-AUTHDB",
@@ -3583,7 +3583,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NOT-END-OF-AUTHDB",
@@ -3593,7 +3593,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-MORE-AUTHS-FLAG",
@@ -3603,7 +3603,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "MORE-AUTHS",
@@ -3613,7 +3613,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NO-MORE-AUTHS",
@@ -3623,7 +3623,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-ROOT-SEG",
@@ -3633,7 +3633,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-CHILD-SEG",
@@ -3643,7 +3643,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-INFILE-STATUS",
@@ -3653,7 +3653,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-OUTFL1-STATUS",
@@ -3663,7 +3663,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-OUTFL2-STATUS",
@@ -3673,7 +3673,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CUSTID-STATUS",
@@ -3683,7 +3683,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-FILE",
@@ -3693,7 +3693,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID.",
@@ -3703,7 +3703,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3713,7 +3713,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID-CTR",
@@ -3723,7 +3723,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-VARIABLES.",
@@ -3733,7 +3733,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-RETURN-CODE",
@@ -3743,7 +3743,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "STATUS-OK",
@@ -3753,7 +3753,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEGMENT-NOT-FOUND",
@@ -3763,7 +3763,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DUPLICATE-SEGMENT-FOUND",
@@ -3773,7 +3773,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WRONG-PARENTAGE",
@@ -3783,7 +3783,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-DB",
@@ -3793,7 +3793,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DATABASE-UNAVAILABLE",
@@ -3803,7 +3803,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-SCHEDULED-MORE-THAN-ONCE",
@@ -3813,7 +3813,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "COULD-NOT-SCHEDULE-PSB",
@@ -3823,7 +3823,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "RETRY-CONDITION",
@@ -3833,7 +3833,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-PSB-SCHD-FLG",
@@ -3843,7 +3843,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-SCHD",
@@ -3853,7 +3853,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-NOT-SCHD",
@@ -3863,7 +3863,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ROOT-UNQUAL-SSA.",
@@ -3873,7 +3873,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3883,7 +3883,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3893,7 +3893,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CHILD-UNQUAL-SSA.",
@@ -3903,7 +3903,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3913,7 +3913,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3923,7 +3923,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PRM-INFO.",
@@ -3933,7 +3933,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "P-EXPIRY-DAYS",
@@ -3943,7 +3943,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konfigurationsparameter: Gibt an, nach wie vielen Tagen eine ausstehende Autorisierung als abgelaufen gilt. Wird als Steuerungsgröße aus dem JCL-PARM übergeben und bestimmt den Gültigkeitszeitraum von Pending-Autorisierungen im Kreditkartensystem (z. B. 07 = 7 Tage). Autorisierungen, die älter als dieser Wert sind, können für Bereinigungsläufe identifiziert werden."
+      "description": "Configuration parameter: Specifies the number of days after which a pending authorization is considered expired. Passed as a control value via the JCL-PARM, it determines the validity period of pending authorizations in the credit card system (e.g., 07 = 7 days). Authorizations older than this value can be identified for cleanup runs."
     },
     {
       "name": "FILLER",
@@ -3953,7 +3953,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen im JCL-PARM-String zwischen P-EXPIRY-DAYS und P-CHKP-FREQ. Technisch notwendiges Füllbyte (typischerweise ein Komma oder Leerzeichen) zur korrekten Positionierung der nachfolgenden Parameter im Eingabe-Parameter-Puffer – hat keine eigenständige fachliche Bedeutung."
+      "description": "Delimiter in the JCL-PARM string between P-EXPIRY-DAYS and P-CHKP-FREQ. A technically required filler byte (typically a comma or space) for correct positioning of the subsequent parameters in the input parameter buffer – has no independent business meaning."
     },
     {
       "name": "P-CHKP-FREQ",
@@ -3963,7 +3963,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konfigurationsparameter: Legt die Checkpoint-Frequenz des Batch-Laufs fest, d. h. nach wie vielen verarbeiteten Datensätzen ein IMS-Checkpoint gesetzt wird (z. B. '01000' = alle 1.000 Sätze). Ermöglicht bei einem Programmabbruch den Neustart ab dem letzten gesicherten Checkpoint, um bereits verarbeitete Autorisierungsdaten nicht erneut entladen zu müssen."
+      "description": "Configuration parameter: Defines the checkpoint frequency of the batch run, i.e., after how many processed records an IMS checkpoint is set (e.g., '01000' = every 1,000 records). In the event of a program abend, this allows a restart from the last saved checkpoint so that already-processed authorization data does not need to be unloaded again."
     },
     {
       "name": "FILLER",
@@ -3973,7 +3973,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen im JCL-PARM-String zwischen P-CHKP-FREQ und P-CHKP-DIS-FREQ. Technisch notwendiges Füllbyte zur korrekten Positionierung der nachfolgenden Parameter – hat keine eigenständige fachliche Bedeutung."
+      "description": "Delimiter in the JCL-PARM string between P-CHKP-FREQ and P-CHKP-DIS-FREQ. A technically required filler byte for correct positioning of the subsequent parameters – has no independent business meaning."
     },
     {
       "name": "P-CHKP-DIS-FREQ",
@@ -3983,7 +3983,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konfigurationsparameter: Steuert die Anzeigefrequenz von Checkpoint-Informationen im Batch-Protokoll (Display-Frequenz). Gibt an, nach wie vielen Checkpoints eine Statusmeldung in das Job-Log geschrieben wird, um den Fortschritt des Entlade-Laufs für Operatoren und Administratoren nachvollziehbar zu machen."
+      "description": "Configuration parameter: Controls the display frequency of checkpoint information in the batch log. Specifies after how many checkpoints a status message is written to the job log, making the progress of the unload run traceable for operators and administrators."
     },
     {
       "name": "FILLER",
@@ -3993,7 +3993,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen im JCL-PARM-String zwischen P-CHKP-DIS-FREQ und P-DEBUG-FLAG. Technisch notwendiges Füllbyte zur korrekten Positionierung der nachfolgenden Parameter – hat keine eigenständige fachliche Bedeutung."
+      "description": "Delimiter in the JCL-PARM string between P-CHKP-DIS-FREQ and P-DEBUG-FLAG. A technically required filler byte for correct positioning of the subsequent parameters – has no independent business meaning."
     },
     {
       "name": "P-DEBUG-FLAG",
@@ -4003,7 +4003,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konfigurationsparameter: Schalter zur Aktivierung des Debug-Modus für den Batch-Entladelauf. Wird über den JCL-PARM gesetzt und steuert, ob erweiterte Diagnose- und Protokollausgaben während der Verarbeitung der Autorisierungsdaten erzeugt werden. Erleichtert die Fehleranalyse in Test- und Produktionsumgebungen."
+      "description": "Configuration parameter: Switch for activating debug mode for the batch unload run. Set via the JCL-PARM, it controls whether extended diagnostic and log output is generated during the processing of authorization data. Facilitates error analysis in test and production environments."
     },
     {
       "name": "DEBUG-ON",
@@ -4013,7 +4013,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Signalisiert, dass der Debug-Modus aktiv ist (P-DEBUG-FLAG = 'Y'). Wenn dieser Wert gesetzt ist, gibt das Programm zusätzliche Verarbeitungsdetails – z. B. gelesene Kontonummern, Segment-Statuscodes oder Zählerstände – in das Job-Log aus, um die Nachvollziehbarkeit des Entladevorgangs zu unterstützen."
+      "description": "Condition value: Signals that debug mode is active (P-DEBUG-FLAG = 'Y'). When this value is set, the program writes additional processing details – e.g., account numbers read, segment status codes, or counter values – to the job log to support traceability of the unload process."
     },
     {
       "name": "DEBUG-OFF",
@@ -4023,7 +4023,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Signalisiert, dass der Debug-Modus deaktiviert ist (P-DEBUG-FLAG = 'N'). Im Normalbetrieb (Produktion) wird dieser Wert gesetzt, sodass keine zusätzlichen Diagnoseausgaben erzeugt werden und der Batch-Lauf performant und ohne übermäßige Log-Ausgaben durchläuft."
+      "description": "Condition value: Signals that debug mode is inactive (P-DEBUG-FLAG = 'N'). In normal (production) operation, this value is set so that no additional diagnostic output is generated and the batch run executes efficiently without excessive log output."
     },
     {
       "name": "FILLER",
@@ -4033,7 +4033,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Abschließendes Füllbyte im JCL-PARM-Eingabebereich nach P-DEBUG-FLAG. Dient zur Auffüllung oder Abgrenzung des Parameter-Puffers auf die erwartete Gesamtlänge – hat keine eigenständige fachliche Bedeutung."
+      "description": "Trailing filler byte in the JCL-PARM input area after P-DEBUG-FLAG. Used to pad or delimit the parameter buffer to the expected total length – has no independent business meaning."
     },
     {
       "name": "PENDING-AUTH-SUMMARY",
@@ -4043,7 +4043,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld (Record-Struktur): Repräsentiert den Arbeitsbereich für einen Autorisierungs-Zusammenfassungssatz (Root-Segment PAUTSUM0) aus der IMS-Pending-Autorisierungsdatenbank. Enthält kontoübergreifende Zusammenfassungsdaten wie Kontonummer (PA-ACCT-ID), Kreditlimit, Saldo sowie Zähler und Beträge für genehmigte und abgelehnte Autorisierungen. Wird via COPY CIPAUSMY eingebunden und bildet die Grundlage für jeden in die GSAM-Ausgabedatei PASFLPCB geschriebenen Summary-Satz."
+      "description": "Group field (record structure): Represents the working area for an authorization summary record (root segment PAUTSUM0) from the IMS pending authorization database. Contains account-level summary data such as account number (PA-ACCT-ID), credit limit, balance, and counters and amounts for approved and declined authorizations. Included via COPY CIPAUSMY and serves as the basis for each summary record written to the GSAM output file PASFLPCB."
     },
     {
       "name": "PENDING-AUTH-DETAILS",
@@ -4053,7 +4053,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld (Record-Struktur): Repräsentiert den Arbeitsbereich für einen einzelnen Autorisierungs-Detailsatz (Child-Segment PAUTDTL1) aus der IMS-Pending-Autorisierungsdatenbank. Enthält transaktionsbezogene Einzeldaten wie Autorisierungsschlüssel (Datum/Uhrzeit), Kartennummer, Transaktionsbetrag, Genehmigungscode und Händlerkategorie. Wird via COPY CIPAUDTY eingebunden und bildet die Grundlage für jeden in die GSAM-Ausgabedatei PADFLPCB geschriebenen Detail-Satz, stets im Kontext seines übergeordneten Summary-Satzes (GNP-Lesestrategie)."
+      "description": "Group field (record structure): Represents the working area for an individual authorization detail record (child segment PAUTDTL1) from the IMS pending authorization database. Contains transaction-level data such as the authorization key (date/time), card number, transaction amount, approval code, and merchant category. Included via COPY CIPAUDTY and serves as the basis for each detail record written to the GSAM output file PADFLPCB, always in the context of its parent summary record (GNP read strategy)."
     }
   ],
   "paragraphs": [
@@ -4061,91 +4061,91 @@
       "name": "MAIN-PARA",
       "line_start": 164,
       "line_end": 181,
-      "description": "MAIN-PARA ist der zentrale Steuerungsrahmen des Batch-Laufs: Er orchestriert den vollständigen Entladevorgang aller ausstehenden Kreditkarten-Autorisierungsdaten aus der IMS-Datenbank in die sequentiellen Ausgabedateien."
+      "description": "MAIN-PARA is the central control framework of the batch run: it orchestrates the complete unload process of all pending credit card authorization data from the IMS database into the sequential output files."
     },
     {
       "name": "1000-INITIALIZE",
       "line_start": 182,
       "line_end": 211,
-      "description": "Initialisiert den Batch-Lauf für den Autorisierungsdaten-Entladevorgang: Das Programm erfasst das aktuelle Verarbeitungsdatum und protokolliert den Startvorgang im Systemlog, um den Beginn des Datenabzugs nachvollziehbar zu dokumentieren."
+      "description": "Initializes the batch run for the authorization data unload process: the program captures the current processing date and logs the start event to the system log in order to document the beginning of the data extract in a traceable manner."
     },
     {
       "name": "1000-EXIT",
       "line_start": 212,
       "line_end": 215,
-      "description": "Formaler Abschlusspunkt des Initialisierungsbereichs (1000-INIT). Dient als struktureller Endpunkt ohne eigene Geschäftslogik, um den kontrollierten Übergang zur Hauptverarbeitungsschleife des Autorisierungs-Entladevorgangs zu ermöglichen."
+      "description": "Formal end point of the initialization section (1000-INIT). Serves as a structural terminator without its own business logic, enabling a controlled transition to the main processing loop of the authorization unload process."
     },
     {
       "name": "2000-FIND-NEXT-AUTH-SUMMARY",
       "line_start": 216,
       "line_end": 257,
-      "description": "Dieser Paragraph sucht den nächsten ausstehenden Autorisierungs-Zusammenfassungssatz (Konto-Stammsatz) in der IMS-Datenbank und steuert die vollständige Verarbeitung aller zugehörigen Autorisierungsdetails für dieses Konto."
+      "description": "This paragraph retrieves the next pending authorization summary record (account root segment) from the IMS database and controls the complete processing of all associated authorization detail records for that account."
     },
     {
       "name": "2000-EXIT",
       "line_start": 258,
       "line_end": 262,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsblocks 2000, der die Rückkehr zur übergeordneten Steuerlogik des Unload-Prozesses markiert. Dieser Exit-Punkt beendet geordnet den Lesezyklus der ausstehenden Autorisierungsdaten."
+      "description": "Formal end point of processing block 2000, marking the return to the higher-level control logic of the unload process. This exit point terminates the read cycle of the pending authorization data in an orderly manner."
     },
     {
       "name": "3000-FIND-NEXT-AUTH-DTL",
       "line_start": 263,
       "line_end": 295,
-      "description": "Ruft den nächsten Autorisierungs-Detailsatz (Einzelbuchung) zum aktuellen Konto aus der IMS-Datenbank ab und schreibt ihn in die GSAM-Ausgabedatei. Steuert dabei die Weiterverarbeitung oder den Abbruch der Detailsatz-Schleife je nach Ergebnis des Datenbankzugriffs."
+      "description": "Retrieves the next authorization detail record (individual transaction) for the current account from the IMS database and writes it to the GSAM output file. Controls whether detail record loop processing continues or is terminated based on the result of the database access."
     },
     {
       "name": "3000-EXIT",
       "line_start": 296,
       "line_end": 299,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsblocks 3000, der das Ende der Detailsatz-Leseschleife markiert und die Steuerung an den übergeordneten Verarbeitungsablauf zurückgibt."
+      "description": "Formal end point of processing block 3000, marking the end of the detail record read loop and returning control to the higher-level processing flow."
     },
     {
       "name": "3100-INSERT-PARENT-SEG-GSAM",
       "line_start": 300,
       "line_end": 315,
-      "description": "Schreibt einen Autorisierungs-Zusammenfassungssatz (Konto-Root-Segment) in die GSAM-Ausgabedatei für Summary-Daten. Bei einem Fehler beim Schreiben wird der Batch-Lauf sofort abgebrochen, um inkonsistente Ausgabedaten zu verhindern."
+      "description": "Writes an authorization summary record (account root segment) to the GSAM output file for summary data. If a write error occurs, the batch run is immediately aborted to prevent inconsistent output data."
     },
     {
       "name": "3100-EXIT",
       "line_start": 316,
       "line_end": 318,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts für Autorisierungs-Detailsätze (3100). Dient als struktureller Rücksprungpunkt nach vollständiger Verarbeitung aller Detailsätze eines Kontos."
+      "description": "Formal end point of the authorization detail record processing section (3100). Serves as a structural return point after all detail records for an account have been fully processed."
     },
     {
       "name": "3200-INSERT-CHILD-SEG-GSAM",
       "line_start": 319,
       "line_end": 334,
-      "description": "Schreibt einen einzelnen Autorisierungs-Detailsatz (z.B. einen konkreten Autorisierungsvorgang) in die GSAM-Ausgabedatei für Detailsätze. Bei einem Fehler beim Schreiben wird der Batch-Lauf sofort abgebrochen, um inkonsistente Ausgabedaten zu verhindern."
+      "description": "Writes a single authorization detail record (e.g., a specific authorization transaction) to the GSAM output file for detail records. If a write error occurs, the batch run is immediately aborted to prevent inconsistent output data."
     },
     {
       "name": "3200-EXIT",
       "line_start": 335,
       "line_end": 337,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts 3200, der das Ende der Detail-Satz-Verarbeitungsschleife markiert und die Rückkehr zur übergeordneten Kontoverarbeitungslogik ermöglicht."
+      "description": "Formal end point of processing section 3200, marking the end of the detail record processing loop and enabling the return to the higher-level account processing logic."
     },
     {
       "name": "4000-FILE-CLOSE",
       "line_start": 338,
       "line_end": 353,
-      "description": "Dieser Paragraph schließt die GSAM-Ausgabedateien für Zusammenfassungs- und Detailsätze nach Abschluss des vollständigen Datenabzugs. Die eigentliche Schließlogik ist aktuell deaktiviert, da GSAM-Dateien in IMS über den PCB-Mechanismus verwaltet werden und kein explizites CLOSE benötigen."
+      "description": "This paragraph closes the GSAM output files for summary and detail records after the complete data extract has finished. The actual close logic is currently disabled, as GSAM files in IMS are managed via the PCB mechanism and do not require an explicit CLOSE."
     },
     {
       "name": "4000-EXIT",
       "line_start": 354,
       "line_end": 356,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsblocks für das Lesen und Entladen der Autorisierungs-Detailsätze. Dient als struktureller Endpunkt ohne eigene Geschäftslogik."
+      "description": "Formal end point of the processing block for reading and unloading authorization detail records. Serves as a structural terminator without its own business logic."
     },
     {
       "name": "9999-ABEND",
       "line_start": 357,
       "line_end": 364,
-      "description": "Notfall-Abbruchroutine: Bei einem kritischen Fehler (z.B. Datenbankfehler) wird der Batch-Lauf kontrolliert abgebrochen, um Datenverlust oder inkonsistente Ausgaben in den Autorisierungsdateien zu verhindern."
+      "description": "Emergency abort routine: in the event of a critical error (e.g., a database error), the batch run is terminated in a controlled manner to prevent data loss or inconsistent output in the authorization files."
     },
     {
       "name": "9999-EXIT",
       "line_start": 365,
       "line_end": 366,
-      "description": "Formaler Abschlusspunkt des Programms, der den geordneten Abschluss des vollständigen Datenabzugs der Pending-Autorisierungsdatenbank signalisiert und die Kontrolle an den aufrufenden Batch-Prozess zurückgibt."
+      "description": "Formal end point of the program, signaling the orderly completion of the full pending authorization database extract and returning control to the calling batch process."
     }
   ],
   "copybooks": [

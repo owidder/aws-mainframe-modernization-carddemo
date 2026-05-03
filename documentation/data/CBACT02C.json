@@ -1,0 +1,1974 @@
+{
+  "meta": {
+    "program_name": "CBACT02C",
+    "file_path": "app/cbl/CBACT02C.cbl",
+    "analyzed_at": "2026-05-02T19:47:17.574964",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Batch program that reads and prints all credit card records from the card master file for reporting or audit purposes.",
+    "process_description": "This batch program performs a sequential read of the entire card master file (an indexed VSAM KSDS dataset) and outputs every card record to the system log or print destination. It opens the file, iterates through all records from beginning to end, displays each card record in full, then closes the file and terminates. The program is designed for operational reporting, data verification, or audit trail generation of all credit cards held in the CardDemo system.",
+    "type": "Batch",
+    "module": "Card",
+    "files": {
+      "CARDFILE": "Credit card master file containing all issued card records, including card number (16 digits) and associated card data such as cardholder details, account linkage, status, and limits"
+    },
+    "business_rules": [
+      "All credit card records in the card master file must be processed sequentially from first to last without skipping any record.",
+      "Every card record read successfully must be displayed/printed in full, providing a complete snapshot of all cards in the system.",
+      "If the card master file cannot be opened, the program must terminate abnormally (abend) rather than proceed with no data — ensuring no silent failures in reporting.",
+      "Any unexpected read error (other than normal end-of-file) causes an immediate abnormal termination with abend code 999, preventing incomplete or misleading output.",
+      "The program is read-only — it does not modify, update, or delete any card records, making it safe for use in audit and compliance reporting contexts."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVACT02Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "CBCUS01C",
+        "COBSWAIT",
+        "COPAUA0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : CBACT02C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : BATCH COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Read and print card data file.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID.    CBACT02C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.        AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "           SELECT CARDFILE-FILE ASSIGN TO   CARDFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  RECORD KEY   IS FD-CARD-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "                  FILE STATUS  IS CARDFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "      *",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "       FD  CARDFILE-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "       01  FD-CARDFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "           05 FD-CARD-NUM                       PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "           05 FD-CARD-DATA                      PIC X(134).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "       COPY CVACT02Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "       01  CARDFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           05  CARDFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "           05  CARDFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "       01  IO-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "           05  IO-STAT1            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "           05  IO-STAT2            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "           05  TWO-BYTES-LEFT      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "           05  TWO-BYTES-RIGHT     PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       01  IO-STATUS-04.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "           05  IO-STATUS-0401      PIC 9   VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "           05  IO-STATUS-0403      PIC 999 VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "       01  APPL-RESULT             PIC S9(9)   COMP.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "           88  APPL-AOK            VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "           88  APPL-EOF            VALUE 16.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       01  END-OF-FILE             PIC X(01)    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       01  ABCODE                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  TIMING                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT02C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "           PERFORM 0000-CARDFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "           PERFORM UNTIL END-OF-FILE = 'Y'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "               IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "                   PERFORM 1000-CARDFILE-GET-NEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "                   IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "                       DISPLAY CARD-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           PERFORM 9000-CARDFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT02C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "       1000-CARDFILE-GET-NEXT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Entry point for the routine responsible for fetching the next credit card from the master file."
+    },
+    {
+      "number": 93,
+      "code": "           READ CARDFILE-FILE INTO CARD-RECORD.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Reads the next credit card record sequentially from the card master file into the working buffer for processing."
+    },
+    {
+      "number": 94,
+      "code": "           IF  CARDFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Checks whether the file read completed successfully with no errors."
+    },
+    {
+      "number": 95,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Marks the current operation as successful, allowing normal processing to continue for this card record."
+    },
+    {
+      "number": 96,
+      "code": "      *        DISPLAY CARD-RECORD",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Commented-out diagnostic line that would have printed the full card record details to the system log during development."
+    },
+    {
+      "number": 97,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Begins handling cases where the read did not complete successfully."
+    },
+    {
+      "number": 98,
+      "code": "               IF  CARDFILE-STATUS = '10'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Checks whether the file system signalled that there are no more credit card records to read (end of file reached)."
+    },
+    {
+      "number": 99,
+      "code": "                   MOVE 16 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Records that all credit cards have been processed and the sequential read is complete."
+    },
+    {
+      "number": 100,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Begins handling any other file read outcome that is neither success nor normal end-of-file — indicating an unexpected error."
+    },
+    {
+      "number": 101,
+      "code": "                   MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Flags the operation as failed due to an unrecognised or unrecoverable file error condition."
+    },
+    {
+      "number": 102,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Closes the end-of-file condition check."
+    },
+    {
+      "number": 103,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Closes the overall file status evaluation block."
+    },
+    {
+      "number": 104,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Checks whether the last card read operation completed without any error."
+    },
+    {
+      "number": 105,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "No further action needed — processing continues normally to the next step in the calling routine."
+    },
+    {
+      "number": 106,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Begins handling outcomes where the read was not fully successful."
+    },
+    {
+      "number": 107,
+      "code": "               IF  APPL-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Checks whether the reason for the non-success is simply that all credit card records have already been read."
+    },
+    {
+      "number": 108,
+      "code": "                   MOVE 'Y' TO END-OF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Sets the end-of-processing indicator to signal that every credit card in the master file has now been retrieved and no further reads are needed."
+    },
+    {
+      "number": 109,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Begins handling the case where the read failure is due to an unexpected and unrecoverable error rather than a normal end-of-file."
+    },
+    {
+      "number": 110,
+      "code": "                   DISPLAY 'ERROR READING CARDFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Writes an error notification to the system log indicating that the card master file could not be read successfully."
+    },
+    {
+      "number": 111,
+      "code": "                   MOVE CARDFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Captures the specific file system error code so it can be included in the diagnostic output for investigation."
+    },
+    {
+      "number": 112,
+      "code": "                   PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Executes a routine that formats and displays the captured file error code in a human-readable form for operational support."
+    },
+    {
+      "number": 113,
+      "code": "                   PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Triggers an immediate abnormal program termination with abend code 999, preventing incomplete or misleading audit output from being produced."
+    },
+    {
+      "number": 114,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Closes the unexpected error handling block."
+    },
+    {
+      "number": 115,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Closes the overall success/failure decision block."
+    },
+    {
+      "number": 116,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 117,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CARDFILE-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "       0000-CARDFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Entry point for the file-open routine that establishes access to the credit card master file."
+    },
+    {
+      "number": 119,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Assumes the worst-case outcome (failure) before attempting to open the file, acting as a safety default in case the open operation itself causes an unexpected interruption."
+    },
+    {
+      "number": 120,
+      "code": "           OPEN INPUT CARDFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Requests read-only access to the credit card master file so that card records can be retrieved for reporting without any risk of modifying the data."
+    },
+    {
+      "number": 121,
+      "code": "           IF  CARDFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Checks whether the operating system confirmed the file was opened successfully."
+    },
+    {
+      "number": 122,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Records a successful outcome, indicating the credit card master file is ready for sequential reading."
+    },
+    {
+      "number": 123,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Handles the case where the file did not open successfully."
+    },
+    {
+      "number": 124,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Records a failure outcome, signalling that the credit card master file is unavailable or inaccessible for reporting."
+    },
+    {
+      "number": 125,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Evaluates whether the file-open attempt ultimately succeeded before allowing the audit process to continue."
+    },
+    {
+      "number": 127,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Proceeds normally with no further action, as the credit card master file is confirmed open and ready for processing."
+    },
+    {
+      "number": 128,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Begins the error-handling path triggered when the file could not be opened."
+    },
+    {
+      "number": 129,
+      "code": "               DISPLAY 'ERROR OPENING CARDFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Writes a human-readable alert to the system log indicating that the credit card master file failed to open."
+    },
+    {
+      "number": 130,
+      "code": "               MOVE CARDFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Captures the specific system-level error code returned by the operating system so it can be included in the diagnostic output."
+    },
+    {
+      "number": 131,
+      "code": "               PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Displays the detailed file system error code to the operator log, providing technical context for why the file could not be opened."
+    },
+    {
+      "number": 132,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Triggers an abnormal program termination with a standard abend code, halting the audit run immediately to prevent a silent or incomplete report from being produced."
+    },
+    {
+      "number": 133,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": "Marks the end of the file-open routine, returning control to the calling paragraph if the file opened successfully."
+    },
+    {
+      "number": 135,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "       9000-CARDFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Entry point for the card master file closure routine."
+    },
+    {
+      "number": 137,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Initialises the operation outcome to a pending/unknown state before attempting to close the file."
+    },
+    {
+      "number": 138,
+      "code": "           CLOSE CARDFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Closes the credit card master file, releasing it from the batch job and making it available to other processes."
+    },
+    {
+      "number": 139,
+      "code": "           IF  CARDFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Checks whether the file system confirmed a clean, successful closure of the credit card master file."
+    },
+    {
+      "number": 140,
+      "code": "               SUBTRACT APPL-RESULT FROM APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Records a successful outcome, indicating the file was closed without any errors."
+    },
+    {
+      "number": 141,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "               ADD 12 TO ZERO GIVING APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Records a failure outcome, indicating the file closure encountered an error that must be investigated."
+    },
+    {
+      "number": 143,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Evaluates whether the file closure completed successfully before deciding how to proceed."
+    },
+    {
+      "number": 145,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "No further action is needed — the file closed cleanly and the program can continue to its normal end."
+    },
+    {
+      "number": 146,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "               DISPLAY 'ERROR CLOSING CARDFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Writes an error message to the system log alerting operations staff that the credit card master file could not be closed properly."
+    },
+    {
+      "number": 148,
+      "code": "               MOVE CARDFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by the operations team."
+    },
+    {
+      "number": 149,
+      "code": "               PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Displays the detailed file system error code to the system log to assist in identifying the root cause of the closure failure."
+    },
+    {
+      "number": 150,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Triggers an abnormal program termination with abend code 999, ensuring the failure is escalated and does not go unnoticed."
+    },
+    {
+      "number": 151,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": "Marks the end of the file closure routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 153,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "       9999-ABEND-PROGRAM.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Entry point for the emergency shutdown routine, triggered when an unrecoverable error has been detected during card file processing."
+    },
+    {
+      "number": 155,
+      "code": "           DISPLAY 'ABENDING PROGRAM'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Writes a visible alert message to the system log, notifying operations staff that the program is terminating abnormally due to a critical failure."
+    },
+    {
+      "number": 156,
+      "code": "           MOVE 0 TO TIMING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Specifies that the abnormal termination should be treated as immediate and non-deferrable, with no delay or cleanup timing applied."
+    },
+    {
+      "number": 157,
+      "code": "           MOVE 999 TO ABCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Sets the standard abend code to 999, which identifies this failure as a critical card file processing error for incident tracking and operations triage."
+    },
+    {
+      "number": 158,
+      "code": "           CALL 'CEE3ABD' USING ABCODE, TIMING.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Invokes the system abend handler to forcibly terminate the program, recording the error code 999 in the job log so that operations and audit teams can investigate the root cause."
+    },
+    {
+      "number": 159,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "       9910-DISPLAY-IO-STATUS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Entry point for the routine that formats and displays the file error status for operational diagnostics."
+    },
+    {
+      "number": 162,
+      "code": "           IF  IO-STATUS NOT NUMERIC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Checks whether the file system returned a non-standard or unprintable error code, which would require special binary decoding rather than simple text display."
+    },
+    {
+      "number": 163,
+      "code": "           OR  IO-STAT1 = '9'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Also triggers special handling if the error category indicates a severe VSAM-level hardware or system failure (category 9 errors), which cannot be displayed as plain text."
+    },
+    {
+      "number": 164,
+      "code": "               MOVE IO-STAT1 TO IO-STATUS-04(1:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Captures the primary error category digit as the first character of the four-digit diagnostic code that will be shown to operations staff."
+    },
+    {
+      "number": 165,
+      "code": "               MOVE 0        TO TWO-BYTES-BINARY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Clears a temporary numeric work area to zero, preparing it to receive and convert the secondary error detail byte from binary into a readable decimal number."
+    },
+    {
+      "number": 166,
+      "code": "               MOVE IO-STAT2 TO TWO-BYTES-RIGHT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Loads the secondary error detail byte — which encodes the specific cause of the VSAM failure — into the low-order position of the temporary conversion area."
+    },
+    {
+      "number": 167,
+      "code": "               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Converts the binary-encoded secondary error detail into a decimal number so it can be displayed meaningfully as part of the four-digit diagnostic code."
+    },
+    {
+      "number": 168,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Prints the fully assembled four-digit file error code to the system log, giving operations staff the exact VSAM status needed to diagnose the card file failure."
+    },
+    {
+      "number": 169,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Begins the alternative path for standard, text-readable file status codes that do not require binary conversion."
+    },
+    {
+      "number": 170,
+      "code": "               MOVE '0000' TO IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Initialises the four-digit display code to zeros, providing a clean baseline before inserting the actual standard error digits."
+    },
+    {
+      "number": 171,
+      "code": "               MOVE IO-STATUS TO IO-STATUS-04(3:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Inserts the two-digit standard file status code into the last two positions of the four-digit display field, right-aligning it for consistent log presentation."
+    },
+    {
+      "number": 172,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Prints the formatted four-digit standard file status code to the system log so operations staff can identify the exact nature of the card file read condition."
+    },
+    {
+      "number": 173,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Closes the conditional logic block that handles both standard and non-standard file error scenarios."
+    },
+    {
+      "number": 174,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Returns control to the calling routine after the error status has been formatted and displayed."
+    },
+    {
+      "number": 175,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "FD-CARDFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The physical record layout mapped directly to the card master file (CARDFILE). This is the raw buffer that receives each credit card record as it is read from disk, split into the card number and the remaining card data payload."
+    },
+    {
+      "name": "FD-CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The 16-digit credit card number as it physically arrives from the card master file. This is the unique identifier for each issued card and serves as the primary key used to locate and distinguish every card record during the sequential read."
+    },
+    {
+      "name": "FD-CARD-DATA",
+      "level": "05",
+      "picture": "PIC X(134)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining 134 bytes of the raw card record payload read from the card master file, containing all card attributes beyond the card number — such as the linked account ID, CVV code, cardholder name, expiry date, and active status. This data is moved into the structured CARD-RECORD working buffer for display and reporting."
+    },
+    {
+      "name": "CARDFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character VSAM file status code returned by the operating system after every open, read, or close operation on the card master file. The program inspects this code to determine whether the operation succeeded, end-of-file was reached, or an error occurred that requires abnormal termination."
+    },
+    {
+      "name": "CARDFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first character of the card master file status code, representing the major status category (e.g., '0' for success, '1' for end-of-file, '9' for a hardware or system-level error). Used to quickly classify whether the file operation was broadly successful or failed."
+    },
+    {
+      "name": "CARDFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the card master file status code, providing the specific sub-reason within the major status category. Together with CARDFILE-STAT1, it gives the precise diagnostic code needed to identify the exact nature of any file I/O error encountered during card record processing."
+    },
+    {
+      "name": "IO-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A general-purpose two-character I/O status holder used as an intermediate area when converting or interpreting file status codes. It supports the error-handling logic that translates raw file status bytes into a numeric result code (APPL-RESULT) for consistent error detection across file operations."
+    },
+    {
+      "name": "IO-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first byte of the general I/O status work area, holding the major status character during error code translation. Used in the conversion routine that maps the two-character file status into a numeric result code for program decision-making."
+    },
+    {
+      "name": "IO-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second byte of the general I/O status work area, holding the minor status character during error code translation. Works together with IO-STAT1 to form the complete status code that is converted into a numeric result for error handling decisions."
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": "01",
+      "picture": "PIC 9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A two-byte binary numeric work field used as the numeric view of the file status code during error translation. By treating the two status characters as a binary number, the program can convert the alphabetic/numeric status code into a comparable numeric value for routing to the correct error-handling path."
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": "TWO-BYTES-BINARY",
+      "occurs": null,
+      "is_group": true,
+      "description": "An alternate character-based view of the same two-byte binary status field (TWO-BYTES-BINARY). This redefinition allows the program to load the two-character file status code into the field as text, then read it back as a binary number — enabling the status-to-numeric conversion used in error detection."
+    },
+    {
+      "name": "TWO-BYTES-LEFT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The left (first) character byte of the two-byte status conversion area. Receives the first character of the file status code so it can be interpreted as the high-order byte of the binary numeric equivalent during error code translation."
+    },
+    {
+      "name": "TWO-BYTES-RIGHT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The right (second) character byte of the two-byte status conversion area. Receives the second character of the file status code so it can be interpreted as the low-order byte of the binary numeric equivalent during error code translation."
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A structured numeric representation of the file status code broken into two parts for formatted display or comparison during error reporting. Allows the program to present the file status in a human-readable four-digit format when logging errors encountered while reading the card master file."
+    },
+    {
+      "name": "IO-STATUS-0401",
+      "level": "05",
+      "picture": "PIC 9",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The single-digit major portion of the formatted file status code, initialized to zero. Holds the first digit of the status for display in error messages, helping operations staff identify the category of file error that caused a processing failure on the card master file."
+    },
+    {
+      "name": "IO-STATUS-0403",
+      "level": "05",
+      "picture": "PIC 999",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The three-digit minor portion of the formatted file status code, initialized to zero. Holds the remaining digits of the status for display in error messages, providing the specific sub-code that identifies the precise nature of any file error encountered during card record reading."
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": "01",
+      "picture": "PIC S9(9) COMP",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The internal application-level result code that summarizes the outcome of each card master file operation. After every read, this code is set to 0 (success), 16 (end-of-file), or 12 (error), driving the program's decision to continue processing, stop normally, or trigger an abnormal termination."
+    },
+    {
+      "name": "APPL-AOK",
+      "level": "88",
+      "picture": null,
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the last card master file operation completed successfully (result code = 0). Used in the processing loop to confirm that a card record was read without error and is ready to be displayed in the report."
+    },
+    {
+      "name": "APPL-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "16",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the end of the card master file has been reached (result code = 16), meaning all issued card records have been read and reported. This signals the program to exit the processing loop and close the file normally."
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": "01",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag that tracks whether all credit card records in the card master file have been processed. Initialized to 'N' (not finished), it is set to 'Y' when the end-of-file condition is detected, causing the main processing loop to stop and ensuring every card record is reported exactly once."
+    },
+    {
+      "name": "ABCODE",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The abnormal termination (abend) code passed to the system when an unrecoverable error occurs, such as a failure to open the card master file or an unexpected read error. Set to 999 before calling the system abend handler, this code identifies the CardDemo card file batch program as the source of the failure for operations and support teams."
+    },
+    {
+      "name": "TIMING",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A binary numeric field used to pass a timing or delay parameter to the system abend handler when triggering an abnormal termination. Controls the manner or timing of the abend call, ensuring the system has the necessary context to record and report the failure correctly."
+    },
+    {
+      "name": "CARD-RECORD",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The fully structured working buffer that holds one credit card record at a time as it is processed. Defined by the CVACT02Y copybook, this record provides named access to all card attributes — card number, linked account, CVV, cardholder name, expiry date, and active status — used when displaying each card's details in the audit report."
+    },
+    {
+      "name": "CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The 16-digit credit card number within the structured working record. This is the unique identifier printed for each card in the audit report, allowing compliance and operations teams to trace every issued card in the system."
+    },
+    {
+      "name": "CARD-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The 11-digit account identifier that links this credit card to its parent account in the account master file. In the audit report, this field shows which customer account each card belongs to, enabling reconciliation between card records and account records."
+    },
+    {
+      "name": "CARD-CVV-CD",
+      "level": "05",
+      "picture": "PIC 9(03)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The 3-digit Card Verification Value (CVV) security code associated with the credit card. Included in the card master record for internal audit and verification purposes; in a live environment, access to this field would be tightly controlled for PCI-DSS compliance."
+    },
+    {
+      "name": "CARD-EMBOSSED-NAME",
+      "level": "05",
+      "picture": "PIC X(50)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The cardholder's name as it is physically embossed or printed on the credit card. Displayed in the audit report to confirm the identity of the person to whom each card was issued, supporting cardholder verification and fraud investigation processes."
+    },
+    {
+      "name": "CARD-EXPIRAION-DATE",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The expiration date of the credit card, indicating the month and year after which the card is no longer valid for transactions. Included in the audit report to help identify expired cards that may need to be deactivated, reissued, or flagged for review."
+    },
+    {
+      "name": "CARD-ACTIVE-STATUS",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A single-character flag indicating whether the credit card is currently active and usable for transactions. Reported in the audit output to give compliance and operations teams a complete view of which cards are active, suspended, or cancelled across the entire card portfolio."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(59)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Reserved space within the card record structure that is not currently assigned to any named business field. These 59 bytes pad the record to its full 150-byte length and may be reserved for future card attributes such as additional cardholder data, loyalty program linkage, or card product type codes."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "1000-CARDFILE-GET-NEXT",
+      "line_start": 92,
+      "line_end": 117,
+      "description": "This paragraph retrieves the next credit card record sequentially from the card master file, interprets the outcome of that read operation, and either signals successful retrieval, flags that all cards have been processed, or triggers an immediate abnormal program termination if an unexpected I/O error occurs."
+    },
+    {
+      "name": "0000-CARDFILE-OPEN",
+      "line_start": 118,
+      "line_end": 135,
+      "description": "This paragraph attempts to open the credit card master file in preparation for the full audit read. If the file cannot be opened successfully, the program immediately halts with an abnormal termination, ensuring no audit report is produced from missing or inaccessible data."
+    },
+    {
+      "name": "9000-CARDFILE-CLOSE",
+      "line_start": 136,
+      "line_end": 153,
+      "description": "This paragraph safely closes the credit card master file after all records have been read and reported. It verifies the file was closed successfully and triggers an abnormal program termination if the closure fails, ensuring data integrity and a clean audit trail."
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "line_start": 154,
+      "line_end": 160,
+      "description": "This paragraph handles unrecoverable processing failures by performing a controlled abnormal termination of the program. It ensures that any critical file error is immediately surfaced to operations staff rather than allowing the audit report to continue with incomplete or corrupted data."
+    },
+    {
+      "name": "9910-DISPLAY-IO-STATUS",
+      "line_start": 161,
+      "line_end": 178,
+      "description": "This paragraph translates a raw technical file system error code into a human-readable four-digit status message displayed in the system log, enabling operations staff and auditors to diagnose exactly what went wrong when the credit card master file encounters an I/O problem."
+    }
+  ],
+  "copybooks": [
+    "CVACT02Y"
+  ]
+}

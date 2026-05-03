@@ -1,0 +1,3340 @@
+{
+  "meta": {
+    "program_name": "COTRN01C",
+    "file_path": "app/cbl/COTRN01C.cbl",
+    "analyzed_at": "2026-05-03T13:40:27.932914",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Display the full details of a single credit card transaction retrieved from the TRANSACT file by Transaction ID.",
+    "process_description": "This program allows a bank operator or customer service representative to look up and view the complete details of a specific credit card transaction by entering its Transaction ID. Upon receiving a valid Transaction ID, the program retrieves the transaction record from the TRANSACT file and displays all associated details including the card number, transaction type, category, source, amount, description, origination and processing timestamps, and merchant information (ID, name, city, ZIP code). The program is typically invoked from the transaction list screen (COTRN00C), where a specific transaction has been selected, and supports navigation back to the calling screen or to the transaction list. If the Transaction ID is not found or is left blank, appropriate error messages are displayed to the user.",
+    "type": "CICS Online",
+    "module": "Transaction",
+    "files": {
+      "TRANSACT": "Master file storing all credit card transaction records, keyed by Transaction ID"
+    },
+    "business_rules": [
+      "Transaction ID is mandatory; the system will not attempt a lookup and will display an error message if the field is left blank.",
+      "If the entered Transaction ID does not exist in the TRANSACT file, the user is informed with a 'Transaction ID NOT found' message and no transaction details are displayed.",
+      "When navigated from the transaction list screen (COTRN00C), the selected Transaction ID is automatically populated and the lookup is performed without requiring manual entry.",
+      "The program reads the transaction record with an UPDATE intent (CICS READ UPDATE), suggesting the record may be locked for potential downstream editing, even though this screen is view-only.",
+      "Navigation via PF3 returns the user to the originating program (or the main menu if no originating program is recorded); PF5 returns directly to the transaction list screen (COTRN00C); PF4 clears all fields on the current screen.",
+      "Any unrecognised key press is rejected with an 'invalid key' message, enforcing controlled navigation.",
+      "If the program is accessed without a valid communication area (e.g., direct access without prior sign-on), the user is redirected to the sign-on screen (COSGN00C), enforcing authentication requirements."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "COCOM01Y",
+        "COTRN01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVTRA05Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COTRN00C",
+        "COUSR03C",
+        "COUSR00C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COTRN01C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : View a Transaction from TRANSACT file",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COTRN01C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                     WORKING STORAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COTRN01C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "         05 WS-TRANID                  PIC X(04) VALUE 'CT01'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "         05 WS-TRANSACT-FILE             PIC X(08) VALUE 'TRANSACT'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "         05 WS-USR-MODIFIED            PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "           88 USR-MODIFIED-YES                   VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           88 USR-MODIFIED-NO                    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "         05 WS-TRAN-AMT                PIC +99999999.99.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "         05 WS-TRAN-DATE               PIC X(08) VALUE '00/00/00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "       COPY COCOM01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "          05 CDEMO-CT01-INFO.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "             10 CDEMO-CT01-TRNID-FIRST     PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "             10 CDEMO-CT01-TRNID-LAST      PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "             10 CDEMO-CT01-PAGE-NUM        PIC 9(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "             10 CDEMO-CT01-NEXT-PAGE-FLG   PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "                88 NEXT-PAGE-YES                     VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "                88 NEXT-PAGE-NO                      VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "             10 CDEMO-CT01-TRN-SEL-FLG     PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "             10 CDEMO-CT01-TRN-SELECTED    PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "       COPY COTRN01.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       COPY COTTL01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       COPY CSDAT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       COPY CSMSG01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "       COPY CVTRA05Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "       COPY DFHAID.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "       COPY DFHBMSCA.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "      *                        LINKAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "         05  LK-COMMAREA                           PIC X(01)",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.",
+      "type": "code",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "      *                       PROCEDURE DIVISION",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Entry point of the main control routine that governs all processing for the transaction detail screen."
+    },
+    {
+      "number": 87,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "           SET ERR-FLG-OFF     TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any previously recorded error condition so the screen starts each interaction in a clean, error-free state."
+    },
+    {
+      "number": 89,
+      "code": "           SET USR-MODIFIED-NO TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets the indicator that tracks whether the user has made any changes, confirming no modifications are pending at the start of processing."
+    },
+    {
+      "number": 90,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "           MOVE SPACES TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any status or error message text that may have been displayed during the previous interaction."
+    },
+    {
+      "number": 92,
+      "code": "                          ERRMSGO OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears the error message field on the transaction detail screen so stale messages are not shown to the user."
+    },
+    {
+      "number": 93,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "           IF EIBCALEN = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether the program was invoked with no prior session context, which would indicate a direct or unauthorised entry attempt rather than a proper sign-on flow."
+    },
+    {
+      "number": 95,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Directs the application to route the user to the sign-on screen, enforcing authentication before any transaction data can be accessed."
+    },
+    {
+      "number": 96,
+      "code": "               PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the navigation to the sign-on screen, ending the current interaction and requiring the user to authenticate."
+    },
+    {
+      "number": 97,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Restores the shared application session data passed from the previous screen, making the user's session state, role, and navigation history available for this program."
+    },
+    {
+      "number": 99,
+      "code": "               IF NOT CDEMO-PGM-REENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this is the user's first arrival on the transaction detail screen, as opposed to a return visit after a prior interaction."
+    },
+    {
+      "number": 100,
+      "code": "                   SET CDEMO-PGM-REENTER    TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Marks the session to indicate the user has now been on this screen at least once, so subsequent interactions are handled as return visits."
+    },
+    {
+      "number": 101,
+      "code": "                   MOVE LOW-VALUES          TO COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears all output fields on the transaction detail screen, ensuring no residual data from a previous lookup is displayed."
+    },
+    {
+      "number": 102,
+      "code": "                   MOVE -1       TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Positions the screen cursor in the Transaction ID entry field, guiding the user to enter or confirm the transaction they wish to view."
+    },
+    {
+      "number": 103,
+      "code": "                   IF CDEMO-CT01-TRN-SELECTED NOT =",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether a specific transaction was pre-selected from the transaction list screen and passed into this program automatically."
+    },
+    {
+      "number": 104,
+      "code": "                                              SPACES AND LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Confirms the pre-selected transaction identifier is a meaningful value and not blank or empty, before attempting an automatic lookup."
+    },
+    {
+      "number": 105,
+      "code": "                       MOVE CDEMO-CT01-TRN-SELECTED TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Copies the transaction identifier that was selected on the transaction list screen into the Transaction ID input field on the detail screen."
+    },
+    {
+      "number": 106,
+      "code": "                            TRNIDINI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Populates the on-screen Transaction ID entry field with the pre-selected value so the lookup can proceed without manual user input."
+    },
+    {
+      "number": 107,
+      "code": "                       PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Automatically triggers the transaction lookup process using the pre-selected Transaction ID, retrieving and displaying the full transaction details without requiring the user to press Enter."
+    },
+    {
+      "number": 108,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "                   PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sends the transaction detail screen to the user's terminal, displaying either the retrieved transaction details or an initial blank entry form."
+    },
+    {
+      "number": 110,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "                   PERFORM RECEIVE-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Reads the user's input from the transaction detail screen, capturing any data they have typed and which key they pressed."
+    },
+    {
+      "number": 112,
+      "code": "                   EVALUATE EIBAID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Evaluates which key the user pressed to determine the appropriate business action to take."
+    },
+    {
+      "number": 113,
+      "code": "                       WHEN DFHENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed Enter, indicating they want to submit a Transaction ID for lookup."
+    },
+    {
+      "number": 114,
+      "code": "                           PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the transaction lookup process, retrieving the full details of the specified transaction from the master transaction file."
+    },
+    {
+      "number": 115,
+      "code": "                       WHEN DFHPF3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed PF3, indicating they want to go back to the previous screen."
+    },
+    {
+      "number": 116,
+      "code": "                           IF CDEMO-FROM-PROGRAM = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether the application has a record of which screen the user navigated from, to determine the correct back-navigation destination."
+    },
+    {
+      "number": 117,
+      "code": "                               MOVE 'COMEN01C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "If no prior screen is recorded, defaults the back-navigation destination to the main application menu."
+    },
+    {
+      "number": 118,
+      "code": "                           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "                               MOVE CDEMO-FROM-PROGRAM TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "If a prior screen is recorded, sets the back-navigation destination to that originating screen, preserving the user's navigation path."
+    },
+    {
+      "number": 120,
+      "code": "                               CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Completes the assignment of the originating screen as the return destination."
+    },
+    {
+      "number": 121,
+      "code": "                           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 122,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the navigation back to the appropriate previous screen, either the main menu or the screen that launched this transaction detail view."
+    },
+    {
+      "number": 123,
+      "code": "                       WHEN DFHPF4",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed PF4, indicating they want to clear all fields on the current screen."
+    },
+    {
+      "number": 124,
+      "code": "                           PERFORM CLEAR-CURRENT-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears all input and output fields on the transaction detail screen, resetting it to a blank state for a new lookup."
+    },
+    {
+      "number": 125,
+      "code": "                       WHEN DFHPF5",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the user pressed PF5, indicating they want to go directly to the transaction list screen."
+    },
+    {
+      "number": 126,
+      "code": "                           MOVE 'COTRN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the navigation destination to the transaction list screen, bypassing any intermediate screens."
+    },
+    {
+      "number": 127,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the navigation to the transaction list screen."
+    },
+    {
+      "number": 128,
+      "code": "                       WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles any key press that is not a recognised navigation or action key."
+    },
+    {
+      "number": 129,
+      "code": "                           MOVE 'Y'                       TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Records that an error has occurred because the user pressed an unsupported key."
+    },
+    {
+      "number": 130,
+      "code": "                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the error message to inform the user that the key they pressed is not valid on this screen."
+    },
+    {
+      "number": 131,
+      "code": "                           PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Redisplays the transaction detail screen with the invalid key error message, prompting the user to use a supported key."
+    },
+    {
+      "number": 132,
+      "code": "                   END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns control to the CICS transaction manager, keeping the current screen session active and preserving the application's shared session data for the next user interaction."
+    },
+    {
+      "number": 137,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Specifies that the same transaction program should be re-invoked when the user next interacts with the screen."
+    },
+    {
+      "number": 138,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Passes the current application session state — including user identity, navigation history, and selected transaction — forward to the next interaction."
+    },
+    {
+      "number": 139,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "      *                      PROCESS-ENTER-KEY",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "       PROCESS-ENTER-KEY.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Entry point for processing the operator's request to look up a transaction by ID."
+    },
+    {
+      "number": 145,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Begin evaluating the conditions that determine whether the lookup can proceed."
+    },
+    {
+      "number": 147,
+      "code": "               WHEN TRNIDINI OF COTRN1AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Check whether the Transaction ID field has been left blank or empty by the operator."
+    },
+    {
+      "number": 148,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Flag the current operation as failed due to a validation error, preventing further processing."
+    },
+    {
+      "number": 149,
+      "code": "                   MOVE 'Tran ID can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Prepare an error message informing the operator that a Transaction ID must be entered before a lookup can be performed."
+    },
+    {
+      "number": 150,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "                   MOVE -1       TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Set the cursor focus back to the Transaction ID input field so the operator can immediately correct the omission."
+    },
+    {
+      "number": 152,
+      "code": "                   PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Redisplay the transaction view screen showing the validation error message to the operator."
+    },
+    {
+      "number": 153,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Handle the case where the Transaction ID field is not blank — the entry is acceptable for lookup."
+    },
+    {
+      "number": 154,
+      "code": "                   MOVE -1       TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Set the cursor focus to the Transaction ID field in preparation for the subsequent file lookup."
+    },
+    {
+      "number": 155,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Allow processing to continue to the file retrieval step without interruption."
+    },
+    {
+      "number": 156,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "End of the input validation decision block."
+    },
+    {
+      "number": 157,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 158,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceed to retrieve transaction details only if no validation error was raised in the previous step."
+    },
+    {
+      "number": 159,
+      "code": "               MOVE SPACES      TO TRNIDI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the Transaction ID display field on screen to ensure stale data is not shown before the fresh lookup result is loaded."
+    },
+    {
+      "number": 160,
+      "code": "                                   CARDNUMI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the credit card number display field on screen."
+    },
+    {
+      "number": 161,
+      "code": "                                   TTYPCDI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction type display field on screen."
+    },
+    {
+      "number": 162,
+      "code": "                                   TCATCDI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction category display field on screen."
+    },
+    {
+      "number": 163,
+      "code": "                                   TRNSRCI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction source/channel display field on screen."
+    },
+    {
+      "number": 164,
+      "code": "                                   TRNAMTI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction amount display field on screen."
+    },
+    {
+      "number": 165,
+      "code": "                                   TDESCI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction description display field on screen."
+    },
+    {
+      "number": 166,
+      "code": "                                   TORIGDTI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction origination timestamp display field on screen."
+    },
+    {
+      "number": 167,
+      "code": "                                   TPROCDTI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the transaction processing/settlement timestamp display field on screen."
+    },
+    {
+      "number": 168,
+      "code": "                                   MIDI     OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the merchant identifier display field on screen."
+    },
+    {
+      "number": 169,
+      "code": "                                   MNAMEI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the merchant name display field on screen."
+    },
+    {
+      "number": 170,
+      "code": "                                   MCITYI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the merchant city display field on screen."
+    },
+    {
+      "number": 171,
+      "code": "                                   MZIPI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the merchant ZIP code display field on screen."
+    },
+    {
+      "number": 172,
+      "code": "               MOVE TRNIDINI  OF COTRN1AI TO TRAN-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copy the Transaction ID entered by the operator into the working area used to query the transaction master file."
+    },
+    {
+      "number": 173,
+      "code": "               PERFORM READ-TRANSACT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Retrieve the full transaction record from the master file using the supplied Transaction ID."
+    },
+    {
+      "number": 174,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "End of the block that clears the screen and initiates the file lookup."
+    },
+    {
+      "number": 175,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceed to populate and display transaction details only if the file retrieval completed without error."
+    },
+    {
+      "number": 177,
+      "code": "               MOVE TRAN-AMT TO WS-TRAN-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Format the raw transaction amount into a display-ready numeric format suitable for presentation on screen."
+    },
+    {
+      "number": 178,
+      "code": "               MOVE TRAN-ID      TO TRNIDI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the retrieved Transaction ID into the screen display field."
+    },
+    {
+      "number": 179,
+      "code": "               MOVE TRAN-CARD-NUM      TO CARDNUMI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the credit card number associated with the transaction into the screen display field."
+    },
+    {
+      "number": 180,
+      "code": "               MOVE TRAN-TYPE-CD        TO TTYPCDI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the transaction type code (e.g., purchase, refund, payment) into the screen display field."
+    },
+    {
+      "number": 181,
+      "code": "               MOVE TRAN-CAT-CD        TO TCATCDI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the transaction category code (e.g., retail, travel, dining) into the screen display field."
+    },
+    {
+      "number": 182,
+      "code": "               MOVE TRAN-SOURCE       TO TRNSRCI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the channel or source through which the transaction was initiated into the screen display field."
+    },
+    {
+      "number": 183,
+      "code": "               MOVE WS-TRAN-AMT      TO TRNAMTI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the formatted transaction monetary amount into the screen display field."
+    },
+    {
+      "number": 184,
+      "code": "               MOVE TRAN-DESC      TO TDESCI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the free-text description of the transaction into the screen display field."
+    },
+    {
+      "number": 185,
+      "code": "               MOVE TRAN-ORIG-TS        TO TORIGDTI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the timestamp recording when the transaction was originally initiated into the screen display field."
+    },
+    {
+      "number": 186,
+      "code": "               MOVE TRAN-PROC-TS       TO TPROCDTI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the timestamp recording when the transaction was processed or settled into the screen display field."
+    },
+    {
+      "number": 187,
+      "code": "               MOVE TRAN-MERCHANT-ID       TO MIDI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the unique merchant identifier into the screen display field."
+    },
+    {
+      "number": 188,
+      "code": "               MOVE TRAN-MERCHANT-NAME       TO MNAMEI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the merchant's trading name into the screen display field."
+    },
+    {
+      "number": 189,
+      "code": "               MOVE TRAN-MERCHANT-CITY       TO MCITYI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the city where the merchant is located into the screen display field."
+    },
+    {
+      "number": 190,
+      "code": "               MOVE TRAN-MERCHANT-ZIP       TO MZIPI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Load the merchant's ZIP/postal code into the screen display field."
+    },
+    {
+      "number": 191,
+      "code": "               PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Display the fully populated transaction detail screen to the operator."
+    },
+    {
+      "number": 192,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "End of the block that populates and presents the transaction details."
+    },
+    {
+      "number": 193,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 194,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "      *                      RETURN-TO-PREV-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 197,
+      "code": "       RETURN-TO-PREV-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Entry point for the 'return to previous screen' navigation routine."
+    },
+    {
+      "number": 198,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 199,
+      "code": "           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Checks whether a destination screen was recorded when the user navigated into this program; if no originating screen is known, the user has no valid navigation history."
+    },
+    {
+      "number": 200,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Defaults the navigation destination to the sign-on screen, ensuring the user is safely redirected to authentication if no prior screen context exists."
+    },
+    {
+      "number": 201,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Closes the conditional check for the missing destination screen."
+    },
+    {
+      "number": 202,
+      "code": "           MOVE WS-TRANID    TO CDEMO-FROM-TRANID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the current screen's transaction identifier in the shared communication area so the destination screen knows which screen is handing off control."
+    },
+    {
+      "number": 203,
+      "code": "           MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the name of the current program in the shared communication area so the destination screen has a full audit trail of where the user navigated from."
+    },
+    {
+      "number": 204,
+      "code": "           MOVE ZEROS        TO CDEMO-PGM-CONTEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Resets the program execution context to a neutral state, signalling to the destination screen that no specific sub-context or mode needs to be preserved from this screen."
+    },
+    {
+      "number": 205,
+      "code": "           EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Begins the CICS instruction to transfer control to another screen."
+    },
+    {
+      "number": 206,
+      "code": "               XCTL PROGRAM(CDEMO-TO-PROGRAM)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Instructs the CICS runtime to transfer full control to the destination screen determined earlier (either the originating screen or the sign-on screen)."
+    },
+    {
+      "number": 207,
+      "code": "               COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Passes the shared communication area — containing user session details, navigation history, and context — to the destination screen so it can resume correctly."
+    },
+    {
+      "number": 208,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Closes the CICS transfer-of-control instruction, completing the navigation handoff."
+    },
+    {
+      "number": 209,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 210,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 211,
+      "code": "      *                      SEND-TRNVIEW-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 212,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 213,
+      "code": "       SEND-TRNVIEW-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Entry point for the routine responsible for sending the transaction detail view screen to the terminal."
+    },
+    {
+      "number": 214,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 215,
+      "code": "           PERFORM POPULATE-HEADER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Populates the screen header area with current date, time, program identity, and logged-in user details before display."
+    },
+    {
+      "number": 216,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 217,
+      "code": "           MOVE WS-MESSAGE TO ERRMSGO OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Places any pending error or informational message (e.g., 'Transaction ID NOT found' or 'Invalid key pressed') into the error message field visible to the user on screen."
+    },
+    {
+      "number": 218,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "           EXEC CICS SEND",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Initiates the transmission of the fully populated transaction detail screen to the operator's terminal."
+    },
+    {
+      "number": 220,
+      "code": "                     MAP('COTRN1A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Specifies that the screen layout to be rendered is the transaction detail view map."
+    },
+    {
+      "number": 221,
+      "code": "                     MAPSET('COTRN01')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Identifies the map set (screen definition library) that contains the transaction detail screen layout."
+    },
+    {
+      "number": 222,
+      "code": "                     FROM(COTRN1AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Supplies the fully populated output data — including all transaction fields and the error message — as the content to be displayed on screen."
+    },
+    {
+      "number": 223,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Clears any previously displayed content from the terminal before rendering the updated transaction detail screen, ensuring a clean display."
+    },
+    {
+      "number": 224,
+      "code": "                     CURSOR",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Positions the terminal cursor at the appropriate input field, guiding the operator to where interaction is expected."
+    },
+    {
+      "number": 225,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": "Closes the screen transmission instruction."
+    },
+    {
+      "number": 226,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 227,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "      *                      RECEIVE-TRNVIEW-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 229,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 230,
+      "code": "       RECEIVE-TRNVIEW-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Paragraph entry point: begins the process of receiving and capturing the operator's input from the transaction detail screen."
+    },
+    {
+      "number": 231,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 232,
+      "code": "           EXEC CICS RECEIVE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Initiates the retrieval of all data the operator has entered or selected on the transaction detail screen."
+    },
+    {
+      "number": 233,
+      "code": "                     MAP('COTRN1A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Specifies that the screen layout being read is the transaction detail view form (the single-transaction display screen)."
+    },
+    {
+      "number": 234,
+      "code": "                     MAPSET('COTRN01')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Identifies the screen map library that defines the layout and fields of the transaction detail screen."
+    },
+    {
+      "number": 235,
+      "code": "                     INTO(COTRN1AI)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Directs the captured screen input — including any Transaction ID typed by the operator — into the program's working area for subsequent processing."
+    },
+    {
+      "number": 236,
+      "code": "                     RESP(WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Records whether the screen data was received successfully or whether a system-level problem occurred during the input capture."
+    },
+    {
+      "number": 237,
+      "code": "                     RESP2(WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Captures a secondary system response code that provides additional technical detail if the screen input retrieval encountered an issue."
+    },
+    {
+      "number": 238,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Marks the end of the screen input retrieval operation."
+    },
+    {
+      "number": 239,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 240,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "      *                      POPULATE-HEADER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": "Comment indicating that the next logical step after receiving screen input is to populate the screen header with current date, time, and user information."
+    },
+    {
+      "number": 242,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-TRNVIEW-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 243,
+      "code": "       POPULATE-HEADER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "This paragraph prepares the standard header information displayed at the top of the transaction detail screen, including the application titles, current date and time, and the identity of the active program. It ensures every screen presentation is consistently stamped with contextual metadata so the bank operator knows exactly when they are viewing the information and within which application module."
+    },
+    {
+      "number": 244,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 245,
+      "code": "           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Retrieves the current system date and time from the operating environment to be used for stamping the screen header."
+    },
+    {
+      "number": 246,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 247,
+      "code": "           MOVE CCDA-TITLE01           TO TITLE01O OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the first line of the application's official screen title onto the transaction detail display."
+    },
+    {
+      "number": 248,
+      "code": "           MOVE CCDA-TITLE02           TO TITLE02O OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the second line of the application's official screen title onto the transaction detail display."
+    },
+    {
+      "number": 249,
+      "code": "           MOVE WS-TRANID              TO TRNNAMEO OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the identifier of the currently executing CICS transaction on the screen header, helping operators identify the active system function."
+    },
+    {
+      "number": 250,
+      "code": "           MOVE WS-PGMNAME             TO PGMNAMEO OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the name of the currently running program on the screen header, supporting auditability and operator awareness of which module is active."
+    },
+    {
+      "number": 251,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 252,
+      "code": "           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the month component from the current system date to format it for display."
+    },
+    {
+      "number": 253,
+      "code": "           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the day component from the current system date to format it for display."
+    },
+    {
+      "number": 254,
+      "code": "           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the two-digit year component from the current system date to format it for display."
+    },
+    {
+      "number": 255,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 256,
+      "code": "           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COTRN1AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Presents the fully formatted current date (month/day/year) in the screen header so the operator knows the date on which they are viewing the transaction."
+    },
+    {
+      "number": 257,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 258,
+      "code": "           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the hours component from the current system time to format it for display."
+    },
+    {
+      "number": 259,
+      "code": "           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the minutes component from the current system time to format it for display."
+    },
+    {
+      "number": 260,
+      "code": "           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the seconds component from the current system time to format it for display."
+    },
+    {
+      "number": 261,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 262,
+      "code": "           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COTRN1AO.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Presents the fully formatted current time (hours:minutes:seconds) in the screen header so the operator knows the precise moment at which the transaction details are being viewed."
+    },
+    {
+      "number": 263,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 264,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 265,
+      "code": "      *                      READ-TRANSACT-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 266,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 267,
+      "code": "       READ-TRANSACT-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Entry point for the transaction record lookup routine."
+    },
+    {
+      "number": 268,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 269,
+      "code": "           EXEC CICS READ",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Initiates a request to retrieve a transaction record from the master transaction file, locking it for potential downstream editing."
+    },
+    {
+      "number": 270,
+      "code": "                DATASET   (WS-TRANSACT-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Identifies the master transaction file as the source of the lookup."
+    },
+    {
+      "number": 271,
+      "code": "                INTO      (TRAN-RECORD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Specifies that the retrieved transaction record should be loaded into the working area holding all transaction details (card number, amount, merchant info, timestamps, etc.)."
+    },
+    {
+      "number": 272,
+      "code": "                LENGTH    (LENGTH OF TRAN-RECORD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Defines the expected size of the transaction record to be retrieved."
+    },
+    {
+      "number": 273,
+      "code": "                RIDFLD    (TRAN-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Specifies that the lookup should be performed using the Transaction ID entered by the operator as the search key."
+    },
+    {
+      "number": 274,
+      "code": "                KEYLENGTH (LENGTH OF TRAN-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Defines the exact length of the Transaction ID field used to locate the record."
+    },
+    {
+      "number": 275,
+      "code": "                UPDATE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Instructs the system to lock the retrieved record, reserving it against concurrent modification by other users or processes."
+    },
+    {
+      "number": 276,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Captures the primary outcome code returned by the system after the retrieval attempt, indicating success or failure."
+    },
+    {
+      "number": 277,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Captures a secondary diagnostic code providing additional detail about the reason for any failure."
+    },
+    {
+      "number": 278,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 279,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 280,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Evaluates the outcome of the transaction retrieval attempt to determine the appropriate business response."
+    },
+    {
+      "number": 281,
+      "code": "               WHEN DFHRESP(NORMAL)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Handles the successful case: the transaction record was found and loaded correctly — processing continues normally."
+    },
+    {
+      "number": 282,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "No further action is needed on success; the retrieved transaction details are now available for display."
+    },
+    {
+      "number": 283,
+      "code": "               WHEN DFHRESP(NOTFND)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Handles the case where no transaction record exists in the master file for the Transaction ID provided."
+    },
+    {
+      "number": 284,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Marks the current operation as failed due to the transaction not being found, preventing further processing of missing data."
+    },
+    {
+      "number": 285,
+      "code": "                   MOVE 'Transaction ID NOT found...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Sets the user-facing message to inform the operator that the Transaction ID they entered does not exist in the system."
+    },
+    {
+      "number": 286,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Continues setting the error message text for display on screen."
+    },
+    {
+      "number": 287,
+      "code": "                   MOVE -1       TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Places the cursor focus on the Transaction ID input field, prompting the operator to correct or re-enter the value."
+    },
+    {
+      "number": 288,
+      "code": "                   PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Sends the transaction view screen back to the operator, displaying the 'not found' error message."
+    },
+    {
+      "number": 289,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Handles any unexpected system-level error that is neither a successful retrieval nor a simple 'not found' condition."
+    },
+    {
+      "number": 290,
+      "code": "                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Writes the system error codes to the operator console log for technical investigation and support purposes."
+    },
+    {
+      "number": 291,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Marks the current operation as failed due to an unexpected system error, preventing display of incomplete or corrupt data."
+    },
+    {
+      "number": 292,
+      "code": "                   MOVE 'Unable to lookup Transaction...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Sets the user-facing message to inform the operator that the system was unable to complete the transaction lookup."
+    },
+    {
+      "number": 293,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Continues setting the generic system error message text for display on screen."
+    },
+    {
+      "number": 294,
+      "code": "                   MOVE -1       TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Places the cursor focus on the Transaction ID input field, prompting the operator to retry or seek assistance."
+    },
+    {
+      "number": 295,
+      "code": "                   PERFORM SEND-TRNVIEW-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Sends the transaction view screen back to the operator, displaying the system error message."
+    },
+    {
+      "number": 296,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": "Closes the outcome evaluation block, completing all error-handling branches."
+    },
+    {
+      "number": 297,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 298,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 299,
+      "code": "      *                      CLEAR-CURRENT-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 300,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-TRANSACT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 301,
+      "code": "       CLEAR-CURRENT-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Entry point triggered when the operator presses PF4 to clear the current transaction detail screen."
+    },
+    {
+      "number": 302,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 303,
+      "code": "           PERFORM INITIALIZE-ALL-FIELDS.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Wipes all transaction details, input fields, and messages from the working data, removing any previously retrieved transaction information."
+    },
+    {
+      "number": 304,
+      "code": "           PERFORM SEND-TRNVIEW-SCREEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Redraws the transaction detail screen in its empty state, presenting the operator with a clean form ready for a new Transaction ID to be entered."
+    },
+    {
+      "number": 305,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 306,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 307,
+      "code": "      *                      INITIALIZE-ALL-FIELDS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 308,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 309,
+      "code": "       INITIALIZE-ALL-FIELDS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Entry point for the screen field initialisation routine."
+    },
+    {
+      "number": 310,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 311,
+      "code": "           MOVE -1              TO TRNIDINL OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Sets the cursor focus to the Transaction ID entry field, directing the operator's attention to where input is required."
+    },
+    {
+      "number": 312,
+      "code": "           MOVE SPACES          TO TRNIDINI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears any previously entered or displayed Transaction ID input value from the screen."
+    },
+    {
+      "number": 313,
+      "code": "                                   TRNIDI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the Transaction ID display field shown on screen to the operator."
+    },
+    {
+      "number": 314,
+      "code": "                                   CARDNUMI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the credit card number previously displayed on the screen."
+    },
+    {
+      "number": 315,
+      "code": "                                   TTYPCDI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the transaction type code (e.g., purchase, refund, payment) previously shown on screen."
+    },
+    {
+      "number": 316,
+      "code": "                                   TCATCDI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the transaction category code (e.g., retail, travel, dining) previously shown on screen."
+    },
+    {
+      "number": 317,
+      "code": "                                   TRNSRCI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the channel or source through which the transaction was initiated, as previously displayed."
+    },
+    {
+      "number": 318,
+      "code": "                                   TRNAMTI  OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the monetary amount of the transaction previously displayed on screen."
+    },
+    {
+      "number": 319,
+      "code": "                                   TDESCI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the free-text transaction description previously shown to the operator."
+    },
+    {
+      "number": 320,
+      "code": "                                   TORIGDTI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the date and time when the transaction was originally initiated, as previously displayed."
+    },
+    {
+      "number": 321,
+      "code": "                                   TPROCDTI OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the date and time when the transaction was processed or settled, as previously displayed."
+    },
+    {
+      "number": 322,
+      "code": "                                   MIDI     OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the merchant's unique identifier previously displayed on screen."
+    },
+    {
+      "number": 323,
+      "code": "                                   MNAMEI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the merchant's trading name previously displayed on screen."
+    },
+    {
+      "number": 324,
+      "code": "                                   MCITYI   OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the city where the merchant is located, as previously displayed."
+    },
+    {
+      "number": 325,
+      "code": "                                   MZIPI    OF COTRN1AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the merchant's ZIP/postal code previously displayed on screen."
+    },
+    {
+      "number": 326,
+      "code": "                                   WS-MESSAGE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears any informational or error message previously shown to the operator at the bottom of the screen."
+    },
+    {
+      "number": 327,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 328,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 329,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Version control comment recording the build version and timestamp of this program for audit and release tracking purposes."
+    },
+    {
+      "number": 330,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Top-level working storage group holding all internal program control variables used during transaction detail retrieval and display processing."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COTRN01C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The internal name of this program (COTRN01C), used when invoking CICS services such as returning control or logging, so the system knows which program is currently executing."
+    },
+    {
+      "name": "WS-TRANID",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": "CT01",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS transaction identifier (CT01) assigned to this transaction detail view program. It is used when transferring control back to this screen, ensuring the correct screen is invoked within the CardDemo application."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The status or error message displayed to the user at the bottom of the transaction detail screen — for example, 'Transaction ID NOT found' when a lookup fails, or 'Invalid key pressed' for unrecognised navigation keys."
+    },
+    {
+      "name": "WS-TRANSACT-FILE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "TRANSACT",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The name of the master transaction file (TRANSACT) that stores all credit card transaction records. This value is used when issuing CICS file read commands to retrieve a specific transaction by its Transaction ID."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "An internal error indicator that tracks whether a business or system error has occurred during transaction lookup or screen processing. When set to 'Y', it prevents further processing and ensures the error message is shown to the user instead of transaction details."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when an error has been detected during transaction processing — such as a missing Transaction ID or a failed file lookup — signalling that normal display logic should be bypassed."
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when no error has occurred, indicating that the transaction lookup was successful and the full transaction details can be safely displayed to the user."
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS response code returned after a file operation (such as reading the TRANSACT file). A non-zero value indicates a problem — for example, a record not found or a file unavailability — which triggers an appropriate error message to the user."
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS reason code accompanying the response code, providing additional detail about why a file operation failed. Used alongside WS-RESP-CD to diagnose specific error conditions when retrieving a transaction record."
+    },
+    {
+      "name": "WS-USR-MODIFIED",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether the user has manually changed any field on the transaction detail screen. This helps the program distinguish between an initial display pass and a user-driven interaction requiring re-processing."
+    },
+    {
+      "name": "USR-MODIFIED-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when the user has actively modified a field on the screen, such as entering or changing a Transaction ID, indicating that the program should act on the new input."
+    },
+    {
+      "name": "USR-MODIFIED-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when the user has not changed any field on the screen, indicating the display is in its initial or unchanged state and no new lookup is required."
+    },
+    {
+      "name": "WS-TRAN-AMT",
+      "level": "05",
+      "picture": "PIC +99999999.99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The formatted monetary amount of the credit card transaction, displayed on screen with a sign indicator and two decimal places. This represents the dollar value charged or credited in the transaction, formatted for human-readable presentation."
+    },
+    {
+      "name": "WS-TRAN-DATE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "00/00/00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A formatted date field used to display the transaction date (either origination or processing date) on the screen in MM/DD/YY format, making the transaction timeline clear to the user."
+    },
+    {
+      "name": "CDEMO-CT01-INFO",
+      "level": "05",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A group of fields passed via the communication area from the transaction list screen (COTRN00C) to this detail view program, carrying context about which transaction was selected and the pagination state of the list the user came from."
+    },
+    {
+      "name": "CDEMO-CT01-TRNID-FIRST",
+      "level": "10",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The Transaction ID of the first transaction displayed on the transaction list screen the user navigated from. Retained so that if the user returns to the list, the correct page position can be restored."
+    },
+    {
+      "name": "CDEMO-CT01-TRNID-LAST",
+      "level": "10",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The Transaction ID of the last transaction displayed on the transaction list screen the user navigated from. Used together with CDEMO-CT01-TRNID-FIRST to restore the correct page of results when the user navigates back."
+    },
+    {
+      "name": "CDEMO-CT01-PAGE-NUM",
+      "level": "10",
+      "picture": "PIC 9(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The page number of the transaction list the user was viewing before drilling into this transaction detail screen. Preserved so the user is returned to the same page of results when pressing PF3 or PF5 to go back."
+    },
+    {
+      "name": "CDEMO-CT01-NEXT-PAGE-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether there are more pages of transactions available beyond the current page in the transaction list. Carried across to preserve the navigation state of the list screen when the user returns."
+    },
+    {
+      "name": "NEXT-PAGE-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when additional pages of transaction records exist beyond the current page in the transaction list, enabling forward pagination when the user returns to the list."
+    },
+    {
+      "name": "NEXT-PAGE-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when no further pages of transactions exist beyond the current page, indicating the user has reached the end of the transaction list."
+    },
+    {
+      "name": "CDEMO-CT01-TRN-SEL-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag passed from the transaction list screen indicating whether the user has actively selected a specific transaction for detail viewing. When set, it signals this program to automatically perform the transaction lookup without requiring manual entry."
+    },
+    {
+      "name": "CDEMO-CT01-TRN-SELECTED",
+      "level": "10",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The Transaction ID chosen by the user on the transaction list screen (COTRN00C), passed to this program so that the correct transaction record is automatically retrieved and displayed without requiring the user to re-enter the ID manually."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The CICS communication area received by this program when it is invoked. It carries session context — such as user identity, originating program, and selected transaction — from the previous screen, enabling the program to authenticate the user and pre-populate the transaction lookup."
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A minimal placeholder representing the raw communication area data passed into this program by CICS. Its presence (or absence) is checked to determine whether the user arrived via a proper authenticated navigation path; if absent, the user is redirected to the sign-on screen."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 86,
+      "line_end": 143,
+      "description": "MAIN-PARA is the central orchestration routine of the transaction detail viewer. It determines the user's context and intent — whether they are arriving for the first time, returning after an action, or pressing a navigation key — and routes processing accordingly to display, look up, or navigate away from a credit card transaction's full details."
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "line_start": 144,
+      "line_end": 196,
+      "description": "This paragraph handles the operator's request to look up a specific credit card transaction by its Transaction ID. It validates that an ID has been entered, retrieves the full transaction record from the master file, and displays all associated details on screen."
+    },
+    {
+      "name": "RETURN-TO-PREV-SCREEN",
+      "line_start": 197,
+      "line_end": 212,
+      "description": "This paragraph handles the navigation logic when the user exits the transaction detail screen, returning them to whichever screen they came from — or to the sign-on screen if no prior navigation context exists. It packages the current program identity into the shared communication area before handing control to the destination screen."
+    },
+    {
+      "name": "SEND-TRNVIEW-SCREEN",
+      "line_start": 213,
+      "line_end": 229,
+      "description": "This paragraph assembles and renders the full transaction detail screen to the bank operator or customer service representative. It ensures the screen header is current, carries any error or status message into the display, and presents all retrieved transaction information (or error feedback) to the user."
+    },
+    {
+      "name": "RECEIVE-TRNVIEW-SCREEN",
+      "line_start": 230,
+      "line_end": 242,
+      "description": "This paragraph captures the input submitted by the bank operator or customer service representative from the transaction detail screen, collecting any Transaction ID entered or navigation key pressed. It is the entry point for processing the user's interaction with the transaction view form."
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "line_start": 243,
+      "line_end": 266,
+      "description": "This paragraph prepares the standard header information displayed at the top of the transaction detail screen, including the application titles, current date and time, and the identity of the active program. It ensures every screen presentation is consistently stamped with contextual metadata so the bank operator knows exactly when they are viewing the information and within which application module."
+    },
+    {
+      "name": "READ-TRANSACT-FILE",
+      "line_start": 267,
+      "line_end": 300,
+      "description": "This paragraph retrieves the full details of a specific credit card transaction from the master transaction file using the Transaction ID entered by the operator. It handles all possible outcomes — successful retrieval, transaction not found, or an unexpected system error — and responds appropriately to each."
+    },
+    {
+      "name": "CLEAR-CURRENT-SCREEN",
+      "line_start": 301,
+      "line_end": 308,
+      "description": "This paragraph handles the PF4 key action, resetting the transaction detail screen to a blank state so the operator can start a fresh lookup without any previously displayed transaction data remaining visible."
+    },
+    {
+      "name": "INITIALIZE-ALL-FIELDS",
+      "line_start": 309,
+      "line_end": 330,
+      "description": "This paragraph resets the transaction detail screen to a completely blank state, clearing all previously displayed transaction information and any status messages. It prepares a clean slate before a new transaction lookup is performed or when the screen needs to be refreshed."
+    }
+  ],
+  "copybooks": [
+    "COCOM01Y",
+    "COTRN01",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CVTRA05Y",
+    "DFHAID",
+    "DFHBMSCA"
+  ]
+}

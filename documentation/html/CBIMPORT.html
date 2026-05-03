@@ -1,0 +1,4403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBIMPORT – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-0000-MAIN-PROCESSING">0000-MAIN-PROCESSING</a>
+  
+  <a href="#para-1000-INITIALIZE">1000-INITIALIZE</a>
+  
+  <a href="#para-1100-OPEN-FILES">1100-OPEN-FILES</a>
+  
+  <a href="#para-2000-PROCESS-EXPORT-FILE">2000-PROCESS-EXPORT-FILE</a>
+  
+  <a href="#para-2100-READ-EXPORT-RECORD">2100-READ-EXPORT-RECORD</a>
+  
+  <a href="#para-2200-PROCESS-RECORD-BY-TYPE">2200-PROCESS-RECORD-BY-TYPE</a>
+  
+  <a href="#para-2300-PROCESS-CUSTOMER-RECORD">2300-PROCESS-CUSTOMER-RECORD</a>
+  
+  <a href="#para-2400-PROCESS-ACCOUNT-RECORD">2400-PROCESS-ACCOUNT-RECORD</a>
+  
+  <a href="#para-2500-PROCESS-XREF-RECORD">2500-PROCESS-XREF-RECORD</a>
+  
+  <a href="#para-2600-PROCESS-TRAN-RECORD">2600-PROCESS-TRAN-RECORD</a>
+  
+  <a href="#para-2650-PROCESS-CARD-RECORD">2650-PROCESS-CARD-RECORD</a>
+  
+  <a href="#para-2700-PROCESS-UNKNOWN-RECORD">2700-PROCESS-UNKNOWN-RECORD</a>
+  
+  <a href="#para-2750-WRITE-ERROR">2750-WRITE-ERROR</a>
+  
+  <a href="#para-3000-VALIDATE-IMPORT">3000-VALIDATE-IMPORT</a>
+  
+  <a href="#para-4000-FINALIZE">4000-FINALIZE</a>
+  
+  <a href="#para-9999-ABEND-PROGRAM">9999-ABEND-PROGRAM</a>
+  
+  
+
+  
+  <h2>Variables (39)</h2>
+  
+  <a href="#var-EXPORT-INPUT-RECORD">EXPORT-INPUT-RECORD</a>
+  
+  <a href="#var-ERROR-OUTPUT-RECORD">ERROR-OUTPUT-RECORD</a>
+  
+  <a href="#var-WS-FILE-STATUS-AREA">WS-FILE-STATUS-AREA</a>
+  
+  <a href="#var-WS-EXPORT-STATUS">WS-EXPORT-STATUS</a>
+  
+  <a href="#var-WS-EXPORT-EOF">WS-EXPORT-EOF</a>
+  
+  <a href="#var-WS-EXPORT-OK">WS-EXPORT-OK</a>
+  
+  <a href="#var-WS-CUSTOMER-STATUS">WS-CUSTOMER-STATUS</a>
+  
+  <a href="#var-WS-CUSTOMER-OK">WS-CUSTOMER-OK</a>
+  
+  <a href="#var-WS-ACCOUNT-STATUS">WS-ACCOUNT-STATUS</a>
+  
+  <a href="#var-WS-ACCOUNT-OK">WS-ACCOUNT-OK</a>
+  
+  <a href="#var-WS-XREF-STATUS">WS-XREF-STATUS</a>
+  
+  <a href="#var-WS-XREF-OK">WS-XREF-OK</a>
+  
+  <a href="#var-WS-TRANSACTION-STATUS">WS-TRANSACTION-STATUS</a>
+  
+  <a href="#var-WS-TRANSACTION-OK">WS-TRANSACTION-OK</a>
+  
+  <a href="#var-WS-CARD-STATUS">WS-CARD-STATUS</a>
+  
+  <a href="#var-WS-CARD-OK">WS-CARD-OK</a>
+  
+  <a href="#var-WS-ERROR-STATUS">WS-ERROR-STATUS</a>
+  
+  <a href="#var-WS-ERROR-OK">WS-ERROR-OK</a>
+  
+  <a href="#var-WS-IMPORT-CONTROL">WS-IMPORT-CONTROL</a>
+  
+  <a href="#var-WS-IMPORT-DATE">WS-IMPORT-DATE</a>
+  
+  <a href="#var-WS-IMPORT-TIME">WS-IMPORT-TIME</a>
+  
+  <a href="#var-WS-IMPORT-STATISTICS">WS-IMPORT-STATISTICS</a>
+  
+  <a href="#var-WS-TOTAL-RECORDS-READ">WS-TOTAL-RECORDS-READ</a>
+  
+  <a href="#var-WS-CUSTOMER-RECORDS-IMPORTED">WS-CUSTOMER-RECORDS-IMPORTED</a>
+  
+  <a href="#var-WS-ACCOUNT-RECORDS-IMPORTED">WS-ACCOUNT-RECORDS-IMPORTED</a>
+  
+  <a href="#var-WS-XREF-RECORDS-IMPORTED">WS-XREF-RECORDS-IMPORTED</a>
+  
+  <a href="#var-WS-TRAN-RECORDS-IMPORTED">WS-TRAN-RECORDS-IMPORTED</a>
+  
+  <a href="#var-WS-CARD-RECORDS-IMPORTED">WS-CARD-RECORDS-IMPORTED</a>
+  
+  <a href="#var-WS-ERROR-RECORDS-WRITTEN">WS-ERROR-RECORDS-WRITTEN</a>
+  
+  <a href="#var-WS-UNKNOWN-RECORD-TYPE-COUNT">WS-UNKNOWN-RECORD-TYPE-COUNT</a>
+  
+  <a href="#var-WS-ERROR-RECORD">WS-ERROR-RECORD</a>
+  
+  <a href="#var-ERR-TIMESTAMP">ERR-TIMESTAMP</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-ERR-RECORD-TYPE">ERR-RECORD-TYPE</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-ERR-SEQUENCE">ERR-SEQUENCE</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-ERR-MESSAGE">ERR-MESSAGE</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>CBIMPORT.CBL</h1>
+    <p>Import and normalise customer, account, card, and transaction data from a branch migration export file into the CardDemo system's target data stores.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">CBIMPORT is the counterpart to CBEXPORT: it reads a structured, multi-record-type migration file produced by a source branch and splits it into five separate, normalised output files (Customer, Account, Card Cross-Reference, Card, and Transaction). Each record in the input file carries a type indicator ('C', 'A', 'X', 'D', 'T') that determines which target file it is routed to, with all relevant fields mapped and written accordingly. The program validates data integrity using checksums and tracks import statistics (records read and written per entity type) throughout the run. Any records with unrecognised record types are flagged and written to a dedicated error report file, ensuring a clean and auditable migration outcome.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Each record in the migration file must carry a valid record type indicator ('C', 'A', 'X', 'T', or 'D'); records with any other type are rejected to the error file and counted separately to flag data quality issues.</li><li>All five output files (Customer, Account, Cross-Reference, Transaction, Card) must be successfully opened before processing begins; failure to open any file causes an immediate abnormal termination to prevent partial or corrupt imports.</li><li>Customer records must carry full personal identification data including SSN, government-issued ID, date of birth, FICO credit score, and primary card-holder indicator, preserving regulatory and credit risk information across the migration.</li><li>The card cross-reference record (type 'X') must link a card number to both a customer ID and an account ID, maintaining the three-way relationship that is essential for card authorisation and account servicing.</li><li>Data integrity is validated using checksums after processing to ensure the imported data matches the source export, supporting reconciliation and audit requirements for the branch migration.</li><li>Import statistics are tracked at the record-type level (customers, accounts, cross-references, transactions, cards, errors) to provide a full reconciliation count for sign-off by operations and the receiving branch.</li><li>Any write failure to any output file causes an immediate abnormal termination, preventing silent data loss or partial record sets that would compromise the integrity of the migrated portfolio.</li><li>The program records the date and time of the import run, providing an audit trail that ties the imported data to a specific migration event for regulatory and operational purposes.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">EXPFILE</td>
+            <td style="color:var(--subtext);">Source branch migration export file containing all customer, account, card, cross-reference, and transaction records in a unified multi-record-type layout</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CUSTOUT</td>
+            <td style="color:var(--subtext);">Target customer master file receiving normalised customer profile records (personal details, address, SSN, FICO score, etc.)</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">ACCTOUT</td>
+            <td style="color:var(--subtext);">Target account master file receiving normalised credit card account records (balance, credit limit, dates, status, etc.)</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">XREFOUT</td>
+            <td style="color:var(--subtext);">Target card cross-reference file linking card numbers to customer and account identifiers</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">TRNXOUT</td>
+            <td style="color:var(--subtext);">Target transaction history file receiving individual credit card transaction records</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CARDOUT</td>
+            <td style="color:var(--subtext);">Target card file receiving physical card records (card number, expiry, status, etc.)</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">ERROUT</td>
+            <td style="color:var(--subtext);">Error report file capturing records that failed validation or carried an unrecognised record type, with timestamp and diagnostic message</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Utility</span>
+      
+      <span class="badge badge-copy">COPY CVCUS01Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT01Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT03Y</span>
+      
+      <span class="badge badge-copy">COPY CVTRA05Y</span>
+      
+      <span class="badge badge-copy">COPY CVACT02Y</span>
+      
+      <span class="badge badge-copy">COPY CVEXPORT</span>
+      
+      <span class="badge badge-meta">487 lines</span>
+      <span class="badge badge-meta">39 variables</span>
+      <span class="badge badge-meta">16 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-0000-MAIN-PROCESSING">
+    <h3><a href="#code-para-0000-MAIN-PROCESSING" style="color:inherit;text-decoration:none;">0000-MAIN-PROCESSING</a></h3>
+    <p>This is the top-level orchestration paragraph that drives the entire branch migration import run from start to finish. It sequences the four major business phases — setup, data routing, integrity validation, and closedown — ensuring a controlled, auditable import of all customer, account, card, and transaction records.</p>
+    <div class="para-meta"><a href="#code-para-0000-MAIN-PROCESSING" style="color:inherit;">Lines 165–173</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1000-INITIALIZE">
+    <h3><a href="#code-para-1000-INITIALIZE" style="color:inherit;text-decoration:none;">1000-INITIALIZE</a></h3>
+    <p>This paragraph initialises the branch migration import job by capturing the exact date and time of execution for audit purposes, then opens all required input and output files before processing begins. It establishes the audit trail and ensures the system is fully ready to receive and route migrated customer, account, card, and transaction data.</p>
+    <div class="para-meta"><a href="#code-para-1000-INITIALIZE" style="color:inherit;">Lines 174–195</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1100-OPEN-FILES">
+    <h3><a href="#code-para-1100-OPEN-FILES" style="color:inherit;text-decoration:none;">1100-OPEN-FILES</a></h3>
+    <p>This paragraph prepares the migration import job for processing by opening all required data channels — the source export file for reading and all five normalised target files plus the error report for writing. If any single file cannot be opened, the job halts immediately to prevent a partial or corrupt import.</p>
+    <div class="para-meta"><a href="#code-para-1100-OPEN-FILES" style="color:inherit;">Lines 196–247</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2000-PROCESS-EXPORT-FILE">
+    <h3><a href="#code-para-2000-PROCESS-EXPORT-FILE" style="color:inherit;text-decoration:none;">2000-PROCESS-EXPORT-FILE</a></h3>
+    <p>This paragraph orchestrates the end-to-end processing of the branch migration export file, reading each incoming record in sequence and routing it to the appropriate target data store based on its record type. It acts as the central processing loop for the entire import run, ensuring every record in the source file is accounted for and handled.</p>
+    <div class="para-meta"><a href="#code-para-2000-PROCESS-EXPORT-FILE" style="color:inherit;">Lines 248–258</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2100-READ-EXPORT-RECORD">
+    <h3><a href="#code-para-2100-READ-EXPORT-RECORD" style="color:inherit;text-decoration:none;">2100-READ-EXPORT-RECORD</a></h3>
+    <p>Reads the next migration record from the source branch export file into the processing buffer. If the read fails for any reason other than reaching the end of the file, the program halts immediately to prevent corrupt or incomplete data from entering the target systems.</p>
+    <div class="para-meta"><a href="#code-para-2100-READ-EXPORT-RECORD" style="color:inherit;">Lines 259–269</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2200-PROCESS-RECORD-BY-TYPE">
+    <h3><a href="#code-para-2200-PROCESS-RECORD-BY-TYPE" style="color:inherit;text-decoration:none;">2200-PROCESS-RECORD-BY-TYPE</a></h3>
+    <p>This paragraph acts as the central routing hub of the import process, inspecting the record type indicator on each incoming migration record and directing it to the appropriate specialised processing routine. It ensures every record from the source branch export file is handled according to its entity type, with unrecognised records safely diverted to error handling.</p>
+    <div class="para-meta"><a href="#code-para-2200-PROCESS-RECORD-BY-TYPE" style="color:inherit;">Lines 270–287</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2300-PROCESS-CUSTOMER-RECORD">
+    <h3><a href="#code-para-2300-PROCESS-CUSTOMER-RECORD" style="color:inherit;text-decoration:none;">2300-PROCESS-CUSTOMER-RECORD</a></h3>
+    <p>This paragraph normalises and writes a single customer profile record from the branch migration export into the CardDemo customer master file. It maps all personal, contact, identification, and credit risk fields from the source layout into the target structure, then persists the record and updates the running import count.</p>
+    <div class="para-meta"><a href="#code-para-2300-PROCESS-CUSTOMER-RECORD" style="color:inherit;">Lines 288–322</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2400-PROCESS-ACCOUNT-RECORD">
+    <h3><a href="#code-para-2400-PROCESS-ACCOUNT-RECORD" style="color:inherit;text-decoration:none;">2400-PROCESS-ACCOUNT-RECORD</a></h3>
+    <p>This paragraph normalises and writes a single credit card account record from the branch migration export into the CardDemo target account master file. It maps all financial and administrative account attributes from the source layout to the target structure, then persists the record and updates the running import tally.</p>
+    <div class="para-meta"><a href="#code-para-2400-PROCESS-ACCOUNT-RECORD" style="color:inherit;">Lines 323–351</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2500-PROCESS-XREF-RECORD">
+    <h3><a href="#code-para-2500-PROCESS-XREF-RECORD" style="color:inherit;text-decoration:none;">2500-PROCESS-XREF-RECORD</a></h3>
+    <p>This paragraph processes a card cross-reference record from the migration export file, establishing the critical three-way link between a physical card number, its owning customer, and the associated credit account in the target system. It writes this linkage to the cross-reference output file and terminates immediately if the write fails, ensuring no partial or missing card-to-customer-to-account relationships exist in the migrated portfolio.</p>
+    <div class="para-meta"><a href="#code-para-2500-PROCESS-XREF-RECORD" style="color:inherit;">Lines 352–371</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2600-PROCESS-TRAN-RECORD">
+    <h3><a href="#code-para-2600-PROCESS-TRAN-RECORD" style="color:inherit;text-decoration:none;">2600-PROCESS-TRAN-RECORD</a></h3>
+    <p>This paragraph normalises and writes a single transaction history record from the branch migration export file into the CardDemo transaction data store. It maps all transaction details — including amount, merchant information, card linkage, and timestamps — to the target format, then persists the record and increments the running transaction import count.</p>
+    <div class="para-meta"><a href="#code-para-2600-PROCESS-TRAN-RECORD" style="color:inherit;">Lines 372–401</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2650-PROCESS-CARD-RECORD">
+    <h3><a href="#code-para-2650-PROCESS-CARD-RECORD" style="color:inherit;text-decoration:none;">2650-PROCESS-CARD-RECORD</a></h3>
+    <p>This paragraph transforms and persists a physical card record from the branch migration export into the CardDemo card master file. It maps all card-level attributes from the source data, writes the normalised record to the target file, and increments the running count of successfully migrated cards.</p>
+    <div class="para-meta"><a href="#code-para-2650-PROCESS-CARD-RECORD" style="color:inherit;">Lines 402–424</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2700-PROCESS-UNKNOWN-RECORD">
+    <h3><a href="#code-para-2700-PROCESS-UNKNOWN-RECORD" style="color:inherit;text-decoration:none;">2700-PROCESS-UNKNOWN-RECORD</a></h3>
+    <p>This paragraph handles records from the migration export file that carry an unrecognised record type indicator, logging them as data quality exceptions and routing them to the error report to ensure the migration remains clean and fully auditable. It acts as a safety net, preventing corrupt or malformed source records from silently contaminating any of the five target data stores.</p>
+    <div class="para-meta"><a href="#code-para-2700-PROCESS-UNKNOWN-RECORD" style="color:inherit;">Lines 425–436</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2750-WRITE-ERROR">
+    <h3><a href="#code-para-2750-WRITE-ERROR" style="color:inherit;text-decoration:none;">2750-WRITE-ERROR</a></h3>
+    <p>This paragraph writes a rejected or unrecognised record to the dedicated error report file, ensuring every data quality issue is captured and auditable. It also increments the running count of failed records to support end-of-run reconciliation and sign-off by operations.</p>
+    <div class="para-meta"><a href="#code-para-2750-WRITE-ERROR" style="color:inherit;">Lines 437–448</a></div>
+  </div>
+  
+  <div class="para-card" id="para-3000-VALIDATE-IMPORT">
+    <h3><a href="#code-para-3000-VALIDATE-IMPORT" style="color:inherit;text-decoration:none;">3000-VALIDATE-IMPORT</a></h3>
+    <p>This paragraph represents the post-import data integrity validation checkpoint, confirming that all migrated records passed checksum and reconciliation checks. It signals to the operations team that the imported portfolio data is clean and ready for use in the CardDemo system.</p>
+    <div class="para-meta"><a href="#code-para-3000-VALIDATE-IMPORT" style="color:inherit;">Lines 449–454</a></div>
+  </div>
+  
+  <div class="para-card" id="para-4000-FINALIZE">
+    <h3><a href="#code-para-4000-FINALIZE" style="color:inherit;text-decoration:none;">4000-FINALIZE</a></h3>
+    <p>This paragraph concludes the branch migration import run by safely closing all data files and printing a full reconciliation summary to the job log, giving operations and the receiving branch a complete, auditable count of every record processed by entity type.</p>
+    <div class="para-meta"><a href="#code-para-4000-FINALIZE" style="color:inherit;">Lines 455–480</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9999-ABEND-PROGRAM">
+    <h3><a href="#code-para-9999-ABEND-PROGRAM" style="color:inherit;text-decoration:none;">9999-ABEND-PROGRAM</a></h3>
+    <p>This paragraph performs an immediate, unrecoverable termination of the import job when a critical failure is detected, such as a file open error or a write failure to any output file. It ensures the migration is halted cleanly rather than continuing in a corrupted or partial state, protecting the integrity of the migrated portfolio.</p>
+    <div class="para-meta"><a href="#code-para-9999-ABEND-PROGRAM" style="color:inherit;">Lines 481–487</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-code">       PROGRAM-ID.    CBIMPORT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-code">       AUTHOR.        CARDDEMO TEAM.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Program     : CBIMPORT.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      * Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Type        : BATCH COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * Function    : Import Customer Data from Branch Migration Export</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *               Reads multi-record export file and splits it into</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      *               separate normalized target files (CUSTOMER, ACCOUNT,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      *               CARD-XREF, TRANSACTION) with validation</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-comment">      * Business Use Case: Branch Migration Import</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-comment">      * - Import complete customer profiles from export file</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-comment">      * - Split multi-record layout into normalized target files</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-comment">      * - Validate data integrity using checksums</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-comment">      * - Generate import statistics and error reports</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-code">       INPUT-OUTPUT SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-code">       FILE-CONTROL.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-code">           SELECT EXPORT-INPUT ASSIGN TO EXPFILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-code">               ORGANIZATION IS INDEXED</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-code">               RECORD KEY IS EXPORT-SEQUENCE-NUM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-EXPORT-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-code">           SELECT CUSTOMER-OUTPUT ASSIGN TO CUSTOUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-CUSTOMER-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-code">           SELECT ACCOUNT-OUTPUT ASSIGN TO ACCTOUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-ACCOUNT-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-code">           SELECT XREF-OUTPUT ASSIGN TO XREFOUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-XREF-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-code">           SELECT TRANSACTION-OUTPUT ASSIGN TO TRNXOUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-TRANSACTION-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-code">           SELECT CARD-OUTPUT ASSIGN TO CARDOUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-CARD-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-code">           SELECT ERROR-OUTPUT ASSIGN TO ERROUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-code">               ORGANIZATION IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-code">               ACCESS MODE IS SEQUENTIAL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-code">               FILE STATUS IS WS-ERROR-STATUS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-section-header">       FILE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-code">       FD  EXPORT-INPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 500 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">       01  EXPORT-INPUT-RECORD                        PIC X(500).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-code">       FD  CUSTOMER-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 500 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-copy-statement">       COPY CVCUS01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-code">       FD  ACCOUNT-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 300 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">89</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">90</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">91</td>
+      <td class="code-cell t-code">       FD  XREF-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">92</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">93</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 50 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">94</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT03Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">95</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">96</td>
+      <td class="code-cell t-code">       FD  TRANSACTION-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">97</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">98</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 350 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">99</td>
+      <td class="code-cell t-copy-statement">       COPY CVTRA05Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">100</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">101</td>
+      <td class="code-cell t-code">       FD  CARD-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">102</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">103</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 150 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">104</td>
+      <td class="code-cell t-copy-statement">       COPY CVACT02Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">105</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">106</td>
+      <td class="code-cell t-code">       FD  ERROR-OUTPUT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">107</td>
+      <td class="code-cell t-code">           RECORDING MODE IS F</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">108</td>
+      <td class="code-cell t-code">           RECORD CONTAINS 132 CHARACTERS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">109</td>
+      <td class="code-cell t-variable-declaration">       01  ERROR-OUTPUT-RECORD                        PIC X(132).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">110</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">111</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">112</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">113</td>
+      <td class="code-cell t-copy-statement">       COPY CVEXPORT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">114</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">115</td>
+      <td class="code-cell t-comment">      * File Status Variables</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">116</td>
+      <td class="code-cell t-variable-declaration">       01  WS-FILE-STATUS-AREA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">117</td>
+      <td class="code-cell t-variable-declaration">           05  WS-EXPORT-STATUS                        PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">118</td>
+      <td class="code-cell t-variable-declaration">               88  WS-EXPORT-EOF                       VALUE '10'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">119</td>
+      <td class="code-cell t-variable-declaration">               88  WS-EXPORT-OK                        VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">120</td>
+      <td class="code-cell t-variable-declaration">           05  WS-CUSTOMER-STATUS                      PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">121</td>
+      <td class="code-cell t-variable-declaration">               88  WS-CUSTOMER-OK                      VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">122</td>
+      <td class="code-cell t-variable-declaration">           05  WS-ACCOUNT-STATUS                       PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">123</td>
+      <td class="code-cell t-variable-declaration">               88  WS-ACCOUNT-OK                       VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">124</td>
+      <td class="code-cell t-variable-declaration">           05  WS-XREF-STATUS                          PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">125</td>
+      <td class="code-cell t-variable-declaration">               88  WS-XREF-OK                          VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">126</td>
+      <td class="code-cell t-variable-declaration">           05  WS-TRANSACTION-STATUS                   PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">127</td>
+      <td class="code-cell t-variable-declaration">               88  WS-TRANSACTION-OK                   VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">128</td>
+      <td class="code-cell t-variable-declaration">           05  WS-CARD-STATUS                          PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">129</td>
+      <td class="code-cell t-variable-declaration">               88  WS-CARD-OK                          VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">130</td>
+      <td class="code-cell t-variable-declaration">           05  WS-ERROR-STATUS                         PIC X(02).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">131</td>
+      <td class="code-cell t-variable-declaration">               88  WS-ERROR-OK                         VALUE '00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">132</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">133</td>
+      <td class="code-cell t-comment">      * Import Control Variables</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">134</td>
+      <td class="code-cell t-variable-declaration">       01  WS-IMPORT-CONTROL.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">135</td>
+      <td class="code-cell t-variable-declaration">           05  WS-IMPORT-DATE                          PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">136</td>
+      <td class="code-cell t-variable-declaration">           05  WS-IMPORT-TIME                          PIC X(08).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">137</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">138</td>
+      <td class="code-cell t-comment">      * Statistics Counters</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">139</td>
+      <td class="code-cell t-variable-declaration">       01  WS-IMPORT-STATISTICS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">140</td>
+      <td class="code-cell t-variable-declaration">           05  WS-TOTAL-RECORDS-READ                  PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">141</td>
+      <td class="code-cell t-variable-declaration">           05  WS-CUSTOMER-RECORDS-IMPORTED           PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">142</td>
+      <td class="code-cell t-variable-declaration">           05  WS-ACCOUNT-RECORDS-IMPORTED            PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">143</td>
+      <td class="code-cell t-variable-declaration">           05  WS-XREF-RECORDS-IMPORTED               PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">144</td>
+      <td class="code-cell t-variable-declaration">           05  WS-TRAN-RECORDS-IMPORTED           PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">145</td>
+      <td class="code-cell t-variable-declaration">           05  WS-CARD-RECORDS-IMPORTED               PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">146</td>
+      <td class="code-cell t-variable-declaration">           05  WS-ERROR-RECORDS-WRITTEN               PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">147</td>
+      <td class="code-cell t-variable-declaration">           05  WS-UNKNOWN-RECORD-TYPE-COUNT           PIC 9(09) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">148</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">149</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">150</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">151</td>
+      <td class="code-cell t-comment">      * Error Record Layout</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">152</td>
+      <td class="code-cell t-variable-declaration">       01  WS-ERROR-RECORD.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">153</td>
+      <td class="code-cell t-variable-declaration">           05  ERR-TIMESTAMP                           PIC X(26).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">154</td>
+      <td class="code-cell t-variable-declaration">           05  FILLER                              PIC X(01) VALUE '|'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">155</td>
+      <td class="code-cell t-variable-declaration">           05  ERR-RECORD-TYPE                         PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">156</td>
+      <td class="code-cell t-variable-declaration">           05  FILLER                              PIC X(01) VALUE '|'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">157</td>
+      <td class="code-cell t-variable-declaration">           05  ERR-SEQUENCE                            PIC 9(07).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">158</td>
+      <td class="code-cell t-variable-declaration">           05  FILLER                              PIC X(01) VALUE '|'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">159</td>
+      <td class="code-cell t-variable-declaration">           05  ERR-MESSAGE                             PIC X(50).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">160</td>
+      <td class="code-cell t-variable-declaration">           05  FILLER                          PIC X(43) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">161</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">162</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">163</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">164</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">165</td>
+      <td class="code-cell t-paragraph-header">       0000-MAIN-PROCESSING.</td>
+      <td class="expl-cell">This is the top-level orchestration paragraph that drives the entire branch migration import run from start to finish. It sequences the four major business phases — setup, data routing, integrity validation, and closedown — ensuring a controlled, auditable import of all customer, account, card, and transaction records.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">166</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">           PERFORM 1000-INITIALIZE</td>
+      <td class="expl-cell">Initialises the import run: opens all output files, records the batch execution date and time, and zeroes all import counters before any data is processed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">           PERFORM 2000-PROCESS-EXPORT-FILE</td>
+      <td class="expl-cell">Reads every record from the source branch migration file and routes each one to the correct target file (customer, account, card, cross-reference, or transaction) based on its record type, counting successes and rejections throughout.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">           PERFORM 3000-VALIDATE-IMPORT</td>
+      <td class="expl-cell">Performs post-processing data integrity checks using checksums to confirm that the volume and content of imported records matches what the source branch exported, supporting reconciliation sign-off.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">           PERFORM 4000-FINALIZE</td>
+      <td class="expl-cell">Closes all input and output files, writes the final import statistics summary, and completes the audit trail for the migration event.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">           GOBACK.</td>
+      <td class="expl-cell">Returns control to the operating system, signalling that the import batch job has completed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">172</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-0000-MAIN-PROCESSING">
+      <td class="ln">173</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">174</td>
+      <td class="code-cell t-paragraph-header">       1000-INITIALIZE.</td>
+      <td class="expl-cell">This paragraph initialises the branch migration import job by capturing the exact date and time of execution for audit purposes, then opens all required input and output files before processing begins. It establishes the audit trail and ensures the system is fully ready to receive and route migrated customer, account, card, and transaction data.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">175</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Starting Customer Data Import'</td>
+      <td class="expl-cell">Logs to the system console that the customer data import job has started, providing an operator-visible confirmation of job commencement.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">177</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(1:4) TO WS-IMPORT-DATE(1:4)</td>
+      <td class="expl-cell">Records the four-digit year of the import run into the audit timestamp, anchoring the migration event to a specific calendar year.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">           MOVE '-' TO WS-IMPORT-DATE(5:1)</td>
+      <td class="expl-cell">Inserts a hyphen separator between the year and month portions of the formatted import date for readability and standard date formatting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(5:2) TO WS-IMPORT-DATE(6:2)</td>
+      <td class="expl-cell">Records the two-digit month of the import run into the audit timestamp, identifying the calendar month of the migration event.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">           MOVE '-' TO WS-IMPORT-DATE(8:1)</td>
+      <td class="expl-cell">Inserts a hyphen separator between the month and day portions of the formatted import date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(7:2) TO WS-IMPORT-DATE(9:2)</td>
+      <td class="expl-cell">Records the two-digit day of the month of the import run into the audit timestamp, completing the full calendar date of the migration event.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">183</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(9:2) TO WS-IMPORT-TIME(1:2)</td>
+      <td class="expl-cell">Records the two-digit hour at which the import job started, establishing the precise time of the migration event for audit and reconciliation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">           MOVE ':' TO WS-IMPORT-TIME(3:1)</td>
+      <td class="expl-cell">Inserts a colon separator between the hour and minute portions of the formatted import time.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(11:2) TO WS-IMPORT-TIME(4:2)</td>
+      <td class="expl-cell">Records the two-digit minute at which the import job started, refining the audit timestamp to sub-hour precision.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">           MOVE ':' TO WS-IMPORT-TIME(6:1)</td>
+      <td class="expl-cell">Inserts a colon separator between the minute and second portions of the formatted import time.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE(13:2) TO WS-IMPORT-TIME(7:2)</td>
+      <td class="expl-cell">Records the two-digit second at which the import job started, completing the full time-of-day audit stamp for the migration run.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">189</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">           PERFORM 1100-OPEN-FILES</td>
+      <td class="expl-cell">Opens all required input and output files (source export file, all five target data files, and the error report), ensuring the system is fully prepared before any records are processed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">191</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Import Date: ' WS-IMPORT-DATE</td>
+      <td class="expl-cell">Writes the formatted import date to the system console log, providing operators and auditors with a permanent record of when this migration batch was executed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">193</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Import Time: ' WS-IMPORT-TIME.</td>
+      <td class="expl-cell">Writes the formatted import time to the system console log, completing the audit entry that ties all imported records to this specific migration event.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">194</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1000-INITIALIZE">
+      <td class="ln">195</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">196</td>
+      <td class="code-cell t-paragraph-header">       1100-OPEN-FILES.</td>
+      <td class="expl-cell">Entry point for the file-opening phase of the import job.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">197</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">198</td>
+      <td class="code-cell t-statement">           OPEN INPUT EXPORT-INPUT</td>
+      <td class="expl-cell">Opens the source branch migration export file so the program can begin reading incoming customer, account, card, and transaction records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">199</td>
+      <td class="code-cell t-statement">           IF NOT WS-EXPORT-OK</td>
+      <td class="expl-cell">Checks whether the source migration file was successfully made available for reading.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">200</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open EXPORT-INPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message to the operator console indicating that the source migration file could not be accessed, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">201</td>
+      <td class="code-cell t-statement">                       WS-EXPORT-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code in the error message to help operations staff diagnose the root cause of the file access failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">202</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the job, preventing any processing from occurring without a readable source file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">204</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">205</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT CUSTOMER-OUTPUT</td>
+      <td class="expl-cell">Opens the target customer master file so that migrated customer profile records can be written to it during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">206</td>
+      <td class="code-cell t-statement">           IF NOT WS-CUSTOMER-OK</td>
+      <td class="expl-cell">Checks whether the customer master output file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">207</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open CUSTOMER-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the customer master file could not be opened for writing, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">                       WS-CUSTOMER-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to assist operations in diagnosing why the customer output file is unavailable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately to prevent any records from being processed without a valid destination for customer data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">210</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">211</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT ACCOUNT-OUTPUT</td>
+      <td class="expl-cell">Opens the target account master file so that migrated credit card account records can be written during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">           IF NOT WS-ACCOUNT-OK</td>
+      <td class="expl-cell">Checks whether the account master output file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">214</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open ACCOUNT-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the account master file could not be opened, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">215</td>
+      <td class="code-cell t-statement">                       WS-ACCOUNT-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to help operations identify why the account output file is inaccessible.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately to prevent processing without a valid destination for account data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">217</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">218</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT XREF-OUTPUT</td>
+      <td class="expl-cell">Opens the target card cross-reference file so that records linking card numbers to customers and accounts can be written during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">           IF NOT WS-XREF-OK</td>
+      <td class="expl-cell">Checks whether the card cross-reference output file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">221</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open XREF-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the card cross-reference file could not be opened, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">222</td>
+      <td class="code-cell t-statement">                       WS-XREF-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to assist in diagnosing the cross-reference file access failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately, as the absence of the cross-reference file would break the three-way link between cards, customers, and accounts.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">225</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">226</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT TRANSACTION-OUTPUT</td>
+      <td class="expl-cell">Opens the target transaction history file so that individual credit card transaction records can be written during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">227</td>
+      <td class="code-cell t-statement">           IF NOT WS-TRANSACTION-OK</td>
+      <td class="expl-cell">Checks whether the transaction history output file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">228</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open TRANSACTION-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the transaction history file could not be opened, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">229</td>
+      <td class="code-cell t-statement">                       WS-TRANSACTION-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to help operations diagnose the transaction file access failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">230</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately to prevent processing without a valid destination for transaction history data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">232</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT CARD-OUTPUT</td>
+      <td class="expl-cell">Opens the target physical card file so that card records containing card numbers, expiry dates, and statuses can be written during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">234</td>
+      <td class="code-cell t-statement">           IF NOT WS-CARD-OK</td>
+      <td class="expl-cell">Checks whether the physical card output file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">235</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open CARD-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the card file could not be opened, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">                       WS-CARD-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to assist in diagnosing the card file access failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">237</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately to prevent processing without a valid destination for physical card records.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">238</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">239</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">240</td>
+      <td class="code-cell t-statement">           OPEN OUTPUT ERROR-OUTPUT</td>
+      <td class="expl-cell">Opens the error report file so that any rejected or unrecognised records can be captured and flagged for review.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">241</td>
+      <td class="code-cell t-statement">           IF NOT WS-ERROR-OK</td>
+      <td class="expl-cell">Checks whether the error report file was successfully prepared for writing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">242</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Cannot open ERROR-OUTPUT, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message indicating that the error report file could not be opened, along with the system-level failure code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">                       WS-ERROR-STATUS</td>
+      <td class="expl-cell">Includes the operating system status code to help operations understand why the error report file is unavailable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">244</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Halts the job immediately, as the inability to write error records would prevent a clean and auditable migration outcome.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">246</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-1100-OPEN-FILES">
+      <td class="ln">247</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">248</td>
+      <td class="code-cell t-paragraph-header">       2000-PROCESS-EXPORT-FILE.</td>
+      <td class="expl-cell">Entry point for the main file processing phase of the branch migration import job.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">249</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">250</td>
+      <td class="code-cell t-statement">           PERFORM 2100-READ-EXPORT-RECORD</td>
+      <td class="expl-cell">Reads the first record from the source branch migration export file to prime the processing loop.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">251</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">252</td>
+      <td class="code-cell t-statement">           PERFORM UNTIL WS-EXPORT-EOF</td>
+      <td class="expl-cell">Begins a loop that continues until every record in the source migration file has been read and processed — ensuring no data is skipped.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">253</td>
+      <td class="code-cell t-statement">               ADD 1 TO WS-TOTAL-RECORDS-READ</td>
+      <td class="expl-cell">Increments the running total of records read from the source file, supporting end-of-run reconciliation and audit sign-off.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">               PERFORM 2200-PROCESS-RECORD-BY-TYPE</td>
+      <td class="expl-cell">Routes the current record to the correct target output file (Customer, Account, Cross-Reference, Card, or Transaction) based on its record type indicator, or rejects it to the error report if the type is unrecognised.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">255</td>
+      <td class="code-cell t-statement">               PERFORM 2100-READ-EXPORT-RECORD</td>
+      <td class="expl-cell">Reads the next record from the source migration export file, advancing the loop to process the subsequent entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">256</td>
+      <td class="code-cell t-statement">           END-PERFORM.</td>
+      <td class="expl-cell">Closes the processing loop once all records in the source migration file have been read, routed, and written to their respective target files.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">257</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2000-PROCESS-EXPORT-FILE">
+      <td class="ln">258</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">259</td>
+      <td class="code-cell t-paragraph-header">       2100-READ-EXPORT-RECORD.</td>
+      <td class="expl-cell">Entry point for the paragraph that retrieves the next record from the source branch migration file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">260</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">261</td>
+      <td class="code-cell t-statement">           READ EXPORT-INPUT INTO EXPORT-RECORD</td>
+      <td class="expl-cell">Reads the next migration record from the source export file, making its contents available for record-type routing and processing.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">262</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">263</td>
+      <td class="code-cell t-statement">           IF NOT WS-EXPORT-OK AND NOT WS-EXPORT-EOF</td>
+      <td class="expl-cell">Checks whether the file read resulted in an unexpected error — distinguishing a genuine I/O failure from a normal end-of-file condition.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">264</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Reading EXPORT-INPUT, Status: '</td>
+      <td class="expl-cell">Displays a diagnostic message to the operator log indicating that the source migration file could not be read successfully, along with the file system error code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">265</td>
+      <td class="code-cell t-statement">                       WS-EXPORT-STATUS</td>
+      <td class="expl-cell">Includes the technical file status code in the error message to assist operations staff in diagnosing the root cause of the read failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">266</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the entire import job, preventing any further processing that could result in partial or inconsistent data being written to the target files.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">Closes the conditional block that handles unexpected read errors on the source migration file.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">268</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2100-READ-EXPORT-RECORD">
+      <td class="ln">269</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">270</td>
+      <td class="code-cell t-paragraph-header">       2200-PROCESS-RECORD-BY-TYPE.</td>
+      <td class="expl-cell">Entry point of the record-type routing logic, executed once for every record read from the source branch migration file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">271</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">           EVALUATE EXPORT-REC-TYPE</td>
+      <td class="expl-cell">Reads the single-character entity type indicator on the current migration record to determine which type of banking data it contains.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">273</td>
+      <td class="code-cell t-statement">               WHEN 'C'</td>
+      <td class="expl-cell">Identifies the current record as a customer profile entry (personal details, SSN, FICO score, address, etc.).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">274</td>
+      <td class="code-cell t-statement">                   PERFORM 2300-PROCESS-CUSTOMER-RECORD</td>
+      <td class="expl-cell">Routes the record to the customer processing routine, which maps and writes the personal profile data to the target customer master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">275</td>
+      <td class="code-cell t-statement">               WHEN 'A'</td>
+      <td class="expl-cell">Identifies the current record as a credit card account entry (balances, credit limits, dates, status, etc.).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">276</td>
+      <td class="code-cell t-statement">                   PERFORM 2400-PROCESS-ACCOUNT-RECORD</td>
+      <td class="expl-cell">Routes the record to the account processing routine, which maps and writes the account data to the target account master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">277</td>
+      <td class="code-cell t-statement">               WHEN 'X'</td>
+      <td class="expl-cell">Identifies the current record as a card cross-reference entry linking a card number to both a customer and an account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">                   PERFORM 2500-PROCESS-XREF-RECORD</td>
+      <td class="expl-cell">Routes the record to the cross-reference processing routine, which writes the three-way card-to-customer-to-account linkage to the target cross-reference file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">279</td>
+      <td class="code-cell t-statement">               WHEN 'T'</td>
+      <td class="expl-cell">Identifies the current record as a credit card transaction history entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">                   PERFORM 2600-PROCESS-TRAN-RECORD</td>
+      <td class="expl-cell">Routes the record to the transaction processing routine, which maps and writes the transaction details to the target transaction history file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">               WHEN 'D'</td>
+      <td class="expl-cell">Identifies the current record as a physical card entry (card number, expiry date, status, etc.).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">                   PERFORM 2650-PROCESS-CARD-RECORD</td>
+      <td class="expl-cell">Routes the record to the card processing routine, which maps and writes the physical card details to the target card file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">               WHEN OTHER</td>
+      <td class="expl-cell">Catches any record whose type indicator does not match any of the five recognised entity types, signalling a data quality issue in the source file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">                   PERFORM 2700-PROCESS-UNKNOWN-RECORD</td>
+      <td class="expl-cell">Diverts the unrecognised record to the error handling routine, which logs it to the error report file and increments the data quality exception counter.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">285</td>
+      <td class="code-cell t-statement">           END-EVALUATE.</td>
+      <td class="expl-cell">Closes the routing decision block, ensuring exactly one processing path is taken for every record regardless of its type.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">286</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2200-PROCESS-RECORD-BY-TYPE">
+      <td class="ln">287</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">288</td>
+      <td class="code-cell t-paragraph-header">       2300-PROCESS-CUSTOMER-RECORD.</td>
+      <td class="expl-cell">Entry point for processing a customer-type record read from the migration export file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">289</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">           INITIALIZE CUSTOMER-RECORD</td>
+      <td class="expl-cell">Clears the target customer profile structure to ensure no residual data from a previous record contaminates the new one.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">291</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">292</td>
+      <td class="code-cell t-comment">      *    Map export fields to customer record</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ID TO CUST-ID</td>
+      <td class="expl-cell">Transfers the unique customer identifier from the source branch record into the normalised target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-FIRST-NAME TO CUST-FIRST-NAME</td>
+      <td class="expl-cell">Copies the customer's first (given) name into the target customer profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-MIDDLE-NAME TO CUST-MIDDLE-NAME</td>
+      <td class="expl-cell">Copies the customer's middle name into the target customer profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-LAST-NAME TO CUST-LAST-NAME</td>
+      <td class="expl-cell">Copies the customer's surname into the target customer profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">297</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-LINE(1) TO CUST-ADDR-LINE-1</td>
+      <td class="expl-cell">Maps the first line of the customer's residential or mailing address into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">298</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-LINE(2) TO CUST-ADDR-LINE-2</td>
+      <td class="expl-cell">Maps the second line of the customer's address (e.g. apartment or suite) into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">299</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-LINE(3) TO CUST-ADDR-LINE-3</td>
+      <td class="expl-cell">Maps the third line of the customer's address (e.g. city or district) into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">300</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-STATE-CD TO CUST-ADDR-STATE-CD</td>
+      <td class="expl-cell">Transfers the two-character US state code of the customer's address into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">301</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-COUNTRY-CD TO CUST-ADDR-COUNTRY-CD</td>
+      <td class="expl-cell">Transfers the country code of the customer's address into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">302</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-ADDR-ZIP TO CUST-ADDR-ZIP</td>
+      <td class="expl-cell">Copies the postal ZIP code of the customer's address into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-PHONE-NUM(1) TO CUST-PHONE-NUM-1</td>
+      <td class="expl-cell">Maps the customer's primary contact telephone number into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">304</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-PHONE-NUM(2) TO CUST-PHONE-NUM-2</td>
+      <td class="expl-cell">Maps the customer's secondary contact telephone number into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">305</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-SSN TO CUST-SSN</td>
+      <td class="expl-cell">Transfers the customer's Social Security Number, a mandatory regulatory identifier, into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">306</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-GOVT-ISSUED-ID TO CUST-GOVT-ISSUED-ID</td>
+      <td class="expl-cell">Copies the customer's government-issued photo ID reference (e.g. passport or driver's licence number) into the target profile.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">307</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-DOB-YYYY-MM-DD TO CUST-DOB-YYYY-MM-DD</td>
+      <td class="expl-cell">Transfers the customer's date of birth in ISO format, required for identity verification and age-related compliance checks.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">308</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-EFT-ACCOUNT-ID TO CUST-EFT-ACCOUNT-ID</td>
+      <td class="expl-cell">Copies the customer's linked electronic funds transfer bank account identifier, enabling direct debit or payment processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">309</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-PRI-CARD-HOLDER-IND TO CUST-PRI-CARD-HOLDER-IND</td>
+      <td class="expl-cell">Transfers the flag indicating whether this customer is the primary card-holder on the account, which governs servicing and liability rules.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">310</td>
+      <td class="code-cell t-statement">           MOVE EXP-CUST-FICO-CREDIT-SCORE TO CUST-FICO-CREDIT-SCORE</td>
+      <td class="expl-cell">Copies the customer's FICO credit score, a key credit risk metric used for account management and regulatory reporting.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">311</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">312</td>
+      <td class="code-cell t-statement">           WRITE CUSTOMER-RECORD</td>
+      <td class="expl-cell">Writes the fully populated customer profile record to the target customer master file in the CardDemo system.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">313</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">314</td>
+      <td class="code-cell t-statement">           IF NOT WS-CUSTOMER-OK</td>
+      <td class="expl-cell">Checks whether the write to the customer master file completed successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">315</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing customer record, Status: '</td>
+      <td class="expl-cell">Displays a diagnostic message identifying that a failure occurred while saving a customer record, along with the file system status code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">316</td>
+      <td class="code-cell t-statement">                       WS-CUSTOMER-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">317</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the import job to prevent a partial or corrupt customer data set from being committed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">318</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the conditional block that handles a customer write failure.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">319</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">320</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-CUSTOMER-RECORDS-IMPORTED.</td>
+      <td class="expl-cell">Increments the running count of customer profiles successfully imported, used for end-of-job reconciliation and sign-off reporting.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">321</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2300-PROCESS-CUSTOMER-RECORD">
+      <td class="ln">322</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">323</td>
+      <td class="code-cell t-paragraph-header">       2400-PROCESS-ACCOUNT-RECORD.</td>
+      <td class="expl-cell">Entry point for processing an account-type record identified in the migration file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">324</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">325</td>
+      <td class="code-cell t-statement">           INITIALIZE ACCOUNT-RECORD</td>
+      <td class="expl-cell">Clears any residual data from the target account record structure to ensure no previous record's values contaminate the new one.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">326</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">327</td>
+      <td class="code-cell t-comment">      *    Map export fields to account record</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">328</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-ID TO ACCT-ID</td>
+      <td class="expl-cell">Maps the unique account identifier from the source branch export to the target account master record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">329</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-ACTIVE-STATUS TO ACCT-ACTIVE-STATUS</td>
+      <td class="expl-cell">Copies the account's active or inactive status flag from the source export to the target record, preserving the account's operational standing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">330</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-CURR-BAL TO ACCT-CURR-BAL</td>
+      <td class="expl-cell">Transfers the current outstanding balance owed on the account from the source export to the target record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">331</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-CREDIT-LIMIT TO ACCT-CREDIT-LIMIT</td>
+      <td class="expl-cell">Carries over the maximum credit limit approved for the account from the source branch to the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">332</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-CASH-CREDIT-LIMIT TO ACCT-CASH-CREDIT-LIMIT</td>
+      <td class="expl-cell">Transfers the sub-limit governing how much of the credit line the cardholder may draw as cash advances.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">333</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-OPEN-DATE TO ACCT-OPEN-DATE</td>
+      <td class="expl-cell">Copies the date the account was originally opened, preserving the customer's tenure history in the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">334</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-EXPIRAION-DATE TO ACCT-EXPIRAION-DATE</td>
+      <td class="expl-cell">Transfers the account expiry date from the source export, maintaining the scheduled end-of-life for the credit arrangement.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">335</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-REISSUE-DATE TO ACCT-REISSUE-DATE</td>
+      <td class="expl-cell">Copies the most recent card reissue date, retaining the history of when replacement cards were last issued to the cardholder.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">336</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-CURR-CYC-CREDIT TO ACCT-CURR-CYC-CREDIT</td>
+      <td class="expl-cell">Transfers the total credits posted to the account during the current billing cycle from the source export.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">337</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-CURR-CYC-DEBIT TO ACCT-CURR-CYC-DEBIT</td>
+      <td class="expl-cell">Transfers the total debits (purchases and fees) posted to the account during the current billing cycle from the source export.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">338</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-ADDR-ZIP TO ACCT-ADDR-ZIP</td>
+      <td class="expl-cell">Copies the postal ZIP code associated with the account's billing address, supporting address verification and fraud detection in the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">339</td>
+      <td class="code-cell t-statement">           MOVE EXP-ACCT-GROUP-ID TO ACCT-GROUP-ID</td>
+      <td class="expl-cell">Transfers the portfolio or product group classification of the account, preserving segmentation data used for reporting and pricing.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">340</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">341</td>
+      <td class="code-cell t-statement">           WRITE ACCOUNT-RECORD</td>
+      <td class="expl-cell">Writes the fully populated account record to the target account master file, completing the migration of this account.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">342</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">343</td>
+      <td class="code-cell t-statement">           IF NOT WS-ACCOUNT-OK</td>
+      <td class="expl-cell">Checks whether the write operation to the account master file completed successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">344</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing account record, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message to the operator console identifying that an account record could not be written, along with the file system status code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">345</td>
+      <td class="code-cell t-statement">                       WS-ACCOUNT-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">346</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the import job to prevent silent data loss or a partial account portfolio being loaded into the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">347</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the conditional block that handles account write failures.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">348</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">349</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-ACCOUNT-RECORDS-IMPORTED.</td>
+      <td class="expl-cell">Increments the running count of account records successfully imported, supporting end-of-run reconciliation and sign-off by operations.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">350</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2400-PROCESS-ACCOUNT-RECORD">
+      <td class="ln">351</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">352</td>
+      <td class="code-cell t-paragraph-header">       2500-PROCESS-XREF-RECORD.</td>
+      <td class="expl-cell">Entry point for processing a card cross-reference record from the migration export file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">353</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">354</td>
+      <td class="code-cell t-statement">           INITIALIZE CARD-XREF-RECORD</td>
+      <td class="expl-cell">Clears any residual data from the cross-reference output record to ensure no stale or corrupt linkage data is carried over from a previous record.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">355</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">356</td>
+      <td class="code-cell t-comment">      *    Map export fields to xref record</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">357</td>
+      <td class="code-cell t-statement">           MOVE EXP-XREF-CARD-NUM TO XREF-CARD-NUM</td>
+      <td class="expl-cell">Copies the physical card number from the migration source into the cross-reference record, identifying which card this linkage applies to.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">358</td>
+      <td class="code-cell t-statement">           MOVE EXP-XREF-CUST-ID TO XREF-CUST-ID</td>
+      <td class="expl-cell">Copies the unique customer identifier from the migration source into the cross-reference record, establishing which customer owns this card.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">359</td>
+      <td class="code-cell t-statement">           MOVE EXP-XREF-ACCT-ID TO XREF-ACCT-ID</td>
+      <td class="expl-cell">Copies the credit account identifier from the migration source into the cross-reference record, establishing which account this card is billed against.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">360</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">361</td>
+      <td class="code-cell t-statement">           WRITE CARD-XREF-RECORD</td>
+      <td class="expl-cell">Writes the completed three-way card-to-customer-to-account linkage record to the cross-reference output file in the target system.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">362</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">363</td>
+      <td class="code-cell t-statement">           IF NOT WS-XREF-OK</td>
+      <td class="expl-cell">Checks whether the write to the cross-reference file succeeded; if it did not, the linkage has not been recorded and data integrity is at risk.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">364</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing xref record, Status: '</td>
+      <td class="expl-cell">Displays a diagnostic message to the operator log identifying that a cross-reference record could not be written, along with the file system status code for investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">365</td>
+      <td class="code-cell t-statement">                       WS-XREF-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">366</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the entire import job to prevent the migration from continuing with a missing card-to-customer-to-account linkage, which would break card authorisation and account servicing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">367</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">368</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">369</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-XREF-RECORDS-IMPORTED.</td>
+      <td class="expl-cell">Increments the running count of successfully written cross-reference records, contributing to the reconciliation total used for migration sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">370</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2500-PROCESS-XREF-RECORD">
+      <td class="ln">371</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">372</td>
+      <td class="code-cell t-paragraph-header">       2600-PROCESS-TRAN-RECORD.</td>
+      <td class="expl-cell">Entry point for processing a transaction record routed from the main record-type dispatcher.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">373</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">374</td>
+      <td class="code-cell t-statement">           INITIALIZE TRAN-RECORD</td>
+      <td class="expl-cell">Clears any residual data from the transaction output record to ensure no previous record's values contaminate the new entry.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">375</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">376</td>
+      <td class="code-cell t-comment">      *    Map export fields to transaction record</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">377</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-ID TO TRAN-ID</td>
+      <td class="expl-cell">Carries the unique transaction identifier from the source export into the target transaction record, preserving traceability back to the originating branch system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">378</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-TYPE-CD TO TRAN-TYPE-CD</td>
+      <td class="expl-cell">Transfers the transaction type classification (e.g. purchase, refund, cash advance) from the source file to the target record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">379</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-CAT-CD TO TRAN-CAT-CD</td>
+      <td class="expl-cell">Copies the transaction category code, which identifies the spending category (e.g. groceries, travel), into the target record for reporting and analytics.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">380</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-SOURCE TO TRAN-SOURCE</td>
+      <td class="expl-cell">Maps the originating channel or system through which the transaction was initiated (e.g. POS, online, ATM) to the target record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">381</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-DESC TO TRAN-DESC</td>
+      <td class="expl-cell">Transfers the human-readable transaction description from the source export to the target record for customer statement and audit purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">382</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-AMT TO TRAN-AMT</td>
+      <td class="expl-cell">Copies the monetary value of the transaction from the source export to the target record, preserving the exact amount for balance and reconciliation calculations.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">383</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-MERCHANT-ID TO TRAN-MERCHANT-ID</td>
+      <td class="expl-cell">Maps the unique identifier of the merchant where the transaction occurred, enabling merchant-level reporting and dispute resolution.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">384</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-MERCHANT-NAME TO TRAN-MERCHANT-NAME</td>
+      <td class="expl-cell">Transfers the merchant's trading name to the target record, supporting customer statement presentation and fraud investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">385</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-MERCHANT-CITY TO TRAN-MERCHANT-CITY</td>
+      <td class="expl-cell">Copies the merchant's city location into the target record, providing geographic context for fraud detection and reporting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">386</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-MERCHANT-ZIP TO TRAN-MERCHANT-ZIP</td>
+      <td class="expl-cell">Maps the merchant's postal code to the target record, further supporting geographic analysis and fraud risk assessment.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">387</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-CARD-NUM TO TRAN-CARD-NUM</td>
+      <td class="expl-cell">Links the transaction to the specific payment card used, maintaining the card-to-transaction relationship essential for account servicing and dispute handling.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">388</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-ORIG-TS TO TRAN-ORIG-TS</td>
+      <td class="expl-cell">Transfers the original timestamp of when the transaction was initiated by the cardholder, preserving the authorisation timeline for audit and regulatory purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">389</td>
+      <td class="code-cell t-statement">           MOVE EXP-TRAN-PROC-TS TO TRAN-PROC-TS</td>
+      <td class="expl-cell">Copies the timestamp of when the transaction was processed and settled, supporting reconciliation between authorisation and clearing events.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">390</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">391</td>
+      <td class="code-cell t-statement">           WRITE TRAN-RECORD</td>
+      <td class="expl-cell">Persists the fully populated transaction record to the target transaction history file, making it available for account servicing, statements, and reporting.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">392</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">393</td>
+      <td class="code-cell t-statement">           IF NOT WS-TRANSACTION-OK</td>
+      <td class="expl-cell">Checks whether the write to the transaction history file completed successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">394</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing transaction record, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message to the operator console identifying that a transaction record could not be written, along with the file system status code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">395</td>
+      <td class="code-cell t-statement">                       WS-TRANSACTION-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">396</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the import job to prevent silent data loss, ensuring the migrated transaction portfolio remains complete and auditable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">397</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">398</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">399</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-TRAN-RECORDS-IMPORTED.</td>
+      <td class="expl-cell">Increments the running count of successfully imported transaction records, contributing to the end-of-run reconciliation totals used for migration sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">400</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2600-PROCESS-TRAN-RECORD">
+      <td class="ln">401</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">402</td>
+      <td class="code-cell t-paragraph-header">       2650-PROCESS-CARD-RECORD.</td>
+      <td class="expl-cell">Entry point for processing a physical card record routed from the migration file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">403</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">404</td>
+      <td class="code-cell t-statement">           INITIALIZE CARD-RECORD</td>
+      <td class="expl-cell">Clears any residual data from the card output record to ensure no previous record's values contaminate the new card being processed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">405</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">406</td>
+      <td class="code-cell t-comment">      *    Map export fields to card record</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">407</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-NUM TO CARD-NUM</td>
+      <td class="expl-cell">Copies the card's unique 16-digit payment card number from the source export into the target card record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">408</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-ACCT-ID TO CARD-ACCT-ID</td>
+      <td class="expl-cell">Links the physical card to its associated credit account by transferring the account identifier from the source export.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">409</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-CVV-CD TO CARD-CVV-CD</td>
+      <td class="expl-cell">Transfers the card's security verification code (CVV) from the source export, preserving the fraud-prevention credential in the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">410</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-EMBOSSED-NAME TO CARD-EMBOSSED-NAME</td>
+      <td class="expl-cell">Copies the cardholder name as it is physically embossed on the card, ensuring the target system retains the exact name printed on the plastic.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">411</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-EXPIRAION-DATE TO CARD-EXPIRAION-DATE</td>
+      <td class="expl-cell">Transfers the card's expiry date from the source export, which governs when the card ceases to be valid for transactions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">412</td>
+      <td class="code-cell t-statement">           MOVE EXP-CARD-ACTIVE-STATUS TO CARD-ACTIVE-STATUS</td>
+      <td class="expl-cell">Copies the card's active or inactive status flag, determining whether the card is currently authorised for use in the target system.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">413</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">414</td>
+      <td class="code-cell t-statement">           WRITE CARD-RECORD</td>
+      <td class="expl-cell">Writes the fully populated card record to the target card master file, completing the migration of this card's data.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">415</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">416</td>
+      <td class="code-cell t-statement">           IF NOT WS-CARD-OK</td>
+      <td class="expl-cell">Checks whether the write to the card master file completed successfully, guarding against silent data loss.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">417</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing card record, Status: '</td>
+      <td class="expl-cell">Logs a diagnostic message to the operator console identifying that a card record could not be written, along with the file system status code for investigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">418</td>
+      <td class="code-cell t-statement">                       WS-CARD-STATUS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">419</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND-PROGRAM</td>
+      <td class="expl-cell">Triggers an immediate abnormal termination of the entire import job to prevent a partial or corrupt card portfolio from being loaded into the target system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">420</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the write-failure check block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">421</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">422</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-CARD-RECORDS-IMPORTED.</td>
+      <td class="expl-cell">Increments the running tally of physical card records successfully migrated, contributing to the final reconciliation count for operations sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">423</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2650-PROCESS-CARD-RECORD">
+      <td class="ln">424</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">425</td>
+      <td class="code-cell t-paragraph-header">       2700-PROCESS-UNKNOWN-RECORD.</td>
+      <td class="expl-cell">Entry point for the business logic that handles any record whose type cannot be matched to a known entity (Customer, Account, Cross-Reference, Transaction, or Card).</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">426</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">427</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-UNKNOWN-RECORD-TYPE-COUNT</td>
+      <td class="expl-cell">Increments the running tally of unrecognised-type records encountered during this import run, which will be reported at the end for data quality review and migration sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">428</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">429</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE TO ERR-TIMESTAMP</td>
+      <td class="expl-cell">Stamps the error report entry with the exact date and time the anomaly was detected, providing a precise audit trail for the migration event.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">430</td>
+      <td class="code-cell t-statement">           MOVE EXPORT-REC-TYPE TO ERR-RECORD-TYPE</td>
+      <td class="expl-cell">Records the actual unrecognised type indicator found on the offending source record, so operations staff can identify the nature of the data quality issue in the source file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">431</td>
+      <td class="code-cell t-statement">           MOVE EXPORT-SEQUENCE-NUM TO ERR-SEQUENCE</td>
+      <td class="expl-cell">Records the position of the offending record within the source migration file, allowing the receiving branch to locate and investigate the exact record that failed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">432</td>
+      <td class="code-cell t-statement">           MOVE 'Unknown record type encountered' TO ERR-MESSAGE</td>
+      <td class="expl-cell">Attaches a human-readable diagnostic message to the error report entry, clearly communicating to operations that the record was rejected because its type could not be identified.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">433</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">434</td>
+      <td class="code-cell t-statement">           PERFORM 2750-WRITE-ERROR.</td>
+      <td class="expl-cell">Writes the fully populated error report entry — including timestamp, unrecognised type indicator, record position, and diagnostic message — to the dedicated error report file for audit and remediation.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">435</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2700-PROCESS-UNKNOWN-RECORD">
+      <td class="ln">436</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">437</td>
+      <td class="code-cell t-paragraph-header">       2750-WRITE-ERROR.</td>
+      <td class="expl-cell">Entry point for the error-writing routine, invoked whenever a record cannot be routed to a valid output file.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">438</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">439</td>
+      <td class="code-cell t-statement">           WRITE ERROR-OUTPUT-RECORD FROM WS-ERROR-RECORD</td>
+      <td class="expl-cell">Writes the prepared error report entry — containing the offending record and its diagnostic details — to the error report file for audit and investigation.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">440</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">441</td>
+      <td class="code-cell t-statement">           IF NOT WS-ERROR-OK</td>
+      <td class="expl-cell">Checks whether the write to the error report file completed successfully; a failure here means even the error itself could not be logged.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">442</td>
+      <td class="code-cell t-statement">               DISPLAY 'ERROR: Writing error record, Status: '</td>
+      <td class="expl-cell">Displays a console alert to the operator indicating that writing to the error report file has failed, signalling a critical logging breakdown.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">443</td>
+      <td class="code-cell t-statement">                       WS-ERROR-STATUS</td>
+      <td class="expl-cell">Includes the file system status code in the operator alert so support staff can diagnose the cause of the error report write failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">444</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the conditional check on the error report write outcome.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">445</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">446</td>
+      <td class="code-cell t-statement">           ADD 1 TO WS-ERROR-RECORDS-WRITTEN.</td>
+      <td class="expl-cell">Increments the total count of records that could not be processed, ensuring the end-of-run reconciliation report accurately reflects the number of rejected records for operations sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">447</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-2750-WRITE-ERROR">
+      <td class="ln">448</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">449</td>
+      <td class="code-cell t-paragraph-header">       3000-VALIDATE-IMPORT.</td>
+      <td class="expl-cell">Entry point for the import validation phase, which verifies the integrity and completeness of all data written during the migration run.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">450</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">451</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Import validation completed'</td>
+      <td class="expl-cell">Writes a confirmation message to the job log indicating that the full import validation cycle has been executed and concluded.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">452</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: No validation errors detected'.</td>
+      <td class="expl-cell">Writes a second confirmation message to the job log stating that no data integrity, checksum, or reconciliation errors were detected during validation, giving operations a clear audit signal that the migration is clean.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">453</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-3000-VALIDATE-IMPORT">
+      <td class="ln">454</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">455</td>
+      <td class="code-cell t-paragraph-header">       4000-FINALIZE.</td>
+      <td class="expl-cell">Entry point for the finalisation phase of the import job, executed after all migration records have been processed.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">456</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">457</td>
+      <td class="code-cell t-statement">           CLOSE EXPORT-INPUT</td>
+      <td class="expl-cell">Closes the source branch migration export file, releasing it from the job and preventing any further reads.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">458</td>
+      <td class="code-cell t-statement">           CLOSE CUSTOMER-OUTPUT</td>
+      <td class="expl-cell">Closes the target customer master file, flushing and sealing all normalised customer profile records written during the run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">459</td>
+      <td class="code-cell t-statement">           CLOSE ACCOUNT-OUTPUT</td>
+      <td class="expl-cell">Closes the target account master file, flushing and sealing all credit card account records written during the run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">460</td>
+      <td class="code-cell t-statement">           CLOSE XREF-OUTPUT</td>
+      <td class="expl-cell">Closes the card cross-reference file, flushing and sealing all card-to-customer-to-account linkage records written during the run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">461</td>
+      <td class="code-cell t-statement">           CLOSE TRANSACTION-OUTPUT</td>
+      <td class="expl-cell">Closes the target transaction history file, flushing and sealing all individual transaction records written during the run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">462</td>
+      <td class="code-cell t-statement">           CLOSE CARD-OUTPUT</td>
+      <td class="expl-cell">Closes the target physical card file, flushing and sealing all card records written during the run.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">463</td>
+      <td class="code-cell t-statement">           CLOSE ERROR-OUTPUT</td>
+      <td class="expl-cell">Closes the error report file, flushing and sealing all rejected or unrecognised records captured for data quality review.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">464</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">465</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Import completed'</td>
+      <td class="expl-cell">Writes a completion marker to the job log confirming that the import batch run has finished successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">466</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Total Records Read: '</td>
+      <td class="expl-cell">Begins printing the reconciliation summary to the job log; introduces the total count of all records read from the source migration file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">467</td>
+      <td class="code-cell t-statement">           WS-TOTAL-RECORDS-READ</td>
+      <td class="expl-cell">Prints the total number of records read from the source migration file, the top-level figure for reconciliation against the exporting branch.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">468</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Customers Imported: '</td>
+      <td class="expl-cell">Introduces the count of customer profile records successfully migrated to the customer master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">469</td>
+      <td class="code-cell t-statement">                   WS-CUSTOMER-RECORDS-IMPORTED</td>
+      <td class="expl-cell">Prints the number of customer profiles successfully imported, used to verify completeness of personal and regulatory data migration.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">470</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Accounts Imported: '</td>
+      <td class="expl-cell">Introduces the count of credit card account records successfully migrated to the account master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">471</td>
+      <td class="code-cell t-statement">                   WS-ACCOUNT-RECORDS-IMPORTED</td>
+      <td class="expl-cell">Prints the number of account records successfully imported, used to verify all account balances, limits, and statuses were transferred.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">472</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: XRefs Imported: ' WS-XREF-RECORDS-IMPORTED</td>
+      <td class="expl-cell">Prints the number of card cross-reference records successfully imported, confirming all card-to-customer-to-account linkages are in place for authorisation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">473</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Transactions Imported: '</td>
+      <td class="expl-cell">Introduces the count of transaction history records successfully migrated to the transaction history file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">474</td>
+      <td class="code-cell t-statement">                   WS-TRAN-RECORDS-IMPORTED</td>
+      <td class="expl-cell">Prints the number of transaction records successfully imported, used to verify the completeness of the customer transaction history transfer.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">475</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Cards Imported: ' WS-CARD-RECORDS-IMPORTED</td>
+      <td class="expl-cell">Prints the number of physical card records successfully imported, confirming all active and inactive card details have been migrated.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">476</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Errors Written: ' WS-ERROR-RECORDS-WRITTEN</td>
+      <td class="expl-cell">Prints the number of records that failed validation or carried an unrecognised type and were routed to the error report, flagging data quality issues for remediation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">477</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: Unknown Record Types: '</td>
+      <td class="expl-cell">Introduces the count of records whose record type indicator was not recognised by the import program.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">478</td>
+      <td class="code-cell t-statement">                   WS-UNKNOWN-RECORD-TYPE-COUNT.</td>
+      <td class="expl-cell">Prints the count of unrecognised record types encountered, a key data quality metric that the receiving branch must investigate and resolve before sign-off.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">479</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-4000-FINALIZE">
+      <td class="ln">480</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">481</td>
+      <td class="code-cell t-paragraph-header">       9999-ABEND-PROGRAM.</td>
+      <td class="expl-cell">Entry point for the emergency shutdown routine, invoked whenever a fatal error makes it unsafe to continue the import run.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">482</td>
+      <td class="code-cell t-comment">      *****************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">483</td>
+      <td class="code-cell t-statement">           DISPLAY 'CBIMPORT: ABENDING PROGRAM'</td>
+      <td class="expl-cell">Writes a final diagnostic message to the system log, recording that the import job is being forcibly terminated so operators can identify the failure point during post-run review.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">484</td>
+      <td class="code-cell t-statement">           CALL 'CEE3ABD'.</td>
+      <td class="expl-cell">Triggers an abnormal termination of the import job at the operating system level, immediately halting all processing and preventing any further records from being read or written, ensuring no partial or corrupt data is silently committed to the target files.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">485</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">486</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v2.0-44-gb6e9c27-254 Date: 2025-10-16 14:07:18 CDT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-9999-ABEND-PROGRAM">
+      <td class="ln">487</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-EXPORT-INPUT-RECORD">
+      <td class="var-level">01</td>
+      <td class="var-name">EXPORT-INPUT-RECORD
+        
+        
+      </td>
+      <td class="var-pic">PIC X(500)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Raw 500-byte buffer that holds each record read from the branch migration export file before it is parsed and routed. Every customer, account, card, cross-reference, and transaction record arriving from the source branch passes through this buffer as the first step of the import process.</td>
+    </tr>
+    
+    <tr id="var-ERROR-OUTPUT-RECORD">
+      <td class="var-level">01</td>
+      <td class="var-name">ERROR-OUTPUT-RECORD
+        
+        
+      </td>
+      <td class="var-pic">PIC X(132)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">132-byte output buffer used to write a formatted diagnostic line to the error report file (ERROUT) whenever a migration record fails validation or carries an unrecognised record type. The 132-character width matches a standard print line, making the error report directly readable by operations staff during reconciliation.</td>
+    </tr>
+    
+    <tr id="var-WS-FILE-STATUS-AREA">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-FILE-STATUS-AREA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group record that consolidates the I/O status codes for every file involved in the migration import run. By grouping all file health indicators together, the program can quickly determine whether any input or output file has encountered an error and take immediate corrective action, such as aborting the run to prevent partial or corrupt data being written to the target system.</td>
+    </tr>
+    
+    <tr id="var-WS-EXPORT-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-EXPORT-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned by the operating system after each read operation on the branch migration export file (EXPFILE). The program inspects this code after every read to decide whether to continue processing, handle end-of-file, or abort due to a read error.</td>
+    </tr>
+    
+    <tr id="var-WS-EXPORT-EOF">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-EXPORT-EOF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">10</td>
+      <td class="var-desc">Condition flag that becomes true when the migration export file has been fully read (file status '10' = end-of-file). When this condition is true, the program stops reading and moves on to closing files and printing the final reconciliation statistics.</td>
+    </tr>
+    
+    <tr id="var-WS-EXPORT-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-EXPORT-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms the last read from the branch migration export file completed successfully (file status '00' = no error). The program uses this to verify that each record was retrieved cleanly before attempting to parse and route it to the appropriate target file.</td>
+    </tr>
+    
+    <tr id="var-WS-CUSTOMER-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CUSTOMER-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write operation to the customer master output file (CUSTOUT). The program checks this after every customer record write to confirm the customer profile was stored successfully; a non-zero value triggers an immediate abnormal termination to prevent silent data loss.</td>
+    </tr>
+    
+    <tr id="var-WS-CUSTOMER-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-CUSTOMER-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a customer profile record was written successfully to the customer master file (file status '00'). Only when this condition is true does the program increment the customer import counter and continue processing the next record.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCOUNT-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ACCOUNT-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write operation to the account master output file (ACCTOUT). The program inspects this after every account record write to ensure credit card account data — including balances, credit limits, and dates — was persisted correctly.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCOUNT-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-ACCOUNT-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a credit card account record was written successfully to the account master file (file status '00'). The program relies on this condition before counting the account as successfully imported and moving to the next record.</td>
+    </tr>
+    
+    <tr id="var-WS-XREF-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-XREF-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write to the card cross-reference output file (XREFOUT). The cross-reference links a card number to both a customer and an account, so any write failure here would break the three-way relationship essential for card authorisation and account servicing.</td>
+    </tr>
+    
+    <tr id="var-WS-XREF-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-XREF-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a card-to-customer-to-account cross-reference record was written successfully (file status '00'). Only when this condition is true is the cross-reference counted as imported, preserving the integrity of the card authorisation linkage.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANSACTION-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRANSACTION-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write to the transaction history output file (TRNXOUT). The program checks this after every transaction write to ensure the customer's historical transaction data is being preserved accurately during the migration.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANSACTION-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-TRANSACTION-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a transaction history record was written successfully to the transaction output file (file status '00'). The program uses this to validate each transaction write before incrementing the transaction import counter.</td>
+    </tr>
+    
+    <tr id="var-WS-CARD-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CARD-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write to the physical card output file (CARDOUT). The program checks this to confirm that card details — including card number, expiry date, CVV, and active status — were stored correctly in the target system.</td>
+    </tr>
+    
+    <tr id="var-WS-CARD-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-CARD-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a physical card record was written successfully to the card output file (file status '00'). Only when this condition is true does the program count the card as successfully migrated.</td>
+    </tr>
+    
+    <tr id="var-WS-ERROR-STATUS">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERROR-STATUS
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Two-character I/O status code returned after each write to the error report file (ERROUT). The program checks this to confirm that rejected records and their diagnostic messages were successfully captured for operations review and reconciliation sign-off.</td>
+    </tr>
+    
+    <tr id="var-WS-ERROR-OK">
+      <td class="var-level">88</td>
+      <td class="var-name">WS-ERROR-OK
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">00</td>
+      <td class="var-desc">Condition flag that confirms a rejected record's error entry was written successfully to the error report file (file status '00'). This ensures that every failed record is accounted for in the error log, supporting a complete and auditable reconciliation of the migration run.</td>
+    </tr>
+    
+    <tr id="var-WS-IMPORT-CONTROL">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-IMPORT-CONTROL
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group record that captures the date and time stamp of the import batch run. This information forms the audit trail that ties all imported records to a specific, identifiable migration event, satisfying regulatory and operational traceability requirements.</td>
+    </tr>
+    
+    <tr id="var-WS-IMPORT-DATE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-IMPORT-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Calendar date on which the branch migration import job was executed (formatted as YYYY-MM-DD). This date is recorded as part of the audit trail so that operations, compliance, and the receiving branch can identify exactly which business day the portfolio data was migrated.</td>
+    </tr>
+    
+    <tr id="var-WS-IMPORT-TIME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-IMPORT-TIME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Wall-clock time at which the branch migration import job was executed (formatted as HH:MM:SS). Together with the import date, this provides a precise timestamp for the migration event, enabling operations to correlate the import run with system logs and reconciliation reports.</td>
+    </tr>
+    
+    <tr id="var-WS-IMPORT-STATISTICS">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-IMPORT-STATISTICS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group record that accumulates the record-level counts for the entire migration import run. These counters are the primary reconciliation tool: operations and the receiving branch use them to verify that every record from the source export file was either successfully imported into a target file or explicitly rejected to the error report, with no records silently lost.</td>
+    </tr>
+    
+    <tr id="var-WS-TOTAL-RECORDS-READ">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TOTAL-RECORDS-READ
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Running total of all records read from the branch migration export file during the import run, regardless of record type or outcome. This is the control total against which all other counters (customers, accounts, cross-references, transactions, cards, and errors) must sum to confirm that no records were dropped during processing.</td>
+    </tr>
+    
+    <tr id="var-WS-CUSTOMER-RECORDS-IMPORTED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CUSTOMER-RECORDS-IMPORTED
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of customer profile records successfully written to the customer master file during this migration run. Operations and the receiving branch compare this figure against the expected number of customers in the source export to confirm that all customer personal, address, and credit risk data was migrated completely.</td>
+    </tr>
+    
+    <tr id="var-WS-ACCOUNT-RECORDS-IMPORTED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ACCOUNT-RECORDS-IMPORTED
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of credit card account records successfully written to the account master file during this migration run. This figure is used to verify that all account balances, credit limits, and status information from the source branch have been transferred to the receiving system without omission.</td>
+    </tr>
+    
+    <tr id="var-WS-XREF-RECORDS-IMPORTED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-XREF-RECORDS-IMPORTED
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of card-to-customer-to-account cross-reference records successfully written to the cross-reference file during this migration run. Because each cross-reference record is essential for card authorisation and account servicing, this count must match the expected number of active cards in the migrated portfolio.</td>
+    </tr>
+    
+    <tr id="var-WS-TRAN-RECORDS-IMPORTED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRAN-RECORDS-IMPORTED
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of transaction history records successfully written to the transaction output file during this migration run. This figure allows operations to confirm that the full transaction history for all migrated accounts has been preserved, which is critical for customer statements, dispute resolution, and regulatory reporting.</td>
+    </tr>
+    
+    <tr id="var-WS-CARD-RECORDS-IMPORTED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-CARD-RECORDS-IMPORTED
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of physical card records successfully written to the card output file during this migration run. Operations use this count to verify that all card numbers, expiry dates, CVV codes, and active statuses from the source branch have been migrated, ensuring cardholders can continue to use their cards without interruption.</td>
+    </tr>
+    
+    <tr id="var-WS-ERROR-RECORDS-WRITTEN">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERROR-RECORDS-WRITTEN
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of records that failed validation and were written to the error report file during this migration run. This figure represents the volume of data that could not be automatically migrated and requires manual investigation and remediation by operations before the migration can be considered complete.</td>
+    </tr>
+    
+    <tr id="var-WS-UNKNOWN-RECORD-TYPE-COUNT">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-UNKNOWN-RECORD-TYPE-COUNT
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(09)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">Count of records encountered in the migration export file that carried an unrecognised record type indicator (i.e., not 'C', 'A', 'X', 'T', or 'D'). A non-zero value signals a data quality problem in the source export — such as a corrupted file, a format mismatch, or an undocumented record type — that must be investigated before the migration can be signed off.</td>
+    </tr>
+    
+    <tr id="var-WS-ERROR-RECORD">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-ERROR-RECORD
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Formatted error report line written to the error output file (ERROUT) for every record that fails validation or carries an unrecognised type. The structured layout — with pipe-delimited fields for timestamp, record type, sequence number, and diagnostic message — makes the error report human-readable for operations staff and machine-parseable for automated reconciliation tools.</td>
+    </tr>
+    
+    <tr id="var-ERR-TIMESTAMP">
+      <td class="var-level">05</td>
+      <td class="var-name">ERR-TIMESTAMP
+        
+        
+      </td>
+      <td class="var-pic">PIC X(26)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Date and time at which the rejected record was encountered during the import run, carried forward from the export file's own timestamp. This allows operations to pinpoint exactly when in the migration sequence a problem record appeared, aiding root-cause analysis and audit trail completeness.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">|</td>
+      <td class="var-desc">Pipe character delimiter separating the timestamp from the record type in the error report line. This formatting character makes the error report easier for operations staff to read and allows automated tools to parse the fields reliably.</td>
+    </tr>
+    
+    <tr id="var-ERR-RECORD-TYPE">
+      <td class="var-level">05</td>
+      <td class="var-name">ERR-RECORD-TYPE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Single-character record type indicator copied from the rejected source record (e.g., 'C', 'A', 'X', 'T', 'D', or an unrecognised value). Including this in the error report allows operations to quickly categorise the nature of the failure — for example, distinguishing between a bad customer record and a completely unrecognised record type — and prioritise remediation accordingly.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">|</td>
+      <td class="var-desc">Pipe character delimiter separating the record type from the sequence number in the error report line, maintaining consistent column formatting for readability and automated parsing.</td>
+    </tr>
+    
+    <tr id="var-ERR-SEQUENCE">
+      <td class="var-level">05</td>
+      <td class="var-name">ERR-SEQUENCE
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(07)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Sequential position number of the rejected record within the migration export file. This allows operations to locate the exact record in the source file for manual inspection and correction, which is essential when remediating data quality issues before re-running the migration.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">|</td>
+      <td class="var-desc">Pipe character delimiter separating the sequence number from the diagnostic message in the error report line, ensuring consistent formatting across all error entries for both human review and automated reconciliation processing.</td>
+    </tr>
+    
+    <tr id="var-ERR-MESSAGE">
+      <td class="var-level">05</td>
+      <td class="var-name">ERR-MESSAGE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(50)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Plain-language diagnostic message describing why the record was rejected — for example, 'INVALID RECORD TYPE', 'MISSING SSN', or 'WRITE FAILURE ON CUSTOUT'. This message is the primary tool operations staff use to understand what went wrong with each rejected record and determine the corrective action needed before the migration can be completed.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">05</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(43)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">43-byte padding of spaces that fills the remainder of the 132-character error report line after the diagnostic message. This ensures each error line is exactly the standard print-line width, preventing formatting issues when the error report is printed or displayed by operations tooling.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/CBIMPORT.cbl
+  </footer>
+
+</main>
+</body>
+</html>

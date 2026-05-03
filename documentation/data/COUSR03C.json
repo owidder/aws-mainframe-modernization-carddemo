@@ -1,0 +1,3595 @@
+{
+  "meta": {
+    "program_name": "COUSR03C",
+    "file_path": "app/cbl/COUSR03C.cbl",
+    "analyzed_at": "2026-05-03T14:00:37.868809",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Allow administrators to look up and permanently delete an existing user account from the CardDemo system's user security file.",
+    "process_description": "The program presents an administrator with a user deletion screen where they can enter a User ID to look up. Upon entering a User ID and pressing Enter, the system retrieves and displays the user's details (first name, last name, user type) from the security file, prompting the administrator to confirm deletion. The administrator must then explicitly press PF5 to confirm and execute the permanent deletion of the user account. Upon successful deletion, the screen is cleared and a confirmation message is displayed; the administrator can cancel at any time by pressing PF3 or PF12 to return to the previous screen.",
+    "type": "CICS Online",
+    "module": "Admin",
+    "files": {
+      "USRSEC": "User security file storing all system user accounts including credentials, names, and user type (admin/regular)"
+    },
+    "business_rules": [
+      "A User ID must be provided before any lookup or deletion can be performed; an empty User ID is rejected with an error message.",
+      "The administrator must perform a two-step confirmation: first look up the user (Enter key) to verify the correct account is displayed, then explicitly press PF5 to execute the permanent deletion.",
+      "If the specified User ID does not exist in the security file, the deletion is rejected with a 'User ID NOT found' error message.",
+      "Deletion is permanent and irreversible; once confirmed via PF5, the user record is removed from the USRSEC file with no soft-delete or archival mechanism.",
+      "The program can only be accessed from within an authenticated session; if no communication area is present (EIBCALEN = 0), the user is redirected to the sign-on screen (COSGN00C).",
+      "Upon successful deletion, all screen fields are cleared, preventing accidental re-submission or confusion about the current state.",
+      "PF3 and PF12 both return the administrator to the previous screen (typically the admin menu COADM01C), allowing cancellation without deletion.",
+      "PF4 clears the current screen input, allowing the administrator to start a new lookup without navigating away.",
+      "The program uses a CICS UPDATE lock when reading the user record prior to deletion, ensuring no concurrent modifications can occur between the lookup and the delete operation."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "COCOM01Y",
+        "COUSR03",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COUSR02C",
+        "COUSR00C",
+        "COTRN00C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COUSR03C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Delete a user from USRSEC file",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COUSR03C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                     WORKING STORAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR03C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "         05 WS-TRANID                  PIC X(04) VALUE 'CU03'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "         05 WS-USR-MODIFIED            PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "           88 USR-MODIFIED-YES                   VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           88 USR-MODIFIED-NO                    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "       COPY COCOM01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "          05 CDEMO-CU03-INFO.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "             10 CDEMO-CU03-USRID-FIRST     PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "             10 CDEMO-CU03-USRID-LAST      PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "             10 CDEMO-CU03-PAGE-NUM        PIC 9(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "             10 CDEMO-CU03-NEXT-PAGE-FLG   PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "                88 NEXT-PAGE-YES                     VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "                88 NEXT-PAGE-NO                      VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "             10 CDEMO-CU03-USR-SEL-FLG     PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "             10 CDEMO-CU03-USR-SELECTED    PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "       COPY COUSR03.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "       COPY COTTL01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "       COPY CSDAT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "       COPY CSMSG01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       COPY CSUSR01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       COPY DFHAID.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "       COPY DFHBMSCA.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "      *                        LINKAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "         05  LK-COMMAREA                           PIC X(01)",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.",
+      "type": "code",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "      *                       PROCEDURE DIVISION",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "MAIN-PARA is the central orchestration paragraph of the user deletion program. It determines the session context, interprets the administrator's input, and routes processing to the appropriate action — whether that is displaying the deletion screen, looking up a user, confirming deletion, clearing the screen, or returning to the previous menu."
+    },
+    {
+      "number": 83,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "           SET ERR-FLG-OFF     TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets any prior error condition so the screen starts each interaction in a clean, error-free state."
+    },
+    {
+      "number": 85,
+      "code": "           SET USR-MODIFIED-NO TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets the deletion tracking flag to indicate that no user account has been deleted yet in this interaction."
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           MOVE SPACES TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any previously displayed status or error message text from both the internal message buffer and the on-screen error message area."
+    },
+    {
+      "number": 88,
+      "code": "                          ERRMSGO OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "           IF EIBCALEN = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this program was invoked with no active session context — meaning no authenticated session is present."
+    },
+    {
+      "number": 91,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "If no session exists, designates the sign-on screen as the destination so the user is forced to authenticate before proceeding."
+    },
+    {
+      "number": 92,
+      "code": "               PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Redirects the unauthenticated user to the sign-on screen immediately, preventing unauthorized access to the deletion function."
+    },
+    {
+      "number": 93,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Restores the shared session communication data passed in from the calling program, making the current session state available for processing."
+    },
+    {
+      "number": 95,
+      "code": "               IF NOT CDEMO-PGM-REENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this is the very first time the deletion screen is being shown in this session (i.e., the administrator has just arrived at this screen)."
+    },
+    {
+      "number": 96,
+      "code": "                   SET CDEMO-PGM-REENTER    TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Marks the session as having entered the deletion screen at least once, so subsequent interactions are treated as return visits rather than first-time entries."
+    },
+    {
+      "number": 97,
+      "code": "                   MOVE LOW-VALUES          TO COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears all output fields on the deletion screen to ensure no stale data from a previous session is displayed to the administrator."
+    },
+    {
+      "number": 98,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Positions the screen cursor in the User ID input field, guiding the administrator to begin by entering the account they wish to delete."
+    },
+    {
+      "number": 99,
+      "code": "                   IF CDEMO-CU03-USR-SELECTED NOT =",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether a User ID was pre-selected and passed in from the user list screen (i.e., the administrator clicked on a specific user to delete)."
+    },
+    {
+      "number": 100,
+      "code": "                                              SPACES AND LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "                       MOVE CDEMO-CU03-USR-SELECTED TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Copies the pre-selected User ID from the calling screen into the deletion screen's input field so the administrator can see which account is being targeted."
+    },
+    {
+      "number": 102,
+      "code": "                            USRIDINI OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "                       PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Automatically triggers the user lookup process for the pre-selected account, retrieving and displaying that user's details without requiring the administrator to press Enter manually."
+    },
+    {
+      "number": 104,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Displays the user deletion screen to the administrator, showing either the pre-populated user details or a blank form ready for input."
+    },
+    {
+      "number": 106,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "                   PERFORM RECEIVE-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Reads back the screen data submitted by the administrator, capturing whatever input or action they have taken."
+    },
+    {
+      "number": 108,
+      "code": "                   EVALUATE EIBAID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Evaluates which key the administrator pressed to determine the appropriate next action."
+    },
+    {
+      "number": 109,
+      "code": "                       WHEN DFHENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed Enter to submit a User ID for lookup."
+    },
+    {
+      "number": 110,
+      "code": "                           PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Triggers the user account lookup process, retrieving the matching user's name and type from the security file for the administrator to review."
+    },
+    {
+      "number": 111,
+      "code": "                       WHEN DFHPF3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed PF3 to cancel and return to the previous screen."
+    },
+    {
+      "number": 112,
+      "code": "                           IF CDEMO-FROM-PROGRAM = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether a specific originating screen was recorded when this deletion program was launched."
+    },
+    {
+      "number": 113,
+      "code": "                               MOVE 'COADM01C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "If no originating screen is recorded, defaults the return destination to the administrator main menu."
+    },
+    {
+      "number": 114,
+      "code": "                           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "                               MOVE CDEMO-FROM-PROGRAM TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "If an originating screen is recorded, sets the return destination back to that specific calling screen."
+    },
+    {
+      "number": 116,
+      "code": "                               CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "                           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Navigates the administrator back to the appropriate previous screen without performing any deletion."
+    },
+    {
+      "number": 119,
+      "code": "                       WHEN DFHPF4",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed PF4 to clear the current screen input."
+    },
+    {
+      "number": 120,
+      "code": "                           PERFORM CLEAR-CURRENT-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears all input fields on the deletion screen, allowing the administrator to start a fresh lookup without navigating away."
+    },
+    {
+      "number": 121,
+      "code": "                       WHEN DFHPF5",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed PF5 to confirm and execute the permanent deletion."
+    },
+    {
+      "number": 122,
+      "code": "                           PERFORM DELETE-USER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the permanent and irreversible removal of the selected user account from the security file."
+    },
+    {
+      "number": 123,
+      "code": "                       WHEN DFHPF12",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed PF12 to cancel and return to the administrator main menu."
+    },
+    {
+      "number": 124,
+      "code": "                           MOVE 'COADM01C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the administrator main menu as the destination when PF12 is pressed."
+    },
+    {
+      "number": 125,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Navigates the administrator back to the main admin menu without performing any deletion."
+    },
+    {
+      "number": 126,
+      "code": "                       WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles any key press that is not a recognized function key."
+    },
+    {
+      "number": 127,
+      "code": "                           MOVE 'Y'                       TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Raises an error condition to signal that an invalid key was pressed."
+    },
+    {
+      "number": 128,
+      "code": "                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Populates the on-screen message area with a standard 'invalid key' notification to inform the administrator that their key press is not supported."
+    },
+    {
+      "number": 129,
+      "code": "                           PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Redisplays the deletion screen with the invalid key error message so the administrator can take a valid action."
+    },
+    {
+      "number": 130,
+      "code": "                   END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns control to the CICS transaction manager, keeping the current session alive and preserving all session state data so the administrator can continue interacting with the deletion screen."
+    },
+    {
+      "number": 135,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 137,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 139,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "      *                      PROCESS-ENTER-KEY",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "       PROCESS-ENTER-KEY.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Entry point for processing the administrator's Enter key action to look up a user account for deletion."
+    },
+    {
+      "number": 143,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Begin evaluating the conditions around the User ID field entered by the administrator."
+    },
+    {
+      "number": 145,
+      "code": "               WHEN USRIDINI OF COUSR3AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Check whether the administrator left the User ID field blank or empty."
+    },
+    {
+      "number": 146,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Flag the current operation as having an error, blocking any further processing steps."
+    },
+    {
+      "number": 147,
+      "code": "                   MOVE 'User ID can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Set the screen message to inform the administrator that a User ID is required and cannot be left blank."
+    },
+    {
+      "number": 148,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Position the screen cursor back to the User ID input field so the administrator can immediately correct the entry."
+    },
+    {
+      "number": 150,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Redisplay the deletion screen with the error message, prompting the administrator to enter a valid User ID."
+    },
+    {
+      "number": 151,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Handle the case where the administrator has provided a non-blank User ID."
+    },
+    {
+      "number": 152,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Position the screen cursor on the User ID field in preparation for the subsequent lookup and potential confirmation step."
+    },
+    {
+      "number": 153,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Allow processing to continue to the user account lookup since a User ID has been provided."
+    },
+    {
+      "number": 154,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "End of the User ID presence validation block."
+    },
+    {
+      "number": 155,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 156,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceed to look up the user account only if no validation error has been raised."
+    },
+    {
+      "number": 157,
+      "code": "               MOVE SPACES      TO FNAMEI   OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the first name field on screen to remove any previously displayed user details before loading fresh data."
+    },
+    {
+      "number": 158,
+      "code": "                                   LNAMEI   OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clear the last name and user type fields on screen to ensure stale data from a prior lookup is not shown."
+    },
+    {
+      "number": 159,
+      "code": "                                   USRTYPEI OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "               MOVE USRIDINI  OF COUSR3AI TO SEC-USR-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copy the User ID entered by the administrator into the lookup key used to search the security file."
+    },
+    {
+      "number": 161,
+      "code": "               PERFORM READ-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Search the user security file for the account matching the entered User ID, applying an update lock to prevent concurrent changes."
+    },
+    {
+      "number": 162,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "End of the conditional block that performs the security file lookup."
+    },
+    {
+      "number": 163,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceed to display the retrieved user details only if the lookup completed without errors (i.e., the user was found)."
+    },
+    {
+      "number": 165,
+      "code": "               MOVE SEC-USR-FNAME      TO FNAMEI    OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Populate the screen's first name field with the first name retrieved from the user's security record."
+    },
+    {
+      "number": 166,
+      "code": "               MOVE SEC-USR-LNAME      TO LNAMEI    OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Populate the screen's last name field with the last name retrieved from the user's security record."
+    },
+    {
+      "number": 167,
+      "code": "               MOVE SEC-USR-TYPE       TO USRTYPEI  OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Populate the screen's user type field (administrator or regular user) retrieved from the user's security record."
+    },
+    {
+      "number": 168,
+      "code": "               PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Redisplay the deletion screen showing the retrieved user's full details, prompting the administrator to press PF5 to confirm permanent deletion."
+    },
+    {
+      "number": 169,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 170,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 171,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 172,
+      "code": "      *                      DELETE-USER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "       DELETE-USER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Entry point for the user account deletion business logic."
+    },
+    {
+      "number": 175,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Begins evaluation of the input conditions to determine how to proceed with the deletion request."
+    },
+    {
+      "number": 177,
+      "code": "               WHEN USRIDINI OF COUSR3AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Checks whether the administrator has left the User ID field blank — an empty or null entry cannot be processed."
+    },
+    {
+      "number": 178,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Raises an error flag to halt further processing, since a deletion cannot proceed without a valid User ID."
+    },
+    {
+      "number": 179,
+      "code": "                   MOVE 'User ID can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Sets a user-facing error message informing the administrator that the User ID field must not be left empty."
+    },
+    {
+      "number": 180,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Continues setting the error message text to be displayed on screen."
+    },
+    {
+      "number": 181,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Positions the screen cursor back to the User ID input field, guiding the administrator to correct the missing entry."
+    },
+    {
+      "number": 182,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Redraws the deletion screen with the error message, prompting the administrator to supply a valid User ID before continuing."
+    },
+    {
+      "number": 183,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Handles the case where the administrator has entered a User ID value."
+    },
+    {
+      "number": 184,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Positions the screen cursor on the User ID field so the administrator can easily review or amend the entered value."
+    },
+    {
+      "number": 185,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Allows processing to continue to the file lookup and deletion steps, since a User ID has been provided."
+    },
+    {
+      "number": 186,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Closes the input validation decision block."
+    },
+    {
+      "number": 187,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 188,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Proceeds to file operations only if no validation error was raised — ensures the security file is never accessed with invalid input."
+    },
+    {
+      "number": 189,
+      "code": "               MOVE USRIDINI  OF COUSR3AI TO SEC-USR-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Transfers the User ID entered by the administrator into the record key used to locate the account in the security file."
+    },
+    {
+      "number": 190,
+      "code": "               PERFORM READ-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Retrieves the user account details from the security file, placing an update lock on the record to prevent concurrent changes during the deletion process."
+    },
+    {
+      "number": 191,
+      "code": "               PERFORM DELETE-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Permanently removes the user account from the security file, completing the irreversible deletion of the user's credentials and profile."
+    },
+    {
+      "number": 192,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": "Closes the conditional block that guards the file read and delete operations."
+    },
+    {
+      "number": 193,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 194,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "      *                      RETURN-TO-PREV-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 197,
+      "code": "       RETURN-TO-PREV-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Entry point for the logic that returns the administrator to the previous screen in the application."
+    },
+    {
+      "number": 198,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 199,
+      "code": "           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Checks whether a valid return destination screen has been established from the prior navigation context."
+    },
+    {
+      "number": 200,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "If no return destination was set, defaults the navigation target to the sign-on screen, ensuring the administrator is never left without a valid landing point."
+    },
+    {
+      "number": 201,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Closes the check for a missing return destination."
+    },
+    {
+      "number": 202,
+      "code": "           MOVE WS-TRANID    TO CDEMO-FROM-TRANID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the current transaction identifier in the shared communication area so the receiving screen knows which transaction is handing off control."
+    },
+    {
+      "number": 203,
+      "code": "           MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the current program (user deletion) as the originating screen in the shared communication area, providing the destination screen with the navigation history."
+    },
+    {
+      "number": 204,
+      "code": "           MOVE ZEROS        TO CDEMO-PGM-CONTEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Resets the program context indicator to a neutral state, signalling to the destination screen that no specific sub-context or pre-selected data needs to be carried forward."
+    },
+    {
+      "number": 205,
+      "code": "           EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Begins the CICS instruction to transfer control to another screen."
+    },
+    {
+      "number": 206,
+      "code": "               XCTL PROGRAM(CDEMO-TO-PROGRAM)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Transfers control to the destination screen (typically the admin menu or sign-on screen) determined earlier in this paragraph."
+    },
+    {
+      "number": 207,
+      "code": "               COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Passes the shared communication area — containing session state, navigation history, and user context — to the destination screen so it can resume correctly."
+    },
+    {
+      "number": 208,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Closes the CICS transfer-of-control instruction; execution of the current program ends here."
+    },
+    {
+      "number": 209,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 210,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 211,
+      "code": "      *                      SEND-USRDEL-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 212,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 213,
+      "code": "       SEND-USRDEL-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Entry point for the paragraph responsible for displaying the user deletion screen to the administrator."
+    },
+    {
+      "number": 214,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 215,
+      "code": "           PERFORM POPULATE-HEADER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Populates the screen's standard header area with application title, current date, time, and logged-in administrator identity."
+    },
+    {
+      "number": 216,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 217,
+      "code": "           MOVE WS-MESSAGE TO ERRMSGO OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Places any current status or error message (e.g. 'User ID NOT found' or 'User successfully deleted') into the error message field visible on the deletion screen."
+    },
+    {
+      "number": 218,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "           EXEC CICS SEND",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Begins the instruction to transmit the fully populated deletion screen to the administrator's terminal."
+    },
+    {
+      "number": 220,
+      "code": "                     MAP('COUSR3A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Specifies that the screen layout to be rendered is the User Deletion form."
+    },
+    {
+      "number": 221,
+      "code": "                     MAPSET('COUSR03')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "References the screen map definition set that contains the User Deletion screen layout and field attributes."
+    },
+    {
+      "number": 222,
+      "code": "                     FROM(COUSR3AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Supplies the fully populated screen data — including user details and any error message — as the content to be displayed."
+    },
+    {
+      "number": 223,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Clears any previously displayed content from the terminal before rendering the updated deletion screen, ensuring a clean display."
+    },
+    {
+      "number": 224,
+      "code": "                     CURSOR",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Positions the terminal cursor automatically to the appropriate input field, guiding the administrator to where they should type next."
+    },
+    {
+      "number": 225,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": "Closes the screen transmission instruction, completing the display of the User Deletion screen to the administrator."
+    },
+    {
+      "number": 226,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 227,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "      *                      RECEIVE-USRDEL-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 229,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 230,
+      "code": "       RECEIVE-USRDEL-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Begin the step that reads the administrator's input from the user deletion screen."
+    },
+    {
+      "number": 231,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 232,
+      "code": "           EXEC CICS RECEIVE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Start the CICS instruction that retrieves the administrator's submitted screen data from the terminal."
+    },
+    {
+      "number": 233,
+      "code": "                     MAP('COUSR3A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Identify the specific screen layout (the user deletion form) whose input is being captured."
+    },
+    {
+      "number": 234,
+      "code": "                     MAPSET('COUSR03')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Specify the screen definition group that contains the user deletion form layout."
+    },
+    {
+      "number": 235,
+      "code": "                     INTO(COUSR3AI)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Direct the captured screen data — including the User ID entered and any other field values — into the working area used for processing."
+    },
+    {
+      "number": 236,
+      "code": "                     RESP(WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Capture the overall outcome code of the screen-read operation so the program can detect any technical failure."
+    },
+    {
+      "number": 237,
+      "code": "                     RESP2(WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "Capture a secondary diagnostic code providing additional detail if the screen-read operation did not complete successfully."
+    },
+    {
+      "number": 238,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": "End the screen-read instruction."
+    },
+    {
+      "number": 239,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 240,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "      *                      POPULATE-HEADER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 242,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRDEL-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 243,
+      "code": "       POPULATE-HEADER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Populates the header section of the user deletion screen with current date, time, application title, transaction identifier, and program name, ensuring the administrator always sees accurate contextual information at the top of the screen before any user lookup or deletion action is performed."
+    },
+    {
+      "number": 244,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 245,
+      "code": "           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Retrieves the current system date and time so the screen header reflects the exact moment the administrator is viewing the deletion form."
+    },
+    {
+      "number": 246,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 247,
+      "code": "           MOVE CCDA-TITLE01           TO TITLE01O OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the first line of the CardDemo application title onto the deletion screen header, identifying the system to the administrator."
+    },
+    {
+      "number": 248,
+      "code": "           MOVE CCDA-TITLE02           TO TITLE02O OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the second line of the CardDemo application title onto the deletion screen header, completing the application branding display."
+    },
+    {
+      "number": 249,
+      "code": "           MOVE WS-TRANID              TO TRNNAMEO OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the CICS transaction identifier in the screen header, allowing administrators and support staff to identify which transaction is currently running."
+    },
+    {
+      "number": 250,
+      "code": "           MOVE WS-PGMNAME             TO PGMNAMEO OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the name of the currently executing program in the screen header, useful for support and audit purposes."
+    },
+    {
+      "number": 251,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 252,
+      "code": "           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the month portion from the current system date to format it for display on the screen."
+    },
+    {
+      "number": 253,
+      "code": "           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the day portion from the current system date to format it for display on the screen."
+    },
+    {
+      "number": 254,
+      "code": "           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the two-digit year portion from the current system date to format it for display on the screen."
+    },
+    {
+      "number": 255,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 256,
+      "code": "           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the fully formatted current date (MM/DD/YY) in the screen header so the administrator knows the exact date of the deletion activity."
+    },
+    {
+      "number": 257,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 258,
+      "code": "           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the hours portion from the current system time to format it for display on the screen."
+    },
+    {
+      "number": 259,
+      "code": "           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the minutes portion from the current system time to format it for display on the screen."
+    },
+    {
+      "number": 260,
+      "code": "           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the seconds portion from the current system time to format it for display on the screen."
+    },
+    {
+      "number": 261,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 262,
+      "code": "           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COUSR3AO.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the fully formatted current time (HH:MM:SS) in the screen header, providing a precise timestamp for the administrator's deletion session."
+    },
+    {
+      "number": 263,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 264,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 265,
+      "code": "      *                      READ-USER-SEC-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 266,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 267,
+      "code": "       READ-USER-SEC-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Entry point for the user account lookup process prior to deletion."
+    },
+    {
+      "number": 268,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 269,
+      "code": "           EXEC CICS READ",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Initiates a locked read of the user security file to retrieve the target account exclusively, preventing any other process from modifying it between lookup and deletion."
+    },
+    {
+      "number": 270,
+      "code": "                DATASET   (WS-USRSEC-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Identifies the user security file as the source of the account data being retrieved."
+    },
+    {
+      "number": 271,
+      "code": "                INTO      (SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Specifies that the retrieved user account record (credentials, name, user type) will be loaded into the working area for display."
+    },
+    {
+      "number": 272,
+      "code": "                LENGTH    (LENGTH OF SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Ensures the full user account record is read in its entirety."
+    },
+    {
+      "number": 273,
+      "code": "                RIDFLD    (SEC-USR-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Identifies which specific user account to retrieve, based on the User ID entered by the administrator on the deletion screen."
+    },
+    {
+      "number": 274,
+      "code": "                KEYLENGTH (LENGTH OF SEC-USR-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Confirms the exact length of the User ID key so the file lookup matches precisely one account."
+    },
+    {
+      "number": 275,
+      "code": "                UPDATE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Places an exclusive update lock on the retrieved record, preventing concurrent modifications between the lookup and the subsequent deletion step."
+    },
+    {
+      "number": 276,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Captures the overall outcome of the file read operation (success, not found, or system error) for subsequent business logic branching."
+    },
+    {
+      "number": 277,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Captures a secondary diagnostic code in case of failure, used for system-level troubleshooting."
+    },
+    {
+      "number": 278,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 279,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 280,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Evaluates the outcome of the account lookup to determine the appropriate business response."
+    },
+    {
+      "number": 281,
+      "code": "               WHEN DFHRESP(NORMAL)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles the successful case where the user account was found in the security file."
+    },
+    {
+      "number": 282,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "No additional action needed on a successful read; processing continues to display the account details."
+    },
+    {
+      "number": 283,
+      "code": "                   MOVE 'Press PF5 key to delete this user ...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets the screen instruction message prompting the administrator to press PF5 to confirm and permanently delete the displayed user account."
+    },
+    {
+      "number": 284,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 285,
+      "code": "                   MOVE DFHNEUTR       TO ERRMSGC  OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Clears any previous error highlighting from the message area on screen, presenting a neutral informational prompt to the administrator."
+    },
+    {
+      "number": 286,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Displays the user account details (name, user type) on screen so the administrator can verify the correct account before confirming deletion."
+    },
+    {
+      "number": 287,
+      "code": "               WHEN DFHRESP(NOTFND)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles the case where the entered User ID does not match any account in the security file."
+    },
+    {
+      "number": 288,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Raises an error flag to indicate that the lookup failed due to the account not being found, preventing any deletion from proceeding."
+    },
+    {
+      "number": 289,
+      "code": "                   MOVE 'User ID NOT found...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the entered User ID does not exist in the system."
+    },
+    {
+      "number": 290,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 291,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor back to the User ID input field, prompting the administrator to correct the entry."
+    },
+    {
+      "number": 292,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Redraws the deletion screen with the 'User ID not found' error message so the administrator can try a different User ID."
+    },
+    {
+      "number": 293,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles any unexpected system-level failure during the file read operation (e.g., file unavailable, I/O error)."
+    },
+    {
+      "number": 294,
+      "code": "                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Logs the technical error codes to the system console for operational diagnostics and troubleshooting."
+    },
+    {
+      "number": 295,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Raises an error flag to indicate a system failure has occurred, preventing any deletion from proceeding."
+    },
+    {
+      "number": 296,
+      "code": "                   MOVE 'Unable to lookup User...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the system was unable to perform the user account lookup."
+    },
+    {
+      "number": 297,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 298,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor to the first name field area, drawing the administrator's attention to the fact that no account data could be retrieved."
+    },
+    {
+      "number": 299,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Redraws the deletion screen with the system error message so the administrator is aware the lookup could not be completed."
+    },
+    {
+      "number": 300,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 301,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 302,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 303,
+      "code": "      *                      DELETE-USER-SEC-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 304,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 305,
+      "code": "       DELETE-USER-SEC-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Entry point for the user account deletion logic."
+    },
+    {
+      "number": 306,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 307,
+      "code": "           EXEC CICS DELETE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Submits the permanent deletion request to the user security file for the record that was previously locked during the lookup step."
+    },
+    {
+      "number": 308,
+      "code": "                DATASET   (WS-USRSEC-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Targets the user security file where all system account credentials and profile data are stored."
+    },
+    {
+      "number": 309,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Captures the primary response code from the deletion attempt to determine whether it succeeded or failed."
+    },
+    {
+      "number": 310,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Captures a secondary reason code to provide additional diagnostic detail if the deletion did not complete normally."
+    },
+    {
+      "number": 311,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 312,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 313,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Evaluates the outcome of the deletion attempt to route processing to the appropriate success or failure response."
+    },
+    {
+      "number": 314,
+      "code": "               WHEN DFHRESP(NORMAL)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Handles the case where the deletion completed successfully without any errors."
+    },
+    {
+      "number": 315,
+      "code": "                   PERFORM INITIALIZE-ALL-FIELDS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Clears all screen fields and internal working data, preventing accidental re-submission and presenting a clean state to the administrator."
+    },
+    {
+      "number": 316,
+      "code": "                   MOVE SPACES             TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Clears any previous status message from the screen in preparation for the success confirmation message."
+    },
+    {
+      "number": 317,
+      "code": "                   MOVE DFHGREEN           TO ERRMSGC  OF COUSR3AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sets the confirmation message colour to green, visually signalling to the administrator that the operation completed successfully."
+    },
+    {
+      "number": 318,
+      "code": "                   STRING 'User '     DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Begins constructing the success confirmation message, starting with the label 'User'."
+    },
+    {
+      "number": 319,
+      "code": "                          SEC-USR-ID  DELIMITED BY SPACE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Appends the deleted account's unique identifier to the confirmation message so the administrator can verify which account was removed."
+    },
+    {
+      "number": 320,
+      "code": "                          ' has been deleted ...' DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Appends the phrase 'has been deleted ...' to complete the confirmation message."
+    },
+    {
+      "number": 321,
+      "code": "                     INTO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Places the fully assembled confirmation message into the screen message area for display."
+    },
+    {
+      "number": 322,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sends the refreshed deletion screen back to the administrator, showing the success confirmation and the now-cleared input fields."
+    },
+    {
+      "number": 323,
+      "code": "               WHEN DFHRESP(NOTFND)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Handles the case where the security file reports that no matching user account exists for the provided identifier."
+    },
+    {
+      "number": 324,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Raises an error flag to indicate that the current operation has encountered a validation failure."
+    },
+    {
+      "number": 325,
+      "code": "                   MOVE 'User ID NOT found...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the specified User ID could not be found in the security file."
+    },
+    {
+      "number": 326,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Directs the 'User ID NOT found' error message to the screen message display area."
+    },
+    {
+      "number": 327,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor back to the User ID input field, prompting the administrator to correct the entry."
+    },
+    {
+      "number": 328,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sends the deletion screen back to the administrator with the 'not found' error message displayed."
+    },
+    {
+      "number": 329,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Handles any unexpected or unrecognised system error returned by the deletion attempt."
+    },
+    {
+      "number": 330,
+      "code": "                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Writes the primary and secondary system error codes to the application log for technical diagnosis by support staff."
+    },
+    {
+      "number": 331,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Raises an error flag to indicate that a system-level failure has occurred during the deletion attempt."
+    },
+    {
+      "number": 332,
+      "code": "                   MOVE 'Unable to Update User...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the deletion could not be completed due to a system error."
+    },
+    {
+      "number": 333,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Directs the system error message to the screen message display area."
+    },
+    {
+      "number": 334,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor to the first name field, drawing the administrator's attention to the user details area where the error is contextually relevant."
+    },
+    {
+      "number": 335,
+      "code": "                   PERFORM SEND-USRDEL-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": "Sends the deletion screen back to the administrator with the system error message displayed."
+    },
+    {
+      "number": 336,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 337,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 338,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 339,
+      "code": "      *                      CLEAR-CURRENT-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 340,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "DELETE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 341,
+      "code": "       CLEAR-CURRENT-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Entry point for the screen-clearing business process, triggered after a successful deletion or when a clean slate is required."
+    },
+    {
+      "number": 342,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 343,
+      "code": "           PERFORM INITIALIZE-ALL-FIELDS.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Wipes all data fields on the screen — including any previously displayed user details such as name, user type, and User ID — resetting the form to its empty default state."
+    },
+    {
+      "number": 344,
+      "code": "           PERFORM SEND-USRDEL-SCREEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Renders the now-empty deletion screen back to the administrator, confirming the previous action is complete and the system is ready to accept a new User ID lookup."
+    },
+    {
+      "number": 345,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 346,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 347,
+      "code": "      *                      INITIALIZE-ALL-FIELDS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 348,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 349,
+      "code": "       INITIALIZE-ALL-FIELDS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Resets the user deletion screen to a completely blank state, clearing all previously displayed user details and any status messages. This ensures the administrator starts with a clean slate, preventing confusion or accidental re-use of data from a prior lookup or deletion."
+    },
+    {
+      "number": 350,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 351,
+      "code": "           MOVE -1              TO USRIDINL OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Sets the input cursor position to the User ID entry field, directing the administrator's attention to where they should begin entering a new User ID."
+    },
+    {
+      "number": 352,
+      "code": "           MOVE SPACES          TO USRIDINI OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the User ID entry field on screen, removing any previously entered or displayed identifier."
+    },
+    {
+      "number": 353,
+      "code": "                                   FNAMEI   OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the first name field on screen, removing any previously retrieved user's first name."
+    },
+    {
+      "number": 354,
+      "code": "                                   LNAMEI   OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the last name field on screen, removing any previously retrieved user's last name."
+    },
+    {
+      "number": 355,
+      "code": "                                   USRTYPEI OF COUSR3AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the user type field on screen, removing any previously displayed classification of the account (administrator or regular user)."
+    },
+    {
+      "number": 356,
+      "code": "                                   WS-MESSAGE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears any status or error message currently displayed to the administrator, such as confirmation notices or validation warnings."
+    },
+    {
+      "number": 357,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 358,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:35 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 359,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Top-level working storage group holding all operational variables used by the Delete User program (COUSR03C) during an administrator's session to look up and permanently remove a user account."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COUSR03C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The internal name of this program ('COUSR03C'), used when transferring control between CICS programs or logging errors, so the system always knows which program is currently executing the user deletion function."
+    },
+    {
+      "name": "WS-TRANID",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": "CU03",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS transaction identifier ('CU03') assigned to the Delete User function. This is the 4-character code an administrator would use to invoke the delete user screen directly, and it is displayed on the screen header so the administrator knows which transaction they are in."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The feedback message displayed at the bottom of the Delete User screen to communicate the outcome of an action to the administrator — for example, confirming a successful deletion, reporting that the User ID was not found, or prompting the administrator to enter a User ID before proceeding."
+    },
+    {
+      "name": "WS-USRSEC-FILE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "USRSEC  ",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The name of the User Security file ('USRSEC') that stores all system user accounts, including credentials, names, and user types. This value is used when issuing CICS file control commands to look up or permanently delete a user record from the system."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "An error indicator flag that tracks whether a validation or system error has occurred during the current delete user operation. When set to 'Y', it signals that the screen should be redisplayed with an error message rather than proceeding with the deletion."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when an error has been detected during the delete user process — such as a missing User ID, a User ID not found in the security file, or a file system error — causing the program to halt the deletion and display an appropriate error message."
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when no errors have been detected, indicating the delete user process is proceeding normally and the program can continue to the next step, such as displaying the retrieved user details or executing the permanent deletion."
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS response code returned after each file operation (such as reading or deleting a user record from USRSEC). The program inspects this code to determine whether the operation succeeded, the record was not found, or an unexpected system error occurred, driving the appropriate error handling and user feedback."
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS reason code that accompanies the response code, providing additional detail about why a file operation failed. Together with WS-RESP-CD, it helps diagnose specific error conditions when reading or deleting a user account from the security file."
+    },
+    {
+      "name": "WS-USR-MODIFIED",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A session-level flag that records whether a user account deletion has been successfully carried out during the current administrator session. When set to 'Y', it signals that a record was permanently removed from the USRSEC file, which can be used to trigger confirmation messaging or influence screen behavior after the deletion."
+    },
+    {
+      "name": "USR-MODIFIED-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when a user account has been successfully and permanently deleted from the security file during the current session, allowing the program to display a deletion confirmation message and clear the screen fields."
+    },
+    {
+      "name": "USR-MODIFIED-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when no user account deletion has yet been performed in the current session, indicating the administrator is still in the lookup or confirmation phase and no permanent changes have been made to the security file."
+    },
+    {
+      "name": "CDEMO-CU03-INFO",
+      "level": "05",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A group of fields specific to the Delete User function (CU03) that carry contextual information about the current user list browsing state and the selected user account targeted for deletion, typically passed between the user list screen (COUSR00C) and this delete program."
+    },
+    {
+      "name": "CDEMO-CU03-USRID-FIRST",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID of the first user account displayed on the current page of the user list screen (COUSR00C). This is used to maintain the administrator's position in the user list so they can return to the correct page after completing or cancelling a deletion."
+    },
+    {
+      "name": "CDEMO-CU03-USRID-LAST",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID of the last user account displayed on the current page of the user list screen (COUSR00C). Together with CDEMO-CU03-USRID-FIRST, it defines the range of user accounts currently visible, enabling correct pagination when the administrator returns to the list."
+    },
+    {
+      "name": "CDEMO-CU03-PAGE-NUM",
+      "level": "10",
+      "picture": "PIC 9(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The current page number within the user list that the administrator was viewing when they selected a user for deletion. This allows the system to return the administrator to the same page of the user list after the deletion is completed or cancelled."
+    },
+    {
+      "name": "CDEMO-CU03-NEXT-PAGE-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether additional pages of user accounts exist beyond the current page in the user list. This supports pagination in the calling user list screen (COUSR00C), ensuring the administrator can navigate forward through the full list of system users."
+    },
+    {
+      "name": "NEXT-PAGE-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when there are more user accounts available beyond the current page in the user list, enabling the 'next page' navigation option on the user list screen."
+    },
+    {
+      "name": "NEXT-PAGE-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name that evaluates to true when the current page is the last page of user accounts in the list, meaning there are no further records to display and the 'next page' navigation option should be suppressed."
+    },
+    {
+      "name": "CDEMO-CU03-USR-SEL-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether the administrator has actively selected a specific user account from the user list screen for deletion. When set, it confirms that the User ID in CDEMO-CU03-USR-SELECTED was deliberately chosen rather than being a default or empty value."
+    },
+    {
+      "name": "CDEMO-CU03-USR-SELECTED",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID pre-selected and passed in from the calling user list screen (COUSR00C) identifying the specific user account the administrator has chosen to delete. This value pre-populates the User ID field on the Delete User screen, streamlining the deletion workflow."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The CICS communication area passed between programs when control is transferred. Its presence (EIBCALEN > 0) confirms the administrator is operating within an authenticated CardDemo session; if absent, the user is redirected to the sign-on screen. It carries session context such as the logged-in user's identity and the calling program name."
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A single-byte placeholder representing the communication area data passed from the calling program. It is defined minimally here because the actual communication area structure (CARDDEMO-COMMAREA from COCOM01Y) is overlaid on top of it, allowing the program to access the full session context including the logged-in administrator's identity and navigation state."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 82,
+      "line_end": 141,
+      "description": "MAIN-PARA is the central orchestration paragraph of the user deletion program. It determines the session context, interprets the administrator's input, and routes processing to the appropriate action — whether that is displaying the deletion screen, looking up a user, confirming deletion, clearing the screen, or returning to the previous menu."
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "line_start": 142,
+      "line_end": 173,
+      "description": "This paragraph handles the administrator's initial User ID lookup request by validating that a User ID has been entered, retrieving the matching user account from the security file, and displaying the account details (name and user type) on screen so the administrator can confirm they are deleting the correct person."
+    },
+    {
+      "name": "DELETE-USER-INFO",
+      "line_start": 174,
+      "line_end": 196,
+      "description": "This paragraph orchestrates the user account deletion process by first validating that a User ID has been provided, then retrieving the user record from the security file and permanently removing it. It acts as the central coordinator for the two-step deletion workflow, enforcing mandatory input before any file operations are attempted."
+    },
+    {
+      "name": "RETURN-TO-PREV-SCREEN",
+      "line_start": 197,
+      "line_end": 212,
+      "description": "This paragraph handles the navigation logic when an administrator cancels or completes the user deletion process, transferring control back to the appropriate previous screen. It ensures the system always has a valid destination to return to, defaulting to the sign-on screen if no prior navigation context exists."
+    },
+    {
+      "name": "SEND-USRDEL-SCREEN",
+      "line_start": 213,
+      "line_end": 229,
+      "description": "This paragraph renders the User Deletion screen to the administrator's terminal, displaying any relevant status or error messages alongside the current screen data. It is the final step in preparing the visual interface before the administrator can enter a User ID or confirm a deletion."
+    },
+    {
+      "name": "RECEIVE-USRDEL-SCREEN",
+      "line_start": 230,
+      "line_end": 242,
+      "description": "This paragraph captures the administrator's input from the user deletion screen, reading whatever the administrator has typed or the function key they have pressed. It is the entry point for processing any administrator action on the delete user form, whether that is entering a User ID to look up, confirming a deletion, or cancelling."
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "line_start": 243,
+      "line_end": 266,
+      "description": "Populates the header section of the user deletion screen with current date, time, application title, transaction identifier, and program name, ensuring the administrator always sees accurate contextual information at the top of the screen before any user lookup or deletion action is performed."
+    },
+    {
+      "name": "READ-USER-SEC-FILE",
+      "line_start": 267,
+      "line_end": 304,
+      "description": "This paragraph retrieves a user account from the security file using an exclusive lock, preventing concurrent changes, and displays the account details to the administrator for deletion confirmation. Depending on whether the account is found or not, it either prompts the administrator to confirm deletion via PF5, or displays an appropriate error message."
+    },
+    {
+      "name": "DELETE-USER-SEC-FILE",
+      "line_start": 305,
+      "line_end": 340,
+      "description": "This paragraph executes the permanent, irreversible deletion of a user account from the security file and handles all possible outcomes: confirming success to the administrator, reporting that the user was not found, or surfacing an unexpected system error."
+    },
+    {
+      "name": "CLEAR-CURRENT-SCREEN",
+      "line_start": 341,
+      "line_end": 348,
+      "description": "Resets the user deletion screen to a blank state after a deletion is completed or when a fresh lookup is needed, preventing any residual user data from remaining visible and avoiding accidental re-submission. This ensures the administrator sees a clean, empty form ready for the next action."
+    },
+    {
+      "name": "INITIALIZE-ALL-FIELDS",
+      "line_start": 349,
+      "line_end": 359,
+      "description": "Resets the user deletion screen to a completely blank state, clearing all previously displayed user details and any status messages. This ensures the administrator starts with a clean slate, preventing confusion or accidental re-use of data from a prior lookup or deletion."
+    }
+  ],
+  "copybooks": [
+    "COCOM01Y",
+    "COUSR03",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CSUSR01Y",
+    "DFHAID",
+    "DFHBMSCA"
+  ]
+}

@@ -203,6 +203,7 @@
       color: var(--cyan);
       font-size: .95rem;
     }
+    .para-card h3 a:hover { text-decoration: underline !important; }
     .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
     .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
 
@@ -367,15 +368,15 @@
   <!-- Header -->
   <div class="prog-header">
     <h1>PAUDBLOD.CBL</h1>
-    <p>Laden (Load) von ausstehenden Autorisierungsdaten aus sequentiellen Dateien in die IMS-Datenbank zur Wiederherstellung oder Initialbefüllung der Pending-Authorization-Datenbank.</p>
+    <p>Loading of outstanding authorization data from sequential files into the IMS database for recovery or initial population of the pending authorization database.</p>
     
-    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">Das Programm PAUDBLOD ist das Gegenstück zum Entlade-Programm PAUDBUNL und liest zwei sequentielle Eingabedateien: eine mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente) und eine mit Autorisierungs-Detaildatensätzen (Child-Segmente). Zunächst werden alle Root-Segmente (Autorisierungs-Summaries je Konto) sequentiell gelesen und als übergeordnete Segmente in die IMS-Datenbank eingefügt. Anschließend werden alle Child-Segmente (Autorisierungs-Details) gelesen, wobei für jeden Detailsatz zunächst der zugehörige Root-Datensatz per Konto-ID in der IMS-Datenbank gesucht und dann der Detailsatz als untergeordnetes Segment eingefügt wird. Bereits vorhandene Datensätze (Duplikate) werden toleriert und protokolliert, ohne einen Abbruch auszulösen.</p>
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">The program PAUDBLOD is the counterpart to the unload program PAUDBUNL and reads two sequential input files: one containing authorization summary records (root segments) and one containing authorization detail records (child segments). First, all root segments (authorization summaries per account) are read sequentially and inserted as parent segments into the IMS database. Subsequently, all child segments (authorization details) are read; for each detail record, the corresponding root record is first located in the IMS database by account ID, and then the detail record is inserted as a child segment. Already existing records (duplicates) are tolerated and logged without triggering an abend.</p>
     
     
     <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
       <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
       <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
-        <li>Root-Segmente (Autorisierungs-Summaries) müssen vor den Child-Segmenten (Autorisierungs-Details) in die IMS-Datenbank geladen werden, da die hierarchische IMS-Struktur dies erfordert.</li><li>Für jeden Child-Datensatz muss der zugehörige Root-Datensatz anhand der Konto-ID (ACCNTID) in der IMS-Datenbank auffindbar sein, bevor der Detail-Datensatz eingefügt werden kann.</li><li>Duplikate (Status 'II' = Duplicate Segment) werden bei Root- und Child-Segmenten toleriert und protokolliert, führen aber nicht zum Programmabbruch – dies ermöglicht idempotente Wiederholungsläufe.</li><li>Child-Datensätze mit nicht-numerischer Konto-ID werden übersprungen und nicht in die Datenbank geladen.</li><li>Jeder andere Datenbankfehler (außer Duplikat und Erfolg) führt zu einem sofortigen Programmabbruch (ABEND), um Datenkonsistenz zu gewährleisten.</li><li>Das Programm arbeitet im IMS-Batch-Modus mit PSB-Scheduling und unterstützt Checkpoint/Restart-Mechanismen für die Wiederanlaufbarkeit bei Fehlern.</li>
+        <li>Root segments (authorization summaries) must be loaded into the IMS database before child segments (authorization details), as required by the hierarchical IMS structure.</li><li>For each child record, the associated root record must be locatable in the IMS database by account ID (ACCNTID) before the detail record can be inserted.</li><li>Duplicates (status 'II' = Duplicate Segment) are tolerated and logged for both root and child segments, but do not cause program termination – this enables idempotent restart runs.</li><li>Child records with a non-numeric account ID are skipped and not loaded into the database.</li><li>Any other database error (other than duplicate or success) causes an immediate program abend (ABEND) to ensure data consistency.</li><li>The program operates in IMS batch mode with PSB scheduling and supports checkpoint/restart mechanisms for restartability in case of errors.</li>
       </ul>
     </div>
     
@@ -385,10 +386,10 @@
       <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">INFILE1</td>
-            <td style="color:var(--subtext);">Sequentielle Eingabedatei mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, PAUTSUM0) je Kreditkartenkonto</td></tr>
+            <td style="color:var(--subtext);">Sequential input file with authorization summary records (root segments, PAUTSUM0) per credit card account</td></tr>
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">INFILE2</td>
-            <td style="color:var(--subtext);">Sequentielle Eingabedatei mit Autorisierungs-Detaildatensätzen (Child-Segmente, PAUTDTL1) mit Konto-ID als Schlüssel und Detaildaten zur einzelnen Autorisierung</td></tr>
+            <td style="color:var(--subtext);">Sequential input file with authorization detail records (child segments, PAUTDTL1) with account ID as key and detail data for individual authorizations</td></tr>
         
       </table>
     </div>
@@ -417,105 +418,105 @@
   <div class="section-title">Paragraph Overview</div>
   
   <div class="para-card" id="para-MAIN-PARA">
-    <h3>MAIN-PARA</h3>
-    <p>MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss.</p>
-    <div class="para-meta">Lines 169–189</div>
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA is the central control paragraph of the load program PAUDBLOD and orchestrates the complete business process: initialization, sequential loading of all authorization summaries (root segments) and then all authorization details (child segments) into the IMS database, followed by an orderly program termination.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 169–189</a></div>
   </div>
   
   <div class="para-card" id="para-1000-INITIALIZE">
-    <h3>1000-INITIALIZE</h3>
-    <p>Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden.</p>
-    <div class="para-meta">Lines 190–217</div>
+    <h3><a href="#code-para-1000-INITIALIZE" style="color:inherit;text-decoration:none;">1000-INITIALIZE</a></h3>
+    <p>Initializes the batch load run by determining and logging the current processing date and opening the two input files containing the authorization data for processing.</p>
+    <div class="para-meta"><a href="#code-para-1000-INITIALIZE" style="color:inherit;">Lines 190–217</a></div>
   </div>
   
   <div class="para-card" id="para-1000-EXIT">
-    <h3>1000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Initialisierungsabschnitts (1000-INIT). Dient als struktureller Rücksprungpunkt nach Abschluss aller Vorbereitungsschritte für den Datenbanklade-Prozess.</p>
-    <div class="para-meta">Lines 218–221</div>
+    <h3><a href="#code-para-1000-EXIT" style="color:inherit;text-decoration:none;">1000-EXIT</a></h3>
+    <p>Formal exit point of the initialization section (1000-INIT). Serves as a structural return point after completion of all preparatory steps for the database load process.</p>
+    <div class="para-meta"><a href="#code-para-1000-EXIT" style="color:inherit;">Lines 218–221</a></div>
   </div>
   
   <div class="para-card" id="para-2000-READ-ROOT-SEG-FILE">
-    <h3>2000-READ-ROOT-SEG-FILE</h3>
-    <p>Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende.</p>
-    <div class="para-meta">Lines 222–238</div>
+    <h3><a href="#code-para-2000-READ-ROOT-SEG-FILE" style="color:inherit;text-decoration:none;">2000-READ-ROOT-SEG-FILE</a></h3>
+    <p>Sequentially reads the authorization summary records (root segments) per credit card account from the input file and controls their transfer into the IMS database or detects end of file.</p>
+    <div class="para-meta"><a href="#code-para-2000-READ-ROOT-SEG-FILE" style="color:inherit;">Lines 222–238</a></div>
   </div>
   
   <div class="para-card" id="para-2000-EXIT">
-    <h3>2000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 2000). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze.</p>
-    <div class="para-meta">Lines 239–241</div>
+    <h3><a href="#code-para-2000-EXIT" style="color:inherit;text-decoration:none;">2000-EXIT</a></h3>
+    <p>Formal exit point of the root segment load process (paragraph 2000). Serves as the structural end point of the processing loop for authorization summary records.</p>
+    <div class="para-meta"><a href="#code-para-2000-EXIT" style="color:inherit;">Lines 239–241</a></div>
   </div>
   
   <div class="para-card" id="para-2100-INSERT-ROOT-SEG">
-    <h3>2100-INSERT-ROOT-SEG</h3>
-    <p>Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden.</p>
-    <div class="para-meta">Lines 242–263</div>
+    <h3><a href="#code-para-2100-INSERT-ROOT-SEG" style="color:inherit;text-decoration:none;">2100-INSERT-ROOT-SEG</a></h3>
+    <p>This paragraph stores an authorization summary record (root segment) as a parent entry per credit card account in the IMS database. It ensures that duplicates are tolerated and genuine errors are handled by a controlled program abort.</p>
+    <div class="para-meta"><a href="#code-para-2100-INSERT-ROOT-SEG" style="color:inherit;">Lines 242–263</a></div>
   </div>
   
   <div class="para-card" id="para-2100-EXIT">
-    <h3>2100-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Verarbeitungsabschnitts 2100, der das Ende der Root-Segment-Ladeverarbeitung markiert und die Rückkehr zum übergeordneten Steuerungsablauf ermöglicht.</p>
-    <div class="para-meta">Lines 264–268</div>
+    <h3><a href="#code-para-2100-EXIT" style="color:inherit;text-decoration:none;">2100-EXIT</a></h3>
+    <p>Formal exit point of processing section 2100, which marks the end of the root segment load processing and enables the return to the parent control flow.</p>
+    <div class="para-meta"><a href="#code-para-2100-EXIT" style="color:inherit;">Lines 264–268</a></div>
   </div>
   
   <div class="para-card" id="para-3000-READ-CHILD-SEG-FILE">
-    <h3>3000-READ-CHILD-SEG-FILE</h3>
-    <p>Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt.</p>
-    <div class="para-meta">Lines 269–289</div>
+    <h3><a href="#code-para-3000-READ-CHILD-SEG-FILE" style="color:inherit;text-decoration:none;">3000-READ-CHILD-SEG-FILE</a></h3>
+    <p>This paragraph controls the sequential reading of authorization detail records (child segments) and forwards each valid record for insertion into the IMS database. It ensures that only records with a valid numeric account ID are processed and correctly detects end of file.</p>
+    <div class="para-meta"><a href="#code-para-3000-READ-CHILD-SEG-FILE" style="color:inherit;">Lines 269–289</a></div>
   </div>
   
   <div class="para-card" id="para-3000-EXIT">
-    <h3>3000-EXIT</h3>
-    <p>Formaler Abschlusspunkt der Root-Segment-Ladeschleife (3000er Paragraphengruppe). Dient als struktureller Rücksprungpunkt nach Abschluss der Verarbeitung eines Autorisierungs-Zusammenfassungsdatensatzes.</p>
-    <div class="para-meta">Lines 290–291</div>
+    <h3><a href="#code-para-3000-EXIT" style="color:inherit;text-decoration:none;">3000-EXIT</a></h3>
+    <p>Formal exit point of the root segment load loop (3000-series paragraph group). Serves as a structural return point after completion of the processing of an authorization summary record.</p>
+    <div class="para-meta"><a href="#code-para-3000-EXIT" style="color:inherit;">Lines 290–291</a></div>
   </div>
   
   <div class="para-card" id="para-3100-INSERT-CHILD-SEG">
-    <h3>3100-INSERT-CHILD-SEG</h3>
-    <p>Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird.</p>
-    <div class="para-meta">Lines 292–314</div>
+    <h3><a href="#code-para-3100-INSERT-CHILD-SEG" style="color:inherit;text-decoration:none;">3100-INSERT-CHILD-SEG</a></h3>
+    <p>This paragraph is responsible for inserting a single authorization detail record (child segment) into the IMS database by first checking whether the associated account summary (root segment) exists before inserting the detail record as a hierarchical subordinate.</p>
+    <div class="para-meta"><a href="#code-para-3100-INSERT-CHILD-SEG" style="color:inherit;">Lines 292–314</a></div>
   </div>
   
   <div class="para-card" id="para-3100-EXIT">
-    <h3>3100-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 3100). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze und ermöglicht einen sauberen Rücksprung nach Abschluss der Root-Segment-Verarbeitung.</p>
-    <div class="para-meta">Lines 315–317</div>
+    <h3><a href="#code-para-3100-EXIT" style="color:inherit;text-decoration:none;">3100-EXIT</a></h3>
+    <p>Formal exit point of the root segment load process (paragraph 3100). Serves as the structural end point of the processing loop for authorization summary records and enables a clean return after completion of root segment processing.</p>
+    <div class="para-meta"><a href="#code-para-3100-EXIT" style="color:inherit;">Lines 315–317</a></div>
   </div>
   
   <div class="para-card" id="para-3200-INSERT-IMS-CALL">
-    <h3>3200-INSERT-IMS-CALL</h3>
-    <p>Dieser Paragraph fügt einen einzelnen Autorisierungs-Detaildatensatz (Child-Segment) als untergeordnetes Element in die IMS-Datenbank ein und bewertet das Ergebnis: Erfolg, Duplikat oder kritischer Fehler mit Programmabbruch.</p>
-    <div class="para-meta">Lines 318–337</div>
+    <h3><a href="#code-para-3200-INSERT-IMS-CALL" style="color:inherit;text-decoration:none;">3200-INSERT-IMS-CALL</a></h3>
+    <p>This paragraph inserts a single authorization detail record (child segment) as a subordinate element into the IMS database and evaluates the result: success, duplicate, or critical error with program abort.</p>
+    <div class="para-meta"><a href="#code-para-3200-INSERT-IMS-CALL" style="color:inherit;">Lines 318–337</a></div>
   </div>
   
   <div class="para-card" id="para-3200-EXIT">
-    <h3>3200-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Verarbeitungsabschnitts 3200, der den geordneten Rücksprung zur aufrufenden Steuerlogik des Ladeprozesses sicherstellt.</p>
-    <div class="para-meta">Lines 338–340</div>
+    <h3><a href="#code-para-3200-EXIT" style="color:inherit;text-decoration:none;">3200-EXIT</a></h3>
+    <p>Formal exit point of processing section 3200, which ensures an orderly return to the calling control logic of the load process.</p>
+    <div class="para-meta"><a href="#code-para-3200-EXIT" style="color:inherit;">Lines 338–340</a></div>
   </div>
   
   <div class="para-card" id="para-4000-FILE-CLOSE">
-    <h3>4000-FILE-CLOSE</h3>
-    <p>Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen.</p>
-    <div class="para-meta">Lines 341–356</div>
+    <h3><a href="#code-para-4000-FILE-CLOSE" style="color:inherit;text-decoration:none;">4000-FILE-CLOSE</a></h3>
+    <p>After completion of the load process, properly closes both sequential input files (root segments and detail segments) and logs any errors during closing without aborting the process.</p>
+    <div class="para-meta"><a href="#code-para-4000-FILE-CLOSE" style="color:inherit;">Lines 341–356</a></div>
   </div>
   
   <div class="para-card" id="para-4000-EXIT">
-    <h3>4000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Lade-Prozesses für Root-Segmente. Dieser Paragraph dient als struktureller Endpunkt der Verarbeitungsschleife und ermöglicht einen sauberen Rücksprung nach Abschluss aller Datenbanklade-Operationen.</p>
-    <div class="para-meta">Lines 357–359</div>
+    <h3><a href="#code-para-4000-EXIT" style="color:inherit;text-decoration:none;">4000-EXIT</a></h3>
+    <p>Formal exit point of the load process for root segments. This paragraph serves as the structural end point of the processing loop and enables a clean return after completion of all database load operations.</p>
+    <div class="para-meta"><a href="#code-para-4000-EXIT" style="color:inherit;">Lines 357–359</a></div>
   </div>
   
   <div class="para-card" id="para-9999-ABEND">
-    <h3>9999-ABEND</h3>
-    <p>Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern.</p>
-    <div class="para-meta">Lines 360–367</div>
+    <h3><a href="#code-para-9999-ABEND" style="color:inherit;text-decoration:none;">9999-ABEND</a></h3>
+    <p>Controlled program abort in the event of critical database errors: signals a severe error during the IMS load operation to the batch system in order to ensure data consistency of the pending authorization database and prevent uncontrolled further processing.</p>
+    <div class="para-meta"><a href="#code-para-9999-ABEND" style="color:inherit;">Lines 360–367</a></div>
   </div>
   
   <div class="para-card" id="para-9999-EXIT">
-    <h3>9999-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Programms PAUDBLOD, der als strukturierter Rücksprungpunkt nach Abschluss aller Lade- und Protokollierungsaktivitäten dient.</p>
-    <div class="para-meta">Lines 368–369</div>
+    <h3><a href="#code-para-9999-EXIT" style="color:inherit;text-decoration:none;">9999-EXIT</a></h3>
+    <p>Formal exit point of the program PAUDBLOD, serving as a structured return point after completion of all load and logging activities.</p>
+    <div class="para-meta"><a href="#code-para-9999-EXIT" style="color:inherit;">Lines 368–369</a></div>
   </div>
   
   
@@ -1705,7 +1706,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">169</td>
       <td class="code-cell t-paragraph-header">       MAIN-PARA.                                                       01220026</td>
-      <td class="expl-cell">MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss.</td>
+      <td class="expl-cell">MAIN-PARA is the central control paragraph of the load program PAUDBLOD and orchestrates the complete business process: initialization, sequential loading of all authorization summaries (root segments) and then all authorization details (child segments) into the IMS database, followed by an orderly program termination.</td>
     </tr>
     
     <tr class="comment"
@@ -1719,7 +1720,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">171</td>
       <td class="code-cell t-statement">            ENTRY 'DLITCBL'                 USING PAUTBPCB.             01225033</td>
-      <td class="expl-cell">Registriert das Programm beim IMS-Laufzeitsystem und stellt die Verbindung zur Pending-Authorization-Datenbank über den Programm-Kommunikationsblock (PCB) her.</td>
+      <td class="expl-cell">Registers the program with the IMS runtime system and establishes the connection to the pending authorization database via the Program Communication Block (PCB).</td>
     </tr>
     
     <tr class="empty"
@@ -1733,7 +1734,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">173</td>
       <td class="code-cell t-statement">            DISPLAY 'STARTING PAUDBLOD'.                                01227053</td>
-      <td class="expl-cell">Protokolliert den Programmstart von PAUDBLOD im Systemlog zur Nachvollziehbarkeit des Batch-Laufs.</td>
+      <td class="expl-cell">Logs the program start of PAUDBLOD to the system log for traceability of the batch run.</td>
     </tr>
     
     <tr class="comment"
@@ -1747,7 +1748,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">175</td>
       <td class="code-cell t-statement">           PERFORM 1000-INITIALIZE                THRU 1000-EXIT        01240026</td>
-      <td class="expl-cell">Führt alle Vorbereitungsschritte durch: Öffnen der Eingabedateien, Initialisierung der Zähler und Steuerungsparameter für den Ladevorgang.</td>
+      <td class="expl-cell">Performs all preparatory steps: opening the input files, initializing counters and control parameters for the load process.</td>
     </tr>
     
     <tr class="comment"
@@ -1761,14 +1762,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">177</td>
       <td class="code-cell t-statement">           PERFORM 2000-READ-ROOT-SEG-FILE        THRU 2000-EXIT        01260053</td>
-      <td class="expl-cell">Lädt alle Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) aus der Eingabedatei sequentiell in die IMS-Datenbank – Konto für Konto, bis alle Summary-Datensätze verarbeitet sind.</td>
+      <td class="expl-cell">Loads all authorization summary records (root segments) from the input file sequentially into the IMS database – account by account, until all summary records have been processed.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">178</td>
       <td class="code-cell t-statement">           UNTIL   END-ROOT-SEG-FILE  = 'Y'                             01280053</td>
-      <td class="expl-cell">Steuert die Verarbeitungsschleife für Root-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Summary-Eingabedatei erreicht ist.</td>
+      <td class="expl-cell">Controls the processing loop for root segments: the load process continues until the end of the summary input file is reached.</td>
     </tr>
     
     <tr class="empty"
@@ -1782,14 +1783,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">180</td>
       <td class="code-cell t-statement">           PERFORM 3000-READ-CHILD-SEG-FILE       THRU 3000-EXIT        01290058</td>
-      <td class="expl-cell">Lädt alle Autorisierungs-Detaildatensätze (Child-Segmente) aus der Eingabedatei in die IMS-Datenbank, jeweils dem zugehörigen Konto-Root-Segment untergeordnet.</td>
+      <td class="expl-cell">Loads all authorization detail records (child segments) from the input file into the IMS database, each subordinated to the corresponding account root segment.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">181</td>
       <td class="code-cell t-statement">           UNTIL   END-CHILD-SEG-FILE = 'Y'                             01300053</td>
-      <td class="expl-cell">Steuert die Verarbeitungsschleife für Child-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Detail-Eingabedatei erreicht ist.</td>
+      <td class="expl-cell">Controls the processing loop for child segments: the load process continues until the end of the detail input file is reached.</td>
     </tr>
     
     <tr class="empty"
@@ -1803,7 +1804,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">183</td>
       <td class="code-cell t-statement">           PERFORM 4000-FILE-CLOSE THRU 4000-EXIT                       01532030</td>
-      <td class="expl-cell">Schließt alle Eingabedateien ordnungsgemäß und gibt die belegten Ressourcen frei, nachdem alle Autorisierungsdaten in die IMS-Datenbank geladen wurden.</td>
+      <td class="expl-cell">Closes all input files in an orderly manner and releases the occupied resources after all authorization data has been loaded into the IMS database.</td>
     </tr>
     
     <tr class="comment"
@@ -1831,7 +1832,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">187</td>
       <td class="code-cell t-statement">           GOBACK.                                                      01660026</td>
-      <td class="expl-cell">Beendet das Ladeprogramm geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück.</td>
+      <td class="expl-cell">Terminates the load program in an orderly manner and returns control to the IMS batch controller.</td>
     </tr>
     
     <tr class="comment"
@@ -1852,7 +1853,7 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">190</td>
       <td class="code-cell t-paragraph-header">       1000-INITIALIZE.                                                 01690026</td>
-      <td class="expl-cell">Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden.</td>
+      <td class="expl-cell">Initializes the batch load run by determining and logging the current processing date and opening the two input files containing the authorization data for processing.</td>
     </tr>
     
     <tr class="comment"
@@ -1873,14 +1874,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">193</td>
       <td class="code-cell t-statement">           ACCEPT CURRENT-DATE     FROM DATE                            01720026</td>
-      <td class="expl-cell">Ermittelt das aktuelle Tagesdatum (JJMMTT) als Referenzdatum für die Verarbeitung der Autorisierungsdaten.</td>
+      <td class="expl-cell">Determines the current date (YYMMDD) as the reference date for processing the authorization data.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">194</td>
       <td class="code-cell t-statement">           ACCEPT CURRENT-YYDDD    FROM DAY                             01730026</td>
-      <td class="expl-cell">Ermittelt das aktuelle Datum im Julianischen Format (JJDDD) für die spätere Berechnung des Ablaufalters ausstehender Autorisierungen.</td>
+      <td class="expl-cell">Determines the current date in Julian format (YYDDD) for the later calculation of the expiration age of pending authorizations.</td>
     </tr>
     
     <tr class="empty"
@@ -1894,21 +1895,21 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">196</td>
       <td class="code-cell t-statement">           DISPLAY '*-------------------------------------*'            01770026</td>
-      <td class="expl-cell">Gibt eine optische Trennlinie im Verarbeitungsprotokoll aus, um den Beginn des Ladelaufs klar zu kennzeichnen.</td>
+      <td class="expl-cell">Outputs a visual separator line in the processing log to clearly mark the start of the load run.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">197</td>
       <td class="code-cell t-statement">           DISPLAY 'TODAYS DATE            :' CURRENT-DATE              01790043</td>
-      <td class="expl-cell">Protokolliert das aktuelle Verarbeitungsdatum im Batch-Log zur Nachvollziehbarkeit und Revisionssicherheit des Ladelaufs.</td>
+      <td class="expl-cell">Logs the current processing date in the batch log for traceability and audit compliance of the load run.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">198</td>
       <td class="code-cell t-statement">           DISPLAY ' '                                                  01800026</td>
-      <td class="expl-cell">Fügt eine Leerzeile im Protokoll ein zur besseren Lesbarkeit des Verarbeitungsprotokolls.</td>
+      <td class="expl-cell">Inserts a blank line in the log for improved readability of the processing log.</td>
     </tr>
     
     <tr class="empty"
@@ -1929,42 +1930,42 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">201</td>
       <td class="code-cell t-statement">           OPEN INPUT  INFILE1                                          01961054</td>
-      <td class="expl-cell">Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente je Kreditkartenkonto) für die Verarbeitung.</td>
+      <td class="expl-cell">Opens the sequential input file containing the authorization summary records (root segments per credit card account) for processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">202</td>
       <td class="code-cell t-statement">           IF WS-INFIL1-STATUS =  SPACES OR '00'                        01962053</td>
-      <td class="expl-cell">Prüft, ob die Datei mit den Autorisierungs-Summaries erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg).</td>
+      <td class="expl-cell">Checks whether the file containing the authorization summaries was opened successfully (status blank or '00' = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">203</td>
       <td class="code-cell t-statement">              CONTINUE                                                  01963028</td>
-      <td class="expl-cell">Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Summaries fehlerfrei geöffnet wurde.</td>
+      <td class="expl-cell">Processing continues, as the authorization summary input file was opened without errors.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">204</td>
       <td class="code-cell t-statement">           ELSE                                                         01964028</td>
-      <td class="expl-cell">Fehlerbehandlung: Die Datei mit den Autorisierungs-Summaries konnte nicht geöffnet werden.</td>
+      <td class="expl-cell">Error handling: the file containing the authorization summaries could not be opened.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">205</td>
       <td class="code-cell t-statement">              DISPLAY 'ERROR IN OPENING INFILE1:' WS-INFIL1-STATUS      01965053</td>
-      <td class="expl-cell">Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Summary-Datei zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Logs the technical error code when opening the authorization summary file for error diagnosis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">206</td>
       <td class="code-cell t-statement">              PERFORM 9999-ABEND                                        01966028</td>
-      <td class="expl-cell">Bricht den Ladelauf sofort ab, da ohne die Summary-Eingabedatei keine Root-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist.</td>
+      <td class="expl-cell">Aborts the load run immediately, as root segments cannot be loaded without the summary input file and data consistency cannot be guaranteed.</td>
     </tr>
     
     <tr class="statement"
@@ -1985,42 +1986,42 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">209</td>
       <td class="code-cell t-statement">           OPEN INPUT INFILE2                                           01969054</td>
-      <td class="expl-cell">Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente je Einzelautorisierung) für die Verarbeitung.</td>
+      <td class="expl-cell">Opens the sequential input file containing the authorization detail records (child segments per individual authorization) for processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">210</td>
       <td class="code-cell t-statement">           IF WS-INFIL2-STATUS =  SPACES OR '00'                        01969153</td>
-      <td class="expl-cell">Prüft, ob die Datei mit den Autorisierungs-Details erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg).</td>
+      <td class="expl-cell">Checks whether the file containing the authorization details was opened successfully (status blank or '00' = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">211</td>
       <td class="code-cell t-statement">              CONTINUE                                                  01969228</td>
-      <td class="expl-cell">Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Details fehlerfrei geöffnet wurde.</td>
+      <td class="expl-cell">Processing continues, as the authorization detail input file was opened without errors.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">212</td>
       <td class="code-cell t-statement">           ELSE                                                         01969328</td>
-      <td class="expl-cell">Fehlerbehandlung: Die Datei mit den Autorisierungs-Details konnte nicht geöffnet werden.</td>
+      <td class="expl-cell">Error handling: the file containing the authorization details could not be opened.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">213</td>
       <td class="code-cell t-statement">              DISPLAY 'ERROR IN OPENING INFILE2:' WS-INFIL2-STATUS      01969453</td>
-      <td class="expl-cell">Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Detail-Datei zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Logs the technical error code when opening the authorization detail file for error diagnosis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">214</td>
       <td class="code-cell t-statement">              PERFORM 9999-ABEND                                        01969528</td>
-      <td class="expl-cell">Bricht den Ladelauf sofort ab, da ohne die Detail-Eingabedatei keine Child-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist.</td>
+      <td class="expl-cell">Aborts the load run immediately, as child segments cannot be loaded without the detail input file and data consistency cannot be guaranteed.</td>
     </tr>
     
     <tr class="statement"
@@ -2048,14 +2049,14 @@
         id="code-para-1000-EXIT">
       <td class="ln">218</td>
       <td class="code-cell t-paragraph-header">       1000-EXIT.                                                       01980026</td>
-      <td class="expl-cell">Markiert das Ende des Initialisierungsabschnitts – alle Vorbereitungen für den IMS-Datenbanklade-Prozess (PSB-Scheduling, Dateiöffnung, Parameterübernahme) sind abgeschlossen.</td>
+      <td class="expl-cell">Marks the end of the initialization section – all preparations for the IMS database load process (PSB scheduling, file opening, parameter acquisition) are complete.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-EXIT">
       <td class="ln">219</td>
       <td class="code-cell t-statement">            EXIT.                                                       01990026</td>
-      <td class="expl-cell">Gibt die Programmsteuerung an den aufrufenden Ablaufabschnitt zurück, sodass der eigentliche Ladeprozess der Autorisierungsdaten beginnen kann.</td>
+      <td class="expl-cell">Returns program control to the calling processing section so that the actual authorization data load process can begin.</td>
     </tr>
     
     <tr class="comment"
@@ -2076,7 +2077,7 @@
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">222</td>
       <td class="code-cell t-paragraph-header">       2000-READ-ROOT-SEG-FILE.                                         02020053</td>
-      <td class="expl-cell">Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende.</td>
+      <td class="expl-cell">Reads the authorization summary records (root segments) per credit card account sequentially from the input file and controls their transfer into the IMS database or detects end of file.</td>
     </tr>
     
     <tr class="comment"
@@ -2104,7 +2105,7 @@
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">226</td>
       <td class="code-cell t-statement">            READ INFILE1                                                02042053</td>
-      <td class="expl-cell">Liest den nächsten Autorisierungs-Zusammenfassungsdatensatz (Summary/Root-Segment) eines Kreditkartenkontos aus der sequentiellen Eingabedatei.</td>
+      <td class="expl-cell">Reads the next authorization summary record (summary/root segment) of a credit card account from the sequential input file.</td>
     </tr>
     
     <tr class="empty"
@@ -2118,21 +2119,21 @@
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">228</td>
       <td class="code-cell t-statement">            IF WS-INFIL1-STATUS =  SPACES OR '00'                       02042253</td>
-      <td class="expl-cell">Prüft, ob der Lesevorgang erfolgreich war – ein Leerzeichen oder '00' signalisiert einen fehlerfreien Datensatz, der weiterverarbeitet werden kann.</td>
+      <td class="expl-cell">Checks whether the read operation was successful – a blank or '00' signals an error-free record that can be processed further.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">229</td>
       <td class="code-cell t-statement">               MOVE INFIL1-REC TO PENDING-AUTH-SUMMARY                  02042353</td>
-      <td class="expl-cell">Überträgt den gelesenen Datensatz in die Arbeitsstruktur für Autorisierungs-Zusammenfassungen, um ihn für den IMS-Datenbankzugriff vorzubereiten.</td>
+      <td class="expl-cell">Transfers the read record into the working structure for authorization summaries in order to prepare it for IMS database access.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">230</td>
       <td class="code-cell t-statement">               PERFORM 2100-INSERT-ROOT-SEG THRU 2100-EXIT              02042454</td>
-      <td class="expl-cell">Löst das Einfügen des Autorisierungs-Summary-Datensatzes als Root-Segment in die IMS-Datenbank aus (Unterroutine 2100).</td>
+      <td class="expl-cell">Triggers the insertion of the authorization summary record as a root segment into the IMS database (subroutine 2100).</td>
     </tr>
     
     <tr class="statement"
@@ -2146,14 +2147,14 @@
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">232</td>
       <td class="code-cell t-statement">               IF WS-INFIL1-STATUS = '10'                               02042653</td>
-      <td class="expl-cell">Prüft, ob das Dateiende der Root-Segment-Eingabedatei erreicht wurde (Status '10' = End of File).</td>
+      <td class="expl-cell">Checks whether the end of the root segment input file has been reached (status '10' = End of File).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">233</td>
       <td class="code-cell t-statement">                  MOVE 'Y' TO END-ROOT-SEG-FILE                         02042753</td>
-      <td class="expl-cell">Setzt das Steuerungskennzeichen 'Dateiende erreicht', damit die übergeordnete Verarbeitungsschleife die Lese-Phase für Root-Segmente ordnungsgemäß beendet.</td>
+      <td class="expl-cell">Sets the control flag 'end of file reached' so that the parent processing loop terminates the read phase for root segments in an orderly manner.</td>
     </tr>
     
     <tr class="statement"
@@ -2167,7 +2168,7 @@
         id="code-para-2000-READ-ROOT-SEG-FILE">
       <td class="ln">235</td>
       <td class="code-cell t-statement">                  DISPLAY 'ERROR READING ROOT SEG INFILE'               02042953</td>
-      <td class="expl-cell">Gibt eine Fehlermeldung aus, wenn ein unerwarteter Lesefehler bei der Autorisierungs-Summary-Datei aufgetreten ist (weder Erfolg noch Dateiende).</td>
+      <td class="expl-cell">Outputs an error message when an unexpected read error has occurred on the authorization summary file (neither success nor end of file).</td>
     </tr>
     
     <tr class="statement"
@@ -2195,14 +2196,14 @@
         id="code-para-2000-EXIT">
       <td class="ln">239</td>
       <td class="code-cell t-paragraph-header">       2000-EXIT.                                                       02043353</td>
-      <td class="expl-cell">Markiert das Ende der Verarbeitungsroutine für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank.</td>
+      <td class="expl-cell">Marks the end of the processing routine for loading the authorization summary records (root segments) into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-EXIT">
       <td class="ln">240</td>
       <td class="code-cell t-statement">            EXIT.                                                       02043453</td>
-      <td class="expl-cell">Schließt die Root-Segment-Ladeschleife ab und gibt die Kontrolle an den übergeordneten Steuerungsablauf zurück.</td>
+      <td class="expl-cell">Closes the root segment load loop and returns control to the parent control flow.</td>
     </tr>
     
     <tr class="empty"
@@ -2216,7 +2217,7 @@
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">242</td>
       <td class="code-cell t-paragraph-header">       2100-INSERT-ROOT-SEG.                                            02043653</td>
-      <td class="expl-cell">Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden.</td>
+      <td class="expl-cell">This paragraph stores an authorization summary record (root segment) as the parent entry per credit card account in the IMS database. It ensures that duplicates are tolerated and genuine errors are handled by a controlled program abort.</td>
     </tr>
     
     <tr class="empty"
@@ -2230,133 +2231,133 @@
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">244</td>
       <td class="code-cell t-statement">            CALL 'CBLTDLI'       USING  FUNC-ISRT                       02070053</td>
-      <td class="expl-cell">Fügt den Autorisierungs-Summaryeintrag des Kreditkartenkontos als Root-Segment in die IMS-Pending-Authorization-Datenbank ein.</td>
+      <td class="expl-cell">Inserts the authorization summary entry of the credit card account as a root segment into the IMS pending authorization database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">245</td>
       <td class="code-cell t-statement">                                        PAUTBPCB                        02080029</td>
-      <td class="expl-cell">Verwendet den konfigurierten IMS-Datenbankzugriffspfad (PCB) für die Pending-Authorization-Datenbank.</td>
+      <td class="expl-cell">Uses the configured IMS database access path (PCB) for the pending authorization database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">246</td>
       <td class="code-cell t-statement">                                        PENDING-AUTH-SUMMARY            02090029</td>
-      <td class="expl-cell">Übergibt die Autorisierungs-Zusammenfassungsdaten (Kontostand ausstehender Autorisierungen) als einzufügenden Datensatz.</td>
+      <td class="expl-cell">Passes the authorization summary data (account balance of pending authorizations) as the record to be inserted.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">247</td>
       <td class="code-cell t-statement">                                        ROOT-UNQUAL-SSA.                02100053</td>
-      <td class="expl-cell">Adressiert das Root-Segment ohne Qualifizierung, da kein übergeordnetes Segment existiert – der Eintrag wird auf oberster Hierarchieebene angelegt.</td>
+      <td class="expl-cell">Addresses the root segment without qualification, as no parent segment exists – the entry is created at the top hierarchical level.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">248</td>
       <td class="code-cell t-statement">            DISPLAY ' *******************************'                  02130040</td>
-      <td class="expl-cell">Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe.</td>
+      <td class="expl-cell">Visual separator line in the processing log for improved readability of the batch output.</td>
     </tr>
     
     <tr class="comment"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">249</td>
       <td class="code-cell t-comment">      *     DISPLAY ' AFTER THE ROOT SEG INSERT CALL '                  02130167</td>
-      <td class="expl-cell">Deaktivierte Diagnoseausgabe: Würde im Debug-Betrieb den Zeitpunkt nach dem Einfügeversuch im Protokoll kennzeichnen.</td>
+      <td class="expl-cell">Disabled diagnostic output: would mark the point in time after the insert attempt in the log during debug mode.</td>
     </tr>
     
     <tr class="comment"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">250</td>
       <td class="code-cell t-comment">      *     DISPLAY 'PCB STATU: ' PAUT-PCB-STATUS                       02133067</td>
-      <td class="expl-cell">Deaktivierte Diagnoseausgabe: Würde den IMS-Rückgabestatus nach dem Einfügeversuch für Fehleranalysen protokollieren.</td>
+      <td class="expl-cell">Disabled diagnostic output: would log the IMS return status after the insert attempt for error analysis.</td>
     </tr>
     
     <tr class="comment"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">251</td>
       <td class="code-cell t-comment">      *     DISPLAY 'SEG NAME : ' PAUT-SEG-NAME                         02135067</td>
-      <td class="expl-cell">Deaktivierte Diagnoseausgabe: Würde den Namen des betroffenen IMS-Segments zur Nachvollziehbarkeit im Fehlerfall ausgeben.</td>
+      <td class="expl-cell">Disabled diagnostic output: would output the name of the affected IMS segment for traceability in the event of an error.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">252</td>
       <td class="code-cell t-statement">            DISPLAY ' *******************************'                  02138053</td>
-      <td class="expl-cell">Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe.</td>
+      <td class="expl-cell">Visual separator line in the processing log for improved readability of the batch output.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">253</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS = SPACES                                 02140053</td>
-      <td class="expl-cell">Prüft, ob der Autorisierungs-Summaryeintrag erfolgreich in die Datenbank geschrieben wurde (leerer Status = Erfolg).</td>
+      <td class="expl-cell">Checks whether the authorization summary entry was successfully written to the database (blank status = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">254</td>
       <td class="code-cell t-statement">               DISPLAY 'ROOT INSERT SUCCESS    '                        02160053</td>
-      <td class="expl-cell">Protokolliert die erfolgreiche Neuanlage des Konto-Summaryeintrags in der Pending-Authorization-Datenbank.</td>
+      <td class="expl-cell">Logs the successful creation of the account summary entry in the pending authorization database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">255</td>
       <td class="code-cell t-statement">            END-IF                                                      02191053</td>
-      <td class="expl-cell">Abschluss der Erfolgsprüfung.</td>
+      <td class="expl-cell">End of the success check.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">256</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS = 'II'                                   02192053</td>
-      <td class="expl-cell">Prüft, ob der Autorisierungs-Summaryeintrag für dieses Konto bereits in der Datenbank vorhanden ist (Duplikat-Erkennung).</td>
+      <td class="expl-cell">Checks whether the authorization summary entry for this account already exists in the database (duplicate detection).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">257</td>
       <td class="code-cell t-statement">               DISPLAY 'ROOT SEGMENT ALREADY IN DB'                     02194153</td>
-      <td class="expl-cell">Protokolliert, dass der Konto-Summaryeintrag bereits existiert – der Datensatz wird übersprungen, ohne die Verarbeitung zu unterbrechen.</td>
+      <td class="expl-cell">Logs that the account summary entry already exists – the record is skipped without interrupting processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">258</td>
       <td class="code-cell t-statement">            END-IF                                                      02197053</td>
-      <td class="expl-cell">Abschluss der Duplikat-Prüfung.</td>
+      <td class="expl-cell">End of the duplicate check.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">259</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'            02200053</td>
-      <td class="expl-cell">Prüft, ob ein unerwarteter Datenbankfehler beim Einfügen des Konto-Summaryeintrags aufgetreten ist (weder Erfolg noch Duplikat).</td>
+      <td class="expl-cell">Checks whether an unexpected database error occurred when inserting the account summary entry (neither success nor duplicate).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">260</td>
       <td class="code-cell t-statement">                  DISPLAY 'ROOT INSERT FAILED  :' PAUT-PCB-STATUS       02230053</td>
-      <td class="expl-cell">Protokolliert den IMS-Fehlercode, um die Ursache des fehlgeschlagenen Einfügevorgangs für die Fehleranalyse festzuhalten.</td>
+      <td class="expl-cell">Logs the IMS error code to record the cause of the failed insert operation for error analysis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">261</td>
       <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    02260053</td>
-      <td class="expl-cell">Löst einen kontrollierten Programmabbruch aus, um Datenbankinkonsistenzen durch einen unvollständigen Ladevorgang zu verhindern.</td>
+      <td class="expl-cell">Triggers a controlled program abort to prevent database inconsistencies caused by an incomplete load process.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-INSERT-ROOT-SEG">
       <td class="ln">262</td>
       <td class="code-cell t-statement">            END-IF                                                      02270053</td>
-      <td class="expl-cell">Abschluss der Fehlerbehandlung für kritische Datenbankfehler.</td>
+      <td class="expl-cell">End of error handling for critical database errors.</td>
     </tr>
     
     <tr class="statement"
@@ -2370,14 +2371,14 @@
         id="code-para-2100-EXIT">
       <td class="ln">264</td>
       <td class="code-cell t-paragraph-header">       2100-EXIT.                                                       02280053</td>
-      <td class="expl-cell">Abschlusspunkt des Verarbeitungsabschnitts für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank.</td>
+      <td class="expl-cell">End point of the processing section for loading authorization summary records (root segments) into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2100-EXIT">
       <td class="ln">265</td>
       <td class="code-cell t-statement">            EXIT.                                                       02290053</td>
-      <td class="expl-cell">Beendet den Verarbeitungsabschnitt und gibt die Steuerung an den aufrufenden Programmablauf zurück, sodass der nächste Prozessschritt (z. B. Laden der Child-Segmente) eingeleitet werden kann.</td>
+      <td class="expl-cell">Terminates the processing section and returns control to the calling program flow so that the next process step (e.g., loading child segments) can be initiated.</td>
     </tr>
     
     <tr class="comment"
@@ -2398,14 +2399,14 @@
         id="code-para-2100-EXIT">
       <td class="ln">268</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*02330026</td>
-      <td class="expl-cell">Trennlinie zur strukturellen Abgrenzung dieses Verarbeitungsabschnitts vom nachfolgenden Programmabschnitt.</td>
+      <td class="expl-cell">Separator line for structurally delimiting this processing section from the subsequent program section.</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">269</td>
       <td class="code-cell t-paragraph-header">       3000-READ-CHILD-SEG-FILE.                                        02340053</td>
-      <td class="expl-cell">Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt.</td>
+      <td class="expl-cell">This paragraph controls the sequential reading of authorization detail records (child segments) and forwards each valid record for insertion into the IMS database. It ensures that only records with a valid numeric account ID are processed and correctly detects end of file.</td>
     </tr>
     
     <tr class="comment"
@@ -2426,7 +2427,7 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">272</td>
       <td class="code-cell t-statement">            READ INFILE2                                                02352053</td>
-      <td class="expl-cell">Liest den nächsten Autorisierungs-Detaildatensatz (Child-Segment) aus der sequentiellen Eingabedatei INFILE2.</td>
+      <td class="expl-cell">Reads the next authorization detail record (child segment) from the sequential input file INFILE2.</td>
     </tr>
     
     <tr class="empty"
@@ -2440,14 +2441,14 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">274</td>
       <td class="code-cell t-statement">            IF WS-INFIL2-STATUS =  SPACES OR '00'                       02354053</td>
-      <td class="expl-cell">Prüft, ob der Lesevorgang erfolgreich war – d.h. ob ein gültiger Autorisierungs-Detaildatensatz zur Verarbeitung bereitsteht.</td>
+      <td class="expl-cell">Checks whether the read operation was successful – i.e., whether a valid authorization detail record is available for processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">275</td>
       <td class="code-cell t-statement">               IF ROOT-SEG-KEY IS NUMERIC                               02354162</td>
-      <td class="expl-cell">Prüft, ob die Konto-ID des gelesenen Detaildatensatzes numerisch und damit fachlich gültig ist – Datensätze mit ungültiger Konto-ID werden übersprungen.</td>
+      <td class="expl-cell">Checks whether the account ID of the read detail record is numeric and therefore functionally valid – records with an invalid account ID are skipped.</td>
     </tr>
     
     <tr class="comment"
@@ -2461,7 +2462,7 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">277</td>
       <td class="code-cell t-statement">               MOVE ROOT-SEG-KEY  TO QUAL-SSA-KEY-VALUE                 02355260</td>
-      <td class="expl-cell">Überträgt die Konto-ID des Detaildatensatzes als Suchschlüssel, um den zugehörigen Root-Datensatz (Autorisierungs-Summary) in der IMS-Datenbank zu lokalisieren.</td>
+      <td class="expl-cell">Transfers the account ID of the detail record as a search key in order to locate the associated root record (authorization summary) in the IMS database.</td>
     </tr>
     
     <tr class="comment"
@@ -2482,14 +2483,14 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">280</td>
       <td class="code-cell t-statement">               MOVE CHILD-SEG-REC TO PENDING-AUTH-DETAILS               02355562</td>
-      <td class="expl-cell">Überträgt den gelesenen Autorisierungs-Detaildatensatz in die IMS-Segmentstruktur für die Datenbankeinlagerung.</td>
+      <td class="expl-cell">Transfers the read authorization detail record into the IMS segment structure for database storage.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">281</td>
       <td class="code-cell t-statement">               PERFORM 3100-INSERT-CHILD-SEG THRU 3100-EXIT             02356054</td>
-      <td class="expl-cell">Startet die Einfügung des Autorisierungs-Detaildatensatzes als untergeordnetes Child-Segment unter dem zugehörigen Konto-Root-Segment in der IMS-Datenbank.</td>
+      <td class="expl-cell">Initiates the insertion of the authorization detail record as a subordinate child segment under the associated account root segment in the IMS database.</td>
     </tr>
     
     <tr class="statement"
@@ -2510,14 +2511,14 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">284</td>
       <td class="code-cell t-statement">               IF WS-INFIL2-STATUS = '10'                               02358053</td>
-      <td class="expl-cell">Prüft, ob das Ende der Detaildatei erreicht wurde (Dateiende-Statuscode '10'), um die Verarbeitungsschleife regulär zu beenden.</td>
+      <td class="expl-cell">Checks whether the end of the detail file has been reached (end-of-file status code '10') in order to terminate the processing loop normally.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">285</td>
       <td class="code-cell t-statement">                  MOVE 'Y' TO END-CHILD-SEG-FILE                        02359053</td>
-      <td class="expl-cell">Setzt das Steuerungskennzeichen für das Dateiende der Detaildatei, damit die übergeordnete Verarbeitungsschleife die Einlesephase für Child-Segmente ordnungsgemäß abschließt.</td>
+      <td class="expl-cell">Sets the end-of-file control flag for the detail file so that the parent processing loop properly concludes the read phase for child segments.</td>
     </tr>
     
     <tr class="statement"
@@ -2531,7 +2532,7 @@
         id="code-para-3000-READ-CHILD-SEG-FILE">
       <td class="ln">287</td>
       <td class="code-cell t-statement">                  DISPLAY 'ERROR READING CHILD SEG INFILE'              02359253</td>
-      <td class="expl-cell">Protokolliert einen unerwarteten Lesefehler auf der Detaildatei zur Fehlerdiagnose – dieser Zustand deutet auf ein technisches Problem beim Zugriff auf die Autorisierungs-Detaildaten hin.</td>
+      <td class="expl-cell">Logs an unexpected read error on the detail file for error diagnosis – this condition indicates a technical problem when accessing the authorization detail data.</td>
     </tr>
     
     <tr class="statement"
@@ -2552,21 +2553,21 @@
         id="code-para-3000-EXIT">
       <td class="ln">290</td>
       <td class="code-cell t-paragraph-header">       3000-EXIT.                                                       02359553</td>
-      <td class="expl-cell">Markiert das Ende der Verarbeitungsgruppe für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank.</td>
+      <td class="expl-cell">Marks the end of the processing group for loading authorization summary records (root segments) into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-EXIT">
       <td class="ln">291</td>
       <td class="code-cell t-statement">            EXIT.                                                       02359653</td>
-      <td class="expl-cell">Gibt die Kontrolle an den aufrufenden Ablaufabschnitt zurück, sodass die Batch-Verarbeitung mit dem nächsten Verarbeitungsschritt (z. B. Checkpoint-Prüfung oder nächster Datensatz) fortgesetzt werden kann.</td>
+      <td class="expl-cell">Returns control to the calling processing section so that batch processing can continue with the next processing step (e.g., checkpoint check or next record).</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">292</td>
       <td class="code-cell t-paragraph-header">       3100-INSERT-CHILD-SEG.                                           02359753</td>
-      <td class="expl-cell">Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird.</td>
+      <td class="expl-cell">This paragraph is responsible for inserting a single authorization detail record (child segment) into the IMS database by first checking whether the associated account summary (root segment) exists before inserting the detail record hierarchically as a subordinate entry.</td>
     </tr>
     
     <tr class="comment"
@@ -2587,42 +2588,42 @@
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">295</td>
       <td class="code-cell t-statement">            INITIALIZE PAUT-PCB-STATUS                                  02362058</td>
-      <td class="expl-cell">Setzt den IMS-Statuscode zurück, um eine saubere Fehlerauswertung für den nachfolgenden Datenbankzugriff sicherzustellen.</td>
+      <td class="expl-cell">Resets the IMS status code to ensure clean error evaluation for the subsequent database access.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">296</td>
       <td class="code-cell t-statement">            CALL 'CBLTDLI'       USING  FUNC-GU                         02370053</td>
-      <td class="expl-cell">Sucht in der IMS-Datenbank den Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) des Kontos, der als übergeordneter Eintrag für den einzufügenden Detaildatensatz benötigt wird.</td>
+      <td class="expl-cell">Searches the IMS database for the authorization summary record (root segment) of the account, which is required as the parent entry for the detail record to be inserted.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">297</td>
       <td class="code-cell t-statement">                                        PAUTBPCB                        02380030</td>
-      <td class="expl-cell">Referenziert den IMS-Programm-Kommunikationsblock (PCB) der Pending-Authorization-Datenbank für diesen Datenbankzugriff.</td>
+      <td class="expl-cell">References the IMS Program Communication Block (PCB) of the pending authorization database for this database access.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">298</td>
       <td class="code-cell t-statement">                                        PENDING-AUTH-SUMMARY            02390053</td>
-      <td class="expl-cell">Gibt den Zielbereich im Arbeitsspeicher an, in den der gefundene Autorisierungs-Zusammenfassungsdatensatz des Kontos geladen wird.</td>
+      <td class="expl-cell">Specifies the target area in working storage into which the retrieved authorization summary record of the account is loaded.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">299</td>
       <td class="code-cell t-statement">                                        ROOT-QUAL-SSA.                  02400053</td>
-      <td class="expl-cell">Übergibt die Konto-ID als qualifizierten Suchschlüssel, um gezielt den Root-Datensatz des richtigen Kreditkartenkontos zu lokalisieren.</td>
+      <td class="expl-cell">Passes the account ID as a qualified search key to specifically locate the root record of the correct credit card account.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">300</td>
       <td class="code-cell t-statement">               DISPLAY '***************************'                    02401043</td>
-      <td class="expl-cell">Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle.</td>
+      <td class="expl-cell">Visual separator marker in the batch log output for improved readability of runtime logs.</td>
     </tr>
     
     <tr class="comment"
@@ -2650,21 +2651,21 @@
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">304</td>
       <td class="code-cell t-statement">               DISPLAY '***************************'                    02412043</td>
-      <td class="expl-cell">Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle.</td>
+      <td class="expl-cell">Visual separator marker in the batch log output for improved readability of runtime logs.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">305</td>
       <td class="code-cell t-statement">               IF PAUT-PCB-STATUS = SPACES                              02420030</td>
-      <td class="expl-cell">Prüft, ob der Autorisierungs-Zusammenfassungsdatensatz des Kontos erfolgreich in der IMS-Datenbank gefunden wurde (leerer Statuscode = Erfolg).</td>
+      <td class="expl-cell">Checks whether the authorization summary record of the account was successfully found in the IMS database (blank status code = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">306</td>
       <td class="code-cell t-statement">                  DISPLAY 'GU CALL TO ROOT SEG SUCCESS'                 02430053</td>
-      <td class="expl-cell">Protokolliert den erfolgreichen Fund des übergeordneten Konto-Summary-Datensatzes im Batch-Laufzeitprotokoll.</td>
+      <td class="expl-cell">Logs the successful retrieval of the parent account summary record in the batch runtime log.</td>
     </tr>
     
     <tr class="comment"
@@ -2685,56 +2686,56 @@
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">309</td>
       <td class="code-cell t-statement">                  PERFORM 3200-INSERT-IMS-CALL  THRU 3200-EXIT          02430353</td>
-      <td class="expl-cell">Fügt den Autorisierungs-Detaildatensatz als untergeordnetes Segment unter dem gefundenen Konto-Summary in die IMS-Datenbank ein.</td>
+      <td class="expl-cell">Inserts the authorization detail record as a subordinate segment under the found account summary into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">310</td>
       <td class="code-cell t-statement">               IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'         02520059</td>
-      <td class="expl-cell">Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist – toleriert wird nur ein Duplikat ('II'); jeder andere Fehler gilt als kritisch.</td>
+      <td class="expl-cell">Checks whether an unexpected database error has occurred – only a duplicate ('II') is tolerated; any other error is considered critical.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">311</td>
       <td class="code-cell t-statement">                  DISPLAY 'ROOT GU CALL FAIL:' PAUT-PCB-STATUS          02530053</td>
-      <td class="expl-cell">Protokolliert den fehlgeschlagenen Suchzugriff auf den Konto-Summary-Datensatz inklusive des IMS-Fehlercodes zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Logs the failed search access to the account summary record including the IMS error code for error diagnosis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">312</td>
       <td class="code-cell t-statement">                  DISPLAY 'KFB AREA IN CHILD:' PAUT-KEYFB               02531048</td>
-      <td class="expl-cell">Gibt den IMS-Key-Feedback-Bereich aus, um den genauen Datenbankpfad des fehlerhaften Zugriffs für die Fehleranalyse nachvollziehbar zu machen.</td>
+      <td class="expl-cell">Outputs the IMS key feedback area to make the exact database path of the failed access traceable for error analysis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">313</td>
       <td class="code-cell t-statement">                    PERFORM 9999-ABEND                                  02540049</td>
-      <td class="expl-cell">Bricht die Batch-Verarbeitung sofort ab, da ein inkonsistenter Datenbankzustand vorliegt und Datenverlust oder fehlerhafte Buchungen verhindert werden müssen.</td>
+      <td class="expl-cell">Immediately aborts batch processing because an inconsistent database state exists and data loss or erroneous postings must be prevented.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-INSERT-CHILD-SEG">
       <td class="ln">314</td>
       <td class="code-cell t-statement">               END-IF.                                                  02550051</td>
-      <td class="expl-cell">Schließt die Fehlerbehandlungslogik für den IMS-Datenbankzugriff ab.</td>
+      <td class="expl-cell">Concludes the error handling logic for the IMS database access.</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-3100-EXIT">
       <td class="ln">315</td>
       <td class="code-cell t-paragraph-header">       3100-EXIT.                                                       02590053</td>
-      <td class="expl-cell">Markiert den Endpunkt des Verarbeitungsblocks für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank.</td>
+      <td class="expl-cell">Marks the end point of the processing block for loading authorization summary records (root segments) into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3100-EXIT">
       <td class="ln">316</td>
       <td class="code-cell t-statement">            EXIT.                                                       02600026</td>
-      <td class="expl-cell">Schließt die Root-Segment-Ladeverarbeitung ab und gibt die Steuerung an den übergeordneten Prozessablauf zurück, damit die Verarbeitung der Autorisierungs-Detaildatensätze (Child-Segmente) fortgesetzt werden kann.</td>
+      <td class="expl-cell">Completes the root segment load processing and returns control to the parent process flow so that processing of authorization detail records (child segments) can continue.</td>
     </tr>
     
     <tr class="comment"
@@ -2748,7 +2749,7 @@
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">318</td>
       <td class="code-cell t-paragraph-header">       3200-INSERT-IMS-CALL.                                            02611053</td>
-      <td class="expl-cell">Einstiegspunkt für das Einfügen eines Autorisierungs-Detaildatensatzes in die IMS-Pending-Authorization-Datenbank.</td>
+      <td class="expl-cell">Entry point for inserting an authorization detail record into the IMS pending authorization database.</td>
     </tr>
     
     <tr class="comment"
@@ -2762,35 +2763,35 @@
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">320</td>
       <td class="code-cell t-comment">      *     DISPLAY 'IN 3200 INSERT CALL'                               02611261</td>
-      <td class="expl-cell">Deaktivierte Diagnoseausgabe zur Nachverfolgung des Einfügevorgangs – nur bei aktiviertem Debug-Modus relevant.</td>
+      <td class="expl-cell">Disabled diagnostic output for tracing the insert operation – only relevant when debug mode is active.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">321</td>
       <td class="code-cell t-statement">                  CALL 'CBLTDLI' USING  FUNC-ISRT                       02611353</td>
-      <td class="expl-cell">Übergibt den Autorisierungs-Detaildatensatz per IMS-Insert-Aufruf zur physischen Speicherung in der Datenbank.</td>
+      <td class="expl-cell">Passes the authorization detail record via an IMS insert call for physical storage in the database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">322</td>
       <td class="code-cell t-statement">                                        PAUTBPCB                        02611453</td>
-      <td class="expl-cell">Verwendet den Programm-Kommunikationsblock der Pending-Authorization-Datenbank, um den Rückgabestatus des Einfügevorgangs zu empfangen.</td>
+      <td class="expl-cell">Uses the Program Communication Block of the pending authorization database to receive the return status of the insert operation.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">323</td>
       <td class="code-cell t-statement">                                        PENDING-AUTH-DETAILS            02611553</td>
-      <td class="expl-cell">Stellt die vollständigen Autorisierungsdetails (Betrag, Händler, Datum etc.) als einzufügenden Datensatz bereit.</td>
+      <td class="expl-cell">Provides the complete authorization details (amount, merchant, date, etc.) as the record to be inserted.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">324</td>
       <td class="code-cell t-statement">                                        CHILD-UNQUAL-SSA.               02611654</td>
-      <td class="expl-cell">Gibt die hierarchische Position des Detaildatensatzes als Child-Segment ohne zusätzliche Qualifizierung an, sodass IMS den Datensatz dem zuvor positionierten Root-Segment unterordnet.</td>
+      <td class="expl-cell">Specifies the hierarchical position of the detail record as a child segment without additional qualification, so that IMS subordinates the record to the previously positioned root segment.</td>
     </tr>
     
     <tr class="empty"
@@ -2804,77 +2805,77 @@
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">326</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS = SPACES                                 02611866</td>
-      <td class="expl-cell">Prüft, ob der Autorisierungs-Detaildatensatz erfolgreich in die Datenbank eingefügt wurde (leerer Status = Erfolg).</td>
+      <td class="expl-cell">Checks whether the authorization detail record was successfully inserted into the database (blank status = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">327</td>
       <td class="code-cell t-statement">               DISPLAY 'CHILD SEGMENT INSERTED SUCCESS'                 02611966</td>
-      <td class="expl-cell">Protokolliert die erfolgreiche Speicherung des Autorisierungs-Detaildatensatzes zur Nachvollziehbarkeit im Batch-Log.</td>
+      <td class="expl-cell">Logs the successful storage of the authorization detail record for traceability in the batch log.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">328</td>
       <td class="code-cell t-statement">            END-IF                                                      02612055</td>
-      <td class="expl-cell">Abschluss der Erfolgsprüfung.</td>
+      <td class="expl-cell">End of the success check.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">329</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS = 'II'                                   02612166</td>
-      <td class="expl-cell">Prüft, ob der Autorisierungs-Detaildatensatz bereits in der Datenbank vorhanden ist (Duplikat-Erkennung bei Wiederholungsläufen).</td>
+      <td class="expl-cell">Checks whether the authorization detail record already exists in the database (duplicate detection for restart runs).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">330</td>
       <td class="code-cell t-statement">               DISPLAY 'CHILD SEGMENT ALREADY IN DB'                    02612266</td>
-      <td class="expl-cell">Protokolliert das erkannte Duplikat – der Datensatz wird toleriert und übersprungen, kein Abbruch erfolgt.</td>
+      <td class="expl-cell">Logs the detected duplicate – the record is tolerated and skipped; no abort occurs.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">331</td>
       <td class="code-cell t-statement">            END-IF                                                      02612366</td>
-      <td class="expl-cell">Abschluss der Duplikat-Prüfung.</td>
+      <td class="expl-cell">End of the duplicate check.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">332</td>
       <td class="code-cell t-statement">            IF PAUT-PCB-STATUS NOT EQUAL TO  SPACES AND 'II'            02612466</td>
-      <td class="expl-cell">Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist, der weder ein Erfolg noch ein tolerierbares Duplikat ist.</td>
+      <td class="expl-cell">Checks whether an unexpected database error has occurred that is neither a success nor a tolerable duplicate.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">333</td>
       <td class="code-cell t-statement">                  DISPLAY 'INSERT CALL FAIL FOR CHILD:' PAUT-PCB-STATUS 02612566</td>
-      <td class="expl-cell">Gibt den fehlgeschlagenen Einfügevorgang mit dem IMS-FehlerstatusCode zur Fehlerdiagnose im Batch-Log aus.</td>
+      <td class="expl-cell">Outputs the failed insert operation with the IMS error status code for error diagnosis in the batch log.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">334</td>
       <td class="code-cell t-statement">                  DISPLAY 'KFB AREA IN CHILD:' PAUT-KEYFB               02612666</td>
-      <td class="expl-cell">Gibt den Key-Feedback-Bereich aus, um den betroffenen Datenbankpfad und Schlüssel für die Fehleranalyse zu identifizieren.</td>
+      <td class="expl-cell">Outputs the key feedback area to identify the affected database path and key for error analysis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">335</td>
       <td class="code-cell t-statement">                    PERFORM 9999-ABEND                                  02612766</td>
-      <td class="expl-cell">Löst einen kontrollierten Programmabbruch aus, um Datenkonsistenz zu wahren – fehlerhafte Teilladungen werden verhindert.</td>
+      <td class="expl-cell">Triggers a controlled program abort to preserve data consistency – erroneous partial loads are prevented.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-INSERT-IMS-CALL">
       <td class="ln">336</td>
       <td class="code-cell t-statement">            END-IF.                                                     02612866</td>
-      <td class="expl-cell">Abschluss der Fehlerbehandlung für kritische Datenbankfehler.</td>
+      <td class="expl-cell">End of error handling for critical database errors.</td>
     </tr>
     
     <tr class="empty"
@@ -2888,42 +2889,42 @@
         id="code-para-3200-EXIT">
       <td class="ln">338</td>
       <td class="code-cell t-paragraph-header">       3200-EXIT.                                                       02613066</td>
-      <td class="expl-cell">Markiert das Ende des Verarbeitungsabschnitts 3200, der für das Einfügen von Autorisierungs-Detaildatensätzen (Child-Segmente) in die IMS-Datenbank zuständig ist.</td>
+      <td class="expl-cell">Marks the end of processing section 3200, which is responsible for inserting authorization detail records (child segments) into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3200-EXIT">
       <td class="ln">339</td>
       <td class="code-cell t-statement">            EXIT.                                                       02614066</td>
-      <td class="expl-cell">Beendet den Detaillade-Abschnitt und gibt die Kontrolle an den übergeordneten Steuerablauf des Batch-Ladeprozesses zurück.</td>
+      <td class="expl-cell">Terminates the detail load section and returns control to the parent control flow of the batch load process.</td>
     </tr>
     
     <tr class="comment"
         id="code-para-3200-EXIT">
       <td class="ln">340</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*02620026</td>
-      <td class="expl-cell">Visuelle Trennlinie zur Abgrenzung des nächsten Verarbeitungsabschnitts im Programmablauf.</td>
+      <td class="expl-cell">Visual separator line to delimit the next processing section in the program flow.</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">341</td>
       <td class="code-cell t-paragraph-header">       4000-FILE-CLOSE.                                                 02630030</td>
-      <td class="expl-cell">Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen.</td>
+      <td class="expl-cell">After completion of the load process, properly closes both sequential input files (root segments and detail segments) and logs any errors during closing without aborting the process.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">342</td>
       <td class="code-cell t-statement">            DISPLAY 'CLOSING THE FILE'                                  02631043</td>
-      <td class="expl-cell">Protokolliert den Beginn des Datei-Schließvorgangs im Batch-Log zur Nachvollziehbarkeit des Verarbeitungsfortschritts.</td>
+      <td class="expl-cell">Logs the start of the file close operation in the batch log for traceability of processing progress.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">343</td>
       <td class="code-cell t-statement">            CLOSE INFILE1.                                              02640053</td>
-      <td class="expl-cell">Schließt die Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, INFILE1) nach vollständiger Verarbeitung.</td>
+      <td class="expl-cell">Closes the input file containing the authorization summary records (root segments, INFILE1) after complete processing.</td>
     </tr>
     
     <tr class="empty"
@@ -2937,14 +2938,14 @@
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">345</td>
       <td class="code-cell t-statement">            IF WS-INFIL1-STATUS =  SPACES OR '00'                       02660053</td>
-      <td class="expl-cell">Prüft, ob die Datei mit den Autorisierungs-Summaries fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg).</td>
+      <td class="expl-cell">Checks whether the file containing the authorization summaries was closed without errors (blank status or '00' = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">346</td>
       <td class="code-cell t-statement">             CONTINUE                                                   02670030</td>
-      <td class="expl-cell">Kein Handlungsbedarf – die Datei mit den Autorisierungs-Summaries wurde erfolgreich geschlossen.</td>
+      <td class="expl-cell">No action required – the file containing the authorization summaries was closed successfully.</td>
     </tr>
     
     <tr class="statement"
@@ -2958,7 +2959,7 @@
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">348</td>
       <td class="code-cell t-statement">             DISPLAY 'ERROR IN CLOSING 1ST FILE:'WS-INFIL1-STATUS       02690053</td>
-      <td class="expl-cell">Protokolliert einen Fehler beim Schließen der Autorisierungs-Summary-Datei mit dem genauen Fehlercode zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Logs an error when closing the authorization summary file with the exact error code for error diagnosis.</td>
     </tr>
     
     <tr class="statement"
@@ -2972,7 +2973,7 @@
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">350</td>
       <td class="code-cell t-statement">            CLOSE INFILE2.                                              02710053</td>
-      <td class="expl-cell">Schließt die Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente, INFILE2) nach vollständiger Verarbeitung.</td>
+      <td class="expl-cell">Closes the input file containing the authorization detail records (child segments, INFILE2) after complete processing.</td>
     </tr>
     
     <tr class="empty"
@@ -2986,14 +2987,14 @@
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">352</td>
       <td class="code-cell t-statement">            IF WS-INFIL2-STATUS =  SPACES OR '00'                       02730053</td>
-      <td class="expl-cell">Prüft, ob die Datei mit den Autorisierungs-Details fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg).</td>
+      <td class="expl-cell">Checks whether the file containing the authorization details was closed without errors (status empty or '00' = success).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">353</td>
       <td class="code-cell t-statement">             CONTINUE                                                   02740030</td>
-      <td class="expl-cell">Kein Handlungsbedarf – die Datei mit den Autorisierungs-Details wurde erfolgreich geschlossen.</td>
+      <td class="expl-cell">No action required – the authorization details file was closed successfully.</td>
     </tr>
     
     <tr class="statement"
@@ -3007,7 +3008,7 @@
         id="code-para-4000-FILE-CLOSE">
       <td class="ln">355</td>
       <td class="code-cell t-statement">             DISPLAY 'ERROR IN CLOSING 2ND FILE:'WS-INFIL2-STATUS       02760053</td>
-      <td class="expl-cell">Protokolliert einen Fehler beim Schließen der Autorisierungs-Detail-Datei mit dem genauen Fehlercode zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Logs an error when closing the authorization details file, including the exact error code for fault diagnosis.</td>
     </tr>
     
     <tr class="statement"
@@ -3021,28 +3022,28 @@
         id="code-para-4000-EXIT">
       <td class="ln">357</td>
       <td class="code-cell t-paragraph-header">       4000-EXIT.                                                       02780030</td>
-      <td class="expl-cell">Markiert den Endpunkt der Verarbeitungsroutine für das Laden der Autorisierungsdaten in die IMS-Datenbank.</td>
+      <td class="expl-cell">Marks the end point of the processing routine for loading authorization data into the IMS database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-EXIT">
       <td class="ln">358</td>
       <td class="code-cell t-statement">            EXIT.                                                       02790030</td>
-      <td class="expl-cell">Beendet die Laderoutine und gibt die Kontrolle an den aufrufenden Programmteil zurück, der den nächsten Verarbeitungsschritt (z. B. Checkpoint oder Dateiende-Prüfung) einleitet.</td>
+      <td class="expl-cell">Exits the load routine and returns control to the calling program section, which initiates the next processing step (e.g., checkpoint or end-of-file check).</td>
     </tr>
     
     <tr class="comment"
         id="code-para-4000-EXIT">
       <td class="ln">359</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*03620026</td>
-      <td class="expl-cell">Abgrenzung zum nächsten Programmabschnitt – kennzeichnet das Ende der Lade-Prozesslogik.</td>
+      <td class="expl-cell">Delimiter to the next program section – marks the end of the load process logic.</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-9999-ABEND">
       <td class="ln">360</td>
       <td class="code-cell t-paragraph-header">       9999-ABEND.                                                      03630026</td>
-      <td class="expl-cell">Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern.</td>
+      <td class="expl-cell">Controlled program termination on critical database errors: signals a severe error during the IMS load process to the batch system in order to ensure data consistency of the pending authorization database and prevent uncontrolled further processing.</td>
     </tr>
     
     <tr class="comment"
@@ -3063,7 +3064,7 @@
         id="code-para-9999-ABEND">
       <td class="ln">363</td>
       <td class="code-cell t-statement">           DISPLAY 'IMS LOAD ABENDING ...'                              03660054</td>
-      <td class="expl-cell">Gibt eine Fehlermeldung in das Job-Protokoll aus, die den Abbruch des IMS-Ladevorgangs für ausstehende Autorisierungen anzeigt.</td>
+      <td class="expl-cell">Writes an error message to the job log indicating the termination of the IMS load process for pending authorizations.</td>
     </tr>
     
     <tr class="empty"
@@ -3077,14 +3078,14 @@
         id="code-para-9999-ABEND">
       <td class="ln">365</td>
       <td class="code-cell t-statement">           MOVE 16 TO RETURN-CODE                                       03680026</td>
-      <td class="expl-cell">Setzt den Rückgabecode auf 16 (höchste Fehlerstufe), damit nachgelagerte Batch-Jobs und der Job-Scheduler den kritischen Fehler erkennen und abhängige Verarbeitungsschritte nicht ausführen.</td>
+      <td class="expl-cell">Sets the return code to 16 (highest error level) so that downstream batch jobs and the job scheduler can detect the critical error and skip dependent processing steps.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9999-ABEND">
       <td class="ln">366</td>
       <td class="code-cell t-statement">           GOBACK.                                                      03690026</td>
-      <td class="expl-cell">Beendet das Programm und übergibt die Kontrolle mit dem gesetzten Fehler-Rückgabecode an den aufrufenden Batch-Scheduler, der dann entsprechende Fehlerbehandlungsroutinen einleiten kann.</td>
+      <td class="expl-cell">Terminates the program and passes control with the set error return code to the calling batch scheduler, which can then initiate the appropriate error handling routines.</td>
     </tr>
     
     <tr class="comment"
@@ -3098,14 +3099,14 @@
         id="code-para-9999-EXIT">
       <td class="ln">368</td>
       <td class="code-cell t-paragraph-header">       9999-EXIT.                                                       03710026</td>
-      <td class="expl-cell">Markiert den finalen Austrittspunkt des Batch-Ladeprogramms nach vollständiger Verarbeitung aller Root- und Child-Segmente.</td>
+      <td class="expl-cell">Marks the final exit point of the batch load program after complete processing of all root and child segments.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9999-EXIT">
       <td class="ln">369</td>
       <td class="code-cell t-statement">            EXIT.                                                       03720026</td>
-      <td class="expl-cell">Beendet die Programmausführung geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück, nachdem alle Autorisierungsdaten geladen wurden.</td>
+      <td class="expl-cell">Terminates program execution in an orderly manner and returns control to the IMS batch controller after all authorization data has been loaded.</td>
     </tr>
     
     </tbody>
@@ -3134,7 +3135,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-INFIL2-REC.">
@@ -3145,7 +3146,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ROOT-SEG-KEY">
@@ -3156,7 +3157,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-CHILD-SEG-REC">
@@ -3167,7 +3168,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-VARIABLES.">
@@ -3178,7 +3179,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-PGMNAME">
@@ -3189,7 +3190,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-CURRENT-DATE">
@@ -3200,7 +3201,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-CURRENT-YYDDD">
@@ -3211,7 +3212,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-AUTH-DATE">
@@ -3222,7 +3223,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-EXPIRY-DAYS">
@@ -3233,7 +3234,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-DAY-DIFF">
@@ -3244,7 +3245,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IDX">
@@ -3255,7 +3256,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-CURR-APP-ID">
@@ -3266,7 +3267,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-CHKP">
@@ -3277,7 +3278,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-AUTH-SMRY-PROC-CNT">
@@ -3288,7 +3289,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-TOT-REC-WRITTEN">
@@ -3299,7 +3300,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-SUMRY-READ">
@@ -3310,7 +3311,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-SUMRY-DELETED">
@@ -3321,7 +3322,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-DTL-READ">
@@ -3332,7 +3333,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-DTL-DELETED">
@@ -3343,7 +3344,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-ERR-FLG">
@@ -3354,7 +3355,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ERR-FLG-ON">
@@ -3365,7 +3366,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ERR-FLG-OFF">
@@ -3376,7 +3377,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-END-OF-AUTHDB-FLAG">
@@ -3387,7 +3388,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-AUTHDB">
@@ -3398,7 +3399,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-NOT-END-OF-AUTHDB">
@@ -3409,7 +3410,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-MORE-AUTHS-FLAG">
@@ -3420,7 +3421,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-MORE-AUTHS">
@@ -3431,7 +3432,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-NO-MORE-AUTHS">
@@ -3442,7 +3443,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-END-OF-INFILE1">
@@ -3453,7 +3454,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-END-OF-INFILE2">
@@ -3464,7 +3465,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-INFILE-STATUS">
@@ -3475,7 +3476,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-INFIL1-STATUS">
@@ -3486,7 +3487,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-INFIL2-STATUS">
@@ -3497,7 +3498,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-ROOT-SEG-FILE">
@@ -3508,7 +3509,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-CHILD-SEG-FILE">
@@ -3519,7 +3520,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-CUSTID-STATUS">
@@ -3530,7 +3531,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-FILE">
@@ -3541,7 +3542,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WK-CHKPT-ID.">
@@ -3552,7 +3553,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3563,7 +3564,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WK-CHKPT-ID-CTR">
@@ -3574,7 +3575,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-IMS-VARIABLES.">
@@ -3585,7 +3586,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-RETURN-CODE">
@@ -3596,7 +3597,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-STATUS-OK">
@@ -3607,7 +3608,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-SEGMENT-NOT-FOUND">
@@ -3618,7 +3619,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DUPLICATE-SEGMENT-FOUND">
@@ -3629,7 +3630,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WRONG-PARENTAGE">
@@ -3640,7 +3641,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-DB">
@@ -3651,7 +3652,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DATABASE-UNAVAILABLE">
@@ -3662,7 +3663,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PSB-SCHEDULED-MORE-THAN-ONCE">
@@ -3673,7 +3674,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-COULD-NOT-SCHEDULE-PSB">
@@ -3684,7 +3685,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-RETRY-CONDITION">
@@ -3695,7 +3696,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-IMS-PSB-SCHD-FLG">
@@ -3706,7 +3707,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-PSB-SCHD">
@@ -3717,7 +3718,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-PSB-NOT-SCHD">
@@ -3728,7 +3729,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ROOT-QUAL-SSA.">
@@ -3739,7 +3740,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-QUAL-SSA-SEG-NAME">
@@ -3750,7 +3751,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3761,7 +3762,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-QUAL-SSA-KEY-FIELD">
@@ -3772,7 +3773,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-QUAL-SSA-REL-OPER">
@@ -3783,7 +3784,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-QUAL-SSA-KEY-VALUE">
@@ -3794,7 +3795,7 @@
       </td>
       <td class="var-pic">PIC S9(11) COMP-3</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Die 11-stellige Konto-ID, die als Suchschlüssel für den qualifizierten IMS-Datenbankzugriff verwendet wird. Mit diesem Wert wird der qualifizierte SSA (Segment Search Argument) aufgebaut, um gezielt den Root-Segment-Datensatz (PAUTSUM0) eines bestimmten Kreditkartenkontos in der IMS-Datenbank zu lokalisieren, bevor zugehörige Detail-Datensätze eingefügt werden.</td>
+      <td class="var-desc">The 11-digit account ID used as the search key for qualified IMS database access. This value is used to build the qualified SSA (Segment Search Argument) in order to specifically locate the root segment record (PAUTSUM0) of a particular credit card account in the IMS database before inserting associated detail records.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3805,7 +3806,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">')'</td>
-      <td class="var-desc">Abschließende schließende Klammer ')' des qualifizierten IMS-SSA (Segment Search Argument). Sie bildet das syntaktisch notwendige Ende der SSA-Suchbedingung, z. B. 'PAUTSUM0(ACCNTID  = 00012345678)'. Ohne dieses Zeichen wäre der IMS-Suchausdruck syntaktisch ungültig.</td>
+      <td class="var-desc">The closing parenthesis ')' of the qualified IMS SSA (Segment Search Argument). It forms the syntactically required end of the SSA search condition, e.g. 'PAUTSUM0(ACCNTID  = 00012345678)'. Without this character, the IMS search expression would be syntactically invalid.</td>
     </tr>
     
     <tr id="var-ROOT-UNQUAL-SSA">
@@ -3816,7 +3817,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Root-Segment PAUTSUM0 (Autorisierungs-Zusammenfassung je Kreditkartenkonto) in der IMS-Datenbank. Ein unqualifiziertes SSA enthält keinen Schlüsselfilter und wird verwendet, wenn sequenziell über alle Root-Segmente navigiert wird, ohne einen spezifischen Kontoschlüssel anzugeben.</td>
+      <td class="var-desc">Unqualified Segment Search Argument (SSA) for accessing the root segment PAUTSUM0 (authorization summary per credit card account) in the IMS database. An unqualified SSA contains no key filter and is used when navigating sequentially across all root segments without specifying a particular account key.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3827,7 +3828,7 @@
       </td>
       <td class="var-pic">PIC X(08)</td>
       <td class="var-pic">'PAUTSUM0'</td>
-      <td class="var-desc">Der IMS-Segmentname 'PAUTSUM0', der das Root-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, auf welchen Segmenttyp (Autorisierungs-Zusammenfassung je Konto) der Datenbankzugriff abzielt.</td>
+      <td class="var-desc">The IMS segment name 'PAUTSUM0', which identifies the root segment of the pending authorization database. This name tells IMS which segment type (authorization summary per account) the database access is targeting.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3838,7 +3839,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">' '</td>
-      <td class="var-desc">Abschließendes Leerzeichen des unqualifizierten SSA für das Root-Segment. Gemäß IMS-SSA-Syntax signalisiert ein Leerzeichen an dieser Stelle, dass keine weitere Qualifizierung (kein Schlüsselfilter) folgt – der Zugriff erfolgt also ohne Einschränkung auf einen bestimmten Kontoschlüssel.</td>
+      <td class="var-desc">Trailing space of the unqualified SSA for the root segment. According to IMS SSA syntax, a space at this position signals that no further qualification (no key filter) follows — the access is therefore performed without restriction to a specific account key.</td>
     </tr>
     
     <tr id="var-CHILD-UNQUAL-SSA">
@@ -3849,7 +3850,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Child-Segment PAUTDTL1 (Autorisierungs-Detaildatensatz) in der IMS-Datenbank. Wird verwendet, um innerhalb eines bereits positionierten Root-Segments auf die untergeordneten Autorisierungs-Einzeltransaktionen zuzugreifen, ohne einen zusätzlichen Schlüsselfilter anzugeben.</td>
+      <td class="var-desc">Unqualified Segment Search Argument (SSA) for accessing the child segment PAUTDTL1 (authorization detail record) in the IMS database. Used to access the subordinate individual authorization transactions within an already-positioned root segment, without specifying an additional key filter.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3860,7 +3861,7 @@
       </td>
       <td class="var-pic">PIC X(08)</td>
       <td class="var-pic">'PAUTDTL1'</td>
-      <td class="var-desc">Der IMS-Segmentname 'PAUTDTL1', der das Child-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, dass der Zugriff auf den Detaildatensatz einer einzelnen Autorisierungstransaktion (untergeordnet zum Konto-Root-Segment) abzielt.</td>
+      <td class="var-desc">The IMS segment name 'PAUTDTL1', which identifies the child segment of the pending authorization database. This name tells IMS that the access targets the detail record of an individual authorization transaction (subordinate to the account root segment).</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3871,7 +3872,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">' '</td>
-      <td class="var-desc">Abschließendes Leerzeichen des unqualifizierten SSA für das Child-Segment. Signalisiert IMS gemäß SSA-Syntax, dass kein Schlüsselfilter für den Detaildatensatz angegeben wird – der Zugriff erfolgt relativ zur aktuellen Datenbankposition (unterhalb des bereits positionierten Root-Segments).</td>
+      <td class="var-desc">Trailing space of the unqualified SSA for the child segment. Signals to IMS, in accordance with SSA syntax, that no key filter is specified for the detail record — access is performed relative to the current database position (below the already-positioned root segment).</td>
     </tr>
     
     <tr id="var-PRM-INFO">
@@ -3882,7 +3883,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Gruppenfeld für alle Steuerungsparameter des Batch-Ladelaufs. Enthält die konfigurierbaren Laufzeitparameter, die das Verhalten des Programms bezüglich Ablauffristen, Checkpoint-Frequenz und Diagnoseausgaben steuern. Diese Parameter werden typischerweise über die JCL-SYSIN oder einen Parameterrecord übergeben.</td>
+      <td class="var-desc">Group field for all control parameters of the batch load run. Contains the configurable runtime parameters that govern the program's behavior with respect to expiration deadlines, checkpoint frequency, and diagnostic output. These parameters are typically passed via JCL SYSIN or a parameter record.</td>
     </tr>
     
     <tr id="var-P-EXPIRY-DAYS">
@@ -3893,7 +3894,7 @@
       </td>
       <td class="var-pic">PIC 9(02)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Konfigurationsparameter: Gibt an, nach wie vielen Tagen eine ausstehende Autorisierung als abgelaufen gilt und nicht mehr in die IMS-Datenbank geladen werden soll. Steuert damit die Gültigkeitsprüfung beim Laden – Autorisierungen, deren Alter diesen Schwellwert überschreitet, werden übersprungen, um veraltete Sperren auf Kreditlimits zu vermeiden.</td>
+      <td class="var-desc">Configuration parameter: Specifies the number of days after which a pending authorization is considered expired and should no longer be loaded into the IMS database. Controls the validity check during loading — authorizations whose age exceeds this threshold are skipped in order to avoid stale holds on credit limits.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3904,7 +3905,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt.</td>
+      <td class="var-desc">Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own.</td>
     </tr>
     
     <tr id="var-P-CHKP-FREQ">
@@ -3915,7 +3916,7 @@
       </td>
       <td class="var-pic">PIC X(05)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen das Programm einen IMS-Checkpoint setzt. Checkpoints sichern den Verarbeitungsfortschritt, sodass bei einem Programmabbruch der Ladelauf nicht von Beginn an wiederholt werden muss, sondern ab dem letzten Checkpoint-Punkt wiederanläuft (Restart-Fähigkeit).</td>
+      <td class="var-desc">Checkpoint frequency: Specifies the number of processed records after which the program issues an IMS checkpoint. Checkpoints preserve processing progress so that, in the event of a program failure, the load run does not have to restart from the beginning but can resume from the last checkpoint (restart capability).</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3926,7 +3927,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt.</td>
+      <td class="var-desc">Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own.</td>
     </tr>
     
     <tr id="var-P-CHKP-DIS-FREQ">
@@ -3937,7 +3938,7 @@
       </td>
       <td class="var-pic">PIC X(05)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Display-Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen Zwischenstatistiken (z. B. Anzahl gelesener, geschriebener und übersprungener Datensätze) in das Protokoll ausgegeben werden. Ermöglicht die Überwachung des Ladefortschritts während der Batch-Verarbeitung, ohne den eigentlichen Checkpoint-Mechanismus zu beeinflussen.</td>
+      <td class="var-desc">Display checkpoint frequency: Specifies the number of processed records after which intermediate statistics (e.g. number of records read, written, and skipped) are written to the log. Enables monitoring of load progress during batch processing without affecting the actual checkpoint mechanism.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3948,7 +3949,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt.</td>
+      <td class="var-desc">Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own.</td>
     </tr>
     
     <tr id="var-P-DEBUG-FLAG">
@@ -3959,7 +3960,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Steuerungsschalter für erweiterte Diagnoseausgaben: Wenn auf 'Y' gesetzt, gibt das Programm zusätzliche technische Detailinformationen (z. B. IMS-Statuscodes, verarbeitete Schlüsselwerte, Zwischenergebnisse) in das Protokoll aus. Erleichtert die Fehleranalyse bei Problemen im Ladelauf, ohne den Produktivbetrieb zu beeinträchtigen (dann 'N').</td>
+      <td class="var-desc">Control switch for extended diagnostic output: When set to 'Y', the program writes additional technical detail information (e.g. IMS status codes, processed key values, intermediate results) to the log. Facilitates error analysis when problems occur during the load run without impacting production operation (where it is set to 'N').</td>
     </tr>
     
     <tr id="var-DEBUG-ON">
@@ -3970,7 +3971,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">'Y'</td>
-      <td class="var-desc">Bedingungsname: Ist wahr, wenn der Debug-Modus aktiv ist (P-DEBUG-FLAG = 'Y'). Ermöglicht im Programmcode eine lesbare Prüfung, ob erweiterte Diagnoseausgaben für die Fehleranalyse des Ladelaufs aktiviert sind.</td>
+      <td class="var-desc">Condition name: True when debug mode is active (P-DEBUG-FLAG = 'Y'). Allows the program code to check in a readable way whether extended diagnostic output is enabled for error analysis of the load run.</td>
     </tr>
     
     <tr id="var-DEBUG-OFF">
@@ -3981,7 +3982,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">'N'</td>
-      <td class="var-desc">Bedingungsname: Ist wahr, wenn der Debug-Modus deaktiviert ist (P-DEBUG-FLAG = 'N'). Ermöglicht im Programmcode eine lesbare Prüfung, ob der Ladelauf im normalen Produktionsmodus ohne zusätzliche Diagnoseausgaben läuft.</td>
+      <td class="var-desc">Condition name: True when debug mode is inactive (P-DEBUG-FLAG = 'N'). Allows the program code to check in a readable way whether the load run is operating in normal production mode without additional diagnostic output.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3992,7 +3993,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Abschließendes Füllzeichen am Ende des Parameterrecords. Dient der korrekten Längenausrichtung des gesamten Parameterfelds und hat keinen eigenen fachlichen Inhalt.</td>
+      <td class="var-desc">Trailing filler at the end of the parameter record. Serves to correctly align the overall length of the parameter field and carries no business meaning of its own.</td>
     </tr>
     
     <tr id="var-PENDING-AUTH-SUMMARY">
@@ -4003,7 +4004,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Arbeitsbereich für einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) eines Kreditkartenkontos. Enthält über das eingebundene Copybook CIPAUSMY alle Felder des IMS-Root-Segments PAUTSUM0: Konto-ID, Kunden-ID, Autorisierungsstatus, Kreditlimit, Bargeldlimit, aktuelle Salden sowie Zähler und Beträge für genehmigte und abgelehnte Autorisierungen. Wird beim Lesen aus INFILE1 befüllt und anschließend als Root-Segment in die IMS-Datenbank geschrieben.</td>
+      <td class="var-desc">Working storage area for an authorization summary record (root segment) of a credit card account. Via the included copybook CIPAUSMY, it contains all fields of the IMS root segment PAUTSUM0: account ID, customer ID, authorization status, credit limit, cash limit, current balances, and counters and amounts for approved and declined authorizations. It is populated when reading from INFILE1 and subsequently written as the root segment to the IMS database.</td>
     </tr>
     
     <tr id="var-PENDING-AUTH-DETAILS">
@@ -4014,7 +4015,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Arbeitsbereich für einen Autorisierungs-Detaildatensatz (Child-Segment) einer einzelnen Kreditkartentransaktion. Enthält über das eingebundene Copybook CIPAUDTY alle Felder des IMS-Child-Segments PAUTDTL1: Autorisierungsschlüssel (Datum/Uhrzeit), Kartennummer, Autorisierungstyp, Ablaufdatum der Karte, Transaktionsbetrag, genehmigter Betrag, Antwortcode sowie Händler- und Länderkennzeichen. Wird beim Lesen aus INFILE2 befüllt und nach erfolgreicher Lokalisierung des zugehörigen Root-Segments als Child-Segment in die IMS-Datenbank eingefügt.</td>
+      <td class="var-desc">Working storage area for an authorization detail record (child segment) of an individual credit card transaction. Via the included copybook CIPAUDTY, it contains all fields of the IMS child segment PAUTDTL1: authorization key (date/time), card number, authorization type, card expiry date, transaction amount, approved amount, response code, and merchant and country identifiers. It is populated when reading from INFILE2 and, after the associated root segment has been successfully located, inserted as a child segment into the IMS database.</td>
     </tr>
     
     <tr id="var-IO-PCB-MASK">
@@ -4025,7 +4026,7 @@
       </td>
       <td class="var-pic">PIC X(1)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Platzhalter-Maske für den IMS I/O Program Communication Block (IO-PCB). Der IO-PCB ist die Schnittstelle zwischen dem COBOL-Batch-Programm und dem IMS-Laufzeitsystem für Systemdienste wie das Setzen von Checkpoints (CHKP-Aufruf) und Restart-Operationen. Diese vereinfachte Deklaration als einzelnes Zeichen dient der formalen Adressierbarkeit des IO-PCB in der ENTRY-Schnittstelle des IMS-Batch-Programms.</td>
+      <td class="var-desc">Placeholder mask for the IMS I/O Program Communication Block (IO-PCB). The IO-PCB is the interface between the COBOL batch program and the IMS runtime system for system services such as issuing checkpoints (CHKP call) and restart operations. This simplified declaration as a single character serves the purpose of formally addressing the IO-PCB in the ENTRY interface of the IMS batch program.</td>
     </tr>
     
     </tbody>

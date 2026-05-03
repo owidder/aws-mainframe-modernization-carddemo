@@ -2,11 +2,42 @@
   "meta": {
     "program_name": "CBACT01C",
     "file_path": "app/cbl/CBACT01C.cbl",
-    "analyzed_at": "2026-05-01T18:54:28.179467",
-    "model": "qwen2:7b",
-    "description": "Das Programm CBACT01C ist ein BATCH-COBOL-Programm, das die Verarbeitung von Kreditkartendaten durchführt. Es liest Daten aus einer ACCTFILE und schreibt diese in verschiedene Dateien wie OUT-FILE, ARRY-FILE und VBRC-FILE.",
+    "analyzed_at": "2026-05-03T15:35:12.977994",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Batch program that reads all credit card account records sequentially and distributes account data into multiple output files in different formats for downstream processing and reporting.",
+    "process_description": "The program performs a full sequential read of the master credit card account file and, for each account, writes the account data to three different output files: a flat sequential file containing full account details, an array-structured file containing multi-occurrence balance and debit data, and a variable-length record file containing two record types (a short status record and a longer financial summary record). During processing, the card reissue date is reformatted via a date conversion utility (COBDATFT) before being written to the output file. The program logs all account fields to the system console for audit/tracing purposes and abends with an error if any file operation fails.",
     "type": "Batch",
-    "module": "Account"
+    "module": "Account",
+    "files": {
+      "ACCTFILE": "Master credit card account indexed file — the source of all account records processed by this program",
+      "OUTFILE": "Sequential flat output file containing full account details (balances, limits, dates, status, group) for each account",
+      "ARRYFILE": "Sequential array-structured output file containing account ID with multiple sets of current balance and cycle debit figures per account, used for multi-period or multi-scenario downstream processing",
+      "VBRCFILE": "Variable-length record output file containing two record types per account: a short record (account ID + active status) and a longer record (account ID + balance + credit limit + reissue year), supporting downstream systems requiring variable-format input"
+    },
+    "business_rules": [
+      "Every account in the master account file is processed — this is a full-file extract with no filtering by account status or balance.",
+      "If the current cycle debit amount for an account is zero, a default value of 2525.00 is substituted in the flat output file, suggesting a minimum or placeholder debit figure is required by downstream systems.",
+      "The card reissue date must be reformatted using the COBDATFT date conversion utility (type 2 input, type 2 output) before being written to the output file, ensuring a consistent date format for downstream consumers.",
+      "The array output file always populates exactly three balance/debit occurrences per account: occurrences 1 and 2 use the actual current balance with hardcoded debit values (1005.00 and 1525.00), while occurrence 3 uses hardcoded negative values (-1025.00 balance, -2500.00 debit), suggesting test data generation or scenario modelling rather than live production data.",
+      "Two variable-length records are written per account to the VBRCFILE: a 12-byte short record (ID + status) and a 39-byte longer record (ID + balance + credit limit + reissue year), supporting downstream systems with different data granularity needs.",
+      "Any file I/O error (open, read, or write) on any of the four files causes an immediate program abend, ensuring no partial or corrupt output is silently produced.",
+      "All account field values are written to the system console log for each record processed, providing a full audit trail of the batch run."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVACT01Y",
+        "CODATECN"
+      ],
+      "programs_resolved": [
+        "COBDATFT"
+      ],
+      "similar_programs": [
+        "COTRTUPC",
+        "COTRTLIC",
+        "COBTUPDT"
+      ]
+    },
+    "prelude_annotated": true
   },
   "lines": [
     {
@@ -205,7 +236,7 @@
       "division": "IDENTIFICATION",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the program's identity section, establishing this as a named, auditable batch process"
     },
     {
       "number": 23,
@@ -214,7 +245,7 @@
       "division": "IDENTIFICATION",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Identifies this program as the batch account data distribution job for downstream processing and reporting"
     },
     {
       "number": 24,
@@ -223,7 +254,7 @@
       "division": "IDENTIFICATION",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Records AWS as the author of this program for ownership and support accountability"
     },
     {
       "number": 25,
@@ -241,7 +272,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the section that defines how this program connects to its input and output data sources"
     },
     {
       "number": 27,
@@ -259,7 +290,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Begins the declarations that link this program to each of its four physical files"
     },
     {
       "number": 29,
@@ -268,7 +299,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Links the program to the master credit card account file — the source of all account records to be processed"
     },
     {
       "number": 30,
@@ -277,7 +308,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The account master file is keyed by account number, allowing the program to locate records directly if needed"
     },
     {
       "number": 31,
@@ -295,7 +326,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Designates the account number as the unique key that identifies each record in the master file"
     },
     {
       "number": 33,
@@ -304,7 +335,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures whether each read operation on the account master file succeeded or failed, enabling error detection"
     },
     {
       "number": 34,
@@ -322,7 +353,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Links the program to the flat sequential output file that will receive full account details for downstream consumers"
     },
     {
       "number": 36,
@@ -349,7 +380,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures whether each write operation on the flat output file succeeded or failed, enabling error detection"
     },
     {
       "number": 39,
@@ -367,7 +398,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Links the program to the array-structured output file used for multi-period balance and debit scenario data"
     },
     {
       "number": 41,
@@ -394,7 +425,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures whether each write operation on the array output file succeeded or failed, enabling error detection"
     },
     {
       "number": 44,
@@ -412,7 +443,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Links the program to the variable-length record output file supporting downstream systems with differing data needs"
     },
     {
       "number": 46,
@@ -439,7 +470,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures whether each write operation on the variable-length output file succeeded or failed, enabling error detection"
     },
     {
       "number": 49,
@@ -457,7 +488,7 @@
       "division": "DATA",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the section that defines all data structures, file layouts, and working variables used by the program"
     },
     {
       "number": 51,
@@ -475,7 +506,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the physical layout of records read from the master credit card account file"
     },
     {
       "number": 53,
@@ -493,7 +524,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The account number — uniquely identifies each account record read from the master file"
     },
     {
       "number": 55,
@@ -502,7 +533,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The remaining account data fields (status, balances, dates, limits, group) carried alongside the account number"
     },
     {
       "number": 56,
@@ -511,7 +542,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the physical layout of records written to the flat sequential output file for downstream processing"
     },
     {
       "number": 57,
@@ -529,7 +560,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The unique account number written to the flat output file, identifying which account the record belongs to"
     },
     {
       "number": 59,
@@ -538,7 +569,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Indicates whether the account is currently active or inactive as written to the flat output file"
     },
     {
       "number": 60,
@@ -547,7 +578,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The account's current outstanding balance written to the flat output file"
     },
     {
       "number": 61,
@@ -556,7 +587,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The maximum credit amount the account holder is permitted to carry, written to the flat output file"
     },
     {
       "number": 62,
@@ -565,7 +596,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The maximum cash advance credit available to the account holder, written to the flat output file"
     },
     {
       "number": 63,
@@ -574,7 +605,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The date the account was originally opened, written to the flat output file"
     },
     {
       "number": 64,
@@ -583,7 +614,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The date the account or card is due to expire, written to the flat output file"
     },
     {
       "number": 65,
@@ -592,7 +623,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The reformatted card reissue date (converted via the date utility) written to the flat output file"
     },
     {
       "number": 66,
@@ -601,7 +632,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The total credit transactions posted in the current billing cycle, written to the flat output file"
     },
     {
       "number": 67,
@@ -610,7 +641,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The total debit transactions posted in the current billing cycle (or a 2525.00 default if zero), written to the flat output file"
     },
     {
       "number": 68,
@@ -628,7 +659,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The account's portfolio or product group classification, written to the flat output file"
     },
     {
       "number": 70,
@@ -646,7 +677,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the physical layout of records written to the array-structured output file for multi-scenario processing"
     },
     {
       "number": 72,
@@ -664,7 +695,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The unique account number written to the array output file, identifying which account the record belongs to"
     },
     {
       "number": 74,
@@ -673,7 +704,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines up to five sets of balance and debit figures per account record, supporting multi-period or scenario data"
     },
     {
       "number": 75,
@@ -682,7 +713,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "One balance figure within a set — populated with actual or hardcoded scenario values depending on the occurrence"
     },
     {
       "number": 76,
@@ -691,7 +722,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "One debit figure within a set — populated with hardcoded scenario values (positive or negative) per occurrence"
     },
     {
       "number": 77,
@@ -727,7 +758,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the physical layout of the variable-length record output file, which holds records of differing sizes per account"
     },
     {
       "number": 81,
@@ -745,7 +776,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Declares that record lengths in this file vary, accommodating both the short status record and the longer financial record"
     },
     {
       "number": 83,
@@ -754,7 +785,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Sets the minimum record size to 10 bytes (short record) and maximum to 80 bytes (longer financial record)"
     },
     {
       "number": 84,
@@ -763,7 +794,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The actual length of each record written is controlled at runtime, switching between the two record type sizes"
     },
     {
       "number": 85,
@@ -772,7 +803,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "The raw storage area for each variable-length record before it is formatted as either the short or long record type"
     },
     {
       "number": 86,
@@ -808,7 +839,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Imports the standard account record layout from the shared copybook, defining all account fields used during processing"
     },
     {
       "number": 90,
@@ -817,7 +848,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Imports the date conversion data structures needed to reformat the card reissue date via the COBDATFT utility"
     },
     {
       "number": 91,
@@ -826,7 +857,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks whether the last operation on the master account file succeeded or failed, using a two-part status code"
     },
     {
       "number": 92,
@@ -853,7 +884,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks whether the last operation on the flat sequential output file succeeded or failed, using a two-part status code"
     },
     {
       "number": 95,
@@ -880,7 +911,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks whether the last operation on the array-structured output file succeeded or failed, using a two-part status code"
     },
     {
       "number": 98,
@@ -907,7 +938,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks whether the last operation on the variable-length record output file succeeded or failed, using a two-part status code"
     },
     {
       "number": 101,
@@ -943,7 +974,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "General-purpose status indicator used to consolidate and evaluate the outcome of any file operation across all files"
     },
     {
       "number": 105,
@@ -970,7 +1001,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds a raw numeric file status code that can be inspected as a whole number for error diagnosis"
     },
     {
       "number": 108,
@@ -979,7 +1010,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Allows the same status code to be read character by character, enabling precise identification of the error type and subtype"
     },
     {
       "number": 109,
@@ -1006,7 +1037,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Breaks down a file status code into its two individual diagnostic digits for detailed error reporting and abend handling"
     },
     {
       "number": 112,
@@ -1042,7 +1073,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the outcome code returned by called utilities or internal routines, indicating success or a specific failure condition"
     },
     {
       "number": 116,
@@ -1051,7 +1082,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Signals that the last operation completed successfully with no errors"
     },
     {
       "number": 117,
@@ -1060,7 +1091,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Signals that the program has reached the end of the master account file and all records have been processed"
     },
     {
       "number": 118,
@@ -1078,7 +1109,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Acts as the main processing switch — when all account records have been read, this flips to stop the processing loop"
     },
     {
       "number": 120,
@@ -1087,7 +1118,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the numeric abend code used to terminate the program abnormally when a critical file error is detected"
     },
     {
       "number": 121,
@@ -1096,7 +1127,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Controls the type of date conversion requested from the date formatting utility, distinguishing between different date format modes"
     },
     {
       "number": 122,
@@ -1105,7 +1136,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Stores the byte length of the variable-length record being written, so the output file knows exactly how much data each record contains"
     },
     {
       "number": 123,
@@ -1114,7 +1145,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the short variable-length record layout — carries only the account identifier and its active/inactive status (12 bytes total)"
     },
     {
       "number": 124,
@@ -1123,7 +1154,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Uniquely identifies the account in the short variable-length record"
     },
     {
       "number": 125,
@@ -1132,7 +1163,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Indicates whether the account is currently active or inactive in the short variable-length record"
     },
     {
       "number": 126,
@@ -1141,7 +1172,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the longer variable-length record layout — carries account identifier, current balance, credit limit, and card reissue year (39 bytes total)"
     },
     {
       "number": 127,
@@ -1150,7 +1181,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Uniquely identifies the account in the longer variable-length record"
     },
     {
       "number": 128,
@@ -1159,7 +1190,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Records the account's current outstanding balance in the longer variable-length record"
     },
     {
       "number": 129,
@@ -1168,7 +1199,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Records the maximum credit available to the account holder in the longer variable-length record"
     },
     {
       "number": 130,
@@ -1177,7 +1208,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Records the four-digit year the card was last reissued, after date reformatting, in the longer variable-length record"
     },
     {
       "number": 131,
@@ -1186,7 +1217,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Provides a working area to hold the card reissue date broken into its year, month, and day components for date conversion processing"
     },
     {
       "number": 132,
@@ -1195,7 +1226,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the four-digit year portion of the card reissue date during reformatting"
     },
     {
       "number": 133,
@@ -1213,7 +1244,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the two-digit month portion of the card reissue date during reformatting"
     },
     {
       "number": 135,
@@ -1231,7 +1262,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the two-digit day portion of the card reissue date during reformatting"
     },
     {
       "number": 137,
@@ -1240,7 +1271,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Allows the broken-out reissue date components to be treated as a single ten-character date string when passing to or from the date conversion utility"
     },
     {
       "number": 138,
@@ -1267,7 +1298,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the executable business logic — all processing steps are defined from this point forward"
     },
     {
       "number": 141,
@@ -1276,7 +1307,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Writes a start-of-run marker to the system console so operators and auditors can confirm when the batch job began"
     },
     {
       "number": 142,
@@ -1285,7 +1316,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Opens the master credit card account file so records can be read sequentially"
     },
     {
       "number": 143,
@@ -1294,7 +1325,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Opens the flat sequential output file so full account detail records can be written"
     },
     {
       "number": 144,
@@ -1303,7 +1334,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Opens the array-structured output file so multi-occurrence balance and debit records can be written"
     },
     {
       "number": 145,
@@ -1312,7 +1343,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Opens the variable-length record output file so both short and long record types can be written"
     },
     {
       "number": 146,
@@ -1330,7 +1361,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Begins the main processing loop that continues until every account record in the master file has been read and distributed"
     },
     {
       "number": 148,
@@ -1348,7 +1379,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Reads the next account record from the master file and checks whether the end of file has been reached"
     },
     {
       "number": 150,
@@ -1366,7 +1397,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Writes all fields of the current account record to the system console, providing a full audit trail of every record processed"
     },
     {
       "number": 152,
@@ -1411,7 +1442,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Closes the master account file after all records have been processed, releasing the file resource cleanly"
     },
     {
       "number": 157,
@@ -1429,7 +1460,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Writes an end-of-run marker to the system console so operators and auditors can confirm the batch job completed"
     },
     {
       "number": 159,
@@ -1447,7 +1478,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Returns control to the operating system, signalling the batch run has completed successfully"
     },
     {
       "number": 161,
@@ -1492,7 +1523,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Entry point for reading and processing the next credit card account from the master account file."
     },
     {
       "number": 166,
@@ -1501,7 +1532,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Reads the next credit card account record sequentially from the master account file into the working account data structure."
     },
     {
       "number": 167,
@@ -1510,7 +1541,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Checks whether the read operation completed successfully, meaning a valid account record was retrieved."
     },
     {
       "number": 168,
@@ -1519,7 +1550,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Marks the current processing state as successful so downstream logic knows the account was read without error."
     },
     {
       "number": 169,
@@ -1528,7 +1559,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Clears the multi-occurrence balance and debit output structure to ensure no residual data from a previous account contaminates the current account's array output."
     },
     {
       "number": 170,
@@ -1537,7 +1568,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes all fields of the current account to the system console, creating a full audit trail entry for this account in the batch run log."
     },
     {
       "number": 171,
@@ -1546,7 +1577,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Prepares the full account details — balances, limits, dates, status, and group — for writing to the flat sequential output file."
     },
     {
       "number": 172,
@@ -1555,7 +1586,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes the fully populated flat account record to the sequential output file for downstream reporting and processing."
     },
     {
       "number": 173,
@@ -1564,7 +1595,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Populates the array-structured output record with three sets of balance and debit figures (two using actual balance with fixed debit values, one with hardcoded negative values) for multi-scenario downstream processing."
     },
     {
       "number": 174,
@@ -1573,7 +1604,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes the array-structured record containing the three balance and debit occurrences to the array output file."
     },
     {
       "number": 175,
@@ -1582,7 +1613,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Clears the variable-length record structure to ensure no data from a previous account carries over into the new account's variable-format output."
     },
     {
       "number": 176,
@@ -1591,7 +1622,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Populates both variable-length record types for this account: the short record containing account identity and active status, and the longer record containing balance, credit limit, and reformatted reissue year."
     },
     {
       "number": 177,
@@ -1600,7 +1631,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes the short 12-byte variable-length record — containing account identity and active/inactive status — to the variable-format output file."
     },
     {
       "number": 178,
@@ -1609,7 +1640,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes the longer 39-byte variable-length record — containing account identity, current balance, credit limit, and reformatted reissue year — to the variable-format output file."
     },
     {
       "number": 179,
@@ -1618,7 +1649,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Begins handling the case where the read did not return a successful result."
     },
     {
       "number": 180,
@@ -1627,7 +1658,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Checks whether the unsuccessful read was caused by reaching the end of the master account file, meaning all accounts have been processed."
     },
     {
       "number": 181,
@@ -1636,7 +1667,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Signals that the end of the master account file has been reached, indicating normal batch completion rather than an error."
     },
     {
       "number": 182,
@@ -1645,7 +1676,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Handles any read outcome that is neither a successful read nor a clean end-of-file — indicating an unexpected file error."
     },
     {
       "number": 183,
@@ -1654,7 +1685,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Flags the processing state as a file error, distinguishing this from a normal end-of-file condition so error handling can respond appropriately."
     },
     {
       "number": 184,
@@ -1663,7 +1694,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Closes the end-of-file condition check."
     },
     {
       "number": 185,
@@ -1672,7 +1703,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Closes the successful-read condition check."
     },
     {
       "number": 186,
@@ -1681,7 +1712,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Evaluates the overall outcome of the read attempt to determine the correct next action."
     },
     {
       "number": 187,
@@ -1690,7 +1721,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "If the account was read successfully, no further action is needed here — processing continues normally in the calling loop."
     },
     {
       "number": 188,
@@ -1699,7 +1730,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Handles all non-successful outcomes from the read attempt."
     },
     {
       "number": 189,
@@ -1708,7 +1739,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Checks whether the non-successful outcome was a clean end-of-file, meaning all accounts in the master file have now been processed."
     },
     {
       "number": 190,
@@ -1717,7 +1748,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Sets the end-of-file indicator to signal the main processing loop that there are no more accounts to read and the batch run should conclude normally."
     },
     {
       "number": 191,
@@ -1726,7 +1757,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Handles the case where the read failure was not an end-of-file — indicating a genuine file I/O error that must not be ignored."
     },
     {
       "number": 192,
@@ -1735,7 +1766,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Writes an error message to the system console to alert operators that the master account file could not be read successfully."
     },
     {
       "number": 193,
@@ -1744,7 +1775,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Captures the specific file status code returned by the failed read operation for inclusion in the error diagnostic output."
     },
     {
       "number": 194,
@@ -1753,7 +1784,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Displays the captured file status code and associated diagnostic information to the system console to assist with error investigation."
     },
     {
       "number": 195,
@@ -1762,7 +1793,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Immediately abends the program to prevent any further processing, ensuring no partial or corrupt output is produced following a file read failure."
     },
     {
       "number": 196,
@@ -1771,7 +1802,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Closes the unexpected-error handling block."
     },
     {
       "number": 197,
@@ -1780,7 +1811,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Closes the overall outcome evaluation block."
     },
     {
       "number": 198,
@@ -1789,7 +1820,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-ACCTFILE-GET-NEXT",
-      "explanation": ""
+      "explanation": "Marks the end of this paragraph and returns control to the calling processing loop."
     },
     {
       "number": 199,
@@ -1807,7 +1838,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist ein Display-Befehl für eine Kreditkartenrechnung. Er zeigt bestimmte Daten einer Karte an, wie ID, Aktivitätsstatus, aktuelle Guthaben und mehr."
+      "explanation": "Entry point for the account audit logging routine, invoked once per account during batch processing."
     },
     {
       "number": 201,
@@ -1816,7 +1847,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Der Befehl 'DISPLAY' wird verwendet um die Information in der Variable 'ACCT-ID' auszugeben. Der Text 'ACCT-ID                 :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the unique 11-digit account number to the console, identifying which account record is being processed."
     },
     {
       "number": 202,
@@ -1825,7 +1856,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt die Informationen in der Variable 'ACCT-ACTIVE-STATUS' an und führt einen Text vorher ein, um zu erklären was angezeigt wird."
+      "explanation": "Logs whether the credit card account is currently active or inactive, capturing the account's operational status."
     },
     {
       "number": 203,
@@ -1834,7 +1865,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Hier wird die Information aus der Variable 'ACCT-CURR-BAL' ausgegeben. Der Text 'ACCT-CURR-BAL           :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the current outstanding balance owed on the credit card account at the time of processing."
     },
     {
       "number": 204,
@@ -1843,7 +1874,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt die Informationen in der Variable 'ACCT-CREDIT-LIMIT' an und führt einen Text vorher ein, um zu erklären was angezeigt wird."
+      "explanation": "Logs the maximum credit limit authorised for the account, reflecting the total spending ceiling approved for the customer."
     },
     {
       "number": 205,
@@ -1852,7 +1883,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Hier wird die Information aus der Variable 'ACCT-CASH-CREDIT-LIMIT' ausgegeben. Der Text 'ACCT-CASH-CREDIT-LIMIT  :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the maximum cash advance limit authorised for the account, reflecting the ceiling on cash withdrawals permitted."
     },
     {
       "number": 206,
@@ -1861,7 +1892,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt die Informationen in der Variable 'ACCT-OPEN-DATE' an und führt einen Text vorher ein, um zu erklären was angezeigt wird."
+      "explanation": "Logs the original date the credit card account was opened, providing account tenure information for audit purposes."
     },
     {
       "number": 207,
@@ -1870,7 +1901,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Hier wird die Information aus der Variable 'ACCT-EXPIRAION-DATE' ausgegeben. Der Text 'ACCT-EXPIRAION-DATE     :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the expiry date of the credit card associated with the account, indicating when the card becomes invalid."
     },
     {
       "number": 208,
@@ -1879,7 +1910,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt die Informationen in der Variable 'ACCT-REISSUE-DATE' an und führt einen Text vorher ein, um zu erklären was angezeigt wird."
+      "explanation": "Logs the date the credit card was or is scheduled to be reissued, supporting card lifecycle audit tracking."
     },
     {
       "number": 209,
@@ -1888,7 +1919,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Hier wird die Information aus der Variable 'ACCT-CURR-CYC-CREDIT' ausgegeben. Der Text 'ACCT-CURR-CYC-CREDIT    :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the total value of credits posted to the account during the current billing cycle, reflecting payments or refunds received."
     },
     {
       "number": 210,
@@ -1897,7 +1928,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt die Informationen in der Variable 'ACCT-CURR-CYC-DEBIT' an und führt einen Text vorher ein, um zu erklären was angezeigt wird."
+      "explanation": "Logs the total value of debits posted to the account during the current billing cycle, reflecting purchases or charges incurred."
     },
     {
       "number": 211,
@@ -1906,7 +1937,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Hier wird die Information aus der Variable 'ACCT-GROUP-ID' ausgegeben. Der Text 'ACCT-GROUP-ID           :' gibt den Namen an, welches auf dem Display angezeigt werden soll."
+      "explanation": "Logs the customer group or portfolio segment the account belongs to, supporting downstream segmentation and reporting audit."
     },
     {
       "number": 212,
@@ -1915,7 +1946,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Dieser Befehl zeigt einen separaten Text an, um eine Trennlinie zu erstellen und die Ausgabe zu beenden."
+      "explanation": "Writes a visual separator line to the console to clearly delimit one account's audit log entry from the next."
     },
     {
       "number": 213,
@@ -1924,7 +1955,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1100-DISPLAY-ACCT-RECORD",
-      "explanation": "Der Befehl 'EXIT' beendet den aktuellen Abschnitt des Programms."
+      "explanation": "Marks the end of the audit logging routine and returns control to the calling paragraph."
     },
     {
       "number": 214,
@@ -1942,7 +1973,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Definiert den Datensatz '1300-POPUL-ACCT-RECORD'."
+      "explanation": "This paragraph assembles the full account record for the flat sequential output file by copying all key account attributes from the master file, applying a mandatory date format conversion to the card reissue date, and substituting a default debit figure when no current-cycle debit activity exists."
     },
     {
       "number": 216,
@@ -1951,7 +1982,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt die ACCT-ID in 'OUT-ACCT-ID'."
+      "explanation": "Copies the unique 11-digit account number into the output record to identify the account in the downstream file."
     },
     {
       "number": 217,
@@ -1960,7 +1991,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt das Aktionsstatus der Karte in 'OUT-ACCT-ACTIVE-STATUS'."
+      "explanation": "Copies the account's active or inactive status flag into the output record for downstream reporting and processing."
     },
     {
       "number": 218,
@@ -1969,7 +2000,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt den aktuellen Kontostand in 'OUT-ACCT-CURR-BAL'."
+      "explanation": "Transfers the current outstanding balance owed on the account into the output record."
     },
     {
       "number": 219,
@@ -1978,7 +2009,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt die Kreditgrenze in 'OUT-ACCT-CREDIT-LIMIT'."
+      "explanation": "Transfers the maximum authorised credit limit for the account into the output record."
     },
     {
       "number": 220,
@@ -1987,7 +2018,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt die Cash-Kreditgrenze in 'OUT-ACCT-CASH-CREDIT-LIMIT'."
+      "explanation": "Transfers the maximum authorised cash advance limit for the account into the output record."
     },
     {
       "number": 221,
@@ -1996,7 +2027,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt den Aufnahmedatum in 'OUT-ACCT-OPEN-DATE'."
+      "explanation": "Copies the original account opening date into the output record for historical and reporting purposes."
     },
     {
       "number": 222,
@@ -2005,7 +2036,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt das Ablaufdatum in 'OUT-ACCT-EXPIRAION-DATE'."
+      "explanation": "Copies the credit card expiry date into the output record for downstream card management processing."
     },
     {
       "number": 223,
@@ -2014,7 +2045,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt das Datum für die Neukarte in 'WS-REISSUE-DATE' und setzt den Typ auf 2."
+      "explanation": "Stages the card reissue date into both the date conversion utility's input field and a working storage holding area, preparing it for reformatting."
     },
     {
       "number": 224,
@@ -2023,7 +2054,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Setzt den Ausgabedatentyp auf 2."
+      "explanation": "Continuation of line 223 — the reissue date is simultaneously held in working storage as a backup while being passed to the date formatter."
     },
     {
       "number": 225,
@@ -2032,7 +2063,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "*---------------------------------------------------------------*"
+      "explanation": "Instructs the date conversion utility to interpret the input reissue date using format type 2, ensuring the correct parsing of the source date."
     },
     {
       "number": 226,
@@ -2041,7 +2072,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Liest das Datum für die Neukarte aus dem Datensatz 'CODATECN-REC'."
+      "explanation": "Instructs the date conversion utility to produce the reformatted reissue date in format type 2, ensuring a consistent output date format for downstream consumers."
     },
     {
       "number": 227,
@@ -2050,7 +2081,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Leert die Zeile."
+      "explanation": ""
     },
     {
       "number": 228,
@@ -2059,7 +2090,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "*CALL ASSEMBLER PROGRAM FOR DATE FORMATTING                     *"
+      "explanation": ""
     },
     {
       "number": 229,
@@ -2068,7 +2099,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Aufruf eines Assemblerprogramms zur Formatierung von Daten."
+      "explanation": ""
     },
     {
       "number": 230,
@@ -2077,7 +2108,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "*---------------------------------------------------------------*"
+      "explanation": ""
     },
     {
       "number": 231,
@@ -2086,7 +2117,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Aufruf des Assemblerprogramms 'COBDATFT' mit den Daten aus 'CODATECN-REC'."
+      "explanation": "Calls the external date formatting utility to reformat the card reissue date, converting it from its raw format into the standardised format required by downstream systems."
     },
     {
       "number": 232,
@@ -2095,7 +2126,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Leert die Zeile."
+      "explanation": ""
     },
     {
       "number": 233,
@@ -2104,7 +2135,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt das formatierte Ablaufdatum in 'OUT-ACCT-REISSUE-DATE'."
+      "explanation": "Copies the reformatted card reissue date returned by the date conversion utility into the output record, replacing the raw date with the standardised version."
     },
     {
       "number": 234,
@@ -2113,7 +2144,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Leert die Zeile."
+      "explanation": ""
     },
     {
       "number": 235,
@@ -2122,7 +2153,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt den Kreditcykeldaten in 'OUT-ACCT-CURR-CYC-CREDIT'."
+      "explanation": "Transfers the total credits posted to the account during the current billing cycle into the output record."
     },
     {
       "number": 236,
@@ -2131,7 +2162,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Prüft, ob der Debit-Kredit gleich Null ist. Wenn ja, setzt einen festen Wert von 2525.00 in 'OUT-ACCT-CURR-CYC-DEBIT'."
+      "explanation": "Checks whether any debit transactions were posted to the account in the current billing cycle."
     },
     {
       "number": 237,
@@ -2140,7 +2171,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Leert die Zeile."
+      "explanation": "When no current-cycle debit activity exists, substitutes a default placeholder debit value of 2525.00, satisfying a downstream system requirement for a non-zero debit figure."
     },
     {
       "number": 238,
@@ -2149,7 +2180,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Setzt den Wert auf 2 für 'CODATECN-TYPE' und 'CODATECN-OUTTYPE'."
+      "explanation": ""
     },
     {
       "number": 239,
@@ -2158,7 +2189,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Überträgt die Gruppen-ID in 'OUT-ACCT-GROUP-ID'."
+      "explanation": "Copies the customer group or portfolio segment identifier into the output record, enabling downstream segmentation and reporting by account group."
     },
     {
       "number": 240,
@@ -2167,7 +2198,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "Beendet das aktuelle Programm."
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
     },
     {
       "number": 241,
@@ -2176,7 +2207,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1300-POPUL-ACCT-RECORD",
-      "explanation": "*---------------------------------------------------------------*"
+      "explanation": ""
     },
     {
       "number": 242,
@@ -2185,7 +2216,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Statusnachrichten beim Schreiben in das Konto-Datei und führt entsprechende Fehlerbehandlungen durch."
+      "explanation": "Entry point for the paragraph responsible for persisting a single account's full details to the flat sequential output file."
     },
     {
       "number": 243,
@@ -2194,7 +2225,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Verwendet WRITE-Befehl um den Ausgangskontorekord auszugeben."
+      "explanation": "Writes the complete account record — including balances, limits, dates, status, and group — to the flat sequential output file for downstream consumption."
     },
     {
       "number": 244,
@@ -2212,7 +2243,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Prüft, ob der Status beim Schreiben in die Datei nicht '00' oder '10' ist. Wenn dies der Fall ist, gibt es eine Fehlermeldung aus und übernimmt den aktuellen Status als IO-Status."
+      "explanation": "Checks whether the file write operation completed successfully; any status other than clean success or end-of-file is treated as a critical failure requiring immediate intervention."
     },
     {
       "number": 246,
@@ -2221,7 +2252,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Falls der Status nicht '00' oder '10', wird eine Fehlermeldung ausgegeben, der aktuelle Status in die Variable IO-STATUS kopiert und anschließend werden die entsprechenden Fehlerbehandlungen ausgeführt."
+      "explanation": "Logs the failed file write status code to the system console so operators can identify the exact nature of the I/O failure during incident investigation."
     },
     {
       "number": 247,
@@ -2230,7 +2261,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": ""
+      "explanation": "Captures the file write failure code into the general I/O status tracking area so it can be reported and acted upon by the error-handling routines."
     },
     {
       "number": 248,
@@ -2239,7 +2270,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": ""
+      "explanation": "Invokes the standard I/O status display routine to produce a detailed, human-readable description of the file write error on the system console for audit and support purposes."
     },
     {
       "number": 249,
@@ -2248,7 +2279,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": ""
+      "explanation": "Triggers an immediate abnormal termination of the batch job, ensuring no further account records are processed and no incomplete or corrupt output file is silently delivered to downstream systems."
     },
     {
       "number": 250,
@@ -2257,7 +2288,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Wenn der Status jedoch '00' oder '10' ist, wird das IF-Befehl verlassen und das Programm beendet."
+      "explanation": "Closes the conditional error-handling block, returning control to normal processing flow if the write was successful."
     },
     {
       "number": 251,
@@ -2266,7 +2297,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": ""
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
     },
     {
       "number": 252,
@@ -2275,7 +2306,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1350-WRITE-ACCT-RECORD",
-      "explanation": "Ein weiterer Kommentar, der den Codeabschnitt beschreibt."
+      "explanation": ""
     },
     {
       "number": 253,
@@ -2284,7 +2315,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' erstellt eine Array-Record für die Verwaltung von Kreditkarten. Die Daten werden in den Feldern des Arrays gespeichert."
+      "explanation": "Entry point for building the multi-occurrence array output record for the current account being processed."
     },
     {
       "number": 254,
@@ -2293,7 +2324,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das erste MOVE-Befehl kopiert den Wert von ACCT-ID in ARR-ACCT-ID."
+      "explanation": "Stamps the array output record with the unique 11-digit account number so downstream systems can identify which account the data belongs to."
     },
     {
       "number": 255,
@@ -2302,7 +2333,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das zweite MOVE-Befehl kopiert den Wert von ACCT-CURR-BAL in das erste Feld von ARR-ACCT-CURR-BAL."
+      "explanation": "Populates the first scenario slot with the account's real current outstanding balance for downstream multi-period comparison or modelling."
     },
     {
       "number": 256,
@@ -2311,7 +2342,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das dritte MOVE-Befehl setzt einen festen Wert von 1005.00 in das erste Feld von ARR-ACCT-CURR-CYC-DEBIT."
+      "explanation": "Assigns a hardcoded cycle debit figure of £1,005.00 to the first scenario slot, representing a fixed or baseline debit assumption rather than actual transaction data."
     },
     {
       "number": 257,
@@ -2320,7 +2351,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das vierte MOVE-Befehl kopiert den Wert von ACCT-CURR-BAL in das zweite Feld von ARR-ACCT-CURR-BAL."
+      "explanation": "Populates the second scenario slot with the same real current outstanding balance, mirroring the first slot's balance for a different debit scenario."
     },
     {
       "number": 258,
@@ -2329,7 +2360,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das fünfte MOVE-Befehl setzt einen festen Wert von 1525.00 in das zweite Feld von ARR-ACCT-CURR-CYC-DEBIT."
+      "explanation": "Assigns a hardcoded cycle debit figure of £1,525.00 to the second scenario slot, representing a higher fixed debit assumption for an alternative scenario."
     },
     {
       "number": 259,
@@ -2338,7 +2369,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das sechste MOVE-Befehl setzt einen festen Wert von -1025.00 in das dritte Feld von ARR-ACCT-CURR-BAL."
+      "explanation": "Sets the third scenario slot's balance to a fixed negative value of -£1,025.00, indicating a credit or reversal scenario, likely for stress testing or modelling purposes."
     },
     {
       "number": 260,
@@ -2347,7 +2378,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Das siebte MOVE-Befehl setzt einen festen Wert von -2500.00 in das dritte Feld von ARR-ACCT-CURR-CYC-DEBIT."
+      "explanation": "Sets the third scenario slot's cycle debit to a fixed negative value of -£2,500.00, reinforcing that this slot represents a reversal or adverse scenario rather than real account activity."
     },
     {
       "number": 261,
@@ -2356,7 +2387,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Der EXIT-Befehl beendet die Aktualisierung des Arrays und übergeht alle folgenden Befehle auf dieser Ebene."
+      "explanation": "Marks the end of the array record population step and returns control to the calling paragraph."
     },
     {
       "number": 262,
@@ -2365,7 +2396,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1400-POPUL-ARRAY-RECORD",
-      "explanation": "Der Kommentar erklärt, dass ein neuer Abschnitt oder eine neue Funktion im Programm beginnt."
+      "explanation": ""
     },
     {
       "number": 263,
@@ -2374,7 +2405,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Schreibstatus von einem File und führt entsprechende Fehlerabstufungen aus."
+      "explanation": "Entry point for the step that commits the prepared array-structured account data to the multi-period output file."
     },
     {
       "number": 264,
@@ -2383,7 +2414,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Führt die Schreiboperation auf den Array-Datensatz durch."
+      "explanation": "Physically writes the current account's set of balance and cycle debit figures (across three occurrences) to the array-structured output file for downstream multi-period processing."
     },
     {
       "number": 265,
@@ -2401,7 +2432,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Prüft, ob der Status des Dateischreibvorgangs nicht '00' oder '10'."
+      "explanation": "Checks whether the file system reported anything other than a clean successful write or a normal end-of-file condition, indicating a potential I/O problem."
     },
     {
       "number": 267,
@@ -2410,7 +2441,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": ""
+      "explanation": "Continues the error check — both a clean write and a routine end-of-file signal are acceptable outcomes; any other status code is treated as a failure."
     },
     {
       "number": 268,
@@ -2419,7 +2450,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": ""
+      "explanation": "Displays an alert message on the system console identifying that a write failure has occurred on the array-structured output file, providing an audit trail for operations staff."
     },
     {
       "number": 269,
@@ -2428,7 +2459,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Gibt den aktuellen Status aus, wenn die Prüfung fehlschlägt."
+      "explanation": "Includes the specific file system status code in the console message so that support teams can diagnose the exact nature of the write failure."
     },
     {
       "number": 270,
@@ -2437,7 +2468,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Speichert den aktuellen Status in eine Variable 'IO-STATUS'"
+      "explanation": "Captures the file system error code into a shared diagnostic field so it can be reported in detail by the error-display routine."
     },
     {
       "number": 271,
@@ -2446,7 +2477,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Führt eine weitere Fehlerabstufung durch, indem der Status ausgegeben wird."
+      "explanation": "Invokes the standard error-reporting routine to display a full, formatted breakdown of the I/O failure to the system console for operational investigation."
     },
     {
       "number": 272,
@@ -2455,7 +2486,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": ""
+      "explanation": "Triggers an immediate abnormal program termination, ensuring no further processing occurs and preventing partial or corrupt data from being silently written to the output file."
     },
     {
       "number": 273,
@@ -2464,7 +2495,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Beendet die Ausführung des Programms bei einer Fehlerabstufung."
+      "explanation": "Closes the conditional error-handling block."
     },
     {
       "number": 274,
@@ -2473,7 +2504,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Endet den aktuellen Prozess und gibt einen neuen Datensatz zum Schreiben bereit."
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine when the write has completed successfully."
     },
     {
       "number": 275,
@@ -2482,7 +2513,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1450-WRITE-ARRY-RECORD",
-      "explanation": "Gibt eine lange Reihe von Zeichen aus, um ein neues Datenschnittstellen-Element zu beginnen."
+      "explanation": ""
     },
     {
       "number": 276,
@@ -2491,7 +2522,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Definiert eine neue Variable '1500-POPUL-VBRC-RECORD'."
+      "explanation": "Entry point for the paragraph that populates both variable-length output records before they are written to the variable-format output file."
     },
     {
       "number": 277,
@@ -2500,7 +2531,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Wert von 'ACCT-ID' wird in die Variablen 'VB1-ACCT-ID' und 'VB2-ACCT-ID' übertragen."
+      "explanation": "Stamps the unique 11-digit account number onto both the short status record and the longer financial summary record, ensuring both output records are consistently linked to the same account."
     },
     {
       "number": 278,
@@ -2509,7 +2540,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Status des Kontos ('ACCT-ACTIVE-STATUS') wird in 'VB1-ACCT-ACTIVE-STATUS' kopiert."
+      "explanation": ""
     },
     {
       "number": 279,
@@ -2518,7 +2549,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "'ACCT-CURR-BAL' (aktuelle Kreditkosten) wird in 'VB2-ACCT-CURR-BAL' übertragen."
+      "explanation": "Copies the account's active or inactive status flag into the short output record, which is the key data point for downstream systems that only need to know whether an account is currently live."
     },
     {
       "number": 280,
@@ -2527,7 +2558,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "'ACCT-CREDIT-LIMIT' (Kreditlimit) wird in 'VB2-ACCT-CREDIT-LIMIT' kopiert."
+      "explanation": "Transfers the current outstanding balance owed on the credit card into the longer financial summary record for downstream financial reporting and processing."
     },
     {
       "number": 281,
@@ -2536,7 +2567,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "'WS-ACCT-REISSUE-YYYY' (Datum des Kartenneuauflages) wird in 'VB2-ACCT-REISSUE-YYYY' übertragen."
+      "explanation": "Transfers the maximum authorised credit limit for the account into the longer financial summary record, enabling downstream systems to assess credit exposure or available credit."
     },
     {
       "number": 282,
@@ -2545,7 +2576,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Die Daten werden ausgegeben, um zu bestätigen, dass die Initialisierung erfolgreich war."
+      "explanation": "Populates the longer financial summary record with the four-digit year extracted from the reformatted card reissue date, providing downstream systems with the reissue year in a standardised format."
     },
     {
       "number": 283,
@@ -2554,7 +2585,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "'VBRC-REC1' und 'VBRC-REC2' werden ausgegeben, um die Daten in diesen Variablen darzustellen."
+      "explanation": "Writes the full content of the short status record (account number and active/inactive flag) to the system console log, creating an audit trail entry for this account's variable-length output."
     },
     {
       "number": 284,
@@ -2563,7 +2594,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Die Ausgabe der Daten wird fortgesetzt."
+      "explanation": "Writes the full content of the longer financial summary record (account number, balance, credit limit, reissue year) to the system console log, completing the audit trail for this account."
     },
     {
       "number": 285,
@@ -2572,7 +2603,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Der Prozess endet mit 'EXIT'."
+      "explanation": "Marks the end of the paragraph and returns control to the calling routine."
     },
     {
       "number": 286,
@@ -2581,7 +2612,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1500-POPUL-VBRC-RECORD",
-      "explanation": "Kommentar: Diese Zeile gibt einen Überblick über die Funktion dieses Abschnitts."
+      "explanation": ""
     },
     {
       "number": 287,
@@ -2590,7 +2621,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Startet die Schreiboperation für ein VB1-Datenrecord."
+      "explanation": "Entry point for the paragraph responsible for writing the short status record to the variable-length output file."
     },
     {
       "number": 288,
@@ -2599,7 +2630,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Setzt die Länge des zu schreibenden Records auf 12 Byte fest."
+      "explanation": "Sets the record length to 12 bytes, instructing the file system to write only the short record variant containing the account identifier and active/inactive status — not the full financial detail."
     },
     {
       "number": 289,
@@ -2608,7 +2639,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Füllt das erste Record (VBRC-REC1) mit den Daten aus dem VBR-Record und limitiert diese an der angegebenen Länge."
+      "explanation": "Loads the short status record (account ID plus active/inactive flag) into the first 12 bytes of the variable-length output buffer, ready for writing."
     },
     {
       "number": 290,
@@ -2617,7 +2648,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Schreibt das Record in die Ausgabedatei."
+      "explanation": "Physically writes the 12-byte short status record to the variable-length output file, making the account's identity and active status available to downstream systems."
     },
     {
       "number": 291,
@@ -2626,7 +2657,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Leert die Zeile für eine neue Anweisung."
+      "explanation": ""
     },
     {
       "number": 292,
@@ -2635,7 +2666,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Prüft, ob der Schreibstatus des Accounts-Files nicht gleich '00' oder '10'."
+      "explanation": "Checks whether the file write operation completed successfully — any status other than a clean write or end-of-file signal indicates a problem."
     },
     {
       "number": 293,
@@ -2644,7 +2675,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Wenn dies der Fall ist, gibt es einen Fehler aus und zeigt den aktuellen Status an."
+      "explanation": "Continues the error check, confirming that neither a successful write nor a normal end-of-file condition was returned by the file system."
     },
     {
       "number": 294,
@@ -2653,7 +2684,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Speichert den aktuellen Schreibstatus in die IO-Status-Variablen."
+      "explanation": "Logs a warning message to the system console identifying that a failure occurred when attempting to write to the variable-length output file, including the specific error status code for diagnosis."
     },
     {
       "number": 295,
@@ -2662,7 +2693,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Aufruf einer Subroutine zur Anzeige des IO-Statuses."
+      "explanation": "Displays the actual file system error code returned after the failed write, enabling operations staff to identify the precise nature of the I/O failure."
     },
     {
       "number": 296,
@@ -2671,7 +2702,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Aufruf einer Abbruchsubroutine für das Programm."
+      "explanation": "Captures the file system error code into the general I/O status area so it can be reported through the standard error display routine."
     },
     {
       "number": 297,
@@ -2680,7 +2711,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Leert die Zeile für eine neue Anweisung."
+      "explanation": "Invokes the standard I/O error reporting routine to display a detailed, formatted description of the file failure to the system console for audit and support purposes."
     },
     {
       "number": 298,
@@ -2689,7 +2720,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": ""
+      "explanation": "Triggers an immediate abnormal termination of the batch program, ensuring no further processing occurs and preventing partial or corrupt data from being delivered to downstream systems."
     },
     {
       "number": 299,
@@ -2698,7 +2729,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": ""
+      "explanation": "Closes the conditional error-handling block."
     },
     {
       "number": 300,
@@ -2707,7 +2738,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Beendet den aktuellen Prozess und führt zu einem Ausgangspunkt aus, der nicht mehr in diesem Programm vorkommt."
+      "explanation": "Marks the end of this paragraph and returns control to the calling paragraph."
     },
     {
       "number": 301,
@@ -2716,7 +2747,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1550-WRITE-VB1-RECORD",
-      "explanation": "Endet das Skript."
+      "explanation": ""
     },
     {
       "number": 302,
@@ -2725,7 +2756,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Startet den Schreibprozess für eine spezifische Rechnungsdatenreihe in der Datei VBRC-REC2."
+      "explanation": "Entry point for the paragraph responsible for writing the detailed financial summary record to the variable-length output file."
     },
     {
       "number": 303,
@@ -2734,7 +2765,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Setzt die Länge der zu schreibenden Daten auf 39 Byte fest und kopiert diese Daten in das Speicherfeld VBR-REC."
+      "explanation": "Sets the record length to 39 bytes, instructing the file system to write exactly 39 bytes — the size required for the longer financial summary record containing account ID, balance, credit limit, and reissue year."
     },
     {
       "number": 304,
@@ -2743,7 +2774,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Schreibt die Daten aus dem Feld VBR-REC in den Dateisystemort."
+      "explanation": "Loads the detailed financial summary data (account ID, current outstanding balance, authorised credit limit, and card reissue year) into the output record buffer, sized precisely to the 39-byte length defined above."
     },
     {
       "number": 305,
@@ -2752,7 +2783,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Prüft, ob der Schreibstatus des Dateisystems '00' oder '10' ist. Wenn nicht, gibt er Fehlermeldungen aus und beendet das Programm."
+      "explanation": "Physically writes the 39-byte financial summary record to the variable-length output file, making it available for downstream systems requiring detailed account financial data."
     },
     {
       "number": 306,
@@ -2761,7 +2792,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Falls die überprüfte Statusbedingung nicht erfüllt ist, wird das Programm abgebrochen."
+      "explanation": ""
     },
     {
       "number": 307,
@@ -2770,7 +2801,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Checks whether the file write operation completed successfully — any status other than a clean write or end-of-file signal indicates a problem that must be handled immediately."
     },
     {
       "number": 308,
@@ -2779,7 +2810,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Continues the error check to confirm neither a successful write nor a normal end-of-file condition was returned, meaning a genuine I/O failure has occurred."
     },
     {
       "number": 309,
@@ -2788,7 +2819,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Logs an alert message to the system console indicating that writing account data to the variable-length output file has failed, providing an audit trail of the failure."
     },
     {
       "number": 310,
@@ -2797,7 +2828,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Includes the specific file status code in the console alert so operations staff can identify the exact nature of the I/O failure."
     },
     {
       "number": 311,
@@ -2806,7 +2837,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Captures the file error code into the general I/O status tracking area so it can be reported in detail by the diagnostic routine."
     },
     {
       "number": 312,
@@ -2815,7 +2846,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Invokes the diagnostic routine to display a detailed, human-readable breakdown of the I/O error code to assist with fault investigation."
     },
     {
       "number": 313,
@@ -2824,7 +2855,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": ""
+      "explanation": "Triggers an immediate abnormal program termination, ensuring no further processing occurs and preventing corrupt or incomplete output from being silently passed to downstream systems."
     },
     {
       "number": 314,
@@ -2842,7 +2873,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1575-WRITE-VB2-RECORD",
-      "explanation": "Beendet die aktuelle Routine und übergibt das Programm an die nächste Routine."
+      "explanation": "Marks the end of this paragraph, returning control to the calling routine if the write completed successfully."
     },
     {
       "number": 316,
@@ -2860,7 +2891,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Definiert den Abschnitt '0000-ACCTFILE-OPEN' für die folgenden Schritte."
+      "explanation": "Entry point for the routine that opens the master credit card account file before processing begins."
     },
     {
       "number": 318,
@@ -2869,7 +2900,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Setzt APPL-RESULT auf 8. Dieser Wert wird später verwendet, um zu überprüfen, ob der Datensatz erfolgreich geöffnet wurde."
+      "explanation": "Assumes the worst-case outcome (a serious failure) before attempting to open the file, ensuring no success is assumed prematurely."
     },
     {
       "number": 319,
@@ -2878,7 +2909,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Öffnet den Datensatz 'ACCTFILE-FILE' in Inputmodus."
+      "explanation": "Attempts to open the master credit card account file in read-only mode, ready for sequential processing of all account records."
     },
     {
       "number": 320,
@@ -2887,7 +2918,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Prüft die Statusnachricht des Datensatzes. Wenn sie '00' ist, wird der Datensatz erfolgreich geöffnet und APPL-RESULT auf 0 gesetzt."
+      "explanation": "Checks whether the master account file opened successfully without any file system errors."
     },
     {
       "number": 321,
@@ -2896,7 +2927,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Wenn der Datensatz nicht erfolgreich geöffnet wurde (Statusnachricht != '00'), setzt APPL-RESULT auf 12."
+      "explanation": "Confirms a clean, successful file open — the batch run is cleared to proceed with reading account records."
     },
     {
       "number": 322,
@@ -2905,7 +2936,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Falls der Datensatz erfolgreich geöffnet wurde, führt die nächste Anweisung aus."
+      "explanation": ""
     },
     {
       "number": 323,
@@ -2914,7 +2945,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Falls der Datensatz nicht erfolgreich geöffnet wurde, wird eine Fehlermeldung ausgegeben und die Statusnachricht des Datensatzes in IO-STATUS gespeichert."
+      "explanation": "Records a critical failure code indicating the master account file could not be opened, blocking any further processing."
     },
     {
       "number": 324,
@@ -2923,7 +2954,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Wenn APPL-AOK (eine Variable, die den Zustand des Anwendungsprogramms angibt) 'TRUE' ist, führt die nächste Anweisung aus."
+      "explanation": ""
     },
     {
       "number": 325,
@@ -2932,7 +2963,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Falls APPL-AOK 'FALSE' ist, wird eine Fehlermeldung ausgegeben und das Programm abgebrochen."
+      "explanation": "Evaluates whether the file open completed without error and the batch job is safe to continue."
     },
     {
       "number": 326,
@@ -2941,7 +2972,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Wenn der Datensatz erfolgreich geöffnet wurde (APPL-RESULT = 0), führt die nächste Anweisung aus."
+      "explanation": "File opened successfully — no corrective action needed; processing continues normally."
     },
     {
       "number": 327,
@@ -2950,7 +2981,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Falls der Datensatz nicht erfolgreich geöffnet wurde (APPL-RESULT != 0), wird das Programm abgebrochen und Fehlermeldungen ausgegeben."
+      "explanation": ""
     },
     {
       "number": 328,
@@ -2959,7 +2990,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Gibt eine Fehlermeldung aus, wenn der Datensatz nicht erfolgreich geöffnet wurde."
+      "explanation": "Writes an error message to the system console alerting operators that the master account file is unavailable."
     },
     {
       "number": 329,
@@ -2968,7 +2999,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Speichert die Statusnachricht des Datensatzes in IO-STATUS."
+      "explanation": "Captures the specific file system error code so it can be reported to operators for diagnosis."
     },
     {
       "number": 330,
@@ -2977,7 +3008,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Führt eine Funktion namens '9910-DISPLAY-IO-STATUS' aus, um die Statusnachricht zu anzeigen."
+      "explanation": "Displays the detailed file error information to the system console to assist with operational troubleshooting."
     },
     {
       "number": 331,
@@ -2986,7 +3017,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Führt eine Funktion namens '9999-ABEND-PROGRAM' aus, um das Programm abzubrechen und Fehlermeldungen auszugeben."
+      "explanation": "Terminates the entire batch program immediately with an abend, preventing any output files from being written without valid source account data."
     },
     {
       "number": 332,
@@ -2995,7 +3026,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": "Beendet den Abschnitt mit einer 'EXIT'."
+      "explanation": ""
     },
     {
       "number": 333,
@@ -3004,7 +3035,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "0000-ACCTFILE-OPEN",
-      "explanation": ""
+      "explanation": "Marks the end of the file-open routine and returns control to the calling paragraph."
     },
     {
       "number": 334,
@@ -3013,7 +3044,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Die Verweisung '2000-OUTFILE-OPEN' beginnt den Abschnitt zur Ausgabedatei-Öffnung."
+      "explanation": "Entry point for the routine responsible for opening the flat sequential account output file."
     },
     {
       "number": 335,
@@ -3022,7 +3053,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Die Variable APPL-RESULT wird auf die Konstante 8 (z.B. ein Erfolgssignal) zugewiesen."
+      "explanation": "Assumes failure by default before attempting to open the file — a defensive measure ensuring any unexpected interruption is treated as an error."
     },
     {
       "number": 336,
@@ -3031,7 +3062,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Eine Ausgabedatei wird mit dem Modus 'OUTPUT' geöffnet."
+      "explanation": "Opens the flat sequential output file ready to receive full account detail records (balances, limits, dates, status, group) for each account processed."
     },
     {
       "number": 337,
@@ -3040,7 +3071,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Ein IF-Befehl prüft den Status der Datei-Öffnung. Wenn er erfolgreich ist (Status 00), dann..."
+      "explanation": "Checks whether the file system confirmed the output file opened successfully."
     },
     {
       "number": 338,
@@ -3049,7 +3080,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "...wird APPL-RESULT auf 0 gesetzt, um zu signalisieren einen erfolgreichen Prozess."
+      "explanation": "Records a successful outcome, allowing processing to continue normally."
     },
     {
       "number": 339,
@@ -3058,7 +3089,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Sonst wird APPL-RESULT auf 12 gesetzt, um ein Fehlerindiz zu geben."
+      "explanation": ""
     },
     {
       "number": 340,
@@ -3067,7 +3098,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Ein weiterer IF-Befehl prüft die Variable APPL-AOK. Wenn der Wert 'true' ist (wenn der Prozess erfolgreich war), dann..."
+      "explanation": "Records a failure outcome, signalling that the output file could not be opened and downstream processing cannot proceed safely."
     },
     {
       "number": 341,
@@ -3076,7 +3107,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "...wird das Programm fortgesetzt, ohne Fehlerabsturz."
+      "explanation": ""
     },
     {
       "number": 342,
@@ -3085,7 +3116,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Wenn jedoch APPL-AOK 'false' ist (Fehler in der Anwendung), wird eine Fehlermeldung ausgegeben und weitere Fehlerbehandlungen ausgeführt."
+      "explanation": "Evaluates whether the file opened without error before allowing the batch run to continue."
     },
     {
       "number": 343,
@@ -3094,7 +3125,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Die Variable IO-STATUS wird mit dem Wert von OUTFILE-STATUS übernommen, um den Fehlerstatus zu speichern."
+      "explanation": "No action needed — the file opened successfully and the batch run may proceed to process account records."
     },
     {
       "number": 344,
@@ -3103,7 +3134,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Eine weitere Fehlerbehandlung durchführt die Ausführung einer bestimmten Routine (9910-DISPLAY-IO-STATUS) und führt anschließend einen Programmabsturz aus."
+      "explanation": ""
     },
     {
       "number": 345,
@@ -3112,7 +3143,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": ""
+      "explanation": "Writes an error message to the system console identifying that the flat account output file failed to open, providing an immediate audit trail for operations staff."
     },
     {
       "number": 346,
@@ -3121,7 +3152,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": ""
+      "explanation": "Captures the specific file system error code so it can be included in the detailed diagnostic display."
     },
     {
       "number": 347,
@@ -3130,7 +3161,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": ""
+      "explanation": "Displays the detailed file system error code to the console to assist operations staff in diagnosing the root cause of the file open failure."
     },
     {
       "number": 348,
@@ -3139,7 +3170,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": ""
+      "explanation": "Immediately terminates the entire batch program abnormally, ensuring no account data is processed or written while the output file is unavailable."
     },
     {
       "number": 349,
@@ -3157,7 +3188,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Der Abschnitt endet mit einem 'EXIT'."
+      "explanation": "Marks the end of this routine, returning control to the calling paragraph if the file opened successfully."
     },
     {
       "number": 351,
@@ -3166,7 +3197,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-OUTFILE-OPEN",
-      "explanation": "Ein weiterer Kommentar, der die Funktion dieses Abschnitts beschreibt."
+      "explanation": ""
     },
     {
       "number": 352,
@@ -3175,7 +3206,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Startet den Befehl '3000-ARRFILE-OPEN', um eine Datei zu öffnen."
+      "explanation": "Entry point for the procedure that prepares the array-structured output file for writing."
     },
     {
       "number": 353,
@@ -3184,7 +3215,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Setzt APPL-RESULT auf die Konstante '8'."
+      "explanation": "Sets the processing status to a pending/unresolved state (8) before attempting to open the file, ensuring no false success is assumed."
     },
     {
       "number": 354,
@@ -3193,7 +3224,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Öffnet die Datei 'ARRY-FILE' in Outputmodus."
+      "explanation": "Attempts to open the array-structured output file so that multi-period balance and debit records can be written to it."
     },
     {
       "number": 355,
@@ -3202,7 +3233,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Prüft den Status der geöffneten Datei. Wenn er '00' ist, wird APPL-RESULT auf 0 gesetzt."
+      "explanation": "Checks whether the file opened successfully by inspecting the file system's response code."
     },
     {
       "number": 356,
@@ -3211,7 +3242,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Wenn der Status nicht '00', wird APPL-RESULT auf 12 gesetzt."
+      "explanation": "Records a successful outcome (0) when the array output file has opened without error, allowing processing to continue."
     },
     {
       "number": 357,
@@ -3220,7 +3251,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen."
+      "explanation": "Handles the case where the file did not open successfully."
     },
     {
       "number": 358,
@@ -3229,7 +3260,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und der Status in IO-STATUS gespeichert."
+      "explanation": "Records a failure outcome (12) indicating the array output file could not be opened, signalling a critical error condition."
     },
     {
       "number": 359,
@@ -3238,7 +3269,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Die Funktion 9910-DISPLAY-IO-STATUS wird aufgerufen, um den IO-Status anzuzeigen."
+      "explanation": "Closes the success/failure evaluation block."
     },
     {
       "number": 360,
@@ -3247,7 +3278,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Die Funktion 9999-ABEND-PROGRAM wird ausgeführt, um das Programm zu beenden."
+      "explanation": "Checks whether the overall operation completed successfully before allowing the batch run to proceed."
     },
     {
       "number": 361,
@@ -3256,7 +3287,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen."
+      "explanation": "If the file opened successfully, no further action is needed and processing continues normally."
     },
     {
       "number": 362,
@@ -3265,7 +3296,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und der Status in IO-STATUS gespeichert."
+      "explanation": "Begins the error-handling path taken when the array output file failed to open."
     },
     {
       "number": 363,
@@ -3274,7 +3305,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Die Funktion 9910-DISPLAY-IO-STATUS wird aufgerufen, um den IO-Status anzuzeigen."
+      "explanation": "Writes an error message to the system console log, including the file system error code, so operators can identify the cause of the failure."
     },
     {
       "number": 364,
@@ -3283,7 +3314,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Die Funktion 9999-ABEND-PROGRAM wird ausgeführt, um das Programm zu beenden."
+      "explanation": "Captures the file system error code into the general I/O status area for use by the diagnostic display routine."
     },
     {
       "number": 365,
@@ -3292,7 +3323,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Der Wert von ARRYFILE-STATUS wird in IO-STATUS kopiert."
+      "explanation": "Invokes the diagnostic routine that formats and displays the detailed I/O error information to the system console for operator investigation."
     },
     {
       "number": 366,
@@ -3301,7 +3332,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird weitergegangen."
+      "explanation": "Triggers an immediate abnormal termination of the entire batch program, ensuring no downstream output files are produced in an incomplete or corrupt state."
     },
     {
       "number": 367,
@@ -3310,7 +3341,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Falls es zu einem Fehler beim Öffnen der Datei gekommen ist, wird eine Fehlermeldung ausgegeben und das Programm beendet."
+      "explanation": "Closes the error-handling block."
     },
     {
       "number": 368,
@@ -3319,7 +3350,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Der Prozess endet."
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
     },
     {
       "number": 369,
@@ -3328,7 +3359,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-ARRFILE-OPEN",
-      "explanation": "Ein Kommentar, der die Funktion dieses Abschnitts beschreibt."
+      "explanation": ""
     },
     {
       "number": 370,
@@ -3337,7 +3368,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Startet die Operation '4000-VBRFILE-OPEN'."
+      "explanation": "Entry point for the routine responsible for opening the variable-length record output file."
     },
     {
       "number": 371,
@@ -3346,7 +3377,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Setzt die Variable APPL-RESULT auf den Wert 8."
+      "explanation": "Assumes failure by default before attempting to open the file, ensuring no false success is recorded if the open operation is never reached."
     },
     {
       "number": 372,
@@ -3355,7 +3386,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Öffnet die Datei VBRC-FILE in Outputmodus."
+      "explanation": "Opens the variable-length record output file so that account status and financial summary records can be written to it during processing."
     },
     {
       "number": 373,
@@ -3364,7 +3395,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Prüft, ob der Status der Dateiöffnung '00' ist. Wenn ja, setzt die Variable APPL-RESULT auf 0."
+      "explanation": "Checks whether the file opened successfully by inspecting the operating system's reported outcome of the open operation."
     },
     {
       "number": 374,
@@ -3373,7 +3404,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Wenn der Status nicht '00', wird die Variable APPL-RESULT auf den Wert 12 gesetzt."
+      "explanation": "Clears the failure indicator, confirming the file is ready to receive account data."
     },
     {
       "number": 375,
@@ -3382,7 +3413,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK = true), wird das Programm fortgesetzt."
+      "explanation": ""
     },
     {
       "number": 376,
@@ -3391,7 +3422,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Wird eine Fehlermeldung ausgeliefert, wenn die Datei nicht geöffnet werden konnte. Der Status des IO-Errors wird in der Variable IO-STATUS gespeichert und anschließend ausgegeben."
+      "explanation": "Records a critical failure code, signalling that the variable-length record output file could not be opened and downstream processing cannot proceed."
     },
     {
       "number": 377,
@@ -3409,7 +3440,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "Evaluates whether the file opened without error and the program is safe to continue."
     },
     {
       "number": 379,
@@ -3418,7 +3449,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "No action is taken here — processing continues normally because the file opened successfully."
     },
     {
       "number": 380,
@@ -3427,7 +3458,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Falls die Anwendung mit Fehler ausgeführt wurde (APPL-AOK = false), wird das Programm abgebrochen."
+      "explanation": ""
     },
     {
       "number": 381,
@@ -3436,7 +3467,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "Writes an error message to the system console identifying that the variable-length record output file failed to open, along with the specific file system error code for operator investigation."
     },
     {
       "number": 382,
@@ -3445,7 +3476,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "Captures the file system error code into the general I/O status area so it can be reported in a standardised format."
     },
     {
       "number": 383,
@@ -3454,7 +3485,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "Triggers a routine that displays the I/O error details in a readable format to assist operators in diagnosing the file open failure."
     },
     {
       "number": 384,
@@ -3463,7 +3494,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": ""
+      "explanation": "Forces an immediate abnormal program termination, ensuring no further processing occurs and no partial or empty output file is silently passed to downstream systems."
     },
     {
       "number": 385,
@@ -3481,7 +3512,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Endet die Operation '4000-VBRFILE-OPEN'."
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
     },
     {
       "number": 387,
@@ -3490,7 +3521,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-VBRFILE-OPEN",
-      "explanation": "Beendet den Abschnitt und gibt einen Kommentar hin."
+      "explanation": ""
     },
     {
       "number": 388,
@@ -3499,7 +3530,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Abschluss des Kontostandards und Fehlerabgleich bei Schließung des Kontodatei-Files"
+      "explanation": "Entry point for the routine responsible for closing the master credit card account file after all accounts have been processed."
     },
     {
       "number": 389,
@@ -3508,7 +3539,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Zählt die Anzahl der Versuche zum Schließen des Kontodatei-Files auf 8."
+      "explanation": "Initialises the operation result to a non-success state (8) as a defensive default, assuming failure until the close is confirmed successful."
     },
     {
       "number": 390,
@@ -3517,7 +3548,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Versucht das schließende Vorgehen für das Kontodatei-File durchzuführen."
+      "explanation": "Closes the master credit card account file, releasing it from the batch job and flushing any remaining buffered data."
     },
     {
       "number": 391,
@@ -3526,7 +3557,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Prüft, ob das File erfolgreich geschlossen wurde (Status '00')."
+      "explanation": "Checks whether the master account file closed successfully by inspecting the file system's returned status code."
     },
     {
       "number": 392,
@@ -3535,7 +3566,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Gibt bei erfolgreicher Schließung den Wert von APPL-RESULT um 1 reduziert zurück."
+      "explanation": "If the file closed without error, resets the operation result to success (zero), confirming the file was released cleanly."
     },
     {
       "number": 393,
@@ -3544,7 +3575,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Reduziert bei fehlendem Erfolg der Schließung den Wert von APPL-RESULT um 12."
+      "explanation": "Begins the error handling branch for when the master account file did not close successfully."
     },
     {
       "number": 394,
@@ -3553,7 +3584,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": ""
+      "explanation": "Sets the operation result to a failure code (12), signalling that the file close encountered a critical error."
     },
     {
       "number": 395,
@@ -3562,7 +3593,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": ""
+      "explanation": "Ends the success/failure determination logic for the file close operation."
     },
     {
       "number": 396,
@@ -3571,7 +3602,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Falls die Anwendung ohne Fehler ausgeführt wurde (APPL-AOK), wird das Programm fortgesetzt."
+      "explanation": "Evaluates whether the overall file close operation completed without error before deciding how to proceed."
     },
     {
       "number": 397,
@@ -3580,7 +3611,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Gibt einen Fehler aus, wenn ein Fehler beim Schließen des Kontodatei-Files auftritt."
+      "explanation": "If the file closed successfully, no further action is needed and processing continues normally to the next step."
     },
     {
       "number": 398,
@@ -3589,7 +3620,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Speichert den IO-Status in der Variable IO-STATUS und führt eine spezifische Ausgabe durch."
+      "explanation": "Begins the error response block triggered when the master account file could not be closed properly."
     },
     {
       "number": 399,
@@ -3598,7 +3629,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": ""
+      "explanation": "Writes a human-readable error message to the system console, alerting operators that the master account file failed to close."
     },
     {
       "number": 400,
@@ -3607,7 +3638,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": ""
+      "explanation": "Captures the specific file system error code returned by the operating system for diagnostic and audit purposes."
     },
     {
       "number": 401,
@@ -3616,7 +3647,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Führt eine bestimmte Aktion aus, wenn ein Fehler im Programm auftritt."
+      "explanation": "Displays the detailed file system error code to the console so operators and support staff can identify the exact nature of the failure."
     },
     {
       "number": 402,
@@ -3625,7 +3656,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Führt eine spezifische Funktion aus, die wahrscheinlich eine Abbruch- oder Fehlerbehandlung darstellt."
+      "explanation": "Triggers an immediate abnormal termination of the batch program, preventing any downstream processing from continuing with a potentially corrupt or unreleased file."
     },
     {
       "number": 403,
@@ -3634,7 +3665,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Endet das Programm mit einem Fehler (ABEND-PROGRAM)."
+      "explanation": "Ends the error handling block for the file close failure scenario."
     },
     {
       "number": 404,
@@ -3643,7 +3674,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-ACCTFILE-CLOSE",
-      "explanation": "Beendet den aktuellen Prozess."
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine if the file closed successfully."
     },
     {
       "number": 405,
@@ -3661,7 +3692,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Definiert den Ausfallscode '9999-ABEND-PROGRAM'."
+      "explanation": "Entry point for the emergency shutdown routine, invoked whenever a fatal file or processing error is detected during the batch run."
     },
     {
       "number": 407,
@@ -3670,7 +3701,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Zeigt eine Nachricht an, dass der Programmabbruch erfolgt."
+      "explanation": "Writes a clear termination message to the system console so that operators monitoring the batch job are immediately aware that the program is shutting down abnormally."
     },
     {
       "number": 408,
@@ -3679,7 +3710,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Setzt die Variable TIMING auf 0 (Zeitstempel für den Programmausfall)."
+      "explanation": "Signals that the abend should occur immediately without any delay or deferred timing, ensuring the failure is reported at the exact point it occurs."
     },
     {
       "number": 409,
@@ -3688,7 +3719,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Setzt die Variable ABCODE auf 999 (Code für einen schweren Fehler oder Programmausfall)."
+      "explanation": "Sets a specific numeric abend code (999) that identifies this failure as a critical batch processing error, allowing operations teams to distinguish it from other types of system failures."
     },
     {
       "number": 410,
@@ -3697,7 +3728,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Aufruft eine externe Routine namens 'CEE3ABD' mit den Parametern ABCODE und TIMING."
+      "explanation": "Calls the IBM Language Environment abend service to forcibly terminate the program, raising the abend code so that job schedulers, monitoring tools, and downstream dependencies are notified of the unrecoverable failure."
     },
     {
       "number": 411,
@@ -3715,7 +3746,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND-PROGRAM",
-      "explanation": "Ein weiterer Kommentar, der wahrscheinlich zusätzliche Informationen über die Funktion dieses Abschnitts oder möglicherweise eine Anweisung für zukünftige Bearbeiter enthält."
+      "explanation": ""
     },
     {
       "number": 413,
@@ -3724,7 +3755,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Entry point of the routine responsible for translating and displaying file operation status information to the console."
     },
     {
       "number": 414,
@@ -3733,7 +3764,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Checks whether the file status code returned by the last file operation is non-numeric, which would indicate an abnormal or system-level file error rather than a standard COBOL file condition."
     },
     {
       "number": 415,
@@ -3742,7 +3773,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Also checks whether the file status indicates a hardware or operating-system-level error (status codes beginning with '9' signal serious, non-standard file failures)."
     },
     {
       "number": 416,
@@ -3751,7 +3782,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Captures the first character of the file status code into the display buffer so the full error code can be assembled for console output."
     },
     {
       "number": 417,
@@ -3760,7 +3791,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Clears a working numeric area to zero in preparation for converting the second part of the file status code into a displayable numeric format."
     },
     {
       "number": 418,
@@ -3769,7 +3800,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Places the second character of the file status code into the right-hand portion of the conversion area, ready for numeric interpretation."
     },
     {
       "number": 419,
@@ -3778,7 +3809,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Converts the raw binary representation of the second status character into a numeric value that can be displayed meaningfully to operations staff."
     },
     {
       "number": 420,
@@ -3787,7 +3818,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Writes the fully assembled abnormal file status code to the system console, allowing operators to identify the exact nature of the file failure."
     },
     {
       "number": 421,
@@ -3796,7 +3827,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Begins the alternative path for standard, numeric file status codes that do not represent system-level failures."
     },
     {
       "number": 422,
@@ -3805,7 +3836,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Initialises the display buffer with zeros so that any unused positions in the status display field are blank rather than containing stale data."
     },
     {
       "number": 423,
@@ -3814,7 +3845,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Inserts the standard two-character file status code into the correct position within the display buffer for accurate console reporting."
     },
     {
       "number": 424,
@@ -3823,7 +3854,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Writes the formatted standard file status code to the system console, providing the operations team with the specific file condition that occurred."
     },
     {
       "number": 425,
@@ -3832,7 +3863,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Closes the conditional logic block that handles both abnormal and standard file status scenarios."
     },
     {
       "number": 426,
@@ -3841,7 +3872,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9910-DISPLAY-IO-STATUS",
-      "explanation": ""
+      "explanation": "Marks the end of this diagnostic routine and returns control to the calling paragraph."
     },
     {
       "number": 427,
@@ -3884,212 +3915,662 @@
     {
       "name": "FD-ACCTFILE-REC",
       "level": "01",
-      "picture": "null",
-      "value": "null",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the master credit card account file (ACCTFILE). Represents the raw layout used to physically read each account record from the indexed master file before its data is mapped into working storage for processing."
+    },
+    {
+      "name": "FD-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten eines Kontos in einer Datei zu speichern."
+      "description": "The unique 11-digit account number as read directly from the master account file. This is the primary key used to identify which credit card account record has just been read from disk."
+    },
+    {
+      "name": "FD-ACCT-DATA",
+      "level": "05",
+      "picture": "PIC X(289)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining 289 bytes of raw account data following the account ID in the physical file record (balances, limits, dates, status, group, etc.). This bulk field holds all other account attributes before they are parsed into named working-storage fields for business processing."
     },
     {
       "name": "OUT-ACCT-REC",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The output record layout written to the sequential flat output file (OUTFILE). Represents a fully formatted account snapshot — including balances, limits, dates, status and group — that downstream reporting and processing systems will consume."
+    },
+    {
+      "name": "OUT-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten eines Kontos zu speichern und auszugeben."
+      "description": "The unique 11-digit credit card account number written to the flat output file. Allows downstream systems to uniquely identify which account each output record belongs to."
+    },
+    {
+      "name": "OUT-ACCT-ACTIVE-STATUS",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A single-character flag written to the flat output file indicating whether the credit card account is currently active or inactive. Downstream systems use this to determine whether the account is eligible for transactions, statements or other processing."
+    },
+    {
+      "name": "OUT-ACCT-CURR-BAL",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The current outstanding balance on the credit card account, written to the flat output file. Represents the total amount the cardholder currently owes, used by downstream systems for billing, risk assessment and reporting."
+    },
+    {
+      "name": "OUT-ACCT-CREDIT-LIMIT",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The maximum credit limit authorised for the account, written to the flat output file. Downstream systems use this to calculate available credit, enforce spending controls and produce limit utilisation reports."
+    },
+    {
+      "name": "OUT-ACCT-CASH-CREDIT-LIMIT",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The maximum cash advance credit limit authorised for the account, written to the flat output file. Downstream systems use this to control and report on the cardholder's ability to withdraw cash against their credit line."
+    },
+    {
+      "name": "OUT-ACCT-OPEN-DATE",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The date the credit card account was originally opened, written to the flat output file. Used by downstream systems for customer tenure analysis, anniversary processing and regulatory reporting."
+    },
+    {
+      "name": "OUT-ACCT-EXPIRAION-DATE",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The expiry date of the credit card associated with the account, written to the flat output file. Downstream systems use this to identify cards approaching expiry and trigger card renewal or replacement workflows."
+    },
+    {
+      "name": "OUT-ACCT-REISSUE-DATE",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The reformatted card reissue date written to the flat output file. This date has been converted via the COBDATFT date utility to a consistent format, indicating when the card was or is scheduled to be reissued, supporting downstream card management and fulfilment systems."
+    },
+    {
+      "name": "OUT-ACCT-CURR-CYC-CREDIT",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The total credits posted to the account during the current billing cycle, written to the flat output file. Downstream systems use this for cycle-to-date statement generation, payment reconciliation and balance calculations."
+    },
+    {
+      "name": "OUT-ACCT-CURR-CYC-DEBIT",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The total debits posted to the account during the current billing cycle, written to the flat output file. If the actual cycle debit is zero, a default placeholder value of 2525.00 is substituted, ensuring downstream systems always receive a non-zero debit figure for processing integrity."
+    },
+    {
+      "name": "OUT-ACCT-GROUP-ID",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The customer group or portfolio segment identifier written to the flat output file. Downstream systems use this to segment accounts by product type, risk tier or customer category for targeted reporting and portfolio management."
     },
     {
       "name": "ARR-ARRAY-REC",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The output record layout written to the array-structured output file (ARRYFILE). Represents an account with multiple balance and debit occurrences per record, supporting downstream multi-period or multi-scenario processing and modelling."
+    },
+    {
+      "name": "ARR-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique 11-digit credit card account number written to the array output file. Identifies which account the multiple balance/debit scenario occurrences in the same record belong to."
+    },
+    {
+      "name": "ARR-ACCT-BAL",
+      "level": "05",
+      "picture": null,
+      "value": null,
       "redefines": null,
       "occurs": "OCCURS 5 TIMES",
+      "is_group": true,
+      "description": "A repeating group of up to five balance and debit pairs per account record in the array output file. Each occurrence represents a distinct balance/debit scenario or time period, allowing downstream systems to process multiple financial snapshots for the same account in a single record. Only three of the five occurrences are populated by this program."
+    },
+    {
+      "name": "ARR-ACCT-CURR-BAL",
+      "level": "10",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um eine Array-Struktur zu speichern."
+      "description": "The account balance figure for one scenario or period occurrence in the array output record. Occurrences 1 and 2 carry the actual current balance; occurrence 3 carries a hardcoded negative value (-1025.00), indicating a test or modelled scenario rather than a live balance."
+    },
+    {
+      "name": "ARR-ACCT-CURR-CYC-DEBIT",
+      "level": "10",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The cycle debit figure for one scenario or period occurrence in the array output record. Occurrence 1 uses a hardcoded value of 1005.00, occurrence 2 uses 1525.00, and occurrence 3 uses -2500.00, indicating these are test or scenario-modelling values rather than live transaction data."
+    },
+    {
+      "name": "ARR-FILLER",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A 4-byte padding field at the end of the array output record. Ensures the record meets the required fixed length for the ARRYFILE, with no business data content."
     },
     {
       "name": "VBR-REC",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC X(80)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um eine Variable mit einer festen Länge von 80 Zeichen zu speichern."
+      "description": "The generic 80-byte working buffer used to stage variable-length records before they are written to the VBRCFILE. The actual content and byte length written are controlled by WS-RECD-LEN, allowing either the short 12-byte record (account ID + status) or the longer 39-byte record (account ID + balance + limit + reissue year) to be output for each account."
     },
     {
       "name": "ACCTFILE-STATUS",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned by the operating system after every I/O operation on the master account file (ACCTFILE). Used to detect and respond to read errors or end-of-file conditions, triggering an immediate program abend if an unexpected status is received."
+    },
+    {
+      "name": "ACCTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Kontodatei zu speichern."
+      "description": "The first character of the ACCTFILE I/O status code. A value of '0' generally indicates success; any other value signals a file error that will cause the batch program to abend immediately."
+    },
+    {
+      "name": "ACCTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the ACCTFILE I/O status code. Combined with ACCTFILE-STAT1, provides the specific reason code for any file error encountered when reading the master account file."
     },
     {
       "name": "OUTFILE-STATUS",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the sequential flat output file (OUTFILE). Used to detect write errors and trigger an immediate abend to prevent partial or corrupt output from being silently produced."
+    },
+    {
+      "name": "OUTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Ausgabedatei zu speichern."
+      "description": "The first character of the OUTFILE I/O status code. Indicates the general success or failure category of the most recent write operation to the flat account output file."
+    },
+    {
+      "name": "OUTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the OUTFILE I/O status code. Provides the specific error detail code for any failure encountered when writing account records to the flat output file."
     },
     {
       "name": "ARRYFILE-STATUS",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the array-structured output file (ARRYFILE). Used to detect write errors and trigger an immediate abend to protect the integrity of the multi-scenario account output."
+    },
+    {
+      "name": "ARRYFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine Array-Datei zu speichern."
+      "description": "The first character of the ARRYFILE I/O status code. Indicates the general success or failure category of the most recent write operation to the array output file."
+    },
+    {
+      "name": "ARRYFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the ARRYFILE I/O status code. Provides the specific error detail code for any failure encountered when writing multi-scenario account records to the array output file."
     },
     {
       "name": "VBRCFILE-STATUS",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the variable-length record output file (VBRCFILE). Used to detect write errors and trigger an immediate abend to ensure no partial variable-length records are silently written."
+    },
+    {
+      "name": "VBRCFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über eine VBRC-Datei zu speichern."
+      "description": "The first character of the VBRCFILE I/O status code. Indicates the general success or failure category of the most recent write operation to the variable-length record output file."
+    },
+    {
+      "name": "VBRCFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the VBRCFILE I/O status code. Provides the specific error detail code for any failure encountered when writing variable-length account records to the VBRCFILE."
     },
     {
       "name": "IO-STATUS",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A general-purpose two-character I/O status code holder used to consolidate and evaluate file status results across all four output files. Supports centralised error checking logic that determines whether to continue processing or abend the batch run."
+    },
+    {
+      "name": "IO-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Statusinformationen über IO-Operationen zu speichern."
+      "description": "The first character of the consolidated I/O status code. Used in error evaluation routines to determine the general category of any file operation result across the batch program."
+    },
+    {
+      "name": "IO-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the consolidated I/O status code. Provides the specific reason code used alongside IO-STAT1 to diagnose and report file errors during the batch run."
     },
     {
       "name": "TWO-BYTES-BINARY",
       "level": "01",
-      "picture": null,
-      "value": "null",
-      "redefines": "REDEFINES TWO-BYTES-ALPHA",
+      "picture": "PIC 9(4) BINARY",
+      "value": null,
+      "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zwei Bytes in binärer Darstellung zu speichern."
+      "description": "A two-byte binary numeric field used to hold and manipulate I/O status codes in their raw binary form. Allows the program to inspect individual bytes of a status code by overlaying it with the TWO-BYTES-ALPHA redefinition, supporting precise error diagnosis."
     },
     {
       "name": "TWO-BYTES-ALPHA",
       "level": "01",
       "picture": null,
-      "value": "null",
-      "redefines": "REDEFINES TWO-BYTES-BINARY",
+      "value": null,
+      "redefines": "TWO-BYTES-BINARY",
+      "occurs": null,
+      "is_group": true,
+      "description": "An alphanumeric redefinition of TWO-BYTES-BINARY that allows the same two bytes to be read as individual characters. Enables the program to inspect the left and right bytes of a binary status code separately for error handling and reporting."
+    },
+    {
+      "name": "TWO-BYTES-LEFT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zwei Bytes in alphanumerischer Darstellung zu speichern."
+      "description": "The left (first) byte of the binary I/O status code when viewed as characters. Used in error handling routines to extract and evaluate the high-order byte of a file status result."
+    },
+    {
+      "name": "TWO-BYTES-RIGHT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The right (second) byte of the binary I/O status code when viewed as characters. Used in error handling routines to extract and evaluate the low-order byte of a file status result."
     },
     {
       "name": "IO-STATUS-04",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A structured working-storage area used to decompose and display a numeric I/O status code for error reporting. Splits the status into a single leading digit and a three-digit detail code to support formatted error messages in the batch run log."
+    },
+    {
+      "name": "IO-STATUS-0401",
+      "level": "05",
+      "picture": "PIC 9",
+      "value": "0",
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Statusinformationen über IO-Operationen zu speichern."
+      "description": "The leading single digit of a numeric I/O status code, initialised to zero. Represents the high-level status category (e.g. 0 = success, 1 = end of file, 9 = system error) used in error reporting when a file operation fails."
+    },
+    {
+      "name": "IO-STATUS-0403",
+      "level": "05",
+      "picture": "PIC 999",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The three-digit detail portion of a numeric I/O status code, initialised to zero. Provides the specific reason code within the status category, used to produce precise error messages in the batch run log when a file operation fails."
     },
     {
       "name": "APPL-RESULT",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC S9(9) COMP",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um das Ergebnis einer Anwendung zu speichern."
+      "description": "A signed numeric result code used to capture the outcome of file I/O operations and utility calls (such as the date conversion utility). Evaluated against the APPL-AOK and APPL-EOF condition names to determine whether processing should continue, end normally or abend."
+    },
+    {
+      "name": "APPL-AOK",
+      "level": "88",
+      "picture": null,
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that is true when APPL-RESULT equals zero, indicating a file or utility operation completed successfully. Used throughout the program to confirm that reading, writing and date conversion operations succeeded before continuing to the next account."
+    },
+    {
+      "name": "APPL-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "16",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that is true when APPL-RESULT equals 16, indicating that the end of the master account file has been reached. When this condition is detected, the program stops reading and proceeds to close all output files and end the batch run."
     },
     {
       "name": "END-OF-FILE",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC X(01)",
+      "value": "N",
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um zu bestimmen, ob das Ende eines Dateiendatein oder einer Datenstruktur erreicht wurde."
+      "description": "A flag that controls the main account processing loop. Initialised to 'N' (not at end of file), it is set to 'Y' when the last account record has been read from the master file, signalling the program to stop reading and begin its end-of-job closedown."
     },
     {
       "name": "ABCODE",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Codierungsinformationen zu speichern."
+      "description": "The abend code passed to the system when the program terminates abnormally due to a file I/O error. Ensures that any failure in reading the master account file or writing to any output file results in a clearly identifiable abnormal termination code for operations and support teams."
     },
     {
       "name": "TIMING",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um spezifische Zeitstempelinformationen zu speichern."
+      "description": "A binary numeric field used to pass a timing or delay parameter to the abend utility routine. Controls how the abnormal termination is handled at the system level when a critical file error forces the batch program to stop."
     },
     {
       "name": "WS-RECD-LEN",
       "level": "01",
-      "picture": null,
-      "value": "null",
+      "picture": "PIC 9(04)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Länge einer Recordstruktur zu speichern."
+      "description": "The actual byte length of the variable-length record to be written to the VBRCFILE. Set to 12 before writing the short record (account ID + active status) and to 39 before writing the longer record (account ID + balance + credit limit + reissue year), controlling exactly how many bytes each downstream variable-format record contains."
     },
     {
       "name": "VBRC-REC1",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The short variable-length record layout written first for each account to the VBRCFILE. Contains only the account ID and active status (12 bytes total), providing downstream systems that need minimal account identification data with a compact record format."
+    },
+    {
+      "name": "VB1-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten einer ersten VBRC-Recordstruktur zu speichern."
+      "description": "The unique 11-digit credit card account number in the short variable-length record. Identifies the account for downstream systems consuming the compact VBRCFILE record format."
+    },
+    {
+      "name": "VB1-ACCT-ACTIVE-STATUS",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The single-character active/inactive status flag in the short variable-length record. Allows downstream systems reading the compact 12-byte VBRCFILE record to quickly determine whether the account is currently active without needing the full account detail record."
     },
     {
       "name": "VBRC-REC2",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The longer variable-length record layout written second for each account to the VBRCFILE. Contains the account ID, current balance, credit limit and reissue year (39 bytes total), providing downstream systems that require financial and card lifecycle data with a richer record format."
+    },
+    {
+      "name": "VB2-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten einer zweiten VBRC-Recordstruktur zu speichern."
+      "description": "The unique 11-digit credit card account number in the longer variable-length record. Links the financial and card reissue data in this record to the correct account for downstream systems consuming the VBRCFILE."
+    },
+    {
+      "name": "VB2-ACCT-CURR-BAL",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The current outstanding balance on the credit card account, included in the longer variable-length record. Provides downstream systems consuming the 39-byte VBRCFILE record with the cardholder's current debt position."
+    },
+    {
+      "name": "VB2-ACCT-CREDIT-LIMIT",
+      "level": "05",
+      "picture": "PIC S9(10)V99",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The maximum credit limit authorised for the account, included in the longer variable-length record. Allows downstream systems consuming the 39-byte VBRCFILE record to calculate available credit and enforce limit controls."
+    },
+    {
+      "name": "VB2-ACCT-REISSUE-YYYY",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The four-digit year extracted from the reformatted card reissue date, included in the longer variable-length record. Provides downstream systems with the year in which the card was or is scheduled to be reissued, supporting card lifecycle management and renewal planning."
     },
     {
       "name": "WS-ACCT-REISSUE-DATE",
       "level": "01",
       "picture": null,
-      "value": "null",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A working-storage area used to hold and parse the reformatted card reissue date returned by the COBDATFT date conversion utility. Provides a structured layout from which individual date components (such as the reissue year) can be extracted for inclusion in the variable-length output record."
+    },
+    {
+      "name": "WS-ACCT-REISSUE-YYYY",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": null,
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um die Daten über das Neuausstellungsdatum eines Kontos zu speichern."
+      "description": "The four-digit year component of the credit card reissue date, extracted after the date conversion utility (COBDATFT) reformats the raw reissue date from the account record. This year value is used when constructing the reissue date written to the variable-length output file (VBRCFILE), ensuring downstream systems receive the reissue year in a consistent, separated format."
+    },
+    {
+      "name": "WS-FILLER-1",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A single-character separator (typically a hyphen or slash) positioned between the year and month components of the reformatted card reissue date. This separator ensures the reissue date is written in a human-readable, standardised date format (e.g. YYYY-MM-DD) that downstream systems and reporting consumers expect."
+    },
+    {
+      "name": "WS-ACCT-REISSUE-MM",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The two-digit month component of the credit card reissue date, extracted after the date conversion utility reformats the raw reissue date from the account record. This month value forms part of the structured reissue date written to output files, allowing downstream systems to identify the specific month in which the card was or is due to be reissued."
+    },
+    {
+      "name": "WS-FILLER-2",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A single-character separator (typically a hyphen or slash) positioned between the month and day components of the reformatted card reissue date. Together with WS-FILLER-1, this ensures the reissue date is presented in a consistent, delimited format (e.g. YYYY-MM-DD) across all output files produced by the batch run."
+    },
+    {
+      "name": "WS-ACCT-REISSUE-DD",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The two-digit day component of the credit card reissue date, extracted after the date conversion utility reformats the raw reissue date from the account record. This day value completes the structured reissue date written to output files, giving downstream systems the full calendar date on which the card was or is scheduled to be reissued."
     },
     {
       "name": "WS-REISSUE-DATE",
       "level": "01",
-      "picture": null,
-      "value": "null",
-      "redefines": "REDEFINES WS-ACCT-REISSUE-DATE",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": "WS-ACCT-REISSUE-DATE",
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Beschreibung auf Deutsch: Dieses Feld wird verwendet, um das Neuausstellungsdatum eines Kontos zu speichern."
+      "description": "A 10-character consolidated view of the fully reformatted credit card reissue date, overlaying the same memory as the individual year, separator, month, separator, and day components. This single contiguous field allows the program to write the complete reissue date (e.g. 2024-08-15) as one atomic value to the output files, particularly the variable-length record file (VBRCFILE), without needing to concatenate the individual components at write time."
     }
   ],
   "paragraphs": [
@@ -4097,97 +4578,97 @@
       "name": "1000-ACCTFILE-GET-NEXT",
       "line_start": 165,
       "line_end": 199,
-      "description": ""
+      "description": "This paragraph drives the core processing loop by reading the next credit card account from the master file and, if successful, orchestrating the full sequence of output writes across all three downstream files. It also handles end-of-file detection and abends immediately on any unexpected read error to prevent silent data loss."
     },
     {
       "name": "1100-DISPLAY-ACCT-RECORD",
       "line_start": 200,
       "line_end": 214,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist ein Display-Befehl für eine Kreditkartenrechnung. Er zeigt bestimmte Daten einer Karte an, wie ID, Aktivitätsstatus, aktuelle Guthaben und mehr."
+      "description": "This paragraph writes a complete snapshot of each credit card account's key attributes to the system console log, providing a full audit trail of every account processed during the batch run. It ensures that operators and auditors can verify exactly what data was read from the master file for each account."
     },
     {
       "name": "1300-POPUL-ACCT-RECORD",
       "line_start": 215,
       "line_end": 241,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' übernimmt und formatiert Daten aus einer Kreditkartenrechnung. Die Daten werden in eine Ausgabewarteschlange geleitet, die für das Reissuern von Kreditkarten verwendet wird."
+      "description": "This paragraph assembles the full account record for the flat sequential output file by copying all key account attributes from the master file, applying a mandatory date format conversion to the card reissue date, and substituting a default debit figure when no current-cycle debit activity exists."
     },
     {
       "name": "1350-WRITE-ACCT-RECORD",
       "line_start": 242,
       "line_end": 252,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Statusnachrichten beim Schreiben in das Konto-Datei und führt entsprechende Fehlerbehandlungen durch."
+      "description": "This paragraph writes a fully populated account record to the flat sequential output file, which downstream systems use for reporting and further processing. It enforces strict data integrity by immediately aborting the entire batch job if the write operation fails, preventing any silent or partial output."
     },
     {
       "name": "1400-POPUL-ARRAY-RECORD",
       "line_start": 253,
       "line_end": 262,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' erstellt eine Array-Record für die Verwaltung von Kreditkarten. Die Daten werden in den Feldern des Arrays gespeichert."
+      "description": "This paragraph constructs the array-structured output record for each account by populating three balance/debit scenario slots. Two slots use the account's real current balance paired with hardcoded debit figures, while a third slot contains fixed negative values, suggesting this output is used for scenario modelling or test data generation rather than live production reporting."
     },
     {
       "name": "1450-WRITE-ARRY-RECORD",
       "line_start": 263,
       "line_end": 275,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' überprüft die Schreibstatus von einem File und führt entsprechende Fehlerabstufungen aus."
+      "description": "This paragraph writes the array-structured account record — containing multiple sets of balance and debit figures — to the multi-period output file. If the write operation fails for any reason, the program immediately logs the error and abends to prevent corrupt or incomplete output from reaching downstream systems."
     },
     {
       "name": "1500-POPUL-VBRC-RECORD",
       "line_start": 276,
       "line_end": 286,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' ist verantwortlich für die Initialisierung von Variablen, die aus einer bestimmten Kreditkarten-Datenbank extrahiert werden. Die Daten werden in zwei separate Variablen (VB1 und VB2) verteilt."
+      "description": "This paragraph prepares two variable-length output records per account for downstream systems requiring different levels of data granularity: a short record containing only the account identifier and active/inactive status, and a longer record containing the account identifier, current outstanding balance, authorised credit limit, and card reissue year."
     },
     {
       "name": "1550-WRITE-VB1-RECORD",
       "line_start": 287,
       "line_end": 301,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' schreibt ein VB1-Datenrecord aus und prüft den Schreibstatus des Accounts-Files."
+      "description": "Writes a short 12-byte summary record to the variable-length output file, containing only the account identifier and active/inactive status flag, to satisfy downstream systems that require a lightweight status-only view of each account. If the write fails for any reason, the batch run is immediately halted to prevent incomplete or corrupt output from reaching downstream consumers."
     },
     {
       "name": "1575-WRITE-VB2-RECORD",
       "line_start": 302,
       "line_end": 316,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' schreibt eine Kreditkartenrechnung in einen Speicherort und überprüft die Schreibstatus des Dateisystems."
+      "description": "Writes the longer of the two variable-length records to the variable-format output file, containing the full financial summary for an account (account ID, current balance, credit limit, and reissue year) in a fixed 39-byte format. This record supports downstream systems that require detailed financial data at a granular level."
     },
     {
       "name": "0000-ACCTFILE-OPEN",
       "line_start": 317,
       "line_end": 333,
-      "description": "Dieser Abschnitt des Programms 'CBACT01C' ist für die Öffnung eines Datensatzes namens 'ACCTFILE-FILE'. Er führt eine Reihe von Schritten durch, um sicherzustellen, dass der Datensatz erfolgreich geöffnet wird und gibt entsprechende Fehlermeldungen aus, wenn dies nicht der Fall ist."
+      "description": "This paragraph opens the master credit card account file in preparation for the batch extract run. If the file cannot be opened successfully, the program immediately abends to prevent any downstream output being produced without source data."
     },
     {
       "name": "2000-OUTFILE-OPEN",
       "line_start": 334,
       "line_end": 351,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' öffnet eine Ausgabedatei und speichert den Status in der Variable APPL-RESULT. Er führt Fehlerbehandlungen aus, wenn die Datei nicht erfolgreich geöffnet werden kann."
+      "description": "This paragraph opens the flat sequential output file that will receive full account details for downstream processing and reporting. If the file cannot be opened, the program immediately abends to prevent any partial or silent data loss."
     },
     {
       "name": "3000-ARRFILE-OPEN",
       "line_start": 352,
       "line_end": 369,
-      "description": "Dieser Abschnitt des Programms 'CBACT01C' öffnet eine Datei namens 'ARRY-FILE'. Er führt Fehlerabläufe aus, wenn die Datei nicht erfolgreich geöffnet wird."
+      "description": "This paragraph opens the array-structured output file ready to receive multi-period balance and debit data for each account. If the file cannot be opened, the program immediately abends to prevent any partial or missing output from reaching downstream systems."
     },
     {
       "name": "4000-VBRFILE-OPEN",
       "line_start": 370,
       "line_end": 387,
-      "description": "Dieser Abschnitt des COBOL-Programms 'CBACT01C' öffnet eine Datei namens VBRC-FILE und überprüft den Status der Dateiöffnung. Je nach dem Ergebnis wird die Variable APPL-RESULT entsprechend gesetzt."
+      "description": "This paragraph opens the variable-length record output file in preparation for writing two types of account records per account (a short status record and a longer financial summary record). If the file cannot be opened, the program immediately abends to prevent any downstream system from receiving incomplete or missing data."
     },
     {
       "name": "9000-ACCTFILE-CLOSE",
       "line_start": 388,
       "line_end": 405,
-      "description": "Abschluss des Kontostandards und Fehlerabgleich bei Schließung des Kontodatei-Files"
+      "description": "This paragraph safely closes the master credit card account file at the end of batch processing, ensuring all data is flushed and the file is properly released. If the file cannot be closed cleanly, the program immediately abends to prevent data integrity issues and silent failures."
     },
     {
       "name": "9999-ABEND-PROGRAM",
       "line_start": 406,
       "line_end": 412,
-      "description": "Dieser Abschnitt des COBOL-Programms beinhaltet die Initialisierung von Programmausfallparametern und eine Aufrufanweisung zu einer externen Routine."
+      "description": "This paragraph handles unrecoverable processing failures by immediately terminating the batch program in a controlled abend, ensuring that any downstream systems or operators are clearly alerted to a critical error rather than receiving silent, incomplete, or corrupted output."
     },
     {
       "name": "9910-DISPLAY-IO-STATUS",
       "line_start": 413,
       "line_end": 430,
-      "description": ""
+      "description": "This paragraph formats and displays a human-readable file operation status code to the system console whenever a file I/O event occurs, supporting the audit trail and enabling operators or support staff to diagnose file processing failures during the batch run."
     }
   ],
   "copybooks": [

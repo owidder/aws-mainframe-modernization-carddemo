@@ -4,25 +4,25 @@
     "file_path": "app/app-authorization-ims-db2-mq/cbl/COPAUS1C.cbl",
     "analyzed_at": "2026-05-02T18:32:18.078883",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Detailansicht einer ausstehenden Kreditkarten-Autorisierungsnachricht mit der Möglichkeit, Transaktionen als betrügerisch zu markieren oder die Markierung aufzuheben.",
-    "process_description": "Das Programm zeigt einem Bankmitarbeiter die vollständigen Details einer einzelnen, ausstehenden Autorisierungsanfrage an – einschließlich Kartennummer, Betrag, Datum/Uhrzeit, Händlerinformationen, Autorisierungsstatus (genehmigt/abgelehnt) und Ablehnungsgrund. Der Mitarbeiter kann zwischen Autorisierungsdatensätzen vorwärts blättern (PF8) oder zur Übersichtsseite zurückkehren (PF3). Eine zentrale Geschäftsfunktion ist die Betrugsmeldung: Per PF5 kann der Mitarbeiter eine Transaktion als Betrug markieren (Flag setzen) oder eine bestehende Betrugsmarkierung wieder entfernen – die Aktion wird über das Programm COPAUS2C verarbeitet und in der IMS-Datenbank persistiert. Bei Fehler wird die Datenbankänderung zurückgerollt.",
+    "description": "Detail view of a pending credit card authorization message with the option to mark transactions as fraudulent or remove the mark.",
+    "process_description": "The program displays the complete details of a single pending authorization request to a bank employee – including card number, amount, date/time, merchant information, authorization status (approved/declined), and reason for decline. The employee can page forward through authorization records (PF8) or return to the overview screen (PF3). A key business function is fraud reporting: using PF5, the employee can flag a transaction as fraudulent or remove an existing fraud flag – the action is processed via the program COPAUS2C and persisted in the IMS database. In case of an error, the database change is rolled back.",
     "type": "CICS Online",
     "module": "Authentication",
     "files": {
-      "CIPAUSMY": "IMS-Datenstruktur für die Zusammenfassung ausstehender Autorisierungen (Pending Authorization Summary)",
-      "CIPAUDTY": "IMS-Datenstruktur für die Details einer einzelnen ausstehenden Autorisierung (Pending Authorization Detail)",
-      "PSBPAUTB": "IMS Program Specification Block für den Zugriff auf die Autorisierungsdatenbank",
-      "COPAU1AO": "BMS-Map für die Detailanzeige der Autorisierungsnachricht auf dem Bildschirm"
+      "CIPAUSMY": "IMS data structure for the summary of pending authorizations (Pending Authorization Summary)",
+      "CIPAUDTY": "IMS data structure for the details of a single pending authorization (Pending Authorization Detail)",
+      "PSBPAUTB": "IMS Program Specification Block for accessing the authorization database",
+      "COPAU1AO": "BMS map for the detail display of the authorization message on the screen"
     },
     "business_rules": [
-      "Eine Transaktion gilt als genehmigt, wenn der Autorisierungscode '00' ist; alle anderen Codes führen zur Anzeige als abgelehnt (rot markiert).",
-      "Ablehnungsgründe werden aus einer fest codierten Tabelle mit 10 Einträgen nachgeschlagen; unbekannte Codes werden als 'ERROR' angezeigt.",
-      "Eine Betrugsmarkierung ist ein Toggle: Ist eine Transaktion bereits als Betrug markiert (PA-FRAUD-CONFIRMED), wird die Markierung entfernt; andernfalls wird sie als Betrug gemeldet.",
-      "Betrugsaktionen werden über das externe Programm COPAUS2C verarbeitet; bei Fehler (EIBRESP ≠ NORMAL oder WS-FRD-UPDT-FAILED) wird die Datenbankänderung vollständig zurückgerollt (ROLLBACK).",
-      "Das Programm kann nur aufgerufen werden, wenn eine gültige Kontonummer (numerisch) und ein ausgewählter Autorisierungsschlüssel aus der Übersichtsseite (COPAUS0C) vorhanden sind.",
-      "Mit PF8 kann der Mitarbeiter zur nächsten ausstehenden Autorisierung desselben Kontos navigieren; am Ende der Liste wird eine entsprechende Hinweismeldung angezeigt.",
-      "Mit PF3 kehrt der Mitarbeiter zur Autorisierungsübersicht (COPAUS0C) zurück, ohne Änderungen vorzunehmen.",
-      "IMS-Datenbankzugriffe werden nach Abschluss mit einem Syncpoint abgeschlossen, um Datenkonsistenz sicherzustellen."
+      "A transaction is considered approved if the authorization code is '00'; all other codes result in it being displayed as declined (highlighted in red).",
+      "Decline reasons are looked up from a hard-coded table with 10 entries; unknown codes are displayed as 'ERROR'.",
+      "A fraud flag is a toggle: if a transaction is already flagged as fraud (PA-FRAUD-CONFIRMED), the flag is removed; otherwise, it is reported as fraud.",
+      "Fraud actions are processed via the external program COPAUS2C; in case of an error (EIBRESP ≠ NORMAL or WS-FRD-UPDT-FAILED), the database change is fully rolled back (ROLLBACK).",
+      "The program can only be invoked if a valid account number (numeric) and a selected authorization key from the overview screen (COPAUS0C) are present.",
+      "Using PF8, the operator can navigate to the next pending authorization for the same account; at the end of the list, an appropriate informational message is displayed.",
+      "Using PF3, the operator returns to the authorization overview (COPAUS0C) without making any changes.",
+      "IMS database accesses are finalized with a Syncpoint upon completion to ensure data consistency."
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -1455,7 +1455,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA ist der zentrale Steuerungsparagraph des Programms: Er prüft den Einstiegskontext, wertet die Tastatureingabe des Bankmitarbeiters aus und leitet daraus die entsprechende Geschäftsaktion (Anzeige, Betrugsmarkierung, Navigation) ab."
+      "explanation": "MAIN-PARA is the central control paragraph of the program: it checks the entry context, evaluates the bank employee's keyboard input, and derives the corresponding business action (display, fraud flagging, navigation) from it."
     },
     {
       "number": 158,
@@ -1473,7 +1473,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt den Fehlerstatus zurück, sodass das Programm ohne vorherigen Fehler startet."
+      "explanation": "Resets the error status so that the program starts without a prior error."
     },
     {
       "number": 160,
@@ -1482,7 +1482,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Bereitet die Bildschirmausgabe so vor, dass der Detailbildschirm vollständig neu aufgebaut wird (kein Restinhalt vom vorherigen Aufruf)."
+      "explanation": "Prepares the screen output so that the detail screen is built up completely from scratch (no residual content from the previous call)."
     },
     {
       "number": 161,
@@ -1500,7 +1500,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht eine eventuell noch angezeigte Statusmeldung und die Fehleranzeige auf dem Detailbildschirm."
+      "explanation": "Clears any status message still displayed and the error indicator on the detail screen."
     },
     {
       "number": 163,
@@ -1509,7 +1509,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht das Fehlerfeld im BMS-Map der Autorisierungsdetailansicht."
+      "explanation": "Clears the error field in the BMS map of the authorization detail view."
     },
     {
       "number": 164,
@@ -1527,7 +1527,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob das Programm ohne gültige Sitzungsdaten aufgerufen wurde – dies würde bedeuten, dass kein Kontext aus der Übersichtsseite übergeben wurde."
+      "explanation": "Checks whether the program was called without valid session data – this would mean that no context was passed from the overview screen."
     },
     {
       "number": 166,
@@ -1536,7 +1536,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Initialisiert den Kommunikationsbereich, da kein gültiger Sitzungskontext vorhanden ist."
+      "explanation": "Initializes the communication area, as no valid session context is present."
     },
     {
       "number": 167,
@@ -1554,7 +1554,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt das Autorisierungsübersichtsprogramm (COPAUS0C) als Rücksprungziel, da ohne Kontext keine Detailanzeige möglich ist."
+      "explanation": "Sets the authorization overview program (COPAUS0C) as the return target, since a detail display is not possible without context."
     },
     {
       "number": 169,
@@ -1563,7 +1563,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Leitet den Mitarbeiter zur Autorisierungsübersicht weiter, weil das Programm nicht direkt ohne vorherige Auswahl einer Transaktion aufgerufen werden darf."
+      "explanation": "Redirects the employee to the authorization overview because the program must not be called directly without a prior transaction selection."
     },
     {
       "number": 170,
@@ -1581,7 +1581,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Übernimmt die Sitzungsdaten (Kontonummer, ausgewählter Autorisierungsschlüssel, Benutzerkontext) aus dem übergebenen Kommunikationsbereich der vorherigen Maske."
+      "explanation": "Adopts the session data (account number, selected authorization key, user context) from the communication area passed by the previous screen."
     },
     {
       "number": 172,
@@ -1590,7 +1590,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht eventuell noch vorhandene Betrugsstatusinformationen aus dem Kommunikationsbereich, um eine saubere Verarbeitung sicherzustellen."
+      "explanation": "Clears any fraud status information still present in the communication area to ensure clean processing."
     },
     {
       "number": 173,
@@ -1599,7 +1599,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob der Mitarbeiter den Detailbildschirm zum ersten Mal aufruft (Erstaufruf nach Auswahl aus der Übersicht)."
+      "explanation": "Checks whether the employee is calling the detail screen for the first time (initial call after selection from the overview)."
     },
     {
       "number": 174,
@@ -1608,7 +1608,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Markiert die Sitzung als wiedereingetreten, damit beim nächsten Aufruf die Tastatureingabe des Mitarbeiters ausgewertet wird."
+      "explanation": "Marks the session as re-entered so that the employee's keyboard input is evaluated on the next call."
     },
     {
       "number": 175,
@@ -1617,7 +1617,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt die vollständigen Autorisierungsdetails der ausgewählten Transaktion aus der IMS-Datenbank und bereitet die Bildschirmanzeige vor."
+      "explanation": "Loads the complete authorization details of the selected transaction from the IMS database and prepares the screen display."
     },
     {
       "number": 176,
@@ -1635,7 +1635,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt dem Mitarbeiter die Detailansicht der ausgewählten Autorisierungsnachricht mit allen Transaktionsinformationen an."
+      "explanation": "Displays the detail view of the selected authorization message with all transaction information to the employee."
     },
     {
       "number": 178,
@@ -1653,7 +1653,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Liest die Tastatureingabe des Mitarbeiters vom Detailbildschirm ein, um die gewünschte Aktion zu ermitteln."
+      "explanation": "Reads the employee's keyboard input from the detail screen in order to determine the desired action."
     },
     {
       "number": 180,
@@ -1662,7 +1662,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Wertet aus, welche Funktionstaste der Mitarbeiter gedrückt hat, um die entsprechende Geschäftsaktion auszuführen."
+      "explanation": "Evaluates which function key the employee pressed in order to execute the corresponding business action."
     },
     {
       "number": 181,
@@ -1671,7 +1671,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt den Fall, dass der Mitarbeiter die Enter-Taste gedrückt hat (z.B. zur einfachen Aktualisierung der Anzeige)."
+      "explanation": "Handles the case where the employee pressed the Enter key (e.g., for a simple refresh of the display)."
     },
     {
       "number": 182,
@@ -1680,7 +1680,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt die aktuellen Autorisierungsdetails erneut aus der Datenbank und aktualisiert die Anzeige."
+      "explanation": "Reloads the current authorization details from the database and refreshes the display."
     },
     {
       "number": 183,
@@ -1689,7 +1689,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt den Detailbildschirm mit den aktuellen Transaktionsdaten an."
+      "explanation": "Displays the detail screen with the current transaction data."
     },
     {
       "number": 184,
@@ -1698,7 +1698,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt PF3: Der Mitarbeiter möchte zur Autorisierungsübersicht zurückkehren, ohne Änderungen vorzunehmen."
+      "explanation": "Handles PF3: the employee wants to return to the authorization overview without making any changes."
     },
     {
       "number": 185,
@@ -1707,7 +1707,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt das Autorisierungsübersichtsprogramm (COPAUS0C) als Rücksprungziel."
+      "explanation": "Sets the authorization overview program (COPAUS0C) as the return target."
     },
     {
       "number": 186,
@@ -1716,7 +1716,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Navigiert den Mitarbeiter zurück zur Übersichtsseite aller ausstehenden Autorisierungen."
+      "explanation": "Navigates the employee back to the overview page of all pending authorizations."
     },
     {
       "number": 187,
@@ -1725,7 +1725,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt PF5: Der Mitarbeiter möchte die angezeigte Transaktion als betrügerisch markieren oder eine bestehende Betrugsmarkierung aufheben."
+      "explanation": "Handles PF5: the employee wants to flag the displayed transaction as fraudulent or remove an existing fraud flag."
     },
     {
       "number": 188,
@@ -1734,7 +1734,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Führt die Betrugsmarkierung oder deren Aufhebung durch – je nach aktuellem Status der Transaktion – und persistiert die Änderung über COPAUS2C in der IMS-Datenbank."
+      "explanation": "Performs the fraud flagging or its removal – depending on the current status of the transaction – and persists the change via COPAUS2C in the IMS database."
     },
     {
       "number": 189,
@@ -1743,7 +1743,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt den Detailbildschirm mit dem aktualisierten Betrugsstatus und einer entsprechenden Rückmeldung an."
+      "explanation": "Displays the detail screen with the updated fraud status and a corresponding confirmation message."
     },
     {
       "number": 190,
@@ -1752,7 +1752,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt PF8: Der Mitarbeiter möchte zur nächsten ausstehenden Autorisierung desselben Kontos weiterblättern."
+      "explanation": "Handles PF8: the employee wants to scroll forward to the next pending authorization for the same account."
     },
     {
       "number": 191,
@@ -1761,7 +1761,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt die nächste ausstehende Autorisierungsnachricht des Kontos aus der IMS-Datenbank."
+      "explanation": "Loads the next pending authorization message for the account from the IMS database."
     },
     {
       "number": 192,
@@ -1770,7 +1770,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt die Detailansicht der nächsten Autorisierungsnachricht an."
+      "explanation": "Displays the detail view of the next authorization message."
     },
     {
       "number": 193,
@@ -1779,7 +1779,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt alle anderen Tasteneingaben, die keine gültige Funktion im Programm darstellen."
+      "explanation": "Handles all other key inputs that do not represent a valid function in the program."
     },
     {
       "number": 194,
@@ -1788,7 +1788,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt die aktuellen Autorisierungsdetails erneut, um den Bildschirm unverändert anzuzeigen."
+      "explanation": "Reloads the current authorization details in order to display the screen unchanged."
     },
     {
       "number": 195,
@@ -1806,7 +1806,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt eine Fehlermeldung, die dem Mitarbeiter mitteilt, dass die gedrückte Taste keine gültige Funktion auslöst."
+      "explanation": "Sets an error message informing the employee that the key pressed does not trigger a valid function."
     },
     {
       "number": 197,
@@ -1815,7 +1815,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt den Detailbildschirm mit der Hinweismeldung zur ungültigen Tasteneingabe an."
+      "explanation": "Displays the detail screen with the advisory message regarding the invalid key input."
     },
     {
       "number": 198,
@@ -1860,7 +1860,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt die Kontrolle an das CICS-Transaktionssystem zurück und hält die Sitzungsdaten (Kontonummer, Navigationskontext) für den nächsten Programmaufruf bereit."
+      "explanation": "Returns control to the CICS transaction system and retains the session data (account number, navigation context) for the next program call."
     },
     {
       "number": 203,
@@ -1914,7 +1914,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Einstiegspunkt: Verarbeitung der Bestätigungseingabe des Bankmitarbeiters (Enter-Taste)."
+      "explanation": "Entry point: processing of the bank employee's confirmation input (Enter key)."
     },
     {
       "number": 209,
@@ -1932,7 +1932,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Bildschirmmaske wird vollständig zurückgesetzt, um veraltete Anzeigedaten aus dem vorherigen Aufruf zu löschen."
+      "explanation": "The screen map is completely reset in order to clear outdated display data from the previous call."
     },
     {
       "number": 211,
@@ -1941,7 +1941,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Pflichtfeldprüfung: Kontonummer muss numerisch sein – ungültige oder fehlende Kontonummern werden abgewiesen."
+      "explanation": "Mandatory field check: the account number must be numeric – invalid or missing account numbers are rejected."
     },
     {
       "number": 212,
@@ -1950,7 +1950,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Pflichtfeldprüfung: Es muss eine Autorisierungsnachricht aus der Übersichtsseite ausgewählt worden sein – ohne Auswahl ist keine Detailanzeige möglich."
+      "explanation": "Mandatory field check: an authorization message must have been selected from the overview screen – without a selection, no detail display is possible."
     },
     {
       "number": 213,
@@ -1959,7 +1959,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Überträgt die geprüfte Kontonummer in den Arbeitsbereich für den nachfolgenden Datenbankzugriff."
+      "explanation": "Transfers the validated account number to the work area for the subsequent database access."
     },
     {
       "number": 214,
@@ -1968,7 +1968,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Überträgt den Schlüssel der vom Mitarbeiter ausgewählten Autorisierungsnachricht"
+      "explanation": "Transfers the key of the authorization message selected by the employee"
     },
     {
       "number": 215,
@@ -1977,7 +1977,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "in den Arbeitsbereich, damit der korrekte Autorisierungsdatensatz in der IMS-Datenbank gezielt gelesen werden kann."
+      "explanation": "into the work area so that the correct authorization record in the IMS database can be read directly."
     },
     {
       "number": 216,
@@ -1986,7 +1986,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Liest den vollständigen Autorisierungsdatensatz (Betrag, Händler, Status, Ablehnungsgrund etc.) aus der IMS-Datenbank."
+      "explanation": "Reads the complete authorization record (amount, merchant, status, decline reason, etc.) from the IMS database."
     },
     {
       "number": 217,
@@ -2004,7 +2004,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Prüft, ob der IMS-Datenbankzugriff (PSB) noch aktiv ist und ordnungsgemäß abgeschlossen werden muss."
+      "explanation": "Checks whether the IMS database access (PSB) is still active and needs to be properly terminated."
     },
     {
       "number": 219,
@@ -2013,7 +2013,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Setzt den IMS-Datenbankstatus intern auf 'nicht mehr aktiv', um eine konsistente Zustandsverwaltung sicherzustellen."
+      "explanation": "Sets the IMS database status internally to 'no longer active' to ensure consistent state management."
     },
     {
       "number": 220,
@@ -2022,7 +2022,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Schließt die IMS-Datenbanktransaktion mit einem Syncpoint ab, um Datenkonsistenz und Datenbankintegrität zu gewährleisten."
+      "explanation": "Closes the IMS database transaction with a syncpoint to guarantee data consistency and database integrity."
     },
     {
       "number": 221,
@@ -2031,7 +2031,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Ende der Syncpoint-Verarbeitung nach erfolgreichem Datenbankzugriff."
+      "explanation": "End of syncpoint processing after successful database access."
     },
     {
       "number": 222,
@@ -2049,7 +2049,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Zweig für den Fehlerfall: Kontonummer fehlt, ist ungültig oder keine Autorisierungsnachricht wurde ausgewählt."
+      "explanation": "Branch for the error case: account number is missing, invalid, or no authorization message was selected."
     },
     {
       "number": 224,
@@ -2058,7 +2058,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Setzt das Fehler-Flag, damit dem Mitarbeiter eine Fehlermeldung angezeigt und die Verarbeitung abgebrochen wird."
+      "explanation": "Sets the error flag so that an error message is displayed to the employee and processing is aborted."
     },
     {
       "number": 225,
@@ -2067,7 +2067,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Ende der Eingabevalidierung."
+      "explanation": "End of input validation."
     },
     {
       "number": 226,
@@ -2085,7 +2085,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Befüllt die Bildschirmmaske mit den geladenen Autorisierungsdetails (Kartennummer, Betrag, Händler, Status, Ablehnungsgrund) zur Anzeige."
+      "explanation": "Populates the screen map with the loaded authorization details (card number, amount, merchant, status, decline reason) for display."
     },
     {
       "number": 228,
@@ -2112,7 +2112,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Dieser Paragraph steuert die Betrugsmeldung einer ausstehenden Autorisierungstransaktion: Er erkennt automatisch, ob eine Betrugsmarkierung gesetzt oder entfernt werden soll (Toggle-Logik), delegiert die Datenbankaktualisierung an das Betrugsprogramm COPAUS2C und stellt bei Fehlern die Datenkonsistenz durch Rollback sicher."
+      "explanation": "This paragraph controls the fraud reporting of a pending authorization transaction: it automatically detects whether a fraud flag should be set or removed (toggle logic), delegates the database update to the fraud program COPAUS2C, and ensures data consistency via rollback in the event of errors."
     },
     {
       "number": 231,
@@ -2121,7 +2121,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Überträgt die aktuelle Kontonummer in den Arbeitsbereich, um den richtigen Autorisierungsdatensatz in der IMS-Datenbank zu identifizieren."
+      "explanation": "Transfers the current account number to the work area in order to identify the correct authorization record in the IMS database."
     },
     {
       "number": 232,
@@ -2130,7 +2130,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Überträgt den Schlüssel der vom Mitarbeiter in der Übersichtsseite ausgewählten Autorisierungsnachricht in den Arbeitsbereich für den Datenbankzugriff."
+      "explanation": "Transfers the key of the authorization message selected by the employee on the overview screen to the work area for database access."
     },
     {
       "number": 233,
@@ -2148,7 +2148,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Lädt den vollständigen Detaildatensatz der ausgewählten Autorisierungstransaktion aus der IMS-Datenbank, um den aktuellen Betrugsstatus zu ermitteln."
+      "explanation": "Loads the complete detail record of the selected authorization transaction from the IMS database in order to determine the current fraud status."
     },
     {
       "number": 235,
@@ -2166,7 +2166,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Prüft, ob die Transaktion bereits als Betrug markiert ist – entscheidet damit, ob die Markierung gesetzt oder entfernt werden soll."
+      "explanation": "Checks whether the transaction is already flagged as fraud – thereby deciding whether the flag should be set or removed."
     },
     {
       "number": 237,
@@ -2175,7 +2175,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Setzt den Betrugsstatus der Transaktion auf 'Betrugsmarkierung entfernt', da die Transaktion bereits als Betrug gemeldet war."
+      "explanation": "Sets the fraud status of the transaction to 'fraud flag removed', since the transaction had already been reported as fraud."
     },
     {
       "number": 238,
@@ -2184,7 +2184,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Legt die auszuführende Aktion auf 'Betrugsmarkierung aufheben' fest, die an das Betrugsprogramm COPAUS2C übergeben wird."
+      "explanation": "Sets the action to be performed to 'remove fraud flag', which is passed to the fraud program COPAUS2C."
     },
     {
       "number": 239,
@@ -2202,7 +2202,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Setzt den Betrugsstatus der Transaktion auf 'Betrug bestätigt', da die Transaktion bisher noch nicht als Betrug gemeldet war."
+      "explanation": "Sets the fraud status of the transaction to 'fraud confirmed', since the transaction had not previously been reported as fraud."
     },
     {
       "number": 241,
@@ -2211,7 +2211,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Legt die auszuführende Aktion auf 'Betrug melden' fest, die an das Betrugsprogramm COPAUS2C übergeben wird."
+      "explanation": "Sets the action to be performed to 'report fraud', which is passed to the fraud program COPAUS2C."
     },
     {
       "number": 242,
@@ -2238,7 +2238,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Überträgt alle Detaildaten der Autorisierungstransaktion (inkl. des aktualisierten Betrugsstatus) in den Übergabebereich für das Betrugsprogramm."
+      "explanation": "Transfers all detail data of the authorization transaction (including the updated fraud status) to the transfer area for the fraud program."
     },
     {
       "number": 245,
@@ -2247,7 +2247,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Überträgt die Kontonummer in den Kommunikationsbereich, damit das Betrugsprogramm COPAUS2C den richtigen Kundendatensatz aktualisieren kann."
+      "explanation": "Transfers the account number into the communication area so that the fraud program COPAUS2C can update the correct customer record."
     },
     {
       "number": 246,
@@ -2256,7 +2256,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Überträgt die Kundennummer in den Kommunikationsbereich, damit das Betrugsprogramm COPAUS2C die Betrugsänderung dem richtigen Kunden zuordnen kann."
+      "explanation": "Transfers the customer number into the communication area so that the fraud program COPAUS2C can assign the fraud change to the correct customer."
     },
     {
       "number": 247,
@@ -2274,7 +2274,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Ruft das externe Programm COPAUS2C auf, das die Betrugsmarkierung (setzen oder entfernen) in der IMS-Datenbank persistiert."
+      "explanation": "Calls the external program COPAUS2C, which persists the fraud flag (set or remove) in the IMS database."
     },
     {
       "number": 249,
@@ -2319,7 +2319,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Prüft, ob das Betrugsprogramm COPAUS2C technisch fehlerfrei abgeschlossen wurde (kein CICS-Systemfehler aufgetreten)."
+      "explanation": "Checks whether the fraud program COPAUS2C completed without technical errors (no CICS system error occurred)."
     },
     {
       "number": 254,
@@ -2328,7 +2328,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Prüft, ob das Betrugsprogramm COPAUS2C die Datenbankaktualisierung fachlich erfolgreich durchgeführt hat."
+      "explanation": "Checks whether the fraud program COPAUS2C successfully completed the database update at the business logic level."
     },
     {
       "number": 255,
@@ -2337,7 +2337,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Schreibt den aktualisierten Betrugsstatus dauerhaft in die IMS-Datenbank zurück, nachdem die Betrugsaktion erfolgreich verarbeitet wurde."
+      "explanation": "Writes the updated fraud status permanently back to the IMS database after the fraud action has been successfully processed."
     },
     {
       "number": 256,
@@ -2355,7 +2355,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Übernimmt die Fehlermeldung des Betrugsprogramms zur Anzeige für den Mitarbeiter, damit dieser über den Grund der fehlgeschlagenen Betrugsaktion informiert wird."
+      "explanation": "Adopts the error message from the fraud program for display to the agent, so that the agent is informed of the reason for the failed fraud action."
     },
     {
       "number": 258,
@@ -2364,7 +2364,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Macht alle Datenbankänderungen dieser Transaktion rückgängig, um Datenkonsistenz sicherzustellen, wenn das Betrugsprogramm einen fachlichen Fehler gemeldet hat."
+      "explanation": "Rolls back all database changes of this transaction to ensure data consistency when the fraud program has reported a business-level error."
     },
     {
       "number": 259,
@@ -2391,7 +2391,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Macht alle Datenbankänderungen rückgängig, wenn das Betrugsprogramm COPAUS2C mit einem technischen CICS-Fehler abgebrochen ist."
+      "explanation": "Rolls back all database changes when the fraud program COPAUS2C aborted with a technical CICS error."
     },
     {
       "number": 262,
@@ -2418,7 +2418,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Stellt sicher, dass der Autorisierungsschlüssel der aktuell bearbeiteten Transaktion für die anschließende Bildschirmaktualisierung korrekt gesetzt ist."
+      "explanation": "Ensures that the authorization key of the currently processed transaction is correctly set for the subsequent screen refresh."
     },
     {
       "number": 265,
@@ -2427,7 +2427,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MARK-AUTH-FRAUD",
-      "explanation": "Bereitet die Detailanzeige der Autorisierungstransaktion mit dem aktualisierten Betrugsstatus für die Bildschirmausgabe an den Mitarbeiter vor."
+      "explanation": "Prepares the detail display of the authorization transaction with the updated fraud status for screen output to the agent."
     },
     {
       "number": 266,
@@ -2454,7 +2454,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Navigiert zur nächsten ausstehenden Autorisierungsanfrage desselben Kontos und zeigt deren Details an. Ist keine weitere Autorisierung vorhanden, wird dem Mitarbeiter ein entsprechender Hinweis angezeigt."
+      "explanation": "Navigates to the next pending authorization request for the same account and displays its details. If no further authorization exists, an appropriate message is displayed to the agent."
     },
     {
       "number": 269,
@@ -2472,7 +2472,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Überträgt die aktuelle Kontonummer in den Arbeitsbereich, um die Datenbanksuche auf das richtige Konto einzugrenzen."
+      "explanation": "Transfers the current account number into the working area to narrow the database search to the correct account."
     },
     {
       "number": 271,
@@ -2481,7 +2481,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Setzt den Suchschlüssel auf die aktuell angezeigte Autorisierungsnachricht, damit die Datenbank den richtigen Startpunkt für die Vorwärtsnavigation kennt."
+      "explanation": "Sets the search key to the currently displayed authorization message so that the database knows the correct starting point for forward navigation."
     },
     {
       "number": 272,
@@ -2499,7 +2499,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Positioniert den IMS-Datenbankzeiger auf den aktuell angezeigten Autorisierungsdatensatz, um von dort aus vorwärts navigieren zu können."
+      "explanation": "Positions the IMS database cursor on the currently displayed authorization record in order to navigate forward from that point."
     },
     {
       "number": 274,
@@ -2508,7 +2508,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Liest den nächsten ausstehenden Autorisierungsdatensatz des Kontos aus der IMS-Datenbank, um zur folgenden Transaktion zu wechseln."
+      "explanation": "Reads the next pending authorization record for the account from the IMS database in order to switch to the following transaction."
     },
     {
       "number": 275,
@@ -2526,7 +2526,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Prüft, ob die IMS-Datenbankverbindung (PSB) noch aktiv ist und ein Abschluss der Datenbankoperation erforderlich ist."
+      "explanation": "Checks whether the IMS database connection (PSB) is still active and whether a termination of the database operation is required."
     },
     {
       "number": 277,
@@ -2535,7 +2535,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Markiert die IMS-Datenbankverbindung intern als abgeschlossen, da die Verarbeitung beendet wird."
+      "explanation": "Marks the IMS database connection internally as completed, since processing is being ended."
     },
     {
       "number": 278,
@@ -2544,7 +2544,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Schließt die IMS-Datenbankoperation mit einem Syncpoint ab, um Datenkonsistenz sicherzustellen und Ressourcen freizugeben."
+      "explanation": "Closes the IMS database operation with a syncpoint to ensure data consistency and release resources."
     },
     {
       "number": 279,
@@ -2571,7 +2571,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Prüft, ob das Ende der Autorisierungsliste erreicht wurde, d.h. ob keine weitere ausstehende Autorisierung für dieses Konto existiert."
+      "explanation": "Checks whether the end of the authorization list has been reached, i.e., whether no further pending authorization exists for this account."
     },
     {
       "number": 282,
@@ -2580,7 +2580,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Stellt sicher, dass der Bildschirm vollständig neu aufgebaut wird, ohne veraltete Anzeigedaten zu übernehmen."
+      "explanation": "Ensures that the screen is completely rebuilt without retaining outdated display data."
     },
     {
       "number": 283,
@@ -2589,7 +2589,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Informiert den Bankmitarbeiter, dass er bereits die letzte ausstehende Autorisierung des Kontos erreicht hat und kein weiteres Vorblättern möglich ist."
+      "explanation": "Informs the bank agent that they have already reached the last pending authorization for the account and that no further forward paging is possible."
     },
     {
       "number": 284,
@@ -2616,7 +2616,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Aktualisiert den ausgewählten Autorisierungsschlüssel auf den neu geladenen Datensatz, sodass nachfolgende Aktionen (z.B. Betrugsmeldung) auf die richtige Transaktion wirken."
+      "explanation": "Updates the selected authorization key to the newly loaded record so that subsequent actions (e.g., fraud reporting) apply to the correct transaction."
     },
     {
       "number": 287,
@@ -2625,7 +2625,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-PF8-KEY",
-      "explanation": "Befüllt alle Anzeigefelder der Detailmaske mit den Daten der nächsten Autorisierungsanfrage (Betrag, Händler, Status, Ablehnungsgrund etc.)."
+      "explanation": "Populates all display fields of the detail screen with the data of the next authorization request (amount, merchant, status, decline reason, etc.)."
     },
     {
       "number": 288,
@@ -2661,7 +2661,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Bereitet alle relevanten Details einer ausstehenden Autorisierungsanfrage für die Bildschirmanzeige auf – einschließlich Kartendaten, Betrag, Autorisierungsstatus, Ablehnungsgrund, Händlerinformationen und Betrugsstatus. Der Paragraph wird nur ausgeführt, wenn kein Fehler vorliegt."
+      "explanation": "Prepares all relevant details of a pending authorization request for screen display – including card data, amount, authorization status, decline reason, merchant information, and fraud status. The paragraph is only executed if no error is present."
     },
     {
       "number": 292,
@@ -2688,7 +2688,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Stellt sicher, dass die Detailanzeige nur befüllt wird, wenn keine Fehler bei der Datenbankabfrage aufgetreten sind."
+      "explanation": "Ensures that the detail display is only populated if no errors occurred during the database query."
     },
     {
       "number": 295,
@@ -2697,7 +2697,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die Kreditkartennummer des Karteninhabers in das Anzeigefeld der Bildschirmmaske."
+      "explanation": "Transfers the cardholder's credit card number into the display field of the screen map."
     },
     {
       "number": 296,
@@ -2715,7 +2715,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert das Jahr aus dem Originaldatum der Autorisierungsanfrage zur Datumsformatierung."
+      "explanation": "Extracts the year from the original date of the authorization request for date formatting."
     },
     {
       "number": 298,
@@ -2724,7 +2724,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert den Monat aus dem Originaldatum der Autorisierungsanfrage zur Datumsformatierung."
+      "explanation": "Extracts the month from the original date of the authorization request for date formatting."
     },
     {
       "number": 299,
@@ -2733,7 +2733,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert den Tag aus dem Originaldatum der Autorisierungsanfrage zur Datumsformatierung."
+      "explanation": "Extracts the day from the original date of the authorization request for date formatting."
     },
     {
       "number": 300,
@@ -2742,7 +2742,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Formatiert das Autorisierungsdatum in das anzuzeigende Format MM-DD-YY für die Bildschirmdarstellung."
+      "explanation": "Formats the authorization date into the display format MM-DD-YY for screen presentation."
     },
     {
       "number": 301,
@@ -2751,7 +2751,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt das formatierte Autorisierungsdatum in das entsprechende Anzeigefeld der Bildschirmmaske."
+      "explanation": "Transfers the formatted authorization date into the corresponding display field of the screen map."
     },
     {
       "number": 302,
@@ -2769,7 +2769,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert die Stunden aus der Originaluhrzeit der Autorisierungsanfrage zur Zeitformatierung."
+      "explanation": "Extracts the hours from the original time of the authorization request for time formatting."
     },
     {
       "number": 304,
@@ -2778,7 +2778,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert die Minuten aus der Originaluhrzeit der Autorisierungsanfrage zur Zeitformatierung."
+      "explanation": "Extracts the minutes from the original time of the authorization request for time formatting."
     },
     {
       "number": 305,
@@ -2787,7 +2787,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert die Sekunden aus der Originaluhrzeit der Autorisierungsanfrage zur Zeitformatierung."
+      "explanation": "Extracts the seconds from the original time of the authorization request for time formatting."
     },
     {
       "number": 306,
@@ -2796,7 +2796,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die formatierte Autorisierungsuhrzeit (HH:MM:SS) in das Anzeigefeld der Bildschirmmaske."
+      "explanation": "Transfers the formatted authorization time (HH:MM:SS) into the display field of the screen map."
     },
     {
       "number": 307,
@@ -2814,7 +2814,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Formatiert den genehmigten Transaktionsbetrag für die lesbare Darstellung auf dem Bildschirm."
+      "explanation": "Formats the approved transaction amount for readable presentation on the screen."
     },
     {
       "number": 309,
@@ -2823,7 +2823,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den formatierten Transaktionsbetrag in das Betragsfeld der Bildschirmmaske."
+      "explanation": "Transfers the formatted transaction amount into the amount field of the screen map."
     },
     {
       "number": 310,
@@ -2841,7 +2841,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Prüft, ob die Autorisierungsanfrage vom Kartennetzwerk genehmigt wurde (Antwortcode '00' = genehmigt)."
+      "explanation": "Checks whether the authorization request was approved by the card network (response code '00' = approved)."
     },
     {
       "number": 312,
@@ -2850,7 +2850,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt den Autorisierungsstatus als 'A' (Approved/Genehmigt) an, wenn die Transaktion genehmigt wurde."
+      "explanation": "Displays the authorization status as 'A' (Approved) when the transaction has been approved."
     },
     {
       "number": 313,
@@ -2859,7 +2859,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Hebt den Autorisierungsstatus grün hervor, um dem Mitarbeiter eine genehmigte Transaktion visuell zu signalisieren."
+      "explanation": "Highlights the authorization status in green to visually signal an approved transaction to the agent."
     },
     {
       "number": 314,
@@ -2877,7 +2877,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt den Autorisierungsstatus als 'D' (Declined/Abgelehnt) an, wenn die Transaktion abgelehnt wurde."
+      "explanation": "Displays the authorization status as 'D' (Declined) when the transaction has been declined."
     },
     {
       "number": 316,
@@ -2886,7 +2886,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Hebt den Autorisierungsstatus rot hervor, um dem Mitarbeiter eine abgelehnte Transaktion visuell zu signalisieren."
+      "explanation": "Highlights the authorization status in red to visually signal a declined transaction to the agent."
     },
     {
       "number": 317,
@@ -2913,7 +2913,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Sucht in der Ablehnungsgrund-Tabelle nach dem zur Transaktion passenden Ablehnungscode für die Klartextanzeige."
+      "explanation": "Searches the decline reason table for the decline code matching the transaction for plain-text display."
     },
     {
       "number": 320,
@@ -2922,7 +2922,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Behandelt den Fall, dass der Ablehnungscode in der Tabelle nicht gefunden wird (unbekannter Code)."
+      "explanation": "Handles the case where the decline code is not found in the table (unknown code)."
     },
     {
       "number": 321,
@@ -2931,7 +2931,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt den Platzhaltercode '9999' an, wenn der Ablehnungsgrund nicht in der Nachschlagetabelle hinterlegt ist."
+      "explanation": "Displays the placeholder code '9999' when the decline reason is not stored in the lookup table."
     },
     {
       "number": 322,
@@ -2940,7 +2940,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Fügt einen Bindestrich als Trennzeichen zwischen Code und Beschreibung im Ablehnungsgrund-Anzeigefeld ein."
+      "explanation": "Inserts a hyphen as a separator between the code and the description in the decline reason display field."
     },
     {
       "number": 323,
@@ -2949,7 +2949,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt 'ERROR' als Ablehnungsbeschreibung an, wenn der Code unbekannt ist und nicht aufgelöst werden kann."
+      "explanation": "Displays 'ERROR' as the decline description when the code is unknown and cannot be resolved."
     },
     {
       "number": 324,
@@ -2958,7 +2958,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Trifft zu, wenn der Ablehnungscode der Transaktion in der Nachschlagetabelle gefunden wurde."
+      "explanation": "Applies when the decline code of the transaction was found in the lookup table."
     },
     {
       "number": 325,
@@ -2967,7 +2967,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den gefundenen Ablehnungscode in das Anzeigefeld des Bildschirms."
+      "explanation": "Transfers the found decline code into the display field of the screen."
     },
     {
       "number": 326,
@@ -2976,7 +2976,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Fügt einen Bindestrich als Trennzeichen zwischen Ablehnungscode und Klartextbeschreibung ein."
+      "explanation": "Inserts a hyphen as a separator between the decline code and the plain-text description."
     },
     {
       "number": 327,
@@ -2985,7 +2985,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die lesbare Ablehnungsbeschreibung (z.B. 'INSUFFICIENT FUNDS') aus der Tabelle in das Anzeigefeld."
+      "explanation": "Transfers the readable decline description (e.g., 'INSUFFICIENT FUNDS') from the table into the display field."
     },
     {
       "number": 328,
@@ -3021,7 +3021,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Transaktionsverarbeitungscode (Art der Transaktion, z.B. Kauf oder Rückerstattung) in die Anzeige."
+      "explanation": "Transfers the transaction processing code (type of transaction, e.g., purchase or refund) into the display."
     },
     {
       "number": 332,
@@ -3030,7 +3030,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den POS-Eingabemodus (z.B. Chip, Magnetstreifen, kontaktlos) in das Anzeigefeld der Maske."
+      "explanation": "Transfers the POS entry mode (e.g., chip, magnetic stripe, contactless) into the display field of the screen map."
     },
     {
       "number": 333,
@@ -3039,7 +3039,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die Herkunftsquelle der Autorisierungsnachricht (z.B. Terminal, Online) in die Anzeige."
+      "explanation": "Transfers the originating source of the authorization message (e.g., terminal, online) into the display."
     },
     {
       "number": 334,
@@ -3048,7 +3048,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Händlerkategorie-Code (MCC) in die Anzeige, der die Branche des Händlers klassifiziert."
+      "explanation": "Transfers the Merchant Category Code (MCC) into the display, which classifies the merchant's industry."
     },
     {
       "number": 335,
@@ -3066,7 +3066,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert den Monat des Kartenablaufdatums und überträgt ihn in das formatierte Ablaufdatumsfeld."
+      "explanation": "Extracts the month of the card expiry date and transfers it into the formatted expiry date field."
     },
     {
       "number": 337,
@@ -3075,7 +3075,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Fügt einen Schrägstrich als Trennzeichen im Ablaufdatumsfeld ein (Format MM/YY)."
+      "explanation": "Inserts a slash as a separator in the expiry date field (format MM/YY)."
     },
     {
       "number": 338,
@@ -3084,7 +3084,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Extrahiert das Jahr des Kartenablaufdatums und vervollständigt das formatierte Ablaufdatumsfeld (MM/YY)."
+      "explanation": "Extracts the year of the card expiry date and completes the formatted expiry date field (MM/YY)."
     },
     {
       "number": 339,
@@ -3102,7 +3102,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Autorisierungstyp (z.B. Vorautorisierung, Finalabrechnung) in das Anzeigefeld."
+      "explanation": "Transfers the authorization type (e.g., pre-authorization, final settlement) into the display field."
     },
     {
       "number": 341,
@@ -3111,7 +3111,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die eindeutige Transaktions-ID in die Anzeige, um die Autorisierung eindeutig identifizierbar zu machen."
+      "explanation": "Transfers the unique transaction ID to the display to make the authorization uniquely identifiable."
     },
     {
       "number": 342,
@@ -3120,7 +3120,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Übereinstimmungsstatus der Autorisierungsprüfung in das Anzeigefeld der Bildschirmmaske."
+      "explanation": "Transfers the match status of the authorization check to the display field of the screen map."
     },
     {
       "number": 343,
@@ -3138,7 +3138,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Prüft, ob für diese Transaktion bereits eine Betrugsmarkierung gesetzt oder wieder entfernt wurde."
+      "explanation": "Checks whether a fraud flag has already been set or removed for this transaction."
     },
     {
       "number": 345,
@@ -3147,7 +3147,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt das Betrugs-Flag (gesetzt oder entfernt) im Betrugsstatus-Anzeigefeld an."
+      "explanation": "Displays the fraud flag (set or removed) in the fraud status display field."
     },
     {
       "number": 346,
@@ -3156,7 +3156,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Fügt einen Bindestrich als Trennzeichen zwischen Betrugs-Flag und Meldedatum im Anzeigefeld ein."
+      "explanation": "Inserts a hyphen as a separator between the fraud flag and the report date in the display field."
     },
     {
       "number": 347,
@@ -3165,7 +3165,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt das Datum an, an dem die Betrugsmarkierung für diese Transaktion gesetzt oder entfernt wurde."
+      "explanation": "Displays the date on which the fraud flag was set or removed for this transaction."
     },
     {
       "number": 348,
@@ -3183,7 +3183,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Zeigt einen Bindestrich an, wenn für diese Transaktion noch keine Betrugsmarkierung vorliegt."
+      "explanation": "Displays a hyphen if no fraud flag has yet been set for this transaction."
     },
     {
       "number": 350,
@@ -3210,7 +3210,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Namen des Händlers, bei dem die Transaktion stattfand, in das Anzeigefeld."
+      "explanation": "Transfers the name of the merchant where the transaction took place to the display field."
     },
     {
       "number": 353,
@@ -3219,7 +3219,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die eindeutige Händler-ID in die Anzeige zur Identifikation des Transaktionspartners."
+      "explanation": "Transfers the unique merchant ID to the display for identification of the transaction partner."
     },
     {
       "number": 354,
@@ -3228,7 +3228,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt den Ort des Händlers in das Anzeigefeld für die geografische Einordnung der Transaktion."
+      "explanation": "Transfers the merchant's location to the display field for geographic classification of the transaction."
     },
     {
       "number": 355,
@@ -3237,7 +3237,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt das Bundesland/den Staat des Händlers in das Anzeigefeld der Bildschirmmaske."
+      "explanation": "Transfers the merchant's state/province to the display field of the screen map."
     },
     {
       "number": 356,
@@ -3246,7 +3246,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-AUTH-DETAILS",
-      "explanation": "Überträgt die Postleitzahl des Händlers in das Anzeigefeld zur vollständigen Adressdarstellung."
+      "explanation": "Transfers the merchant's postal code to the display field for complete address representation."
     },
     {
       "number": 357,
@@ -3282,7 +3282,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Dieser Paragraph steuert die Rückkehr zur Autorisierungsübersicht (COPAUS0C), wenn der Mitarbeiter PF3 drückt. Die aktuelle Programmidentität wird dabei in den Kommunikationsbereich eingetragen, bevor die Kontrolle an das Übersichtsprogramm übergeben wird."
+      "explanation": "This paragraph controls the return to the authorization overview (COPAUS0C) when the employee presses PF3. The current program identity is written to the communication area before control is passed to the overview program."
     },
     {
       "number": 361,
@@ -3300,7 +3300,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Hinterlegt die aktuelle Transaktions-ID als Absenderprogramm im Kommunikationsbereich, damit das Zielprogramm weiß, woher der Aufruf stammt."
+      "explanation": "Stores the current transaction ID as the sending program in the communication area so that the target program knows where the call originated."
     },
     {
       "number": 363,
@@ -3309,7 +3309,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Hinterlegt den Namen des Detailansicht-Programms (COPAUS1C) als aufrufendes Programm, um die Navigationshistorie nachvollziehbar zu machen."
+      "explanation": "Stores the name of the detail view program (COPAUS1C) as the calling program to make the navigation history traceable."
     },
     {
       "number": 364,
@@ -3318,7 +3318,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Setzt den Programmkontext auf Null, da keine spezielle Vorauswahl oder Übergabeinformation an die Übersichtsseite weitergegeben werden soll."
+      "explanation": "Sets the program context to null, as no special pre-selection or transfer information is to be passed to the overview page."
     },
     {
       "number": 365,
@@ -3327,7 +3327,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Signalisiert dem Zielprogramm, dass es im Einstiegsmodus starten soll – also als wäre es frisch aufgerufen worden, ohne vorherigen Zustand."
+      "explanation": "Signals the target program to start in entry mode – i.e., as if it had been freshly called, without any previous state."
     },
     {
       "number": 366,
@@ -3345,7 +3345,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Übergibt die Steuerung vollständig an das in CDEMO-TO-PROGRAM hinterlegte Übersichtsprogramm (COPAUS0C) und beendet damit die Detailansicht."
+      "explanation": "Transfers control entirely to the overview program (COPAUS0C) stored in CDEMO-TO-PROGRAM, thereby terminating the detail view."
     },
     {
       "number": 368,
@@ -3354,7 +3354,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Bestimmt das Zielprogramm der Navigation – in diesem Fall die Autorisierungsübersicht (COPAUS0C), zu der der Mitarbeiter zurückkehrt."
+      "explanation": "Determines the navigation target program – in this case the authorization overview (COPAUS0C) to which the employee returns."
     },
     {
       "number": 369,
@@ -3363,7 +3363,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RETURN-TO-PREV-SCREEN",
-      "explanation": "Überträgt den gesamten Kommunikationsbereich mit Sitzungskontext, Benutzerinformationen und Navigationsdaten an das Übersichtsprogramm."
+      "explanation": "Transfers the entire communication area with session context, user information, and navigation data to the overview program."
     },
     {
       "number": 370,
@@ -3399,7 +3399,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Einstiegspunkt: Bildschirmausgabe der Autorisierungsdetail-Ansicht"
+      "explanation": "Entry point: Screen output of the authorization detail view."
     },
     {
       "number": 374,
@@ -3417,7 +3417,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Befüllt die Kopfzeile des Bildschirms mit Programm- und Benutzerinformationen (z.B. Datum, Uhrzeit, Benutzer-ID)"
+      "explanation": "Populates the screen header with program and user information (e.g., date, time, user ID)."
     },
     {
       "number": 376,
@@ -3435,7 +3435,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Überträgt eine eventuelle Status- oder Fehlermeldung (z.B. Betrugsmarkierung erfolgreich, Fehler bei Datenbankaktualisierung) in das Meldungsfeld der Bildschirmmaske"
+      "explanation": "Transfers any status or error message (e.g., fraud flag set successfully, error during database update) to the message field of the screen map."
     },
     {
       "number": 378,
@@ -3444,7 +3444,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Setzt den Cursor auf das Kartennummernfeld, damit der Mitarbeiter direkt mit der Kartennummer als Ausgangspunkt arbeiten kann"
+      "explanation": "Positions the cursor on the card number field so that the employee can work directly with the card number as a starting point."
     },
     {
       "number": 379,
@@ -3462,7 +3462,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Prüft, ob der Bildschirm vollständig neu aufgebaut werden soll – z.B. beim erstmaligen Aufruf der Detailansicht oder nach einem Programmwechsel"
+      "explanation": "Checks whether the screen should be completely rebuilt – e.g., on the first call of the detail view or after a program switch."
     },
     {
       "number": 381,
@@ -3471,7 +3471,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Sendet die vollständig befüllte Autorisierungsdetail-Maske an den Bildschirm des Mitarbeiters"
+      "explanation": "Sends the fully populated authorization detail map to the employee's screen."
     },
     {
       "number": 382,
@@ -3480,7 +3480,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Referenziert die Bildschirmmaske 'COPAU1A', die die Detailfelder der Autorisierungsnachricht (Betrag, Händler, Status etc.) enthält"
+      "explanation": "References the screen map 'COPAU1A', which contains the detail fields of the authorization message (amount, merchant, status, etc.)."
     },
     {
       "number": 383,
@@ -3489,7 +3489,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Gibt den zugehörigen Mapset 'COPAU01' an, der die physische Bildschirmlayout-Definition enthält"
+      "explanation": "Specifies the associated mapset 'COPAU01', which contains the physical screen layout definition."
     },
     {
       "number": 384,
@@ -3498,7 +3498,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Verwendet die im Programm befüllten Ausgabedaten (Kartennummer, Betrag, Händlerinfo, Betrugsstatus) als Quelle für die Bildschirmanzeige"
+      "explanation": "Uses the output data populated in the program (card number, amount, merchant info, fraud status) as the source for the screen display."
     },
     {
       "number": 385,
@@ -3507,7 +3507,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Löscht den gesamten Bildschirminhalt vor der Anzeige – stellt sicher, dass keine veralteten Daten einer vorherigen Ansicht sichtbar bleiben"
+      "explanation": "Clears the entire screen content before display – ensures that no outdated data from a previous view remains visible."
     },
     {
       "number": 386,
@@ -3516,7 +3516,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Positioniert den Cursor auf das vorher definierte Feld (Kartennummer), um die Bedienung für den Mitarbeiter zu erleichtern"
+      "explanation": "Positions the cursor on the previously defined field (card number) to facilitate operation for the employee."
     },
     {
       "number": 387,
@@ -3534,7 +3534,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Alternativpfad: Der Bildschirm wird aktualisiert, ohne ihn vollständig zu löschen – z.B. nach einer Blätteraktion oder Betrugsmarkierung"
+      "explanation": "Alternative path: The screen is refreshed without being completely cleared – e.g., after a scroll action or fraud flagging."
     },
     {
       "number": 389,
@@ -3543,7 +3543,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Sendet die aktualisierte Autorisierungsdetail-Maske an den Bildschirm, wobei bestehende Bildschirminhalte überschrieben werden"
+      "explanation": "Sends the updated authorization detail map to the screen, overwriting existing screen content."
     },
     {
       "number": 390,
@@ -3552,7 +3552,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Referenziert dieselbe Bildschirmmaske 'COPAU1A' für die aktualisierte Anzeige"
+      "explanation": "References the same screen map 'COPAU1A' for the updated display."
     },
     {
       "number": 391,
@@ -3561,7 +3561,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Gibt denselben Mapset 'COPAU01' für die aktualisierte Anzeige an"
+      "explanation": "Specifies the same mapset 'COPAU01' for the updated display."
     },
     {
       "number": 392,
@@ -3570,7 +3570,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Verwendet die aktuell befüllten Ausgabedaten als Quelle für die Bildschirmaktualisierung"
+      "explanation": "Uses the currently populated output data as the source for the screen update."
     },
     {
       "number": 393,
@@ -3579,7 +3579,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-AUTHVIEW-SCREEN",
-      "explanation": "Positioniert den Cursor auf das Kartennummernfeld auch bei der Aktualisierungsanzeige"
+      "explanation": "Positions the cursor on the card number field also during the update display."
     },
     {
       "number": 394,
@@ -3624,7 +3624,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Einstiegspunkt: Erfassung der Mitarbeitereingaben von der Detailansicht einer ausstehenden Autorisierung."
+      "explanation": "Entry point: Capturing employee input from the detail view of a pending authorization."
     },
     {
       "number": 399,
@@ -3642,7 +3642,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Liest die vom Bankmitarbeiter auf dem Bildschirm getätigten Eingaben und gedrückten Funktionstasten ein, um die gewünschte Aktion (Betrugsmeldung, Navigation, Rückkehr) zu ermitteln."
+      "explanation": "Reads the inputs entered by the bank employee on the screen and the function keys pressed, in order to determine the desired action (fraud report, navigation, return)."
     },
     {
       "number": 401,
@@ -3651,7 +3651,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Referenziert die BMS-Map 'COPAU1A', die das Layout der Detailansicht der Autorisierungsnachricht definiert."
+      "explanation": "References the BMS map 'COPAU1A', which defines the layout of the authorization message detail view."
     },
     {
       "number": 402,
@@ -3660,7 +3660,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Gibt das zugehörige BMS-Mapset 'COPAU01' an, das die Bildschirmstruktur für die Autorisierungsdetailansicht enthält."
+      "explanation": "Specifies the associated BMS mapset 'COPAU01', which contains the screen structure for the authorization detail view."
     },
     {
       "number": 403,
@@ -3669,7 +3669,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Überträgt die erfassten Bildschirmeingaben in die Eingabe-Datenstruktur COPAU1AI, wo Tastenbefehle und Feldwerte für die weitere Verarbeitung bereitstehen."
+      "explanation": "Transfers the captured screen inputs into the input data structure COPAU1AI, where key commands and field values are available for further processing."
     },
     {
       "number": 404,
@@ -3678,7 +3678,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "RECEIVE-AUTHVIEW-SCREEN",
-      "explanation": "Stellt sicher, dass Fehler bei der Bildschirmerfassung nicht zu einem unkontrollierten Programmabbruch führen, sondern im Programm selbst behandelt werden können."
+      "explanation": "Ensures that errors during screen capture do not lead to an uncontrolled program abort, but can instead be handled within the program itself."
     },
     {
       "number": 405,
@@ -3723,7 +3723,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Befüllt den Kopfbereich der Detailansicht mit Anwendungstiteln, Transaktions- und Programmkennung sowie dem aktuellen Systemdatum und der Systemuhrzeit, damit der Bankmitarbeiter den Bearbeitungskontext und den Zeitpunkt der Anzeige nachvollziehen kann."
+      "explanation": "Populates the header area of the detail view with application titles, transaction and program identifiers, and the current system date and time, so that the bank employee can trace the processing context and the time of the display."
     },
     {
       "number": 410,
@@ -3741,7 +3741,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Ermittelt das aktuelle Systemdatum und die Systemuhrzeit als Grundlage für die Zeitstempelanzeige im Bildschirmkopf."
+      "explanation": "Determines the current system date and time as the basis for the timestamp display in the screen header."
     },
     {
       "number": 412,
@@ -3759,7 +3759,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Überträgt den ersten Anwendungstitel der CardDemo-Anwendung in den Kopfbereich der Autorisierungsdetail-Maske."
+      "explanation": "Transfers the first application title of the CardDemo application to the header area of the authorization detail map."
     },
     {
       "number": 414,
@@ -3768,7 +3768,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Überträgt den zweiten Anwendungstitel (Untertitel) der CardDemo-Anwendung in den Kopfbereich der Autorisierungsdetail-Maske."
+      "explanation": "Transfers the second application title (subtitle) of the CardDemo application to the header area of the authorization detail map."
     },
     {
       "number": 415,
@@ -3777,7 +3777,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Zeigt die aktuelle CICS-Transaktionskennung im Bildschirmkopf an, sodass der Mitarbeiter die laufende Transaktion identifizieren kann."
+      "explanation": "Displays the current CICS transaction identifier in the screen header so that the employee can identify the running transaction."
     },
     {
       "number": 416,
@@ -3786,7 +3786,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Zeigt den Namen des aktuell ausgeführten Programms (Autorisierungsdetail) im Bildschirmkopf an – relevant für Support und Nachvollziehbarkeit."
+      "explanation": "Displays the name of the currently executing program (authorization detail) in the screen header – relevant for support and traceability."
     },
     {
       "number": 417,
@@ -3804,7 +3804,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert den Monat aus dem Systemdatum zur Aufbereitung des Anzeigedatums im Format MM-DD-YY."
+      "explanation": "Extracts the month from the system date to format the display date in MM-DD-YY format."
     },
     {
       "number": 419,
@@ -3813,7 +3813,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert den Tag aus dem Systemdatum zur Aufbereitung des Anzeigedatums im Format MM-DD-YY."
+      "explanation": "Extracts the day from the system date to format the display date in MM-DD-YY format."
     },
     {
       "number": 420,
@@ -3822,7 +3822,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die zweistellige Jahreszahl aus dem Systemdatum zur Aufbereitung des Anzeigedatums im Format MM-DD-YY."
+      "explanation": "Extracts the two-digit year from the system date to format the display date in MM-DD-YY format."
     },
     {
       "number": 421,
@@ -3840,7 +3840,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Stellt das aufbereitete aktuelle Datum (MM-DD-YY) im Kopfbereich der Maske dar, damit der Mitarbeiter den Anzeigezeitpunkt erkennt."
+      "explanation": "Displays the formatted current date (MM-DD-YY) in the map header area so that the employee can identify the time of display."
     },
     {
       "number": 423,
@@ -3858,7 +3858,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Stunden aus der Systemuhrzeit zur Aufbereitung der Zeitanzeige im Format HH-MM-SS."
+      "explanation": "Extracts the hours from the system time to format the time display in HH-MM-SS format."
     },
     {
       "number": 425,
@@ -3867,7 +3867,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Minuten aus der Systemuhrzeit zur Aufbereitung der Zeitanzeige im Format HH-MM-SS."
+      "explanation": "Extracts the minutes from the system time to format the time display in HH-MM-SS format."
     },
     {
       "number": 426,
@@ -3876,7 +3876,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Sekunden aus der Systemuhrzeit zur Aufbereitung der Zeitanzeige im Format HH-MM-SS."
+      "explanation": "Extracts the seconds from the system time to format the time display in HH-MM-SS format."
     },
     {
       "number": 427,
@@ -3894,7 +3894,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Stellt die aufbereitete aktuelle Uhrzeit (HH-MM-SS) im Kopfbereich der Maske dar, damit der Mitarbeiter den genauen Bearbeitungszeitpunkt nachvollziehen kann."
+      "explanation": "Displays the formatted current time (HH-MM-SS) in the map header area so that the employee can trace the exact processing time."
     },
     {
       "number": 429,
@@ -3921,7 +3921,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Einstiegspunkt: Lesen des Autorisierungsdatensatzes aus der IMS-Datenbank"
+      "explanation": "Entry point: Reading the authorization record from the IMS database."
     },
     {
       "number": 432,
@@ -3939,7 +3939,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Stellt die Verbindung zur IMS-Autorisierungsdatenbank her (PSB-Scheduling), bevor Datenbankzugriffe erfolgen können"
+      "explanation": "Establishes the connection to the IMS authorization database (PSB scheduling) before database accesses can take place."
     },
     {
       "number": 434,
@@ -3966,7 +3966,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Überträgt die Kontonummer des Karteninhabers als Suchkriterium für den Datenbankzugriff"
+      "explanation": "Transfers the cardholder's account number as the search criterion for the database access."
     },
     {
       "number": 437,
@@ -3975,7 +3975,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Überträgt den Schlüssel der vom Mitarbeiter ausgewählten Autorisierungsnachricht als zweites Suchkriterium"
+      "explanation": "Transfers the key of the authorization message selected by the employee as the second search criterion"
     },
     {
       "number": 438,
@@ -3993,7 +3993,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Sucht in der IMS-Datenbank den Zusammenfassungsdatensatz (PAUTSUM0) der ausstehenden Autorisierungen für das angegebene Konto"
+      "explanation": "Searches the IMS database for the summary record (PAUTSUM0) of pending authorizations for the specified account"
     },
     {
       "number": 440,
@@ -4011,7 +4011,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Lädt die gefundenen Zusammenfassungsdaten der ausstehenden Autorisierung in den Arbeitsbereich"
+      "explanation": "Loads the retrieved pending authorization summary data into the working storage area"
     },
     {
       "number": 442,
@@ -4020,7 +4020,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Filtert den Datenbankzugriff auf das spezifische Konto des Karteninhabers"
+      "explanation": "Filters the database access to the specific cardholder account"
     },
     {
       "number": 443,
@@ -4047,7 +4047,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Übernimmt den IMS-Rückgabestatus, um den Erfolg oder Misserfolg des Datenbankzugriffs auswerten zu können"
+      "explanation": "Captures the IMS return status to evaluate the success or failure of the database access"
     },
     {
       "number": 446,
@@ -4056,7 +4056,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Wertet das Ergebnis des Datenbankzugriffs auf den Autorisierungs-Zusammenfassungsdatensatz aus"
+      "explanation": "Evaluates the result of the database access to the authorization summary record"
     },
     {
       "number": 447,
@@ -4065,7 +4065,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Datenbankzugriff erfolgreich: Zusammenfassungsdatensatz des Kontos wurde gefunden"
+      "explanation": "Database access successful: summary record for the account was found"
     },
     {
       "number": 448,
@@ -4074,7 +4074,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Kennzeichnet, dass weitere Autorisierungsdatensätze vorhanden sind und die Verarbeitung fortgesetzt werden kann"
+      "explanation": "Indicates that additional authorization records exist and processing can continue"
     },
     {
       "number": 449,
@@ -4083,7 +4083,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Kein Zusammenfassungsdatensatz gefunden oder Ende der Datenbank erreicht"
+      "explanation": "No summary record found or end of database reached"
     },
     {
       "number": 450,
@@ -4092,7 +4092,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Ende der IMS-Datenbank erreicht – keine weiteren Autorisierungsdatensätze für dieses Konto vorhanden"
+      "explanation": "End of IMS database reached – no further authorization records exist for this account"
     },
     {
       "number": 451,
@@ -4101,7 +4101,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Kennzeichnet, dass keine weiteren ausstehenden Autorisierungen für dieses Konto existieren"
+      "explanation": "Indicates that no further pending authorizations exist for this account"
     },
     {
       "number": 452,
@@ -4119,7 +4119,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Setzt das Fehler-Flag, um die weitere Verarbeitung zu unterbrechen und den Fehlerfall zu signalisieren"
+      "explanation": "Sets the error flag to interrupt further processing and signal the error condition"
     },
     {
       "number": 454,
@@ -4137,7 +4137,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Erstellt eine fachliche Fehlermeldung mit dem IMS-Fehlercode für den Bankmitarbeiter"
+      "explanation": "Constructs a functional error message containing the IMS error code for the bank employee"
     },
     {
       "number": 456,
@@ -4146,7 +4146,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Fehlermeldungstext: Systemfehler beim Lesen der Autorisierungszusammenfassung"
+      "explanation": "Error message text: system error while reading the authorization summary"
     },
     {
       "number": 457,
@@ -4155,7 +4155,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Fügt den konkreten IMS-Fehlercode zur Fehlermeldung hinzu, um die Fehlerursache nachvollziehbar zu machen"
+      "explanation": "Appends the specific IMS error code to the error message to make the cause of the error traceable"
     },
     {
       "number": 458,
@@ -4173,7 +4173,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Speichert die vollständige Fehlermeldung im Nachrichtenfeld für die Bildschirmanzeige"
+      "explanation": "Stores the complete error message in the message field for screen display"
     },
     {
       "number": 460,
@@ -4191,7 +4191,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Zeigt dem Bankmitarbeiter die Fehlermeldung auf dem Detailbildschirm an"
+      "explanation": "Displays the error message to the bank employee on the detail screen"
     },
     {
       "number": 462,
@@ -4218,7 +4218,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Nur wenn der Zusammenfassungsdatensatz erfolgreich geladen wurde, wird der eigentliche Transaktionsdetaildatensatz abgerufen"
+      "explanation": "Only if the summary record was successfully loaded will the actual transaction detail record be retrieved"
     },
     {
       "number": 465,
@@ -4227,7 +4227,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Sucht innerhalb des gefundenen Kontos den spezifischen Autorisierungsdetaildatensatz (PAUTDTL1) anhand des Autorisierungsschlüssels"
+      "explanation": "Searches within the found account for the specific authorization detail record (PAUTDTL1) using the authorization key"
     },
     {
       "number": 466,
@@ -4245,7 +4245,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Lädt die vollständigen Transaktionsdetails (Betrag, Händler, Datum, Autorisierungsstatus) in den Arbeitsbereich"
+      "explanation": "Loads the complete transaction details (amount, merchant, date, authorization status) into the working storage area"
     },
     {
       "number": 468,
@@ -4254,7 +4254,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Filtert auf die exakte Autorisierungsnachricht, die der Mitarbeiter auf der Übersichtsseite ausgewählt hat"
+      "explanation": "Filters to the exact authorization message that the employee selected on the overview page"
     },
     {
       "number": 469,
@@ -4281,7 +4281,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Übernimmt den IMS-Rückgabestatus des Detaildatensatz-Zugriffs zur Auswertung"
+      "explanation": "Captures the IMS return status of the detail record access for evaluation"
     },
     {
       "number": 472,
@@ -4290,7 +4290,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Wertet das Ergebnis des Datenbankzugriffs auf den Autorisierungsdetaildatensatz aus"
+      "explanation": "Evaluates the result of the database access to the authorization detail record"
     },
     {
       "number": 473,
@@ -4299,7 +4299,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Detaildatensatz der Transaktion wurde erfolgreich geladen und steht zur Anzeige bereit"
+      "explanation": "Transaction detail record was successfully loaded and is ready for display"
     },
     {
       "number": 474,
@@ -4308,7 +4308,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Bestätigt, dass der Transaktionsdetaildatensatz vollständig geladen wurde und die Anzeige erfolgen kann"
+      "explanation": "Confirms that the transaction detail record has been fully loaded and display can proceed"
     },
     {
       "number": 475,
@@ -4317,7 +4317,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Der spezifische Autorisierungsdetaildatensatz wurde in der Datenbank nicht gefunden"
+      "explanation": "The specific authorization detail record was not found in the database"
     },
     {
       "number": 476,
@@ -4326,7 +4326,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Ende der IMS-Datenbank beim Suchen des Detaildatensatzes erreicht"
+      "explanation": "End of IMS database reached while searching for the detail record"
     },
     {
       "number": 477,
@@ -4335,7 +4335,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Kennzeichnet, dass kein Detaildatensatz zur ausgewählten Autorisierung existiert"
+      "explanation": "Indicates that no detail record exists for the selected authorization"
     },
     {
       "number": 478,
@@ -4353,7 +4353,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Setzt das Fehler-Flag, um die Verarbeitung abzubrechen und den Fehler dem Mitarbeiter zu melden"
+      "explanation": "Sets the error flag to abort processing and report the error to the employee"
     },
     {
       "number": 480,
@@ -4371,7 +4371,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Erstellt eine fachliche Fehlermeldung mit dem IMS-Fehlercode für den Detaildatensatz-Lesefehler"
+      "explanation": "Constructs a functional error message containing the IMS error code for the detail record read failure"
     },
     {
       "number": 482,
@@ -4380,7 +4380,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Fehlermeldungstext: Systemfehler beim Lesen der Autorisierungsdetails"
+      "explanation": "Error message text: system error while reading the authorization details"
     },
     {
       "number": 483,
@@ -4389,7 +4389,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Fügt den konkreten IMS-Fehlercode zur Fehlermeldung hinzu"
+      "explanation": "Appends the specific IMS error code to the error message"
     },
     {
       "number": 484,
@@ -4407,7 +4407,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Speichert die Fehlermeldung zum Autorisierungsdetail-Lesefehler für die Bildschirmanzeige"
+      "explanation": "Stores the error message for the authorization detail read failure for screen display"
     },
     {
       "number": 486,
@@ -4425,7 +4425,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-AUTH-RECORD",
-      "explanation": "Zeigt dem Bankmitarbeiter die Fehlermeldung zum Detaildatensatz-Lesefehler auf dem Bildschirm an"
+      "explanation": "Displays the error message for the detail record read failure to the bank employee on screen"
     },
     {
       "number": 488,
@@ -4479,7 +4479,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Einstiegspunkt für das Laden des nächsten Autorisierungsdatensatzes beim Vorwärtsblättern durch die Autorisierungsliste."
+      "explanation": "Entry point for loading the next authorization record when scrolling forward through the authorization list"
     },
     {
       "number": 494,
@@ -4497,7 +4497,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Liest den nächsten untergeordneten Autorisierungs-Detaildatensatz (PAUTDTL1) innerhalb des aktuellen Kontos aus der IMS-Datenbank – entspricht dem Blättern zur nächsten Autorisierungsanfrage."
+      "explanation": "Reads the next subordinate authorization detail record (PAUTDTL1) within the current account from the IMS database – equivalent to scrolling to the next authorization request"
     },
     {
       "number": 496,
@@ -4506,7 +4506,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Gibt an, welches IMS-Segment abgerufen wird: der Detaildatensatz einer einzelnen ausstehenden Autorisierung (Pending Authorization Detail)."
+      "explanation": "Specifies which IMS segment is retrieved: the detail record of a single pending authorization (Pending Authorization Detail)"
     },
     {
       "number": 497,
@@ -4515,7 +4515,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Speichert die geladenen Autorisierungsdetails (Betrag, Händler, Status etc.) in den Arbeitsbereich für die anschließende Bildschirmanzeige."
+      "explanation": "Stores the loaded authorization details (amount, merchant, status, etc.) into the working storage area for subsequent screen display"
     },
     {
       "number": 498,
@@ -4542,7 +4542,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Übernimmt den IMS-Rückgabestatus in die interne Statusvariable, um das Ergebnis des Datenbankzugriffs auswerten zu können."
+      "explanation": "Captures the IMS return status into the internal status variable to evaluate the result of the database access"
     },
     {
       "number": 501,
@@ -4551,7 +4551,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Wertet das Ergebnis des Datenbankzugriffs aus, um festzustellen, ob ein weiterer Autorisierungsdatensatz gefunden wurde oder die Liste erschöpft ist."
+      "explanation": "Evaluates the result of the database access to determine whether a further authorization record was found or the list is exhausted"
     },
     {
       "number": 502,
@@ -4569,7 +4569,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Signalisiert, dass weitere ausstehende Autorisierungen vorhanden sind und der Mitarbeiter weiter blättern kann."
+      "explanation": "Signals that further pending authorizations exist and the employee can continue scrolling"
     },
     {
       "number": 504,
@@ -4587,7 +4587,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Das Ende der Autorisierungsliste für dieses Konto wurde erreicht; es gibt keine weiteren Einträge."
+      "explanation": "The end of the authorization list for this account has been reached; there are no further entries"
     },
     {
       "number": 506,
@@ -4596,7 +4596,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Setzt das Ende-Kennzeichen, damit dem Mitarbeiter eine Hinweismeldung angezeigt wird, dass keine weiteren Autorisierungen vorhanden sind."
+      "explanation": "Sets the end-of-list indicator so that the employee is shown a notification that no further authorizations are available"
     },
     {
       "number": 507,
@@ -4605,7 +4605,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Behandelt unerwartete IMS-Fehlercodes, die auf ein technisches Problem beim Datenbankzugriff hinweisen."
+      "explanation": "Handles unexpected IMS error codes that indicate a technical problem with the database access"
     },
     {
       "number": 508,
@@ -4614,7 +4614,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Aktiviert das Fehler-Flag, um die weitere Verarbeitung zu unterbrechen und den Fehlerfall zu signalisieren."
+      "explanation": "Activates the error flag to interrupt further processing and signal the error condition"
     },
     {
       "number": 509,
@@ -4632,7 +4632,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Erstellt eine fachliche Fehlermeldung für den Bankmitarbeiter, die den aufgetretenen IMS-Fehlercode beim Lesen der nächsten Autorisierung enthält."
+      "explanation": "Constructs a functional error message for the bank employee containing the IMS error code encountered while reading the next authorization"
     },
     {
       "number": 511,
@@ -4641,7 +4641,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Beschreibender Fehlertext, der dem Mitarbeiter den Kontext des Fehlers beim Abrufen der nächsten Autorisierung mitteilt."
+      "explanation": "Descriptive error text that communicates to the employee the context of the error when retrieving the next authorization"
     },
     {
       "number": 512,
@@ -4650,7 +4650,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Fügt den konkreten IMS-Fehlercode in die Meldung ein, um eine technische Diagnose zu ermöglichen."
+      "explanation": "Inserts the specific IMS error code into the message to enable technical diagnosis"
     },
     {
       "number": 513,
@@ -4659,7 +4659,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Begrenzt die Zeichenkette auf ihre tatsächliche Länge, um unerwünschte Leerzeichen in der Fehlermeldung zu vermeiden."
+      "explanation": "Trims the string to its actual length to avoid unwanted trailing spaces in the error message"
     },
     {
       "number": 514,
@@ -4668,7 +4668,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Schreibt die zusammengesetzte Fehlermeldung in den Anzeigebereich für Systemmeldungen auf dem Bildschirm."
+      "explanation": "Writes the composed error message to the system message display area on the screen"
     },
     {
       "number": 515,
@@ -4686,7 +4686,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-NEXT-AUTH-RECORD",
-      "explanation": "Zeigt dem Mitarbeiter den Detailbildschirm mit der Fehlermeldung an, damit er über das technische Problem informiert wird."
+      "explanation": "Displays the detail screen with the error message to the employee so that they are informed of the technical problem"
     },
     {
       "number": 517,
@@ -4722,7 +4722,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Schreibt die aktualisierte Autorisierung (mit gesetzter oder entfernter Betrugsmarkierung) dauerhaft in die IMS-Datenbank und bestätigt dem Mitarbeiter das Ergebnis – oder rollt bei Datenbankfehler alle Änderungen vollständig zurück."
+      "explanation": "Writes the updated authorization (with fraud flag set or removed) permanently to the IMS database and confirms the result to the employee – or fully rolls back all changes in the event of a database error"
     },
     {
       "number": 521,
@@ -4740,7 +4740,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Überträgt den aktualisierten Autorisierungsdatensatz (mit neuer Betrugsmarkierung) in die IMS-Datenbankstruktur, bereit zum Speichern."
+      "explanation": "Transfers the updated authorization record (with the new fraud flag) into the IMS database structure, ready for saving"
     },
     {
       "number": 523,
@@ -4749,7 +4749,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Protokolliert das Betrugs-Meldedatum des Datensatzes zur Nachvollziehbarkeit in der Systemausgabe."
+      "explanation": "Logs the fraud report date of the record to the system output for traceability"
     },
     {
       "number": 524,
@@ -4767,7 +4767,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Schreibt den geänderten Autorisierungsdatensatz (Segment PAUTDTL1) dauerhaft in die IMS-Autorisierungsdatenbank – ersetzt den bisherigen Eintrag."
+      "explanation": "Writes the modified authorization record (segment PAUTDTL1) permanently to the IMS authorization database – replacing the existing entry"
     },
     {
       "number": 526,
@@ -4785,7 +4785,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Definiert den aktualisierten Autorisierungsdatensatz als Quelle für den Datenbankschreibvorgang."
+      "explanation": "Defines the updated authorization record as the source for the database write operation"
     },
     {
       "number": 528,
@@ -4812,7 +4812,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Übernimmt den Rückgabestatus der IMS-Datenbankoperation zur Auswertung, ob das Speichern erfolgreich war."
+      "explanation": "Captures the return status of the IMS database operation to evaluate whether the save was successful"
     },
     {
       "number": 531,
@@ -4821,7 +4821,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Wertet das Ergebnis des Datenbankschreibvorgangs aus, um zwischen Erfolg und Fehlerfall zu unterscheiden."
+      "explanation": "Evaluates the result of the database write operation to distinguish between success and failure"
     },
     {
       "number": 532,
@@ -4830,7 +4830,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Prüft, ob die IMS-Datenbank den Schreibvorgang erfolgreich abgeschlossen hat."
+      "explanation": "Checks whether the IMS database has successfully completed the write operation"
     },
     {
       "number": 533,
@@ -4839,7 +4839,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Schließt die Datenbankänderung mit einem Syncpoint ab, um die Betrugsmarkierung dauerhaft und konsistent zu sichern."
+      "explanation": "Concludes the database change with a syncpoint to permanently and consistently commit the fraud flag"
     },
     {
       "number": 534,
@@ -4848,7 +4848,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Prüft, ob die durchgeführte Aktion das Entfernen einer bestehenden Betrugsmarkierung war."
+      "explanation": "Checks whether the action performed was the removal of an existing fraud flag."
     },
     {
       "number": 535,
@@ -4857,7 +4857,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Informiert den Mitarbeiter, dass die Betrugsmarkierung der Transaktion erfolgreich aufgehoben wurde."
+      "explanation": "Informs the operator that the fraud flag on the transaction has been successfully removed."
     },
     {
       "number": 536,
@@ -4875,7 +4875,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Informiert den Mitarbeiter, dass die Transaktion erfolgreich als Betrug markiert wurde."
+      "explanation": "Informs the operator that the transaction has been successfully flagged as fraud."
     },
     {
       "number": 538,
@@ -4893,7 +4893,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Behandelt alle Fälle, in denen die IMS-Datenbank einen Fehler beim Speichern der Betrugsmarkierung zurückmeldet."
+      "explanation": "Handles all cases in which the IMS database returns an error when saving the fraud flag."
     },
     {
       "number": 540,
@@ -4902,7 +4902,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Rollt alle Datenbankänderungen vollständig zurück, um Datenkonsistenz bei fehlgeschlagenem Speichervorgang sicherzustellen."
+      "explanation": "Rolls back all database changes completely to ensure data consistency in the event of a failed save operation."
     },
     {
       "number": 541,
@@ -4920,7 +4920,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Setzt das Fehler-Flag, damit nachgelagerte Programmteile den Fehlerfall erkennen und korrekt reagieren."
+      "explanation": "Sets the error flag so that downstream program sections can detect the error condition and respond correctly."
     },
     {
       "number": 543,
@@ -4938,7 +4938,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Erstellt eine aussagekräftige Fehlermeldung für den Mitarbeiter, die den Systemfehler und den IMS-Rückgabecode enthält."
+      "explanation": "Constructs a meaningful error message for the operator containing the system error and the IMS return code."
     },
     {
       "number": 545,
@@ -4947,7 +4947,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Fachlicher Text der Fehlermeldung: Betrugs-Tagging ist fehlgeschlagen, Änderungen wurden zurückgerollt."
+      "explanation": "Business text of the error message: fraud tagging has failed, changes have been rolled back."
     },
     {
       "number": 546,
@@ -4956,7 +4956,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Ergänzt die Fehlermeldung um den konkreten IMS-Fehlercode zur Diagnose durch den Support."
+      "explanation": "Appends the specific IMS error code to the error message to enable diagnosis by support."
     },
     {
       "number": 547,
@@ -4965,7 +4965,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Begrenzt die zu übernehmenden Felder auf ihre volle definierte Länge."
+      "explanation": "Limits the fields to be adopted to their full defined length."
     },
     {
       "number": 548,
@@ -4974,7 +4974,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Schreibt die zusammengesetzte Fehlermeldung in das Nachrichtenfeld für die Bildschirmanzeige."
+      "explanation": "Writes the composed error message to the message field for screen display."
     },
     {
       "number": 549,
@@ -4992,7 +4992,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "UPDATE-AUTH-DETAILS",
-      "explanation": "Zeigt dem Mitarbeiter die Detailansicht mit der Fehlermeldung an, damit er über den fehlgeschlagenen Vorgang informiert ist."
+      "explanation": "Displays the detail view with the error message to the operator so that they are informed about the failed operation."
     },
     {
       "number": 551,
@@ -5055,7 +5055,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "TAKE-SYNCPOINT",
-      "explanation": "Einstiegspunkt: Datenbankänderungen werden dauerhaft festgeschrieben (Commit)."
+      "explanation": "Entry point: database changes are permanently committed."
     },
     {
       "number": 558,
@@ -5064,7 +5064,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "TAKE-SYNCPOINT",
-      "explanation": "Bestätigt alle seit dem letzten Syncpoint vorgenommenen Datenbankänderungen – z.B. das Setzen oder Entfernen einer Betrugsmarkierung – unwiderruflich als abgeschlossene Transaktion."
+      "explanation": "Irrevocably confirms all database changes made since the last syncpoint — such as setting or removing a fraud flag — as a completed transaction."
     },
     {
       "number": 559,
@@ -5100,7 +5100,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "TAKE-SYNCPOINT",
-      "explanation": "Abgrenzung zum nachfolgenden Fehlerbehandlungsblock: Ab hier folgt die Logik zum Zurückrollen fehlgeschlagener Datenbankänderungen."
+      "explanation": "Delimiter before the subsequent error-handling block: from this point on, the logic for rolling back failed database changes follows."
     },
     {
       "number": 563,
@@ -5109,7 +5109,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "TAKE-SYNCPOINT",
-      "explanation": "Fachlicher Hinweis: Der folgende Abschnitt stellt sicher, dass bei einem Fehler keine inkonsistenten Betrugsmarkierungen in der Datenbank verbleiben."
+      "explanation": "Technical note: the following section ensures that no inconsistent fraud flags remain in the database in the event of an error."
     },
     {
       "number": 564,
@@ -5127,7 +5127,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Einstiegspunkt des Rollback-Prozesses, der bei fehlgeschlagener Betrugsmarkierung oder -aufhebung ausgeführt wird."
+      "explanation": "Entry point of the rollback process, which is executed when a fraud flag set or removal has failed."
     },
     {
       "number": 566,
@@ -5136,7 +5136,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Leitet die Rückabwicklung aller noch nicht festgeschriebenen Datenbankänderungen der aktuellen Verarbeitungseinheit ein."
+      "explanation": "Initiates the reversal of all uncommitted database changes in the current unit of work."
     },
     {
       "number": 567,
@@ -5145,7 +5145,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Stellt den ursprünglichen Datenbankzustand vor der fehlgeschlagenen Betrugsmarkierung wieder her – verhindert, dass ein unvollständiger oder fehlerhafter Betrugsstatus in der IMS-Datenbank persistiert wird."
+      "explanation": "Restores the original database state prior to the failed fraud flagging — prevents an incomplete or erroneous fraud status from being persisted in the IMS database."
     },
     {
       "number": 568,
@@ -5154,7 +5154,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Abschluss der Rollback-Anweisung."
+      "explanation": "End of the rollback statement."
     },
     {
       "number": 569,
@@ -5181,7 +5181,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Abgrenzung zum nächsten Verarbeitungsabschnitt, der den IMS Program Specification Block (PSB) für den Datenbankzugriff bereitstellt."
+      "explanation": "Delimiter before the next processing section, which provides the IMS Program Specification Block (PSB) for database access."
     },
     {
       "number": 572,
@@ -5190,7 +5190,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Kennzeichnet den folgenden Abschnitt als zuständig für die Initialisierung des IMS-Datenbankzugriffs (PSB-Scheduling), der für das Lesen der Autorisierungsdaten benötigt wird."
+      "explanation": "Identifies the following section as responsible for initializing IMS database access (PSB scheduling), which is required for reading authorization data."
     },
     {
       "number": 573,
@@ -5199,7 +5199,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "ROLL-BACK",
-      "explanation": "Abschluss des Kommentarrahmens für den PSB-Scheduling-Abschnitt."
+      "explanation": "End of the comment block for the PSB scheduling section."
     },
     {
       "number": 574,
@@ -5217,7 +5217,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Reserviert den Datenbankzugriffsplan (PSB) für den Zugriff auf die Autorisierungsdaten – ohne diesen Schritt sind keine Datenbankoperationen möglich."
+      "explanation": "Reserves the database access plan (PSB) for access to the authorization data — without this step, no database operations are possible."
     },
     {
       "number": 576,
@@ -5226,7 +5226,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Gibt an, welcher konkrete Zugriffsplan (PSBPAUTB) für die Autorisierungsdatenbank verwendet werden soll."
+      "explanation": "Specifies which concrete access plan (PSBPAUTB) is to be used for the authorization database."
     },
     {
       "number": 577,
@@ -5235,7 +5235,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Verhindert einen unkontrollierten Programmabbruch bei Datenbankfehlern, damit Fehler fachlich behandelt werden können."
+      "explanation": "Prevents an uncontrolled program abend on database errors so that errors can be handled in a controlled manner."
     },
     {
       "number": 578,
@@ -5253,7 +5253,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Sichert den Rückgabestatus der Datenbankverbindung für die anschließende Fehlerauswertung."
+      "explanation": "Saves the return status of the database connection for subsequent error evaluation."
     },
     {
       "number": 580,
@@ -5262,7 +5262,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Prüft, ob der Zugriffsplan bereits aktiv ist – dies tritt auf, wenn das Programm innerhalb derselben Sitzung erneut aufgerufen wird."
+      "explanation": "Checks whether the access plan is already active — this occurs when the program is called again within the same session."
     },
     {
       "number": 581,
@@ -5271,7 +5271,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Beendet die bestehende Datenbankverbindung, um sie sauber neu aufbauen zu können und Inkonsistenzen zu vermeiden."
+      "explanation": "Terminates the existing database connection in order to re-establish it cleanly and avoid inconsistencies."
     },
     {
       "number": 582,
@@ -5298,7 +5298,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Baut die Datenbankverbindung nach dem Beenden neu auf, um einen definierten Ausgangszustand für den aktuellen Verarbeitungsschritt sicherzustellen."
+      "explanation": "Re-establishes the database connection after termination to ensure a defined initial state for the current processing step."
     },
     {
       "number": 585,
@@ -5307,7 +5307,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Verwendet erneut denselben Zugriffsplan (PSBPAUTB) für den Neuaufbau der Datenbankverbindung."
+      "explanation": "Uses the same access plan (PSBPAUTB) again for re-establishing the database connection."
     },
     {
       "number": 586,
@@ -5316,7 +5316,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Verhindert auch beim Neuaufbau einen unkontrollierten Abbruch bei Datenbankfehlern."
+      "explanation": "Also prevents an uncontrolled abend during re-establishment in the event of database errors."
     },
     {
       "number": 587,
@@ -5334,7 +5334,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Sichert den Rückgabestatus des erneuten Verbindungsaufbaus für die Fehlerauswertung."
+      "explanation": "Saves the return status of the re-established connection for error evaluation."
     },
     {
       "number": 589,
@@ -5352,7 +5352,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Prüft, ob die Datenbankverbindung erfolgreich hergestellt wurde und Autorisierungsdaten abgerufen werden können."
+      "explanation": "Checks whether the database connection was successfully established and authorization data can be retrieved."
     },
     {
       "number": 591,
@@ -5361,7 +5361,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Bestätigt intern, dass die Datenbankverbindung bereit ist und nachfolgende Lese- und Schreiboperationen auf Autorisierungsdaten durchgeführt werden dürfen."
+      "explanation": "Confirms internally that the database connection is ready and that subsequent read and write operations on authorization data may be performed."
     },
     {
       "number": 592,
@@ -5379,7 +5379,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Setzt das Fehler-Flag, um alle weiteren Datenbankoperationen in diesem Programmablauf zu unterbinden."
+      "explanation": "Sets the error flag to prevent all further database operations in this program flow."
     },
     {
       "number": 594,
@@ -5397,7 +5397,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Erstellt eine fachliche Fehlermeldung mit dem konkreten Datenbankfehlercode für den Bankmitarbeiter."
+      "explanation": "Constructs a business error message containing the specific database error code for the bank operator."
     },
     {
       "number": 596,
@@ -5406,7 +5406,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Beschreibungstext der Fehlermeldung, der dem Mitarbeiter einen Systemfehler beim Datenbankzugriff signalisiert."
+      "explanation": "Description text of the error message, signaling to the operator a system error during database access."
     },
     {
       "number": 597,
@@ -5415,7 +5415,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Fügt den technischen IMS-Fehlercode in die Meldung ein, um eine Diagnose des Datenbankproblems zu ermöglichen."
+      "explanation": "Inserts the technical IMS error code into the message to enable diagnosis of the database problem."
     },
     {
       "number": 598,
@@ -5451,7 +5451,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SCHEDULE-PSB",
-      "explanation": "Zeigt dem Bankmitarbeiter die Fehlermeldung auf dem Bildschirm an, da die Autorisierungsdetails nicht geladen werden konnten."
+      "explanation": "Displays the error message on screen to the bank operator, as the authorization details could not be loaded."
     },
     {
       "number": 602,
@@ -5490,7 +5490,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGM-AUTH-DTL",
@@ -5500,7 +5500,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGM-AUTH-SMRY",
@@ -5510,7 +5510,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGM-AUTH-FRAUD",
@@ -5520,7 +5520,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CICS-TRANID",
@@ -5530,7 +5530,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-MESSAGE",
@@ -5540,7 +5540,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-ERR-FLG",
@@ -5550,7 +5550,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-ON",
@@ -5560,7 +5560,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-OFF",
@@ -5570,7 +5570,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTHS-EOF",
@@ -5580,7 +5580,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "AUTHS-EOF",
@@ -5590,7 +5590,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "AUTHS-NOT-EOF",
@@ -5600,7 +5600,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-SEND-ERASE-FLG",
@@ -5610,7 +5610,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEND-ERASE-YES",
@@ -5620,7 +5620,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEND-ERASE-NO",
@@ -5630,7 +5630,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-RESP-CD",
@@ -5640,7 +5640,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-REAS-CD",
@@ -5650,7 +5650,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-ACCT-ID",
@@ -5660,7 +5660,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-KEY",
@@ -5670,7 +5670,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-AMT",
@@ -5680,7 +5680,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-DATE",
@@ -5690,7 +5690,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-TIME",
@@ -5700,7 +5700,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-TABLES.",
@@ -5710,7 +5710,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-DECLINE-REASON-TABLE.",
@@ -5720,7 +5720,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5730,7 +5730,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5740,7 +5740,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5750,7 +5750,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5760,7 +5760,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5770,7 +5770,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5780,7 +5780,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5790,7 +5790,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5800,7 +5800,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5810,7 +5810,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PIC",
@@ -5820,7 +5820,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-DECLINE-REASON-TAB",
@@ -5830,7 +5830,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DECL-CODE",
@@ -5840,7 +5840,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DECL-DESC",
@@ -5850,7 +5850,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-VARIABLES.",
@@ -5860,7 +5860,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-NAME",
@@ -5870,7 +5870,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PCB-OFFSET.",
@@ -5880,7 +5880,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PAUT-PCB-NUM",
@@ -5890,7 +5890,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-RETURN-CODE",
@@ -5900,7 +5900,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "STATUS-OK",
@@ -5910,7 +5910,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEGMENT-NOT-FOUND",
@@ -5920,7 +5920,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DUPLICATE-SEGMENT-FOUND",
@@ -5930,7 +5930,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WRONG-PARENTAGE",
@@ -5940,7 +5940,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-DB",
@@ -5950,7 +5950,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DATABASE-UNAVAILABLE",
@@ -5960,7 +5960,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-SCHEDULED-MORE-THAN-ONCE",
@@ -5970,7 +5970,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "COULD-NOT-SCHEDULE-PSB",
@@ -5980,7 +5980,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "RETRY-CONDITION",
@@ -5990,7 +5990,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-PSB-SCHD-FLG",
@@ -6000,7 +6000,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-SCHD",
@@ -6010,7 +6010,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-NOT-SCHD",
@@ -6020,7 +6020,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRAUD-DATA.",
@@ -6030,7 +6030,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRD-ACCT-ID",
@@ -6040,7 +6040,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRD-CUST-ID",
@@ -6050,7 +6050,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRAUD-AUTH-RECORD",
@@ -6060,7 +6060,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRAUD-STATUS-RECORD.",
@@ -6070,7 +6070,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-FRD-ACTION",
@@ -6080,7 +6080,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-REPORT-FRAUD",
@@ -6090,7 +6090,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Zeigt an, dass der Mitarbeiter die Aktion 'Betrug melden' ausgelöst hat. Wenn das übergeordnete Aktionsfeld den Wert 'F' enthält, wird die Transaktion im Folgeprogramm COPAUS2C als betrügerisch markiert."
+      "description": "Condition value: Indicates that the agent triggered the 'Report Fraud' action. If the parent action field contains the value 'F', the transaction is flagged as fraudulent in the subsequent program COPAUS2C."
     },
     {
       "name": "WS-REMOVE-FRAUD",
@@ -6100,7 +6100,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Zeigt an, dass der Mitarbeiter die Aktion 'Betrugsmarkierung aufheben' ausgelöst hat. Wenn das übergeordnete Aktionsfeld den Wert 'R' enthält, wird eine zuvor gesetzte Betrugsmarkierung der Transaktion im Folgeprogramm COPAUS2C wieder entfernt (Toggle-Logik)."
+      "description": "Condition value: Indicates that the agent triggered the 'Remove Fraud Flag' action. If the parent action field contains the value 'R', a previously set fraud flag on the transaction is removed in the subsequent program COPAUS2C (toggle logic)."
     },
     {
       "name": "WS-FRD-UPDATE-STATUS",
@@ -6110,7 +6110,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Ergebnisstatus der Betrugs-Datenbankaktualisierung durch COPAUS2C. Zeigt an, ob die Betrugsmarkierung oder deren Aufhebung erfolgreich in der Datenbank gespeichert wurde oder fehlgeschlagen ist. Bei Fehler wird ein ROLLBACK der gesamten Datenbankänderung ausgelöst."
+      "description": "Result status of the fraud database update performed by COPAUS2C. Indicates whether the fraud flag or its removal was successfully saved to the database or failed. In case of failure, a ROLLBACK of the entire database change is triggered."
     },
     {
       "name": "WS-FRD-UPDT-SUCCESS",
@@ -6120,7 +6120,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Bestätigt, dass die Betrugsmarkierung (oder deren Aufhebung) erfolgreich in der IMS-Datenbank gespeichert wurde. Das Programm kann dem Mitarbeiter eine Erfolgsmeldung anzeigen und normal fortfahren."
+      "description": "Condition value: Confirms that the fraud flag (or its removal) was successfully saved to the IMS database. The program can display a success message to the agent and continue normally."
     },
     {
       "name": "WS-FRD-UPDT-FAILED",
@@ -6130,7 +6130,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Zeigt an, dass die Betrugsmarkierung in der Datenbank nicht gespeichert werden konnte. Löst einen vollständigen ROLLBACK der Datenbankänderungen aus, um Datenkonsistenz sicherzustellen, und führt zur Anzeige einer Fehlermeldung für den Mitarbeiter."
+      "description": "Condition value: Indicates that the fraud flag could not be saved to the database. Triggers a full ROLLBACK of the database changes to ensure data consistency, and causes an error message to be displayed to the agent."
     },
     {
       "name": "WS-FRD-ACT-MSG",
@@ -6140,7 +6140,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fehlermeldungstext vom Betrugsmeldeprogramm COPAUS2C. Enthält eine lesbare Beschreibung des Fehlers, der bei der Betrugsmarkierung oder deren Aufhebung aufgetreten ist, und wird dem Mitarbeiter auf dem Bildschirm angezeigt, damit er den Fehler nachvollziehen kann."
+      "description": "Error message text from the fraud reporting program COPAUS2C. Contains a human-readable description of the error that occurred during fraud flagging or its removal, and is displayed to the agent on screen so they can understand the error."
     },
     {
       "name": "CDEMO-CPVD-INFO",
@@ -6150,7 +6150,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld: Enthält alle navigations- und sitzungsbezogenen Informationen zur Anzeige ausstehender Autorisierungen (Pending Authorization View Detail). Wird zwischen den Programmen COPAUS0C und COPAUS1C über die COMMAREA ausgetauscht, um den aktuellen Anzeigekontext (ausgewählte Transaktion, Seitenposition, Schlüssel) zu erhalten."
+      "description": "Group field: Contains all navigation- and session-related information for displaying the Pending Authorization View Detail. Exchanged between programs COPAUS0C and COPAUS1C via the COMMAREA to maintain the current display context (selected transaction, page position, key)."
     },
     {
       "name": "CDEMO-CPVD-PAU-SEL-FLG",
@@ -6160,7 +6160,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Auswahlkennzeichen: Gibt an, ob der Mitarbeiter auf der Übersichtsseite (COPAUS0C) tatsächlich eine ausstehende Autorisierung ausgewählt hat. Wird vom Programm COPAUS1C geprüft, bevor die Detailansicht aufgebaut wird – fehlt eine gültige Auswahl, wird die Verarbeitung abgebrochen."
+      "description": "Selection indicator: Specifies whether the agent has actually selected a pending authorization on the summary page (COPAUS0C). Checked by program COPAUS1C before building the detail view — if no valid selection is present, processing is aborted."
     },
     {
       "name": "CDEMO-CPVD-PAU-SELECTED",
@@ -6170,7 +6170,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Datenbankschlüssel der vom Mitarbeiter auf der Übersichtsseite ausgewählten ausstehenden Autorisierungsnachricht. Wird als IMS-Suchschlüssel verwendet, um den vollständigen Detailsatz (CIPAUDTY) aus der Autorisierungsdatenbank zu lesen und auf dem Bildschirm anzuzeigen."
+      "description": "Database key of the pending authorization message selected by the agent on the summary page. Used as an IMS search key to read the complete detail record (CIPAUDTY) from the authorization database and display it on screen."
     },
     {
       "name": "CDEMO-CPVD-PAUKEY-PREV-PG",
@@ -6180,7 +6180,7 @@
       "redefines": null,
       "occurs": "OCCURS 20 TIMES",
       "is_group": false,
-      "description": "Navigationsspeicher für Rückwärtsblättern: Tabelle mit bis zu 20 IMS-Datenbankschlüsseln der jeweils ersten Autorisierung pro besuchter Seite. Ermöglicht dem Mitarbeiter, in der Liste ausstehender Autorisierungen seitenweise rückwärts zu navigieren, ohne die Daten erneut vollständig zu durchsuchen."
+      "description": "Navigation storage for backward paging: table of up to 20 IMS database keys, each representing the first authorization of a previously visited page. Allows the agent to navigate backward page by page through the list of pending authorizations without performing a full re-scan of the data."
     },
     {
       "name": "CDEMO-CPVD-PAUKEY-LAST",
@@ -6190,7 +6190,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "IMS-Datenbankschlüssel der zuletzt angezeigten Autorisierung auf der aktuellen Seite. Wird als Startpunkt für die nächste Seite (PF8-Navigation) verwendet, um die Folgeautorisierungen desselben Kontos aus der IMS-Datenbank zu lesen."
+      "description": "IMS database key of the last authorization displayed on the current page. Used as the starting point for the next page (PF8 navigation) to read the subsequent authorizations for the same account from the IMS database."
     },
     {
       "name": "CDEMO-CPVD-PAGE-NUM",
@@ -6200,7 +6200,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Aktuelle Seitennummer in der Liste ausstehender Autorisierungen. Wird für die Seitennavigation (Vorwärts/Rückwärts) verwendet und dem Mitarbeiter auf dem Bildschirm angezeigt, damit er seinen Navigationsfortschritt in der Autorisierungsliste nachvollziehen kann."
+      "description": "Current page number in the list of pending authorizations. Used for forward/backward page navigation and displayed to the agent on screen so they can track their navigation progress within the authorization list."
     },
     {
       "name": "CDEMO-CPVD-NEXT-PAGE-FLG",
@@ -6210,7 +6210,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Kennzeichen, ob weitere ausstehende Autorisierungen für das Konto vorhanden sind. Steuert, ob der Mitarbeiter mit PF8 zur nächsten Seite blättern kann. Standardmäßig auf 'N' (keine weitere Seite) initialisiert; wird auf 'Y' gesetzt, wenn die IMS-Datenbank weitere Einträge liefert."
+      "description": "Flag indicating whether additional pending authorizations exist for the account. Controls whether the agent can page forward to the next page using PF8. Initialized to 'N' (no further page) by default; set to 'Y' when the IMS database returns additional entries."
     },
     {
       "name": "NEXT-PAGE-YES",
@@ -6220,7 +6220,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Bestätigt, dass weitere ausstehende Autorisierungen für das Konto in der Datenbank vorhanden sind. Ermöglicht dem Mitarbeiter, mit PF8 zur nächsten Autorisierung zu navigieren."
+      "description": "Condition value: Confirms that further pending authorizations for the account exist in the database. Allows the agent to navigate to the next authorization using PF8."
     },
     {
       "name": "NEXT-PAGE-NO",
@@ -6230,7 +6230,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konditionswert: Zeigt an, dass keine weiteren ausstehenden Autorisierungen für das Konto vorhanden sind. Bei PF8-Navigation wird dem Mitarbeiter eine entsprechende Hinweismeldung angezeigt ('Ende der Liste erreicht')."
+      "description": "Condition value: Indicates that no further pending authorizations exist for the account. When PF8 navigation is attempted, an appropriate informational message is displayed to the agent ('End of list reached')."
     },
     {
       "name": "CDEMO-CPVD-AUTH-KEYS",
@@ -6240,7 +6240,7 @@
       "redefines": null,
       "occurs": "OCCURS 5 TIMES",
       "is_group": false,
-      "description": "Tabelle mit bis zu 5 IMS-Datenbankschlüsseln der auf der aktuellen Übersichtsseite angezeigten ausstehenden Autorisierungen. Ermöglicht die direkte Auswahl einer bestimmten Autorisierung durch den Mitarbeiter auf der Übersichtsseite (COPAUS0C), ohne erneut die Datenbank zu durchsuchen."
+      "description": "Table of up to 5 IMS database keys for the pending authorizations displayed on the current summary page. Enables the agent to directly select a specific authorization on the summary page (COPAUS0C) without re-querying the database."
     },
     {
       "name": "CDEMO-CPVD-FRAUD-DATA",
@@ -6250,7 +6250,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Übertragungspuffer für Betrugsinformationen zwischen den Programmen COPAUS1C und COPAUS2C. Enthält die für die Betrugsverarbeitung relevanten Daten der ausgewählten Transaktion (z.B. Transaktionsschlüssel, Kontonummer, Aktionstyp), die das externe Betrugsmeldeprogramm zur Datenbankaktualisierung benötigt."
+      "description": "Transfer buffer for fraud information between programs COPAUS1C and COPAUS2C. Contains the fraud-processing-relevant data of the selected transaction (e.g., transaction key, account number, action type) required by the external fraud reporting program to perform the database update."
     },
     {
       "name": "PENDING-AUTH-SUMMARY",
@@ -6260,7 +6260,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld (Record-Struktur): Repräsentiert den IMS-Datensatz der Zusammenfassung ausstehender Autorisierungen (CIPAUSMY). Enthält die Übersichtsdaten mehrerer ausstehender Autorisierungen eines Kontos, wie sie aus der IMS-Datenbank gelesen werden, um die Listenansicht in COPAUS0C aufzubauen."
+      "description": "Group field (record structure): Represents the IMS record for the pending authorization summary (CIPAUSMY). Contains the summary data for multiple pending authorizations of an account as read from the IMS database to build the list view in COPAUS0C."
     },
     {
       "name": "PENDING-AUTH-DETAILS",
@@ -6270,7 +6270,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld (Record-Struktur): Repräsentiert den IMS-Datensatz mit den vollständigen Details einer einzelnen ausstehenden Autorisierung (CIPAUDTY). Enthält alle Felder einer Autorisierungsnachricht (Betrag, Händler, Autorisierungscode, Betrugsstatus etc.), die auf dem Detailbildschirm (COPAU1AO) angezeigt werden."
+      "description": "Group field (record structure): Represents the IMS record containing the full details of a single pending authorization (CIPAUDTY). Contains all fields of an authorization message (amount, merchant, authorization code, fraud status, etc.) displayed on the detail screen (COPAU1AO)."
     },
     {
       "name": "DFHCOMMAREA",
@@ -6280,7 +6280,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "CICS-Kommunikationsbereich (COMMAREA): Standardstruktur für den Datenaustausch zwischen CICS-Programmen. Enthält alle sitzungsrelevanten Informationen (Benutzer, Kontext, Navigationszustand, ausgewählte Autorisierung), die zwischen den CardDemo-Programmen (z.B. COPAUS0C → COPAUS1C → COPAUS2C) übergeben werden."
+      "description": "CICS communication area (COMMAREA): Standard structure for data exchange between CICS programs. Contains all session-relevant information (user, context, navigation state, selected authorization) passed between CardDemo programs (e.g., COPAUS0C → COPAUS1C → COPAUS2C)."
     },
     {
       "name": "LK-COMMAREA",
@@ -6290,7 +6290,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Technischer Platzhalter für den CICS-COMMAREA-Empfang: Definiert den Einstiegspunkt der übergebenen Kommunikationsdaten mit minimaler Länge von 1 Byte. Wird im Programm auf die eigentliche CARDDEMO-COMMAREA-Struktur umgelenkt (REDEFINES oder Adressierung), um auf alle übergebenen Sitzungs- und Navigationsdaten zuzugreifen."
+      "description": "Technical placeholder for receiving the CICS COMMAREA: defines the entry point of the passed communication data with a minimum length of 1 byte. Within the program, it is redirected (via REDEFINES or addressing) to the actual CARDDEMO-COMMAREA structure in order to access all passed session and navigation data."
     }
   ],
   "paragraphs": [
@@ -6298,91 +6298,91 @@
       "name": "MAIN-PARA",
       "line_start": 157,
       "line_end": 207,
-      "description": "MAIN-PARA ist der zentrale Steuerungsparagraph des Programms: Er prüft den Einstiegskontext, wertet die Tastatureingabe des Bankmitarbeiters aus und leitet daraus die entsprechende Geschäftsaktion (Anzeige, Betrugsmarkierung, Navigation) ab."
+      "description": "MAIN-PARA is the central control paragraph of the program: it checks the entry context, evaluates the bank employee's keyboard input, and derives the corresponding business action (display, fraud flagging, navigation) from it."
     },
     {
       "name": "PROCESS-ENTER-KEY",
       "line_start": 208,
       "line_end": 229,
-      "description": "Lädt die vollständigen Details einer ausgewählten Autorisierungsanfrage aus der IMS-Datenbank, sofern eine gültige Kontonummer und ein Autorisierungsschlüssel vorliegen, und bereitet die Detailanzeige für den Bankmitarbeiter vor."
+      "description": "Loads the complete details of a selected authorization request from the IMS database, provided a valid account number and authorization key are present, and prepares the detail display for the bank employee."
     },
     {
       "name": "MARK-AUTH-FRAUD",
       "line_start": 230,
       "line_end": 267,
-      "description": "Dieser Paragraph steuert die Betrugsmeldung einer ausstehenden Autorisierungstransaktion: Er erkennt automatisch, ob eine Betrugsmarkierung gesetzt oder entfernt werden soll (Toggle-Logik), delegiert die Datenbankaktualisierung an das Betrugsprogramm COPAUS2C und stellt bei Fehlern die Datenkonsistenz durch Rollback sicher."
+      "description": "This paragraph controls the fraud reporting of a pending authorization transaction: it automatically detects whether a fraud flag should be set or removed (toggle logic), delegates the database update to the fraud program COPAUS2C, and ensures data consistency through rollback in the event of errors."
     },
     {
       "name": "PROCESS-PF8-KEY",
       "line_start": 268,
       "line_end": 290,
-      "description": "Navigiert zur nächsten ausstehenden Autorisierungsanfrage desselben Kontos und zeigt deren Details an. Ist keine weitere Autorisierung vorhanden, wird dem Mitarbeiter ein entsprechender Hinweis angezeigt."
+      "description": "Navigates to the next pending authorization request for the same account and displays its details. If no further authorization exists, the employee is shown a corresponding notification."
     },
     {
       "name": "POPULATE-AUTH-DETAILS",
       "line_start": 291,
       "line_end": 359,
-      "description": "Bereitet alle relevanten Details einer ausstehenden Autorisierungsanfrage für die Bildschirmanzeige auf – einschließlich Kartendaten, Betrag, Autorisierungsstatus, Ablehnungsgrund, Händlerinformationen und Betrugsstatus. Der Paragraph wird nur ausgeführt, wenn kein Fehler vorliegt."
+      "description": "Prepares all relevant details of a pending authorization request for screen display – including card data, amount, authorization status, rejection reason, merchant information, and fraud status. The paragraph is only executed if no error is present."
     },
     {
       "name": "RETURN-TO-PREV-SCREEN",
       "line_start": 360,
       "line_end": 372,
-      "description": "Dieser Paragraph steuert die Rückkehr zur Autorisierungsübersicht (COPAUS0C), wenn der Mitarbeiter PF3 drückt. Die aktuelle Programmidentität wird dabei in den Kommunikationsbereich eingetragen, bevor die Kontrolle an das Übersichtsprogramm übergeben wird."
+      "description": "This paragraph controls the return to the authorization overview (COPAUS0C) when the employee presses PF3. The current program identity is written to the communication area before control is transferred to the overview program."
     },
     {
       "name": "SEND-AUTHVIEW-SCREEN",
       "line_start": 373,
       "line_end": 397,
-      "description": "Bereitet die Detailansicht einer ausstehenden Autorisierungsnachricht für die Bildschirmausgabe vor und zeigt sie dem Bankmitarbeiter an – entweder als vollständige Neuanzeige (Bildschirm löschen) oder als aktualisierte Ansicht."
+      "description": "Prepares the detail view of a pending authorization message for screen output and displays it to the bank employee – either as a full new display (screen clear) or as an updated view."
     },
     {
       "name": "RECEIVE-AUTHVIEW-SCREEN",
       "line_start": 398,
       "line_end": 408,
-      "description": "Nimmt die Eingaben des Bankmitarbeiters von der Detailansicht der Autorisierungsnachricht entgegen – insbesondere die Tastenbefehle (z.B. PF5 für Betrugsmeldung, PF8 für Weiterblättern, PF3 für Rückkehr) sowie etwaige Bildschirmfelder."
+      "description": "Receives the bank employee's input from the detail view of the authorization message – in particular the key commands (e.g., PF5 for fraud reporting, PF8 for scrolling forward, PF3 for return) as well as any screen fields."
     },
     {
       "name": "POPULATE-HEADER-INFO",
       "line_start": 409,
       "line_end": 430,
-      "description": "Befüllt den Kopfbereich der Detailansicht mit Anwendungstiteln, Transaktions- und Programmkennung sowie dem aktuellen Systemdatum und der Systemuhrzeit, damit der Bankmitarbeiter den Bearbeitungskontext und den Zeitpunkt der Anzeige nachvollziehen kann."
+      "description": "Populates the header area of the detail view with application titles, transaction and program identifiers, and the current system date and time, so that the bank employee can trace the processing context and the time of the display."
     },
     {
       "name": "READ-AUTH-RECORD",
       "line_start": 431,
       "line_end": 492,
-      "description": "Lädt die vollständigen Details einer einzelnen ausstehenden Autorisierungsanfrage aus der IMS-Datenbank – zunächst den Zusammenfassungsdatensatz des Kontos, dann den spezifischen Detaildatensatz der ausgewählten Transaktion."
+      "description": "Loads the complete details of a single pending authorization request from the IMS database – first the account summary record, then the specific detail record of the selected transaction."
     },
     {
       "name": "READ-NEXT-AUTH-RECORD",
       "line_start": 493,
       "line_end": 519,
-      "description": "Ruft den nächsten ausstehenden Autorisierungsdatensatz desselben Kontos aus der IMS-Datenbank ab, um dem Mitarbeiter beim Vorwärtsblättern (PF8) die nächste Autorisierungsanfrage anzuzeigen."
+      "description": "Retrieves the next pending authorization record for the same account from the IMS database, in order to display the next authorization request to the employee when scrolling forward (PF8)."
     },
     {
       "name": "UPDATE-AUTH-DETAILS",
       "line_start": 520,
       "line_end": 556,
-      "description": "Schreibt die aktualisierte Autorisierung (mit gesetzter oder entfernter Betrugsmarkierung) dauerhaft in die IMS-Datenbank und bestätigt dem Mitarbeiter das Ergebnis – oder rollt bei Datenbankfehler alle Änderungen vollständig zurück."
+      "description": "Writes the updated authorization (with the fraud flag set or removed) permanently to the IMS database and confirms the result to the employee – or rolls back all changes completely in the event of a database error."
     },
     {
       "name": "TAKE-SYNCPOINT",
       "line_start": 557,
       "line_end": 564,
-      "description": "Schließt alle vorgenommenen Datenbankänderungen (z.B. Betrugsmarkierung setzen oder entfernen) verbindlich ab und stellt so die dauerhafte Konsistenz der Autorisierungsdaten in der IMS-Datenbank sicher."
+      "description": "Commits all database changes made (e.g., setting or removing a fraud flag) definitively, thereby ensuring the permanent consistency of the authorization data in the IMS database."
     },
     {
       "name": "ROLL-BACK",
       "line_start": 565,
       "line_end": 573,
-      "description": "Macht alle Datenbankänderungen der aktuellen Transaktion rückgängig, um die Datenkonsistenz zu wahren – wird aufgerufen, wenn die Betrugsmeldung oder -aufhebung fehlgeschlagen ist und kein inkonsistenter Zustand in der IMS-Datenbank verbleiben darf."
+      "description": "Reverses all database changes of the current transaction to maintain data consistency – called when fraud reporting or removal has failed and no inconsistent state may remain in the IMS database."
     },
     {
       "name": "SCHEDULE-PSB",
       "line_start": 574,
       "line_end": 604,
-      "description": "Stellt die Verbindung zur IMS-Autorisierungsdatenbank her, indem der benötigte Datenbankzugriffsplan (PSB) reserviert wird – eine Voraussetzung, um Autorisierungsdetails lesen und Betrugsmarkierungen schreiben zu können."
+      "description": "Establishes the connection to the IMS authorization database by allocating the required database access plan (PSB) – a prerequisite for reading authorization details and writing fraud flags."
     }
   ],
   "copybooks": [

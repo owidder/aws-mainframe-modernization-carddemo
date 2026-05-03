@@ -1,0 +1,2586 @@
+{
+  "meta": {
+    "program_name": "CBSTM03B",
+    "file_path": "app/cbl/CBSTM03B.CBL",
+    "analyzed_at": "2026-05-03T11:41:59.498592",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "A reusable batch file-access subroutine that provides controlled read access to transaction, card cross-reference, customer, and account data files on behalf of the Transaction Report generation process.",
+    "process_description": "CBSTM03B acts as a centralised file I/O handler called by a parent batch reporting program (the 'statement create program') to retrieve the raw data needed to produce a Transaction Report. The subroutine accepts a file identifier, an operation code (Open, Close, Sequential Read, or Keyed Read), an optional lookup key, and a data buffer through its linkage interface, then performs the requested file operation and returns the data along with a status code to the caller. Transaction and cross-reference files are read sequentially (full file scan), while customer and account files are accessed randomly by key, allowing the parent program to enrich each transaction record with the corresponding customer name and account details. By isolating all file handling in this single subroutine, the system enforces a consistent, auditable access pattern across all four master data sources used in transaction reporting.",
+    "type": "Batch",
+    "module": "Reporting",
+    "files": {
+      "TRNXFILE": "Credit card transaction history file – the primary source of individual transaction records used to build the Transaction Report",
+      "XREFFILE": "Card-to-account cross-reference file – maps a credit card number to its associated account, enabling account lookup from a card-based transaction",
+      "CUSTFILE": "Customer master file – provides customer identity and demographic details to enrich transaction report lines with cardholder information",
+      "ACCTFILE": "Account master file – provides account-level financial details (limits, balances, status) to enrich the Transaction Report with account context"
+    },
+    "business_rules": [
+      "Only read (INPUT) access is permitted to all four files – no inserts, updates, or deletions are allowed, preserving data integrity during report generation.",
+      "Transaction and cross-reference files are read sequentially (full file scan), ensuring every transaction in the reporting period is included without omission.",
+      "Customer and account records are retrieved by explicit key lookup only, meaning a valid cross-reference must exist before customer or account data can be enriched onto a transaction.",
+      "The subroutine returns a file status code to the caller after every operation, enabling the parent program to detect and handle missing records, end-of-file conditions, or I/O errors without aborting the entire report run.",
+      "The subroutine is file-agnostic by design – the caller selects the target file via a DD name parameter, enforcing a single, consistent I/O interface across all data sources used in transaction reporting.",
+      "A maximum of four files (transactions, card cross-reference, customers, accounts) are in scope, reflecting the complete set of data entities required to produce a fully enriched Transaction Report."
+    ],
+    "index_context": {
+      "copybooks_resolved": [],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COPAUA0C",
+        "COPAUS2C",
+        "COPAUS0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "       PROGRAM-ID.    CBSTM03B.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "       AUTHOR.        AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Program     : CBSTM03B.CBL",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Type        : BATCH COBOL Subroutine",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * Function    : Does file processing related to Transact Report",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "      * This program is to called by the statement create program",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "      * It does file handling",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "           SELECT TRNX-FILE ASSIGN TO TRNXFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "                  RECORD KEY   IS FD-TRNXS-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "                  FILE STATUS  IS TRNXFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "           SELECT XREF-FILE ASSIGN TO   XREFFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "                  RECORD KEY   IS FD-XREF-CARD-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "                  FILE STATUS  IS XREFFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "           SELECT CUST-FILE ASSIGN TO CUSTFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "                  RECORD KEY   IS FD-CUST-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "                  FILE STATUS  IS CUSTFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "           SELECT ACCT-FILE ASSIGN TO ACCTFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "                  RECORD KEY   IS FD-ACCT-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "                  FILE STATUS  IS ACCTFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "      *",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "       FD  TRNX-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "       01  FD-TRNXFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "           05 FD-TRNXS-ID.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "              10  FD-TRNX-CARD                  PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "              10  FD-TRNX-ID                    PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "           05 FD-ACCT-DATA                      PIC X(318).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       FD  XREF-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       01  FD-XREFFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "           05 FD-XREF-CARD-NUM                  PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "           05 FD-XREF-DATA                      PIC X(34).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "       FD  CUST-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "       01  FD-CUSTFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "           05 FD-CUST-ID                        PIC X(09).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "           05 FD-CUST-DATA                      PIC X(491).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "       FD  ACCT-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "       01  FD-ACCTFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "           05 FD-ACCT-ID                        PIC 9(11).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "           05 FD-ACCT-DATA                      PIC X(289).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "       01  TRNXFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "           05  TRNXFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "           05  TRNXFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "       01  XREFFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "           05  XREFFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "           05  XREFFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "       01  CUSTFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "           05  CUSTFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "           05  CUSTFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "       01  ACCTFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "           05  ACCTFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "           05  ACCTFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "       01  LK-M03B-AREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "           05  LK-M03B-DD          PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "           05  LK-M03B-OPER        PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "             88  M03B-OPEN       VALUE 'O'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 104,
+      "code": "             88  M03B-CLOSE      VALUE 'C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "             88  M03B-READ       VALUE 'R'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 106,
+      "code": "             88  M03B-READ-K     VALUE 'K'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "             88  M03B-WRITE      VALUE 'W'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "             88  M03B-REWRITE    VALUE 'Z'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "           05  LK-M03B-RC          PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "           05  LK-M03B-KEY         PIC X(25).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "           05  LK-M03B-KEY-LN      PIC S9(4).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 112,
+      "code": "           05  LK-M03B-FLDT        PIC X(1000).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 114,
+      "code": "       PROCEDURE DIVISION USING LK-M03B-AREA.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "       0000-START.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Entry point of the subroutine – execution begins here each time the parent reporting program invokes this file access handler."
+    },
+    {
+      "number": 117,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "           EVALUATE LK-M03B-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Inspects which of the four master data sources the calling program has requested access to, in order to route the operation correctly."
+    },
+    {
+      "number": 119,
+      "code": "             WHEN 'TRNXFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Checks whether the requested data source is the credit card transaction history file."
+    },
+    {
+      "number": 120,
+      "code": "               PERFORM 1000-TRNXFILE-PROC THRU 1999-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Routes the operation to the transaction file handling routine, which will open, close, or sequentially read transaction records on behalf of the caller."
+    },
+    {
+      "number": 121,
+      "code": "             WHEN 'XREFFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Checks whether the requested data source is the card-to-account cross-reference file."
+    },
+    {
+      "number": 122,
+      "code": "               PERFORM 2000-XREFFILE-PROC THRU 2999-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Routes the operation to the cross-reference file handling routine, which will open, close, or sequentially read card-to-account mapping records on behalf of the caller."
+    },
+    {
+      "number": 123,
+      "code": "             WHEN 'CUSTFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Checks whether the requested data source is the customer master file."
+    },
+    {
+      "number": 124,
+      "code": "               PERFORM 3000-CUSTFILE-PROC THRU 3999-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Routes the operation to the customer file handling routine, which will open, close, or retrieve individual customer identity records by key on behalf of the caller."
+    },
+    {
+      "number": 125,
+      "code": "             WHEN 'ACCTFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Checks whether the requested data source is the account master file."
+    },
+    {
+      "number": 126,
+      "code": "               PERFORM 4000-ACCTFILE-PROC THRU 4999-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Routes the operation to the account file handling routine, which will open, close, or retrieve individual account financial detail records by key on behalf of the caller."
+    },
+    {
+      "number": 127,
+      "code": "             WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Catches any request that does not match one of the four permitted data sources."
+    },
+    {
+      "number": 128,
+      "code": "               GO TO 9999-GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": "Immediately exits the subroutine without performing any file operation if an unrecognised data source was specified, preventing unauthorised or erroneous file access."
+    },
+    {
+      "number": 129,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-START",
+      "explanation": ""
+    },
+    {
+      "number": 130,
+      "code": "       9999-GOBACK.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-GOBACK",
+      "explanation": "Entry point label for the subroutine's exit routine, signalling that all file I/O work is done and the subroutine is ready to hand control back to the calling report program."
+    },
+    {
+      "number": 131,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-GOBACK",
+      "explanation": "Returns control to the parent batch reporting program, along with any retrieved data and the operation status code, so the caller can continue building the Transaction Report."
+    },
+    {
+      "number": 132,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-GOBACK",
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "       1000-TRNXFILE-PROC.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Entry point for handling all requested operations against the credit card transaction history file."
+    },
+    {
+      "number": 134,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "           IF M03B-OPEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Checks whether the caller has requested the transaction history file to be opened for reading."
+    },
+    {
+      "number": 136,
+      "code": "               OPEN INPUT TRNX-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Opens the credit card transaction history file in read-only mode, ensuring no modifications can occur during report generation."
+    },
+    {
+      "number": 137,
+      "code": "               GO TO 1900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Returns control to the caller immediately after opening the file, signalling readiness to begin reading transactions."
+    },
+    {
+      "number": 138,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Ends the open-file condition check."
+    },
+    {
+      "number": 139,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "           IF M03B-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Checks whether the caller has requested the next transaction record to be retrieved from the file."
+    },
+    {
+      "number": 141,
+      "code": "               READ TRNX-FILE INTO LK-M03B-FLDT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Reads the next transaction record sequentially from the credit card transaction history file and places its contents into the data buffer returned to the calling program."
+    },
+    {
+      "number": 142,
+      "code": "               END-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Ends the sequential read operation."
+    },
+    {
+      "number": 143,
+      "code": "               GO TO 1900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Returns control to the caller immediately after delivering the retrieved transaction record, including any end-of-file or error status."
+    },
+    {
+      "number": 144,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Ends the read condition check."
+    },
+    {
+      "number": 145,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "           IF M03B-CLOSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Checks whether the caller has requested the transaction history file to be closed after all records have been processed."
+    },
+    {
+      "number": 147,
+      "code": "               CLOSE TRNX-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Closes the credit card transaction history file, releasing it cleanly once the full transaction scan for the report is complete."
+    },
+    {
+      "number": 148,
+      "code": "               GO TO 1900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Returns control to the caller immediately after the file has been closed."
+    },
+    {
+      "number": 149,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": "Ends the close-file condition check."
+    },
+    {
+      "number": 150,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-TRNXFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "       1900-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1900-EXIT",
+      "explanation": "Marks the exit point of the subroutine, signalling that all requested file handling work is complete and control is about to return to the parent reporting program."
+    },
+    {
+      "number": 152,
+      "code": "           MOVE TRNXFILE-STATUS TO LK-M03B-RC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1900-EXIT",
+      "explanation": "Passes the result status of the last transaction file operation back to the calling program, indicating success, end-of-file, or an I/O error so the report process can respond appropriately."
+    },
+    {
+      "number": 153,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1900-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "       1999-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1999-EXIT",
+      "explanation": "Marks the designated exit point of the subroutine, signalling that all requested file operations have been completed and the result is ready for the caller."
+    },
+    {
+      "number": 155,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1999-EXIT",
+      "explanation": "Returns control to the parent reporting program, concluding the subroutine's responsibility for this invocation with no further processing."
+    },
+    {
+      "number": 156,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1999-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 157,
+      "code": "       2000-XREFFILE-PROC.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Entry point for all cross-reference file operations requested by the parent reporting program."
+    },
+    {
+      "number": 158,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 159,
+      "code": "           IF M03B-OPEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Checks whether the caller has requested that the card-to-account cross-reference file be opened for reading."
+    },
+    {
+      "number": 160,
+      "code": "               OPEN INPUT XREF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Opens the card-to-account cross-reference file in read-only mode, ensuring no modifications can be made to the mapping data during report generation."
+    },
+    {
+      "number": 161,
+      "code": "               GO TO 2900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Returns control to the caller immediately after opening the file, passing back the resulting operation status."
+    },
+    {
+      "number": 162,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 163,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "           IF M03B-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Checks whether the caller has requested the next card-to-account mapping record to be read sequentially from the file."
+    },
+    {
+      "number": 165,
+      "code": "               READ XREF-FILE INTO LK-M03B-FLDT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Reads the next card-to-account mapping record from the file and places its contents into the shared data buffer for the parent program to consume."
+    },
+    {
+      "number": 166,
+      "code": "               END-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 167,
+      "code": "               GO TO 2900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Returns control to the caller immediately after the read, passing back the record data and the operation status (including end-of-file if all mappings have been processed)."
+    },
+    {
+      "number": 168,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 169,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 170,
+      "code": "           IF M03B-CLOSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Checks whether the caller has requested that the card-to-account cross-reference file be closed after all mapping records have been processed."
+    },
+    {
+      "number": 171,
+      "code": "               CLOSE XREF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Closes the card-to-account cross-reference file, releasing the file resource once the full sequential scan is complete."
+    },
+    {
+      "number": 172,
+      "code": "               GO TO 2900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": "Returns control to the caller immediately after closing the file, passing back the resulting operation status."
+    },
+    {
+      "number": 174,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-XREFFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "       2900-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2900-EXIT",
+      "explanation": "Marks the exit point of the subroutine, signalling that all requested file work is complete and control is about to return to the parent reporting program."
+    },
+    {
+      "number": 176,
+      "code": "           MOVE XREFFILE-STATUS TO LK-M03B-RC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2900-EXIT",
+      "explanation": "Passes the result status of the most recent card cross-reference file operation back to the caller, indicating success, end-of-file, or an I/O error for the parent program to act upon."
+    },
+    {
+      "number": 177,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2900-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "       2999-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2999-EXIT",
+      "explanation": "Labels the designated exit point that all processing paths within the subroutine converge to before returning control to the calling reporting program."
+    },
+    {
+      "number": 179,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2999-EXIT",
+      "explanation": "Signals the clean, orderly conclusion of the subroutine's work, ensuring the parent reporting program resumes execution in a controlled and predictable state."
+    },
+    {
+      "number": 180,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2999-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 181,
+      "code": "       3000-CUSTFILE-PROC.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Entry point for all Customer Master File operations requested by the parent reporting program."
+    },
+    {
+      "number": 182,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 183,
+      "code": "           IF M03B-OPEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Checks whether the caller is requesting the Customer Master File to be opened for reading."
+    },
+    {
+      "number": 184,
+      "code": "               OPEN INPUT CUST-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Opens the Customer Master File in read-only mode, ensuring no customer data can be modified during report generation."
+    },
+    {
+      "number": 185,
+      "code": "               GO TO 3900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Returns control immediately to the caller after opening the file, skipping any further operation checks."
+    },
+    {
+      "number": 186,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 187,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 188,
+      "code": "           IF M03B-READ-K",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Checks whether the caller is requesting a specific customer record to be retrieved by a known customer identifier."
+    },
+    {
+      "number": 189,
+      "code": "               MOVE LK-M03B-KEY (1:LK-M03B-KEY-LN) TO FD-CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Loads the customer identifier supplied by the caller into the file's search key field, targeting the exact customer record to be retrieved."
+    },
+    {
+      "number": 190,
+      "code": "               READ CUST-FILE INTO LK-M03B-FLDT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Retrieves the matching customer record from the Customer Master File and places the full customer details into the data buffer to be returned to the calling program."
+    },
+    {
+      "number": 191,
+      "code": "               END-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "               GO TO 3900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Returns control immediately to the caller after the customer lookup, carrying back the retrieved customer details and the operation outcome."
+    },
+    {
+      "number": 193,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 194,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "           IF M03B-CLOSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Checks whether the caller is requesting the Customer Master File to be closed after all required customer lookups are complete."
+    },
+    {
+      "number": 196,
+      "code": "               CLOSE CUST-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Closes the Customer Master File, releasing the file resource now that customer data enrichment for the report is finished."
+    },
+    {
+      "number": 197,
+      "code": "               GO TO 3900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": "Returns control immediately to the caller after closing the file."
+    },
+    {
+      "number": 198,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 199,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-CUSTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 200,
+      "code": "       3900-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3900-EXIT",
+      "explanation": "This paragraph serves as the exit point for the customer file operation, returning the outcome of the last customer file access back to the calling program so it can determine whether the operation succeeded or encountered an error."
+    },
+    {
+      "number": 201,
+      "code": "           MOVE CUSTFILE-STATUS TO LK-M03B-RC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3900-EXIT",
+      "explanation": "Passes the result status of the most recent customer file operation back to the calling program, indicating success, record-not-found, or an I/O error."
+    },
+    {
+      "number": 202,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3900-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 203,
+      "code": "       3999-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3999-EXIT",
+      "explanation": "Labels the designated exit point that all processing paths within the subroutine converge to before returning control to the calling reporting program."
+    },
+    {
+      "number": 204,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3999-EXIT",
+      "explanation": "Signals the completion of the subroutine's work, returning control to the parent batch reporting program after the requested file operation has been performed and the status code returned."
+    },
+    {
+      "number": 205,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3999-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 206,
+      "code": "       4000-ACCTFILE-PROC.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Entry point for all Account Master File operations requested by the parent reporting program."
+    },
+    {
+      "number": 207,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 208,
+      "code": "           IF M03B-OPEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Checks whether the caller has requested the Account Master File to be opened and made ready for reading."
+    },
+    {
+      "number": 209,
+      "code": "               OPEN INPUT ACCT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Opens the Account Master File in read-only mode, ensuring no account data can be modified during report generation."
+    },
+    {
+      "number": 210,
+      "code": "               GO TO 4900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Returns control to the caller immediately after opening the file, skipping any further operation checks."
+    },
+    {
+      "number": 211,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 212,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 213,
+      "code": "           IF M03B-READ-K",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Checks whether the caller has requested a specific account record to be retrieved by its unique account identifier."
+    },
+    {
+      "number": 214,
+      "code": "               MOVE LK-M03B-KEY (1:LK-M03B-KEY-LN) TO FD-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Loads the account identifier supplied by the caller into the file's search key field, targeting the exact account record to be retrieved."
+    },
+    {
+      "number": 215,
+      "code": "               READ ACCT-FILE INTO LK-M03B-FLDT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Retrieves the matching account record from the Account Master File and places it into the shared data buffer for the parent program to use in enriching the transaction report."
+    },
+    {
+      "number": 216,
+      "code": "               END-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 217,
+      "code": "               GO TO 4900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Returns control to the caller immediately after the account lookup, carrying back the retrieved account details and the operation status."
+    },
+    {
+      "number": 218,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 220,
+      "code": "           IF M03B-CLOSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Checks whether the caller has requested the Account Master File to be closed after all account lookups are complete."
+    },
+    {
+      "number": 221,
+      "code": "               CLOSE ACCT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Closes the Account Master File, releasing the file resource cleanly at the end of the report generation process."
+    },
+    {
+      "number": 222,
+      "code": "               GO TO 4900-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 223,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": "Returns control to the caller immediately after closing the file."
+    },
+    {
+      "number": 224,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-ACCTFILE-PROC",
+      "explanation": ""
+    },
+    {
+      "number": 225,
+      "code": "       4900-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4900-EXIT",
+      "explanation": "This paragraph serves as the exit point for the account file operation, returning the outcome of the last account file access back to the calling reporting program so it can determine whether the operation succeeded or failed."
+    },
+    {
+      "number": 226,
+      "code": "           MOVE ACCTFILE-STATUS TO LK-M03B-RC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4900-EXIT",
+      "explanation": "Passes the account file's last I/O status (success, record-not-found, end-of-file, or error) back to the calling program as the operation result."
+    },
+    {
+      "number": 227,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4900-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "       4999-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4999-EXIT",
+      "explanation": "Labels the designated exit point that all processing paths within the subroutine converge to before returning control to the calling report program."
+    },
+    {
+      "number": 229,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4999-EXIT",
+      "explanation": "Signals the clean, orderly conclusion of the subroutine's file handling work, ensuring the parent reporting process resumes from the correct point after any open, close, or read operation."
+    },
+    {
+      "number": 230,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4999-EXIT",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "FD-TRNXFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The complete layout of a single credit card transaction record as read from the transaction history file. Each time the subroutine reads the next transaction sequentially, this structure holds all the details of that one transaction event."
+    },
+    {
+      "name": "FD-TRNXS-ID",
+      "level": "05",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The composite unique identifier for a transaction, combining the card number and the transaction ID together. This key pair uniquely pinpoints one specific purchase or credit event on a specific card."
+    },
+    {
+      "name": "FD-TRNX-CARD",
+      "level": "10",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The 16-digit credit card number associated with the transaction. This is the primary link used to look up the cardholder's account via the card cross-reference file, enabling the report to be enriched with customer and account details."
+    },
+    {
+      "name": "FD-TRNX-ID",
+      "level": "10",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The unique identifier assigned to this individual transaction event (e.g. a purchase, refund, or fee). Together with the card number it uniquely identifies one line item that will appear on the Transaction Report."
+    },
+    {
+      "name": "FD-ACCT-DATA",
+      "level": "05",
+      "picture": "PIC X(318)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The remaining transaction detail payload — containing fields such as transaction amount, date, merchant category, description, and other attributes — that provide the full business context for each transaction line on the report."
+    },
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The complete layout of a single card-to-account cross-reference record. When a transaction is read, this record is used to translate the credit card number into the corresponding account identifier so that account and customer data can be retrieved."
+    },
+    {
+      "name": "FD-XREF-CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The 16-digit credit card number that serves as the lookup key into the cross-reference file. It matches the card number on the transaction record, allowing the system to find which account this card belongs to."
+    },
+    {
+      "name": "FD-XREF-DATA",
+      "level": "05",
+      "picture": "PIC X(34)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The cross-reference payload containing the associated account number and any other linking attributes. This data bridges the card-based transaction world to the account master, enabling account and customer enrichment on the report."
+    },
+    {
+      "name": "FD-CUSTFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The complete layout of a single customer master record. Once the account is identified via the cross-reference, this record provides the cardholder's personal and demographic information (name, address, contact details) to enrich the Transaction Report."
+    },
+    {
+      "name": "FD-CUST-ID",
+      "level": "05",
+      "picture": "PIC X(09)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The unique 9-character customer identifier that serves as the key for direct lookup into the customer master file. It identifies the specific cardholder whose personal details are to be retrieved and printed on the Transaction Report."
+    },
+    {
+      "name": "FD-CUST-DATA",
+      "level": "05",
+      "picture": "PIC X(491)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The full customer profile payload — including name, address, date of birth, contact information, and other demographic attributes — used to identify and describe the cardholder on each enriched transaction report line."
+    },
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The complete layout of a single account master record. This record provides the financial standing of the account (credit limit, current balance, status) that contextualises each transaction on the report within the broader account picture."
+    },
+    {
+      "name": "FD-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The unique 11-digit numeric account identifier used as the key to retrieve the correct account master record. It is obtained from the cross-reference lookup and drives the keyed read that brings account financial details onto the Transaction Report."
+    },
+    {
+      "name": "FD-ACCT-DATA",
+      "level": "05",
+      "picture": "PIC X(289)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The account financial detail payload — including credit limit, current balance, available credit, account status, and related attributes — that enriches each transaction report line with the account's financial context at the time of reporting."
+    },
+    {
+      "name": "TRNXFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The two-character I/O status indicator returned by the operating system after every operation on the transaction history file. The calling program inspects this to determine whether the read succeeded, reached end-of-file, or encountered an error that must be handled."
+    },
+    {
+      "name": "TRNXFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The primary status digit for the transaction file operation. A value of '0' indicates success; any other value signals a problem (e.g. '1' for end-of-file, '9' for a system-level I/O error) that the report process must respond to."
+    },
+    {
+      "name": "TRNXFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The secondary status digit for the transaction file operation, providing additional detail about the specific nature of a success or failure condition, allowing the calling program to distinguish between different error scenarios precisely."
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The two-character I/O status indicator returned after every operation on the card cross-reference file. The caller uses this to detect whether a card-to-account mapping was found, not found, or whether a file error occurred during the lookup."
+    },
+    {
+      "name": "XREFFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The primary status digit for the cross-reference file operation. A '0' confirms the card-to-account mapping was successfully retrieved; other values indicate the card was not found or a file error occurred, preventing account enrichment."
+    },
+    {
+      "name": "XREFFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The secondary status digit for the cross-reference file operation, providing finer-grained diagnostic information about the outcome, helping the calling program distinguish between a record-not-found condition and a more serious I/O failure."
+    },
+    {
+      "name": "CUSTFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The two-character I/O status indicator returned after every operation on the customer master file. The caller inspects this to confirm whether the cardholder's personal details were successfully retrieved or whether the customer record is missing or unreadable."
+    },
+    {
+      "name": "CUSTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The primary status digit for the customer file operation. A '0' means the customer record was found and returned successfully; other values indicate the customer does not exist or a file error occurred, which may result in a partially enriched report line."
+    },
+    {
+      "name": "CUSTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The secondary status digit for the customer file operation, providing additional diagnostic detail to help the calling program differentiate between a missing customer record and a hardware or software I/O error."
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The two-character I/O status indicator returned after every operation on the account master file. The caller uses this to verify whether the account's financial details were successfully retrieved to enrich the transaction report line."
+    },
+    {
+      "name": "ACCTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The primary status digit for the account file operation. A '0' confirms the account record was found and its financial details are available for the report; other values signal that the account is missing or an I/O error has occurred."
+    },
+    {
+      "name": "ACCTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The secondary status digit for the account file operation, offering finer diagnostic detail so the calling program can distinguish between an account record that genuinely does not exist versus a system-level file access failure."
+    },
+    {
+      "name": "LK-M03B-AREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The complete communication interface — the 'contract' — between the calling Transaction Report program and this subroutine. All instructions to the subroutine (which file, what action, what key) and all results back (status, retrieved data) flow through this shared parameter area."
+    },
+    {
+      "name": "LK-M03B-DD",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The file selector — the caller specifies which of the four business data sources to operate on (TRNXFILE for transactions, XREFFILE for card-account mappings, CUSTFILE for customer details, or ACCTFILE for account financials). This makes the subroutine a single reusable gateway to all report data."
+    },
+    {
+      "name": "LK-M03B-OPER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The operation instruction telling the subroutine what action to perform on the selected file — open it for reading, close it after processing, read the next record sequentially, or retrieve a specific record by key. This single character drives the entire file access lifecycle."
+    },
+    {
+      "name": "M03B-OPEN",
+      "level": "88",
+      "picture": null,
+      "value": "O",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Signals that the caller wants to open the specified file and make it ready for reading. This must be the first operation performed on any file before transaction or reference data can be retrieved for the report."
+    },
+    {
+      "name": "M03B-CLOSE",
+      "level": "88",
+      "picture": null,
+      "value": "C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Signals that the caller has finished reading from the specified file and wants to close it, releasing system resources. This is the final operation performed on a file after all required records have been processed for the report."
+    },
+    {
+      "name": "M03B-READ",
+      "level": "88",
+      "picture": null,
+      "value": "R",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Signals a sequential read — retrieve the next record in order from the file. Used for scanning the full transaction history and card cross-reference files to ensure every transaction in the reporting period is captured without omission."
+    },
+    {
+      "name": "M03B-READ-K",
+      "level": "88",
+      "picture": null,
+      "value": "K",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Signals a keyed (random) read — retrieve the specific record matching the supplied key. Used to look up a particular customer or account record directly, rather than scanning the entire file, enabling efficient enrichment of individual transaction report lines."
+    },
+    {
+      "name": "M03B-WRITE",
+      "level": "88",
+      "picture": null,
+      "value": "W",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Represents a write operation code. Although defined in the interface, write operations are not permitted by business rules during report generation — all files are opened read-only to protect data integrity. This value should never be invoked in normal report processing."
+    },
+    {
+      "name": "M03B-REWRITE",
+      "level": "88",
+      "picture": null,
+      "value": "Z",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Represents a rewrite (update-in-place) operation code. Like write, this is not permitted during report generation — all files are read-only. Its presence in the interface suggests the subroutine framework may be shared with other processes that do allow updates."
+    },
+    {
+      "name": "LK-M03B-RC",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The outcome code returned to the calling program after every file operation. It tells the report process whether the operation succeeded, whether end-of-file was reached (signalling all transactions have been processed), or whether an error occurred that requires special handling — without aborting the entire report run."
+    },
+    {
+      "name": "LK-M03B-KEY",
+      "level": "05",
+      "picture": "PIC X(25)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The lookup key value supplied by the caller when retrieving a specific customer or account record. For example, this would hold the customer ID when fetching cardholder details, or the account ID when fetching account financial information to enrich a transaction report line."
+    },
+    {
+      "name": "LK-M03B-KEY-LN",
+      "level": "05",
+      "picture": "PIC S9(4)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The exact length of the lookup key being supplied. Because customer IDs and account IDs have different lengths, this value tells the subroutine precisely how many characters of the key field are meaningful, ensuring the correct record is targeted during a keyed read."
+    },
+    {
+      "name": "LK-M03B-FLDT",
+      "level": "05",
+      "picture": "PIC X(1000)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The data delivery buffer — a 1000-byte area into which the subroutine copies the retrieved record and hands it back to the calling program. Whether it is a transaction, a cross-reference mapping, a customer profile, or an account record, this buffer is the single channel through which all business data flows back to the Transaction Report generator."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "0000-START",
+      "line_start": 116,
+      "line_end": 129,
+      "description": "This paragraph acts as the central dispatcher for all file access requests, routing each incoming operation to the correct file-handling routine based on which data source the caller has requested. It ensures that every request targets a recognised and permitted data source, and silently exits if an unrecognised file is specified."
+    },
+    {
+      "name": "9999-GOBACK",
+      "line_start": 130,
+      "line_end": 132,
+      "description": "This paragraph marks the formal exit point of the file-access subroutine, returning control to the parent Transaction Report program after the requested file operation has been completed and the result communicated back to the caller."
+    },
+    {
+      "name": "1000-TRNXFILE-PROC",
+      "line_start": 133,
+      "line_end": 150,
+      "description": "This paragraph manages all lifecycle operations (open, sequential read, and close) against the credit card transaction history file on behalf of the Transaction Report generation process. It acts as the single controlled gateway ensuring every transaction record is accessed in sequence and in a read-only manner."
+    },
+    {
+      "name": "1900-EXIT",
+      "line_start": 151,
+      "line_end": 153,
+      "description": "This paragraph serves as the exit point of the subroutine, returning the outcome of the most recent transaction file operation back to the calling report program so it can determine whether to continue processing or handle an error."
+    },
+    {
+      "name": "1999-EXIT",
+      "line_start": 154,
+      "line_end": 156,
+      "description": "This paragraph serves as the formal exit point of the file I/O subroutine, marking the end of all file handling activity and returning control cleanly to the parent Transaction Report generation program."
+    },
+    {
+      "name": "2000-XREFFILE-PROC",
+      "line_start": 157,
+      "line_end": 174,
+      "description": "This paragraph manages all file-level operations against the card-to-account cross-reference file, supporting sequential scanning of every card-to-account mapping needed to enrich transaction records during report generation. It handles three lifecycle operations — opening, sequentially reading, and closing the file — routing each request appropriately and returning control to the caller after every action."
+    },
+    {
+      "name": "2900-EXIT",
+      "line_start": 175,
+      "line_end": 177,
+      "description": "This paragraph serves as the exit point of the subroutine, returning the outcome of the last card cross-reference file operation back to the calling report program so it can determine whether to continue processing or handle an error."
+    },
+    {
+      "name": "2999-EXIT",
+      "line_start": 178,
+      "line_end": 180,
+      "description": "This paragraph serves as the formal exit point of the file I/O subroutine, marking the structured end of all file handling operations and returning control cleanly to the parent Transaction Report generation program."
+    },
+    {
+      "name": "3000-CUSTFILE-PROC",
+      "line_start": 181,
+      "line_end": 199,
+      "description": "This paragraph manages all read access to the Customer Master File on behalf of the Transaction Report process. It handles three lifecycle operations — opening the file for use, retrieving a specific customer's details by their unique identifier, and closing the file when processing is complete."
+    },
+    {
+      "name": "3900-EXIT",
+      "line_start": 200,
+      "line_end": 202,
+      "description": "This paragraph serves as the exit point for the customer file operation, returning the outcome of the last customer file access back to the calling program so it can determine whether the operation succeeded or encountered an error."
+    },
+    {
+      "name": "3999-EXIT",
+      "line_start": 203,
+      "line_end": 205,
+      "description": "This paragraph serves as the formal exit point of the file I/O subroutine, marking the end of all file handling operations and returning control cleanly to the parent Transaction Report generation program."
+    },
+    {
+      "name": "4000-ACCTFILE-PROC",
+      "line_start": 206,
+      "line_end": 224,
+      "description": "This paragraph manages all read access to the Account Master File, supporting three lifecycle operations: opening the file before reporting begins, retrieving a specific account record by its unique account identifier during transaction enrichment, and closing the file once all account lookups are complete."
+    },
+    {
+      "name": "4900-EXIT",
+      "line_start": 225,
+      "line_end": 227,
+      "description": "This paragraph serves as the exit point for the account file operation, returning the outcome of the last account file access back to the calling reporting program so it can determine whether the operation succeeded or failed."
+    },
+    {
+      "name": "4999-EXIT",
+      "line_start": 228,
+      "line_end": 230,
+      "description": "This paragraph serves as the formal exit point of the file I/O subroutine, marking the structured end of all file handling operations and returning control cleanly to the parent Transaction Report program."
+    }
+  ],
+  "copybooks": []
+}

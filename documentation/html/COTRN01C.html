@@ -1,0 +1,3065 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COTRN01C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-PROCESS-ENTER-KEY">PROCESS-ENTER-KEY</a>
+  
+  <a href="#para-RETURN-TO-PREV-SCREEN">RETURN-TO-PREV-SCREEN</a>
+  
+  <a href="#para-SEND-TRNVIEW-SCREEN">SEND-TRNVIEW-SCREEN</a>
+  
+  <a href="#para-RECEIVE-TRNVIEW-SCREEN">RECEIVE-TRNVIEW-SCREEN</a>
+  
+  <a href="#para-POPULATE-HEADER-INFO">POPULATE-HEADER-INFO</a>
+  
+  <a href="#para-READ-TRANSACT-FILE">READ-TRANSACT-FILE</a>
+  
+  <a href="#para-CLEAR-CURRENT-SCREEN">CLEAR-CURRENT-SCREEN</a>
+  
+  <a href="#para-INITIALIZE-ALL-FIELDS">INITIALIZE-ALL-FIELDS</a>
+  
+  
+
+  
+  <h2>Variables (26)</h2>
+  
+  <a href="#var-WS-VARIABLES">WS-VARIABLES</a>
+  
+  <a href="#var-WS-PGMNAME">WS-PGMNAME</a>
+  
+  <a href="#var-WS-TRANID">WS-TRANID</a>
+  
+  <a href="#var-WS-MESSAGE">WS-MESSAGE</a>
+  
+  <a href="#var-WS-TRANSACT-FILE">WS-TRANSACT-FILE</a>
+  
+  <a href="#var-WS-ERR-FLG">WS-ERR-FLG</a>
+  
+  <a href="#var-ERR-FLG-ON">ERR-FLG-ON</a>
+  
+  <a href="#var-ERR-FLG-OFF">ERR-FLG-OFF</a>
+  
+  <a href="#var-WS-RESP-CD">WS-RESP-CD</a>
+  
+  <a href="#var-WS-REAS-CD">WS-REAS-CD</a>
+  
+  <a href="#var-WS-USR-MODIFIED">WS-USR-MODIFIED</a>
+  
+  <a href="#var-USR-MODIFIED-YES">USR-MODIFIED-YES</a>
+  
+  <a href="#var-USR-MODIFIED-NO">USR-MODIFIED-NO</a>
+  
+  <a href="#var-WS-TRAN-AMT">WS-TRAN-AMT</a>
+  
+  <a href="#var-WS-TRAN-DATE">WS-TRAN-DATE</a>
+  
+  <a href="#var-CDEMO-CT01-INFO">CDEMO-CT01-INFO</a>
+  
+  <a href="#var-CDEMO-CT01-TRNID-FIRST">CDEMO-CT01-TRNID-FIRST</a>
+  
+  <a href="#var-CDEMO-CT01-TRNID-LAST">CDEMO-CT01-TRNID-LAST</a>
+  
+  <a href="#var-CDEMO-CT01-PAGE-NUM">CDEMO-CT01-PAGE-NUM</a>
+  
+  <a href="#var-CDEMO-CT01-NEXT-PAGE-FLG">CDEMO-CT01-NEXT-PAGE-FLG</a>
+  
+  <a href="#var-NEXT-PAGE-YES">NEXT-PAGE-YES</a>
+  
+  <a href="#var-NEXT-PAGE-NO">NEXT-PAGE-NO</a>
+  
+  <a href="#var-CDEMO-CT01-TRN-SEL-FLG">CDEMO-CT01-TRN-SEL-FLG</a>
+  
+  <a href="#var-CDEMO-CT01-TRN-SELECTED">CDEMO-CT01-TRN-SELECTED</a>
+  
+  <a href="#var-DFHCOMMAREA">DFHCOMMAREA</a>
+  
+  <a href="#var-LK-COMMAREA">LK-COMMAREA</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>COTRN01C.CBL</h1>
+    <p>Display the full details of a single credit card transaction retrieved from the TRANSACT file by Transaction ID.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">This program allows a bank operator or customer service representative to look up and view the complete details of a specific credit card transaction by entering its Transaction ID. Upon receiving a valid Transaction ID, the program retrieves the transaction record from the TRANSACT file and displays all associated details including the card number, transaction type, category, source, amount, description, origination and processing timestamps, and merchant information (ID, name, city, ZIP code). The program is typically invoked from the transaction list screen (COTRN00C), where a specific transaction has been selected, and supports navigation back to the calling screen or to the transaction list. If the Transaction ID is not found or is left blank, appropriate error messages are displayed to the user.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Transaction ID is mandatory; the system will not attempt a lookup and will display an error message if the field is left blank.</li><li>If the entered Transaction ID does not exist in the TRANSACT file, the user is informed with a 'Transaction ID NOT found' message and no transaction details are displayed.</li><li>When navigated from the transaction list screen (COTRN00C), the selected Transaction ID is automatically populated and the lookup is performed without requiring manual entry.</li><li>The program reads the transaction record with an UPDATE intent (CICS READ UPDATE), suggesting the record may be locked for potential downstream editing, even though this screen is view-only.</li><li>Navigation via PF3 returns the user to the originating program (or the main menu if no originating program is recorded); PF5 returns directly to the transaction list screen (COTRN00C); PF4 clears all fields on the current screen.</li><li>Any unrecognised key press is rejected with an 'invalid key' message, enforcing controlled navigation.</li><li>If the program is accessed without a valid communication area (e.g., direct access without prior sign-on), the user is redirected to the sign-on screen (COSGN00C), enforcing authentication requirements.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">TRANSACT</td>
+            <td style="color:var(--subtext);">Master file storing all credit card transaction records, keyed by Transaction ID</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">CICS Online</span>
+      <span class="badge badge-module">Transaction</span>
+      
+      <span class="badge badge-copy">COPY COCOM01Y</span>
+      
+      <span class="badge badge-copy">COPY COTRN01</span>
+      
+      <span class="badge badge-copy">COPY COTTL01Y</span>
+      
+      <span class="badge badge-copy">COPY CSDAT01Y</span>
+      
+      <span class="badge badge-copy">COPY CSMSG01Y</span>
+      
+      <span class="badge badge-copy">COPY CVTRA05Y</span>
+      
+      <span class="badge badge-copy">COPY DFHAID</span>
+      
+      <span class="badge badge-copy">COPY DFHBMSCA</span>
+      
+      <span class="badge badge-meta">330 lines</span>
+      <span class="badge badge-meta">26 variables</span>
+      <span class="badge badge-meta">9 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA is the central orchestration routine of the transaction detail viewer. It determines the user's context and intent — whether they are arriving for the first time, returning after an action, or pressing a navigation key — and routes processing accordingly to display, look up, or navigate away from a credit card transaction's full details.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 86–143</a></div>
+  </div>
+  
+  <div class="para-card" id="para-PROCESS-ENTER-KEY">
+    <h3><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;text-decoration:none;">PROCESS-ENTER-KEY</a></h3>
+    <p>This paragraph handles the operator's request to look up a specific credit card transaction by its Transaction ID. It validates that an ID has been entered, retrieves the full transaction record from the master file, and displays all associated details on screen.</p>
+    <div class="para-meta"><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;">Lines 144–196</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RETURN-TO-PREV-SCREEN">
+    <h3><a href="#code-para-RETURN-TO-PREV-SCREEN" style="color:inherit;text-decoration:none;">RETURN-TO-PREV-SCREEN</a></h3>
+    <p>This paragraph handles the navigation logic when the user exits the transaction detail screen, returning them to whichever screen they came from — or to the sign-on screen if no prior navigation context exists. It packages the current program identity into the shared communication area before handing control to the destination screen.</p>
+    <div class="para-meta"><a href="#code-para-RETURN-TO-PREV-SCREEN" style="color:inherit;">Lines 197–212</a></div>
+  </div>
+  
+  <div class="para-card" id="para-SEND-TRNVIEW-SCREEN">
+    <h3><a href="#code-para-SEND-TRNVIEW-SCREEN" style="color:inherit;text-decoration:none;">SEND-TRNVIEW-SCREEN</a></h3>
+    <p>This paragraph assembles and renders the full transaction detail screen to the bank operator or customer service representative. It ensures the screen header is current, carries any error or status message into the display, and presents all retrieved transaction information (or error feedback) to the user.</p>
+    <div class="para-meta"><a href="#code-para-SEND-TRNVIEW-SCREEN" style="color:inherit;">Lines 213–229</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RECEIVE-TRNVIEW-SCREEN">
+    <h3><a href="#code-para-RECEIVE-TRNVIEW-SCREEN" style="color:inherit;text-decoration:none;">RECEIVE-TRNVIEW-SCREEN</a></h3>
+    <p>This paragraph captures the input submitted by the bank operator or customer service representative from the transaction detail screen, collecting any Transaction ID entered or navigation key pressed. It is the entry point for processing the user's interaction with the transaction view form.</p>
+    <div class="para-meta"><a href="#code-para-RECEIVE-TRNVIEW-SCREEN" style="color:inherit;">Lines 230–242</a></div>
+  </div>
+  
+  <div class="para-card" id="para-POPULATE-HEADER-INFO">
+    <h3><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;text-decoration:none;">POPULATE-HEADER-INFO</a></h3>
+    <p>This paragraph prepares the standard header information displayed at the top of the transaction detail screen, including the application titles, current date and time, and the identity of the active program. It ensures every screen presentation is consistently stamped with contextual metadata so the bank operator knows exactly when they are viewing the information and within which application module.</p>
+    <div class="para-meta"><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;">Lines 243–266</a></div>
+  </div>
+  
+  <div class="para-card" id="para-READ-TRANSACT-FILE">
+    <h3><a href="#code-para-READ-TRANSACT-FILE" style="color:inherit;text-decoration:none;">READ-TRANSACT-FILE</a></h3>
+    <p>This paragraph retrieves the full details of a specific credit card transaction from the master transaction file using the Transaction ID entered by the operator. It handles all possible outcomes — successful retrieval, transaction not found, or an unexpected system error — and responds appropriately to each.</p>
+    <div class="para-meta"><a href="#code-para-READ-TRANSACT-FILE" style="color:inherit;">Lines 267–300</a></div>
+  </div>
+  
+  <div class="para-card" id="para-CLEAR-CURRENT-SCREEN">
+    <h3><a href="#code-para-CLEAR-CURRENT-SCREEN" style="color:inherit;text-decoration:none;">CLEAR-CURRENT-SCREEN</a></h3>
+    <p>This paragraph handles the PF4 key action, resetting the transaction detail screen to a blank state so the operator can start a fresh lookup without any previously displayed transaction data remaining visible.</p>
+    <div class="para-meta"><a href="#code-para-CLEAR-CURRENT-SCREEN" style="color:inherit;">Lines 301–308</a></div>
+  </div>
+  
+  <div class="para-card" id="para-INITIALIZE-ALL-FIELDS">
+    <h3><a href="#code-para-INITIALIZE-ALL-FIELDS" style="color:inherit;text-decoration:none;">INITIALIZE-ALL-FIELDS</a></h3>
+    <p>This paragraph resets the transaction detail screen to a completely blank state, clearing all previously displayed transaction information and any status messages. It prepares a clean slate before a new transaction lookup is performed or when the screen needs to be refreshed.</p>
+    <div class="para-meta"><a href="#code-para-INITIALIZE-ALL-FIELDS" style="color:inherit;">Lines 309–330</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program     : COTRN01C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Type        : CICS COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Function    : View a Transaction from TRANSACT file</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID. COTRN01C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.     AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-comment">      *                     WORKING STORAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-variable-declaration">       01 WS-VARIABLES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-variable-declaration">         05 WS-PGMNAME                 PIC X(08) VALUE 'COTRN01C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRANID                  PIC X(04) VALUE 'CT01'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-variable-declaration">         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRANSACT-FILE             PIC X(08) VALUE 'TRANSACT'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-ON                         VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-OFF                        VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-variable-declaration">         05 WS-USR-MODIFIED            PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-variable-declaration">           88 USR-MODIFIED-YES                   VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-variable-declaration">           88 USR-MODIFIED-NO                    VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRAN-AMT                PIC +99999999.99.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRAN-DATE               PIC X(08) VALUE '00/00/00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-copy-statement">       COPY COCOM01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-variable-declaration">          05 CDEMO-CT01-INFO.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-TRNID-FIRST     PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-TRNID-LAST      PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-PAGE-NUM        PIC 9(08).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-NEXT-PAGE-FLG   PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-variable-declaration">                88 NEXT-PAGE-YES                     VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-variable-declaration">                88 NEXT-PAGE-NO                      VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-TRN-SEL-FLG     PIC X(01).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-variable-declaration">             10 CDEMO-CT01-TRN-SELECTED    PIC X(16).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-copy-statement">       COPY COTRN01.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-copy-statement">       COPY COTTL01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-copy-statement">       COPY CSDAT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-copy-statement">       COPY CSMSG01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-copy-statement">       COPY CVTRA05Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-copy-statement">       COPY DFHAID.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-copy-statement">       COPY DFHBMSCA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-comment">      *                        LINKAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-variable-declaration">       01  DFHCOMMAREA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">         05  LK-COMMAREA                           PIC X(01)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-code">             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-comment">      *                       PROCEDURE DIVISION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">86</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
+      <td class="expl-cell">Entry point of the main control routine that governs all processing for the transaction detail screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">87</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">88</td>
+      <td class="code-cell t-statement">           SET ERR-FLG-OFF     TO TRUE</td>
+      <td class="expl-cell">Clears any previously recorded error condition so the screen starts each interaction in a clean, error-free state.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">89</td>
+      <td class="code-cell t-statement">           SET USR-MODIFIED-NO TO TRUE</td>
+      <td class="expl-cell">Resets the indicator that tracks whether the user has made any changes, confirming no modifications are pending at the start of processing.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">90</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">91</td>
+      <td class="code-cell t-statement">           MOVE SPACES TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any status or error message text that may have been displayed during the previous interaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">92</td>
+      <td class="code-cell t-statement">                          ERRMSGO OF COTRN1AO</td>
+      <td class="expl-cell">Clears the error message field on the transaction detail screen so stale messages are not shown to the user.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">93</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">           IF EIBCALEN = 0</td>
+      <td class="expl-cell">Checks whether the program was invoked with no prior session context, which would indicate a direct or unauthorised entry attempt rather than a proper sign-on flow.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">95</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Directs the application to route the user to the sign-on screen, enforcing authentication before any transaction data can be accessed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">96</td>
+      <td class="code-cell t-statement">               PERFORM RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell">Executes the navigation to the sign-on screen, ending the current interaction and requiring the user to authenticate.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">97</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">98</td>
+      <td class="code-cell t-statement">               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA</td>
+      <td class="expl-cell">Restores the shared application session data passed from the previous screen, making the user's session state, role, and navigation history available for this program.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">99</td>
+      <td class="code-cell t-statement">               IF NOT CDEMO-PGM-REENTER</td>
+      <td class="expl-cell">Checks whether this is the user's first arrival on the transaction detail screen, as opposed to a return visit after a prior interaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">100</td>
+      <td class="code-cell t-statement">                   SET CDEMO-PGM-REENTER    TO TRUE</td>
+      <td class="expl-cell">Marks the session to indicate the user has now been on this screen at least once, so subsequent interactions are handled as return visits.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">101</td>
+      <td class="code-cell t-statement">                   MOVE LOW-VALUES          TO COTRN1AO</td>
+      <td class="expl-cell">Clears all output fields on the transaction detail screen, ensuring no residual data from a previous lookup is displayed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">102</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Positions the screen cursor in the Transaction ID entry field, guiding the user to enter or confirm the transaction they wish to view.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">103</td>
+      <td class="code-cell t-statement">                   IF CDEMO-CT01-TRN-SELECTED NOT =</td>
+      <td class="expl-cell">Checks whether a specific transaction was pre-selected from the transaction list screen and passed into this program automatically.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">104</td>
+      <td class="code-cell t-statement">                                              SPACES AND LOW-VALUES</td>
+      <td class="expl-cell">Confirms the pre-selected transaction identifier is a meaningful value and not blank or empty, before attempting an automatic lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">                       MOVE CDEMO-CT01-TRN-SELECTED TO</td>
+      <td class="expl-cell">Copies the transaction identifier that was selected on the transaction list screen into the Transaction ID input field on the detail screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">106</td>
+      <td class="code-cell t-statement">                            TRNIDINI OF COTRN1AI</td>
+      <td class="expl-cell">Populates the on-screen Transaction ID entry field with the pre-selected value so the lookup can proceed without manual user input.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">107</td>
+      <td class="code-cell t-statement">                       PERFORM PROCESS-ENTER-KEY</td>
+      <td class="expl-cell">Automatically triggers the transaction lookup process using the pre-selected Transaction ID, retrieving and displaying the full transaction details without requiring the user to press Enter.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">108</td>
+      <td class="code-cell t-statement">                   END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">109</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Sends the transaction detail screen to the user's terminal, displaying either the retrieved transaction details or an initial blank entry form.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">111</td>
+      <td class="code-cell t-statement">                   PERFORM RECEIVE-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Reads the user's input from the transaction detail screen, capturing any data they have typed and which key they pressed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">112</td>
+      <td class="code-cell t-statement">                   EVALUATE EIBAID</td>
+      <td class="expl-cell">Evaluates which key the user pressed to determine the appropriate business action to take.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">113</td>
+      <td class="code-cell t-statement">                       WHEN DFHENTER</td>
+      <td class="expl-cell">Handles the case where the user pressed Enter, indicating they want to submit a Transaction ID for lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">114</td>
+      <td class="code-cell t-statement">                           PERFORM PROCESS-ENTER-KEY</td>
+      <td class="expl-cell">Executes the transaction lookup process, retrieving the full details of the specified transaction from the master transaction file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">115</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF3</td>
+      <td class="expl-cell">Handles the case where the user pressed PF3, indicating they want to go back to the previous screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">116</td>
+      <td class="code-cell t-statement">                           IF CDEMO-FROM-PROGRAM = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Checks whether the application has a record of which screen the user navigated from, to determine the correct back-navigation destination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">                               MOVE 'COMEN01C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">If no prior screen is recorded, defaults the back-navigation destination to the main application menu.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">                           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">                               MOVE CDEMO-FROM-PROGRAM TO</td>
+      <td class="expl-cell">If a prior screen is recorded, sets the back-navigation destination to that originating screen, preserving the user's navigation path.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">                               CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Completes the assignment of the originating screen as the return destination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">121</td>
+      <td class="code-cell t-statement">                           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">                           PERFORM RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell">Executes the navigation back to the appropriate previous screen, either the main menu or the screen that launched this transaction detail view.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF4</td>
+      <td class="expl-cell">Handles the case where the user pressed PF4, indicating they want to clear all fields on the current screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">                           PERFORM CLEAR-CURRENT-SCREEN</td>
+      <td class="expl-cell">Clears all input and output fields on the transaction detail screen, resetting it to a blank state for a new lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">125</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF5</td>
+      <td class="expl-cell">Handles the case where the user pressed PF5, indicating they want to go directly to the transaction list screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">126</td>
+      <td class="code-cell t-statement">                           MOVE 'COTRN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Sets the navigation destination to the transaction list screen, bypassing any intermediate screens.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">127</td>
+      <td class="code-cell t-statement">                           PERFORM RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell">Executes the navigation to the transaction list screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">                       WHEN OTHER</td>
+      <td class="expl-cell">Handles any key press that is not a recognised navigation or action key.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">                           MOVE 'Y'                       TO WS-ERR-FLG</td>
+      <td class="expl-cell">Records that an error has occurred because the user pressed an unsupported key.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE</td>
+      <td class="expl-cell">Sets the error message to inform the user that the key they pressed is not valid on this screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">131</td>
+      <td class="code-cell t-statement">                           PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Redisplays the transaction detail screen with the invalid key error message, prompting the user to use a supported key.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">132</td>
+      <td class="code-cell t-statement">                   END-EVALUATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">133</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">134</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">135</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">136</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RETURN</td>
+      <td class="expl-cell">Returns control to the CICS transaction manager, keeping the current screen session active and preserving the application's shared session data for the next user interaction.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">137</td>
+      <td class="code-cell t-exec-cics">                     TRANSID (WS-TRANID)</td>
+      <td class="expl-cell">Specifies that the same transaction program should be re-invoked when the user next interacts with the screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">138</td>
+      <td class="code-cell t-exec-cics">                     COMMAREA (CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the current application session state — including user identity, navigation history, and selected transaction — forward to the next interaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">140</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">141</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">142</td>
+      <td class="code-cell t-comment">      *                      PROCESS-ENTER-KEY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">143</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">144</td>
+      <td class="code-cell t-paragraph-header">       PROCESS-ENTER-KEY.</td>
+      <td class="expl-cell">Entry point for processing the operator's request to look up a transaction by ID.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">145</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE</td>
+      <td class="expl-cell">Begin evaluating the conditions that determine whether the lookup can proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">               WHEN TRNIDINI OF COTRN1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the Transaction ID field has been left blank or empty by the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, preventing further processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">                   MOVE 'Tran ID can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare an error message informing the operator that a Transaction ID must be entered before a lookup can be performed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">150</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Set the cursor focus back to the Transaction ID input field so the operator can immediately correct the omission.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">152</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Redisplay the transaction view screen showing the validation error message to the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">               WHEN OTHER</td>
+      <td class="expl-cell">Handle the case where the Transaction ID field is not blank — the entry is acceptable for lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Set the cursor focus to the Transaction ID field in preparation for the subsequent file lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">155</td>
+      <td class="code-cell t-statement">                   CONTINUE</td>
+      <td class="expl-cell">Allow processing to continue to the file retrieval step without interruption.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">           END-EVALUATE</td>
+      <td class="expl-cell">End of the input validation decision block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">157</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">           IF NOT ERR-FLG-ON</td>
+      <td class="expl-cell">Proceed to retrieve transaction details only if no validation error was raised in the previous step.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">               MOVE SPACES      TO TRNIDI   OF COTRN1AI</td>
+      <td class="expl-cell">Clear the Transaction ID display field on screen to ensure stale data is not shown before the fresh lookup result is loaded.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">                                   CARDNUMI OF COTRN1AI</td>
+      <td class="expl-cell">Clear the credit card number display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">                                   TTYPCDI  OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction type display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">162</td>
+      <td class="code-cell t-statement">                                   TCATCDI  OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction category display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">163</td>
+      <td class="code-cell t-statement">                                   TRNSRCI  OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction source/channel display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">                                   TRNAMTI  OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction amount display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">165</td>
+      <td class="code-cell t-statement">                                   TDESCI   OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction description display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">                                   TORIGDTI OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction origination timestamp display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">                                   TPROCDTI OF COTRN1AI</td>
+      <td class="expl-cell">Clear the transaction processing/settlement timestamp display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">                                   MIDI     OF COTRN1AI</td>
+      <td class="expl-cell">Clear the merchant identifier display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">                                   MNAMEI   OF COTRN1AI</td>
+      <td class="expl-cell">Clear the merchant name display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">                                   MCITYI   OF COTRN1AI</td>
+      <td class="expl-cell">Clear the merchant city display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">                                   MZIPI    OF COTRN1AI</td>
+      <td class="expl-cell">Clear the merchant ZIP code display field on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">               MOVE TRNIDINI  OF COTRN1AI TO TRAN-ID</td>
+      <td class="expl-cell">Copy the Transaction ID entered by the operator into the working area used to query the transaction master file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">               PERFORM READ-TRANSACT-FILE</td>
+      <td class="expl-cell">Retrieve the full transaction record from the master file using the supplied Transaction ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">End of the block that clears the screen and initiates the file lookup.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">175</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">           IF NOT ERR-FLG-ON</td>
+      <td class="expl-cell">Proceed to populate and display transaction details only if the file retrieval completed without error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">               MOVE TRAN-AMT TO WS-TRAN-AMT</td>
+      <td class="expl-cell">Format the raw transaction amount into a display-ready numeric format suitable for presentation on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">               MOVE TRAN-ID      TO TRNIDI    OF COTRN1AI</td>
+      <td class="expl-cell">Load the retrieved Transaction ID into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">               MOVE TRAN-CARD-NUM      TO CARDNUMI    OF COTRN1AI</td>
+      <td class="expl-cell">Load the credit card number associated with the transaction into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">               MOVE TRAN-TYPE-CD        TO TTYPCDI   OF COTRN1AI</td>
+      <td class="expl-cell">Load the transaction type code (e.g., purchase, refund, payment) into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">               MOVE TRAN-CAT-CD        TO TCATCDI   OF COTRN1AI</td>
+      <td class="expl-cell">Load the transaction category code (e.g., retail, travel, dining) into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">               MOVE TRAN-SOURCE       TO TRNSRCI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the channel or source through which the transaction was initiated into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">               MOVE WS-TRAN-AMT      TO TRNAMTI    OF COTRN1AI</td>
+      <td class="expl-cell">Load the formatted transaction monetary amount into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">               MOVE TRAN-DESC      TO TDESCI    OF COTRN1AI</td>
+      <td class="expl-cell">Load the free-text description of the transaction into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">               MOVE TRAN-ORIG-TS        TO TORIGDTI   OF COTRN1AI</td>
+      <td class="expl-cell">Load the timestamp recording when the transaction was originally initiated into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">               MOVE TRAN-PROC-TS       TO TPROCDTI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the timestamp recording when the transaction was processed or settled into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">               MOVE TRAN-MERCHANT-ID       TO MIDI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the unique merchant identifier into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">               MOVE TRAN-MERCHANT-NAME       TO MNAMEI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the merchant's trading name into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">               MOVE TRAN-MERCHANT-CITY       TO MCITYI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the city where the merchant is located into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">               MOVE TRAN-MERCHANT-ZIP       TO MZIPI  OF COTRN1AI</td>
+      <td class="expl-cell">Load the merchant's ZIP/postal code into the screen display field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">               PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Display the fully populated transaction detail screen to the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">End of the block that populates and presents the transaction details.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">193</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">194</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">195</td>
+      <td class="code-cell t-comment">      *                      RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">196</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">197</td>
+      <td class="code-cell t-paragraph-header">       RETURN-TO-PREV-SCREEN.</td>
+      <td class="expl-cell">Entry point for the 'return to previous screen' navigation routine.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">198</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">199</td>
+      <td class="code-cell t-statement">           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES</td>
+      <td class="expl-cell">Checks whether a destination screen was recorded when the user navigated into this program; if no originating screen is known, the user has no valid navigation history.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">200</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Defaults the navigation destination to the sign-on screen, ensuring the user is safely redirected to authentication if no prior screen context exists.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">201</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the conditional check for the missing destination screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">202</td>
+      <td class="code-cell t-statement">           MOVE WS-TRANID    TO CDEMO-FROM-TRANID</td>
+      <td class="expl-cell">Records the current screen's transaction identifier in the shared communication area so the destination screen knows which screen is handing off control.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">           MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Records the name of the current program in the shared communication area so the destination screen has a full audit trail of where the user navigated from.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">           MOVE ZEROS        TO CDEMO-PGM-CONTEXT</td>
+      <td class="expl-cell">Resets the program execution context to a neutral state, signalling to the destination screen that no specific sub-context or mode needs to be preserved from this screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">205</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS</td>
+      <td class="expl-cell">Begins the CICS instruction to transfer control to another screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">206</td>
+      <td class="code-cell t-exec-cics">               XCTL PROGRAM(CDEMO-TO-PROGRAM)</td>
+      <td class="expl-cell">Instructs the CICS runtime to transfer full control to the destination screen determined earlier (either the originating screen or the sign-on screen).</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">207</td>
+      <td class="code-cell t-exec-cics">               COMMAREA(CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the shared communication area — containing user session details, navigation history, and context — to the destination screen so it can resume correctly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the CICS transfer-of-control instruction, completing the navigation handoff.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">209</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">210</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">211</td>
+      <td class="code-cell t-comment">      *                      SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">212</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">213</td>
+      <td class="code-cell t-paragraph-header">       SEND-TRNVIEW-SCREEN.</td>
+      <td class="expl-cell">Entry point for the routine responsible for sending the transaction detail view screen to the terminal.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">214</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">215</td>
+      <td class="code-cell t-statement">           PERFORM POPULATE-HEADER-INFO</td>
+      <td class="expl-cell">Populates the screen header area with current date, time, program identity, and logged-in user details before display.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">216</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">217</td>
+      <td class="code-cell t-statement">           MOVE WS-MESSAGE TO ERRMSGO OF COTRN1AO</td>
+      <td class="expl-cell">Places any pending error or informational message (e.g., 'Transaction ID NOT found' or 'Invalid key pressed') into the error message field visible to the user on screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">218</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">219</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS SEND</td>
+      <td class="expl-cell">Initiates the transmission of the fully populated transaction detail screen to the operator's terminal.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">220</td>
+      <td class="code-cell t-exec-cics">                     MAP('COTRN1A')</td>
+      <td class="expl-cell">Specifies that the screen layout to be rendered is the transaction detail view map.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">221</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COTRN01')</td>
+      <td class="expl-cell">Identifies the map set (screen definition library) that contains the transaction detail screen layout.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">222</td>
+      <td class="code-cell t-exec-cics">                     FROM(COTRN1AO)</td>
+      <td class="expl-cell">Supplies the fully populated output data — including all transaction fields and the error message — as the content to be displayed on screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">223</td>
+      <td class="code-cell t-exec-cics">                     ERASE</td>
+      <td class="expl-cell">Clears any previously displayed content from the terminal before rendering the updated transaction detail screen, ensuring a clean display.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">224</td>
+      <td class="code-cell t-exec-cics">                     CURSOR</td>
+      <td class="expl-cell">Positions the terminal cursor at the appropriate input field, guiding the operator to where interaction is expected.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the screen transmission instruction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">226</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">227</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">228</td>
+      <td class="code-cell t-comment">      *                      RECEIVE-TRNVIEW-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-TRNVIEW-SCREEN">
+      <td class="ln">229</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">230</td>
+      <td class="code-cell t-paragraph-header">       RECEIVE-TRNVIEW-SCREEN.</td>
+      <td class="expl-cell">Paragraph entry point: begins the process of receiving and capturing the operator's input from the transaction detail screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">231</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">232</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RECEIVE</td>
+      <td class="expl-cell">Initiates the retrieval of all data the operator has entered or selected on the transaction detail screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">233</td>
+      <td class="code-cell t-exec-cics">                     MAP('COTRN1A')</td>
+      <td class="expl-cell">Specifies that the screen layout being read is the transaction detail view form (the single-transaction display screen).</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">234</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COTRN01')</td>
+      <td class="expl-cell">Identifies the screen map library that defines the layout and fields of the transaction detail screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">235</td>
+      <td class="code-cell t-exec-cics">                     INTO(COTRN1AI)</td>
+      <td class="expl-cell">Directs the captured screen input — including any Transaction ID typed by the operator — into the program's working area for subsequent processing.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">236</td>
+      <td class="code-cell t-exec-cics">                     RESP(WS-RESP-CD)</td>
+      <td class="expl-cell">Records whether the screen data was received successfully or whether a system-level problem occurred during the input capture.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">237</td>
+      <td class="code-cell t-exec-cics">                     RESP2(WS-REAS-CD)</td>
+      <td class="expl-cell">Captures a secondary system response code that provides additional technical detail if the screen input retrieval encountered an issue.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">238</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Marks the end of the screen input retrieval operation.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">239</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">240</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">241</td>
+      <td class="code-cell t-comment">      *                      POPULATE-HEADER-INFO</td>
+      <td class="expl-cell">Comment indicating that the next logical step after receiving screen input is to populate the screen header with current date, time, and user information.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-TRNVIEW-SCREEN">
+      <td class="ln">242</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">243</td>
+      <td class="code-cell t-paragraph-header">       POPULATE-HEADER-INFO.</td>
+      <td class="expl-cell">This paragraph prepares the standard header information displayed at the top of the transaction detail screen, including the application titles, current date and time, and the identity of the active program. It ensures every screen presentation is consistently stamped with contextual metadata so the bank operator knows exactly when they are viewing the information and within which application module.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">244</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA</td>
+      <td class="expl-cell">Retrieves the current system date and time from the operating environment to be used for stamping the screen header.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">246</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">247</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE01           TO TITLE01O OF COTRN1AO</td>
+      <td class="expl-cell">Places the first line of the application's official screen title onto the transaction detail display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">248</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE02           TO TITLE02O OF COTRN1AO</td>
+      <td class="expl-cell">Places the second line of the application's official screen title onto the transaction detail display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">249</td>
+      <td class="code-cell t-statement">           MOVE WS-TRANID              TO TRNNAMEO OF COTRN1AO</td>
+      <td class="expl-cell">Displays the identifier of the currently executing CICS transaction on the screen header, helping operators identify the active system function.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">250</td>
+      <td class="code-cell t-statement">           MOVE WS-PGMNAME             TO PGMNAMEO OF COTRN1AO</td>
+      <td class="expl-cell">Displays the name of the currently running program on the screen header, supporting auditability and operator awareness of which module is active.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">251</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">252</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM</td>
+      <td class="expl-cell">Extracts the month component from the current system date to format it for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">253</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD</td>
+      <td class="expl-cell">Extracts the day component from the current system date to format it for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY</td>
+      <td class="expl-cell">Extracts the two-digit year component from the current system date to format it for display.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">255</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">256</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COTRN1AO</td>
+      <td class="expl-cell">Presents the fully formatted current date (month/day/year) in the screen header so the operator knows the date on which they are viewing the transaction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">257</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">258</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH</td>
+      <td class="expl-cell">Extracts the hours component from the current system time to format it for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">259</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM</td>
+      <td class="expl-cell">Extracts the minutes component from the current system time to format it for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">260</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS</td>
+      <td class="expl-cell">Extracts the seconds component from the current system time to format it for display.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">261</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">262</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COTRN1AO.</td>
+      <td class="expl-cell">Presents the fully formatted current time (hours:minutes:seconds) in the screen header so the operator knows the precise moment at which the transaction details are being viewed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">263</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">264</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">265</td>
+      <td class="code-cell t-comment">      *                      READ-TRANSACT-FILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">266</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">267</td>
+      <td class="code-cell t-paragraph-header">       READ-TRANSACT-FILE.</td>
+      <td class="expl-cell">Entry point for the transaction record lookup routine.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">268</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">269</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS READ</td>
+      <td class="expl-cell">Initiates a request to retrieve a transaction record from the master transaction file, locking it for potential downstream editing.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">270</td>
+      <td class="code-cell t-exec-cics">                DATASET   (WS-TRANSACT-FILE)</td>
+      <td class="expl-cell">Identifies the master transaction file as the source of the lookup.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">271</td>
+      <td class="code-cell t-exec-cics">                INTO      (TRAN-RECORD)</td>
+      <td class="expl-cell">Specifies that the retrieved transaction record should be loaded into the working area holding all transaction details (card number, amount, merchant info, timestamps, etc.).</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">272</td>
+      <td class="code-cell t-exec-cics">                LENGTH    (LENGTH OF TRAN-RECORD)</td>
+      <td class="expl-cell">Defines the expected size of the transaction record to be retrieved.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">273</td>
+      <td class="code-cell t-exec-cics">                RIDFLD    (TRAN-ID)</td>
+      <td class="expl-cell">Specifies that the lookup should be performed using the Transaction ID entered by the operator as the search key.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">274</td>
+      <td class="code-cell t-exec-cics">                KEYLENGTH (LENGTH OF TRAN-ID)</td>
+      <td class="expl-cell">Defines the exact length of the Transaction ID field used to locate the record.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">275</td>
+      <td class="code-cell t-exec-cics">                UPDATE</td>
+      <td class="expl-cell">Instructs the system to lock the retrieved record, reserving it against concurrent modification by other users or processes.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">276</td>
+      <td class="code-cell t-exec-cics">                RESP      (WS-RESP-CD)</td>
+      <td class="expl-cell">Captures the primary outcome code returned by the system after the retrieval attempt, indicating success or failure.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">277</td>
+      <td class="code-cell t-exec-cics">                RESP2     (WS-REAS-CD)</td>
+      <td class="expl-cell">Captures a secondary diagnostic code providing additional detail about the reason for any failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">279</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">           EVALUATE WS-RESP-CD</td>
+      <td class="expl-cell">Evaluates the outcome of the transaction retrieval attempt to determine the appropriate business response.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">               WHEN DFHRESP(NORMAL)</td>
+      <td class="expl-cell">Handles the successful case: the transaction record was found and loaded correctly — processing continues normally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">                   CONTINUE</td>
+      <td class="expl-cell">No further action is needed on success; the retrieved transaction details are now available for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">               WHEN DFHRESP(NOTFND)</td>
+      <td class="expl-cell">Handles the case where no transaction record exists in the master file for the Transaction ID provided.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Marks the current operation as failed due to the transaction not being found, preventing further processing of missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">285</td>
+      <td class="code-cell t-statement">                   MOVE 'Transaction ID NOT found...' TO</td>
+      <td class="expl-cell">Sets the user-facing message to inform the operator that the Transaction ID they entered does not exist in the system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">286</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Continues setting the error message text for display on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">287</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Places the cursor focus on the Transaction ID input field, prompting the operator to correct or re-enter the value.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">288</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Sends the transaction view screen back to the operator, displaying the 'not found' error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">289</td>
+      <td class="code-cell t-statement">               WHEN OTHER</td>
+      <td class="expl-cell">Handles any unexpected system-level error that is neither a successful retrieval nor a simple 'not found' condition.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD</td>
+      <td class="expl-cell">Writes the system error codes to the operator console log for technical investigation and support purposes.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">291</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Marks the current operation as failed due to an unexpected system error, preventing display of incomplete or corrupt data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">292</td>
+      <td class="code-cell t-statement">                   MOVE 'Unable to lookup Transaction...' TO</td>
+      <td class="expl-cell">Sets the user-facing message to inform the operator that the system was unable to complete the transaction lookup.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Continues setting the generic system error message text for display on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Places the cursor focus on the Transaction ID input field, prompting the operator to retry or seek assistance.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-TRNVIEW-SCREEN</td>
+      <td class="expl-cell">Sends the transaction view screen back to the operator, displaying the system error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">           END-EVALUATE.</td>
+      <td class="expl-cell">Closes the outcome evaluation block, completing all error-handling branches.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">297</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">298</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">299</td>
+      <td class="code-cell t-comment">      *                      CLEAR-CURRENT-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-READ-TRANSACT-FILE">
+      <td class="ln">300</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">301</td>
+      <td class="code-cell t-paragraph-header">       CLEAR-CURRENT-SCREEN.</td>
+      <td class="expl-cell">Entry point triggered when the operator presses PF4 to clear the current transaction detail screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">302</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">           PERFORM INITIALIZE-ALL-FIELDS.</td>
+      <td class="expl-cell">Wipes all transaction details, input fields, and messages from the working data, removing any previously retrieved transaction information.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">304</td>
+      <td class="code-cell t-statement">           PERFORM SEND-TRNVIEW-SCREEN.</td>
+      <td class="expl-cell">Redraws the transaction detail screen in its empty state, presenting the operator with a clean form ready for a new Transaction ID to be entered.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">305</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">306</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">307</td>
+      <td class="code-cell t-comment">      *                      INITIALIZE-ALL-FIELDS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">308</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">309</td>
+      <td class="code-cell t-paragraph-header">       INITIALIZE-ALL-FIELDS.</td>
+      <td class="expl-cell">Entry point for the screen field initialisation routine.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">310</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">311</td>
+      <td class="code-cell t-statement">           MOVE -1              TO TRNIDINL OF COTRN1AI</td>
+      <td class="expl-cell">Sets the cursor focus to the Transaction ID entry field, directing the operator's attention to where input is required.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">312</td>
+      <td class="code-cell t-statement">           MOVE SPACES          TO TRNIDINI OF COTRN1AI</td>
+      <td class="expl-cell">Clears any previously entered or displayed Transaction ID input value from the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">313</td>
+      <td class="code-cell t-statement">                                   TRNIDI   OF COTRN1AI</td>
+      <td class="expl-cell">Clears the Transaction ID display field shown on screen to the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">314</td>
+      <td class="code-cell t-statement">                                   CARDNUMI OF COTRN1AI</td>
+      <td class="expl-cell">Clears the credit card number previously displayed on the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">315</td>
+      <td class="code-cell t-statement">                                   TTYPCDI  OF COTRN1AI</td>
+      <td class="expl-cell">Clears the transaction type code (e.g., purchase, refund, payment) previously shown on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">316</td>
+      <td class="code-cell t-statement">                                   TCATCDI  OF COTRN1AI</td>
+      <td class="expl-cell">Clears the transaction category code (e.g., retail, travel, dining) previously shown on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">317</td>
+      <td class="code-cell t-statement">                                   TRNSRCI  OF COTRN1AI</td>
+      <td class="expl-cell">Clears the channel or source through which the transaction was initiated, as previously displayed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">318</td>
+      <td class="code-cell t-statement">                                   TRNAMTI  OF COTRN1AI</td>
+      <td class="expl-cell">Clears the monetary amount of the transaction previously displayed on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">319</td>
+      <td class="code-cell t-statement">                                   TDESCI   OF COTRN1AI</td>
+      <td class="expl-cell">Clears the free-text transaction description previously shown to the operator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">320</td>
+      <td class="code-cell t-statement">                                   TORIGDTI OF COTRN1AI</td>
+      <td class="expl-cell">Clears the date and time when the transaction was originally initiated, as previously displayed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">321</td>
+      <td class="code-cell t-statement">                                   TPROCDTI OF COTRN1AI</td>
+      <td class="expl-cell">Clears the date and time when the transaction was processed or settled, as previously displayed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">322</td>
+      <td class="code-cell t-statement">                                   MIDI     OF COTRN1AI</td>
+      <td class="expl-cell">Clears the merchant's unique identifier previously displayed on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">323</td>
+      <td class="code-cell t-statement">                                   MNAMEI   OF COTRN1AI</td>
+      <td class="expl-cell">Clears the merchant's trading name previously displayed on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">324</td>
+      <td class="code-cell t-statement">                                   MCITYI   OF COTRN1AI</td>
+      <td class="expl-cell">Clears the city where the merchant is located, as previously displayed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">325</td>
+      <td class="code-cell t-statement">                                   MZIPI    OF COTRN1AI</td>
+      <td class="expl-cell">Clears the merchant's ZIP/postal code previously displayed on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">326</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE.</td>
+      <td class="expl-cell">Clears any informational or error message previously shown to the operator at the bottom of the screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">327</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">328</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">329</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT</td>
+      <td class="expl-cell">Version control comment recording the build version and timestamp of this program for audit and release tracking purposes.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">330</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Top-level working storage group holding all internal program control variables used during transaction detail retrieval and display processing.</td>
+    </tr>
+    
+    <tr id="var-WS-PGMNAME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-PGMNAME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">COTRN01C</td>
+      <td class="var-desc">The internal name of this program (COTRN01C), used when invoking CICS services such as returning control or logging, so the system knows which program is currently executing.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANID">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRANID
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">CT01</td>
+      <td class="var-desc">The CICS transaction identifier (CT01) assigned to this transaction detail view program. It is used when transferring control back to this screen, ensuring the correct screen is invoked within the CardDemo application.</td>
+    </tr>
+    
+    <tr id="var-WS-MESSAGE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-MESSAGE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(80)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">The status or error message displayed to the user at the bottom of the transaction detail screen — for example, 'Transaction ID NOT found' when a lookup fails, or 'Invalid key pressed' for unrecognised navigation keys.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANSACT-FILE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRANSACT-FILE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">TRANSACT</td>
+      <td class="var-desc">The name of the master transaction file (TRANSACT) that stores all credit card transaction records. This value is used when issuing CICS file read commands to retrieve a specific transaction by its Transaction ID.</td>
+    </tr>
+    
+    <tr id="var-WS-ERR-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERR-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">An internal error indicator that tracks whether a business or system error has occurred during transaction lookup or screen processing. When set to 'Y', it prevents further processing and ensures the error message is shown to the user instead of transaction details.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when an error has been detected during transaction processing — such as a missing Transaction ID or a failed file lookup — signalling that normal display logic should be bypassed.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-OFF">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-OFF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when no error has occurred, indicating that the transaction lookup was successful and the full transaction details can be safely displayed to the user.</td>
+    </tr>
+    
+    <tr id="var-WS-RESP-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-RESP-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS response code returned after a file operation (such as reading the TRANSACT file). A non-zero value indicates a problem — for example, a record not found or a file unavailability — which triggers an appropriate error message to the user.</td>
+    </tr>
+    
+    <tr id="var-WS-REAS-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-REAS-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS reason code accompanying the response code, providing additional detail about why a file operation failed. Used alongside WS-RESP-CD to diagnose specific error conditions when retrieving a transaction record.</td>
+    </tr>
+    
+    <tr id="var-WS-USR-MODIFIED">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-USR-MODIFIED
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">A flag indicating whether the user has manually changed any field on the transaction detail screen. This helps the program distinguish between an initial display pass and a user-driven interaction requiring re-processing.</td>
+    </tr>
+    
+    <tr id="var-USR-MODIFIED-YES">
+      <td class="var-level">88</td>
+      <td class="var-name">USR-MODIFIED-YES
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when the user has actively modified a field on the screen, such as entering or changing a Transaction ID, indicating that the program should act on the new input.</td>
+    </tr>
+    
+    <tr id="var-USR-MODIFIED-NO">
+      <td class="var-level">88</td>
+      <td class="var-name">USR-MODIFIED-NO
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when the user has not changed any field on the screen, indicating the display is in its initial or unchanged state and no new lookup is required.</td>
+    </tr>
+    
+    <tr id="var-WS-TRAN-AMT">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRAN-AMT
+        
+        
+      </td>
+      <td class="var-pic">PIC +99999999.99</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The formatted monetary amount of the credit card transaction, displayed on screen with a sign indicator and two decimal places. This represents the dollar value charged or credited in the transaction, formatted for human-readable presentation.</td>
+    </tr>
+    
+    <tr id="var-WS-TRAN-DATE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRAN-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">00/00/00</td>
+      <td class="var-desc">A formatted date field used to display the transaction date (either origination or processing date) on the screen in MM/DD/YY format, making the transaction timeline clear to the user.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-INFO">
+      <td class="var-level">05</td>
+      <td class="var-name">CDEMO-CT01-INFO
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A group of fields passed via the communication area from the transaction list screen (COTRN00C) to this detail view program, carrying context about which transaction was selected and the pagination state of the list the user came from.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-TRNID-FIRST">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-TRNID-FIRST
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The Transaction ID of the first transaction displayed on the transaction list screen the user navigated from. Retained so that if the user returns to the list, the correct page position can be restored.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-TRNID-LAST">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-TRNID-LAST
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The Transaction ID of the last transaction displayed on the transaction list screen the user navigated from. Used together with CDEMO-CT01-TRNID-FIRST to restore the correct page of results when the user navigates back.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-PAGE-NUM">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-PAGE-NUM
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(08)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The page number of the transaction list the user was viewing before drilling into this transaction detail screen. Preserved so the user is returned to the same page of results when pressing PF3 or PF5 to go back.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-NEXT-PAGE-FLG">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-NEXT-PAGE-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">A flag indicating whether there are more pages of transactions available beyond the current page in the transaction list. Carried across to preserve the navigation state of the list screen when the user returns.</td>
+    </tr>
+    
+    <tr id="var-NEXT-PAGE-YES">
+      <td class="var-level">88</td>
+      <td class="var-name">NEXT-PAGE-YES
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name that evaluates to true when additional pages of transaction records exist beyond the current page in the transaction list, enabling forward pagination when the user returns to the list.</td>
+    </tr>
+    
+    <tr id="var-NEXT-PAGE-NO">
+      <td class="var-level">88</td>
+      <td class="var-name">NEXT-PAGE-NO
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name that evaluates to true when no further pages of transactions exist beyond the current page, indicating the user has reached the end of the transaction list.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-TRN-SEL-FLG">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-TRN-SEL-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A flag passed from the transaction list screen indicating whether the user has actively selected a specific transaction for detail viewing. When set, it signals this program to automatically perform the transaction lookup without requiring manual entry.</td>
+    </tr>
+    
+    <tr id="var-CDEMO-CT01-TRN-SELECTED">
+      <td class="var-level">10</td>
+      <td class="var-name">CDEMO-CT01-TRN-SELECTED
+        
+        
+      </td>
+      <td class="var-pic">PIC X(16)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The Transaction ID chosen by the user on the transaction list screen (COTRN00C), passed to this program so that the correct transaction record is automatically retrieved and displayed without requiring the user to re-enter the ID manually.</td>
+    </tr>
+    
+    <tr id="var-DFHCOMMAREA">
+      <td class="var-level">01</td>
+      <td class="var-name">DFHCOMMAREA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The CICS communication area received by this program when it is invoked. It carries session context — such as user identity, originating program, and selected transaction — from the previous screen, enabling the program to authenticate the user and pre-populate the transaction lookup.</td>
+    </tr>
+    
+    <tr id="var-LK-COMMAREA">
+      <td class="var-level">05</td>
+      <td class="var-name">LK-COMMAREA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A minimal placeholder representing the raw communication area data passed into this program by CICS. Its presence (or absence) is checked to determine whether the user arrived via a proper authenticated navigation path; if absent, the user is redirected to the sign-on screen.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/COTRN01C.cbl
+  </footer>
+
+</main>
+</body>
+</html>

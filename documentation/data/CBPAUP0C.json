@@ -4,25 +4,25 @@
     "file_path": "app/app-authorization-ims-db2-mq/cbl/CBPAUP0C.cbl",
     "analyzed_at": "2026-05-02T14:12:02.831841",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Bereinigung abgelaufener, ausstehender Autorisierungsnachrichten aus der Kreditkartenautorisierungsdatenbank durch Löschung veralteter Einträge.",
-    "process_description": "Das Programm durchläuft alle ausstehenden Autorisierungszusammenfassungen (Pending Authorization Summaries) in der IMS-Datenbank und prüft für jeden zugehörigen Detaileintrag, ob die Autorisierung das konfigurierte Ablaufdatum überschritten hat. Abgelaufene Detaileinträge werden gelöscht, wobei genehmigte und abgelehnte Autorisierungen in den Zählern und Beträgen der Zusammenfassung entsprechend korrigiert werden. Wenn nach der Bereinigung eine Zusammenfassung weder genehmigte noch abgelehnte Autorisierungen enthält, wird auch der übergeordnete Zusammenfassungsdatensatz gelöscht. Der Prozess läuft als nächtlicher oder periodischer Batch-Job mit konfigurierbaren Checkpoint-Intervallen für Restart/Recovery-Fähigkeit.",
+    "description": "Cleanup of expired, outstanding authorization messages from the credit card authorization database by deleting outdated entries.",
+    "process_description": "The program iterates through all Pending Authorization Summaries in the IMS database and checks for each associated detail entry whether the authorization has exceeded the configured expiration date. Expired detail entries are deleted, with approved and rejected authorizations corrected accordingly in the summary counters and amounts. If after cleanup a summary contains neither approved nor rejected authorizations, the parent summary record is also deleted. The process runs as a nightly or periodic batch job with configurable checkpoint intervals for restart/recovery capability.",
     "type": "Batch",
     "module": "Transaction",
     "files": {
-      "PAUTSUM0": "IMS-Segment: Zusammenfassungsdatensatz ausstehender Autorisierungen je Konto (enthält Zähler und Beträge für genehmigte/abgelehnte Autorisierungen)",
-      "PAUTDTL1": "IMS-Segment: Detaildatensatz einer einzelnen ausstehenden Autorisierung (enthält Datum, Betrag, Antwortcode)",
-      "CIPAUSMY": "Copybook: Datenstruktur für den Autorisierungs-Zusammenfassungsdatensatz (Pending Authorization Summary)",
-      "CIPAUDTY": "Copybook: Datenstruktur für den Autorisierungs-Detaildatensatz (Pending Authorization Detail)",
+      "PAUTSUM0": "IMS segment: Summary record of pending authorizations per account (contains counters and amounts for approved/declined authorizations)",
+      "PAUTDTL1": "IMS segment: Detail record of an individual pending authorization (contains date, amount, response code)",
+      "CIPAUSMY": "Copybook: Data structure for the authorization summary record (Pending Authorization Summary)",
+      "CIPAUDTY": "Copybook: Data structure for the authorization detail record (Pending Authorization Detail)",
       "SYSIN": "Batch-Eingabeparameter: Ablauftage, Checkpoint-Frequenz, Debug-Flag"
     },
     "business_rules": [
-      "Eine ausstehende Autorisierung gilt als abgelaufen, wenn die Differenz zwischen aktuellem Datum und Autorisierungsdatum größer oder gleich dem konfigurierten Ablaufwert (Standard: 5 Tage) ist.",
-      "Beim Löschen eines abgelaufenen Detaileintrags werden die Zähler und Beträge in der übergeordneten Zusammenfassung aktualisiert: genehmigte Einträge (Antwortcode '00') reduzieren den Genehmigungszähler und -betrag, alle anderen Einträge reduzieren den Ablehnungszähler und -betrag.",
-      "Ein Zusammenfassungsdatensatz wird nur dann gelöscht, wenn sowohl der Zähler genehmigter als auch der Zähler abgelehnter Autorisierungen auf null oder kleiner gefallen ist (vollständig bereinigtes Konto).",
-      "Der Batch-Job setzt in konfigurierbaren Intervallen IMS-Checkpoints, um bei einem Programmabbruch einen Neustart ohne Datenverlust oder Doppelverarbeitung zu ermöglichen.",
-      "Wenn der Ablaufparameter nicht numerisch angegeben wird, greift ein Standardwert von 5 Tagen als Sicherheitsnetz.",
-      "Bei jedem Datenbankfehler (Lesen oder Löschen) bricht das Programm kontrolliert mit Return-Code 16 ab, um Dateninkonsistenzen zu verhindern.",
-      "Das Programm gibt am Ende eine vollständige Verarbeitungsstatistik aus (gelesene/gelöschte Summary- und Detail-Datensätze) für Audit- und Monitoring-Zwecke."
+      "A pending authorization is considered expired when the difference between the current date and the authorization date is greater than or equal to the configured expiry value (default: 5 days).",
+      "When deleting an expired detail record, the counters and amounts in the parent summary record are updated: approved entries (response code '00') reduce the approval counter and amount, while all other entries reduce the rejection counter and amount.",
+      "A summary record is deleted only when both the approved authorization counter and the rejected authorization counter have dropped to zero or below (fully cleaned-up account).",
+      "The batch job sets IMS checkpoints at configurable intervals to enable a restart without data loss or duplicate processing in the event of a program failure.",
+      "If the expiry parameter is not provided as a numeric value, a default of 5 days is applied as a safety net.",
+      "On any database error (read or delete), the program terminates in a controlled manner with return code 16 to prevent data inconsistencies.",
+      "At the end of processing, the program outputs a complete processing statistics report (summary and detail records read/deleted) for audit and monitoring purposes."
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -35,7 +35,8 @@
         "COPAUS2C",
         "COPAUS0C"
       ]
-    }
+    },
+    "prelude_annotated": true
   },
   "lines": [
     {
@@ -234,7 +235,7 @@
       "division": "IDENTIFICATION",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the section that identifies this program and its purpose within the bank's batch processing suite"
     },
     {
       "number": 23,
@@ -243,7 +244,7 @@
       "division": "IDENTIFICATION",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Registers this program as the expired authorization cleanup job in the bank's batch processing inventory"
     },
     {
       "number": 24,
@@ -270,7 +271,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the section describing the program's operating environment and external resource connections"
     },
     {
       "number": 27,
@@ -279,7 +280,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines the technical configuration settings governing how this program runs on the bank's mainframe environment"
     },
     {
       "number": 28,
@@ -297,7 +298,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Declares the program's connections to external files and data sources needed during processing"
     },
     {
       "number": 30,
@@ -306,7 +307,7 @@
       "division": "ENVIRONMENT",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Begins the specification of all file connections this cleanup job requires to perform its work"
     },
     {
       "number": 31,
@@ -333,7 +334,7 @@
       "division": "DATA",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the start of the section where all data structures used during the cleanup process are defined"
     },
     {
       "number": 34,
@@ -360,7 +361,7 @@
       "division": "DATA",
       "section": "FILE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Declares the layout of any physical files the program reads or writes during batch execution"
     },
     {
       "number": 37,
@@ -387,7 +388,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Begins the declaration of all temporary working data the program uses internally during the cleanup run"
     },
     {
       "number": 40,
@@ -405,7 +406,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Groups together all general-purpose working variables used throughout the cleanup process"
     },
     {
       "number": 42,
@@ -414,7 +415,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Stores the name of this cleanup program for use in log messages, error reporting, and audit trails"
     },
     {
       "number": 43,
@@ -423,7 +424,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds today's date, used as the reference point for calculating whether an authorization has expired"
     },
     {
       "number": 44,
@@ -432,7 +433,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds today's date in Julian format (year + day-of-year), used for precise day-difference calculations against authorization dates"
     },
     {
       "number": 45,
@@ -441,7 +442,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the date on which an individual authorization was originally recorded, used to determine if it has expired"
     },
     {
       "number": 46,
@@ -450,7 +451,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the configured number of days after which a pending authorization is considered expired (default: 5 days)"
     },
     {
       "number": 47,
@@ -459,7 +460,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the calculated age in days of a pending authorization, compared against the expiry threshold to decide deletion"
     },
     {
       "number": 48,
@@ -468,7 +469,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "General-purpose counter used to iterate through collections of authorization records during processing"
     },
     {
       "number": 49,
@@ -477,7 +478,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the account identifier of the authorization record currently being evaluated for expiry and potential deletion"
     },
     {
       "number": 50,
@@ -495,7 +496,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks how many IMS checkpoints have been taken, supporting restart and recovery if the batch job fails mid-run"
     },
     {
       "number": 52,
@@ -504,7 +505,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Counts how many authorization summary records have been processed during the current batch run for progress monitoring"
     },
     {
       "number": 53,
@@ -513,7 +514,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks the total number of records written or updated, used in the end-of-job audit statistics report"
     },
     {
       "number": 54,
@@ -522,7 +523,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Counts the total number of authorization summary records read from the database during this cleanup run"
     },
     {
       "number": 55,
@@ -531,7 +532,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Counts how many authorization summary records were deleted because all their child detail entries had expired"
     },
     {
       "number": 56,
@@ -540,7 +541,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Counts the total number of individual authorization detail records read and evaluated during this cleanup run"
     },
     {
       "number": 57,
@@ -549,7 +550,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Counts how many individual expired authorization detail records were deleted from the database during this run"
     },
     {
       "number": 58,
@@ -567,7 +568,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Signals whether a processing error has occurred; drives the program's decision to continue or terminate safely"
     },
     {
       "number": 60,
@@ -576,7 +577,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating that an error has been detected and the program should stop processing to prevent data corruption"
     },
     {
       "number": 61,
@@ -585,7 +586,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating that no error has occurred and the program may continue normal cleanup processing"
     },
     {
       "number": 62,
@@ -594,7 +595,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Signals whether all authorization records in the database have been processed, controlling the main processing loop"
     },
     {
       "number": 63,
@@ -603,7 +604,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the program has finished reading all pending authorization records from the database"
     },
     {
       "number": 64,
@@ -612,7 +613,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating there are still pending authorization records remaining to be evaluated for expiry"
     },
     {
       "number": 65,
@@ -621,7 +622,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Signals whether additional detail authorization entries exist under the current summary record being processed"
     },
     {
       "number": 66,
@@ -630,7 +631,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating there are more individual authorization entries to evaluate under the current account summary"
     },
     {
       "number": 67,
@@ -639,7 +640,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating all detail entries under the current account summary have been processed"
     },
     {
       "number": 68,
@@ -648,7 +649,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Flags whether the current authorization detail record meets the criteria for deletion due to expiry"
     },
     {
       "number": 69,
@@ -657,7 +658,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the authorization detail record is old enough to be deleted from the database"
     },
     {
       "number": 70,
@@ -666,7 +667,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the authorization detail record has not yet expired and should be retained"
     },
     {
       "number": 71,
@@ -675,7 +676,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures the outcome of the most recent batch input file read operation for error handling"
     },
     {
       "number": 72,
@@ -684,7 +685,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures the result of the most recent database lookup, used to detect end-of-file or error conditions"
     },
     {
       "number": 73,
@@ -693,7 +694,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the program has reached the end of the input data and there are no more records to process"
     },
     {
       "number": 74,
@@ -711,7 +712,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the unique identifier assigned to each IMS checkpoint taken during the batch run, enabling precise restart"
     },
     {
       "number": 76,
@@ -720,7 +721,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Provides a fixed prefix for checkpoint identifiers, making them recognizable in IMS restart/recovery logs"
     },
     {
       "number": 77,
@@ -729,7 +730,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Provides the incrementing numeric portion of the checkpoint identifier, distinguishing each checkpoint taken"
     },
     {
       "number": 78,
@@ -747,7 +748,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Groups all variables related to the IMS database connection and communication used during the cleanup process"
     },
     {
       "number": 80,
@@ -756,7 +757,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Identifies the IMS Program Specification Block that grants this program access to the authorization database"
     },
     {
       "number": 81,
@@ -765,7 +766,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the reference information needed to locate the correct IMS Program Control Block for database operations"
     },
     {
       "number": 82,
@@ -774,7 +775,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Specifies which IMS control block governs access to the pending authorization database segments"
     },
     {
       "number": 83,
@@ -783,7 +784,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Captures the status code returned by IMS after every database operation, used to detect errors or special conditions"
     },
     {
       "number": 84,
@@ -792,7 +793,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the last database operation completed successfully and processing can continue normally"
     },
     {
       "number": 85,
@@ -801,7 +802,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the requested authorization record was not found in the database"
     },
     {
       "number": 86,
@@ -810,7 +811,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating an attempt was made to insert a record that already exists, preventing duplicate entries"
     },
     {
       "number": 87,
@@ -819,7 +820,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating a database navigation error where the program attempted to access a record out of sequence"
     },
     {
       "number": 88,
@@ -828,7 +829,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the program has reached the last record in the authorization database"
     },
     {
       "number": 89,
@@ -837,7 +838,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the authorization database is currently unavailable, triggering controlled program termination"
     },
     {
       "number": 90,
@@ -846,7 +847,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the IMS program schedule was requested more than once, which is an invalid operational state"
     },
     {
       "number": 91,
@@ -855,7 +856,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating IMS could not activate the program's database access rights, preventing any database operations"
     },
     {
       "number": 92,
@@ -864,7 +865,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Groups the database status conditions under which the program should attempt a retry before terminating"
     },
     {
       "number": 93,
@@ -873,7 +874,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Tracks whether the program has successfully activated its IMS database access rights at the start of the job"
     },
     {
       "number": 94,
@@ -882,7 +883,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Condition indicating the program has successfully connected to the IMS database and is ready to process records"
     },
     {
       "number": 95,
@@ -891,7 +892,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Flags that the IMS database scheduler is not active, meaning the program cannot access the authorization database"
     },
     {
       "number": 96,
@@ -918,7 +919,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Groups all batch job control parameters read from the job input stream at program startup"
     },
     {
       "number": 99,
@@ -927,7 +928,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Defines how many days must pass before a pending authorization is considered expired and eligible for deletion"
     },
     {
       "number": 100,
@@ -945,7 +946,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Controls how frequently the program saves its progress so it can safely restart after a failure without reprocessing"
     },
     {
       "number": 102,
@@ -963,7 +964,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Controls how frequently checkpoint progress messages are displayed during the batch run"
     },
     {
       "number": 104,
@@ -981,7 +982,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Switches detailed diagnostic logging on or off for troubleshooting the cleanup process"
     },
     {
       "number": 106,
@@ -990,7 +991,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Indicates that verbose diagnostic output is enabled, providing detailed trace information during processing"
     },
     {
       "number": 107,
@@ -999,7 +1000,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Indicates that diagnostic output is suppressed for normal production batch execution"
     },
     {
       "number": 108,
@@ -1080,7 +1081,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the summary record for a single account's pending authorizations, including counters and amounts for approved and declined entries"
     },
     {
       "number": 117,
@@ -1089,7 +1090,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Imports the full data layout of the pending authorization summary record, defining all account-level counters and amounts"
     },
     {
       "number": 118,
@@ -1116,7 +1117,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Holds the detail record for an individual pending authorization transaction being evaluated for expiry"
     },
     {
       "number": 121,
@@ -1125,7 +1126,7 @@
       "division": "DATA",
       "section": "WORKING-STORAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Imports the full data layout of the individual authorization detail record, including transaction date, amount, and response code"
     },
     {
       "number": 122,
@@ -1161,7 +1162,7 @@
       "division": "DATA",
       "section": "LINKAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Marks the section where data structures shared with the IMS database environment are defined"
     },
     {
       "number": 126,
@@ -1188,7 +1189,7 @@
       "division": "DATA",
       "section": "LINKAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Provides access to IMS input/output status information needed to detect and handle database communication errors"
     },
     {
       "number": 129,
@@ -1197,7 +1198,7 @@
       "division": "DATA",
       "section": "LINKAGE SECTION",
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Provides access to the IMS program database control block used to read, update, and delete authorization records"
     },
     {
       "number": 130,
@@ -1224,7 +1225,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": null,
-      "explanation": ""
+      "explanation": "Starts the executable business logic of the program, receiving the IMS database control interfaces required for all database operations"
     },
     {
       "number": 133,
@@ -1260,7 +1261,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA steuert den gesamten Bereinigungsprozess abgelaufener Kreditkartenautorisierungen: Er initialisiert den Job, durchläuft alle Konten mit ausstehenden Autorisierungen, löscht veraltete Einträge und gibt abschließend eine Verarbeitungsstatistik aus."
+      "explanation": "MAIN-PARA controls the entire cleanup process for expired credit card authorizations: it initializes the job, iterates through all accounts with outstanding authorizations, deletes outdated entries, and finally outputs a processing statistics report."
     },
     {
       "number": 137,
@@ -1278,7 +1279,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Initialisiert den Batch-Job: Liest Eingabeparameter (Ablauftage, Checkpoint-Frequenz), setzt Zähler zurück und bereitet die IMS-Datenbankverbindung vor."
+      "explanation": "Initializes the batch job: reads input parameters (expiry days, checkpoint frequency), resets counters, and prepares the IMS database connection."
     },
     {
       "number": 139,
@@ -1296,7 +1297,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt den ersten ausstehenden Autorisierungs-Zusammenfassungsdatensatz aus der Datenbank, um die Kontenverarbeitung zu starten."
+      "explanation": "Loads the first outstanding authorization summary record from the database to begin account processing."
     },
     {
       "number": 141,
@@ -1314,7 +1315,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Verarbeitungsschleife über alle Konten mit ausstehenden Autorisierungen – läuft solange, bis alle Konten geprüft wurden oder ein Datenbankfehler die Verarbeitung abbricht."
+      "explanation": "Processing loop over all accounts with outstanding authorizations – runs until all accounts have been checked or a database error aborts processing."
     },
     {
       "number": 143,
@@ -1332,7 +1333,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt den ersten Detaildatensatz (einzelne ausstehende Autorisierung) zum aktuell verarbeiteten Konto."
+      "explanation": "Loads the first detail record (individual outstanding authorization) for the account currently being processed."
     },
     {
       "number": 145,
@@ -1350,7 +1351,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Innere Schleife über alle Einzel-Autorisierungen des aktuellen Kontos – prüft jeden Eintrag auf Ablauf."
+      "explanation": "Inner loop over all individual authorizations for the current account – checks each entry for expiry."
     },
     {
       "number": 147,
@@ -1359,7 +1360,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob die aktuelle Einzel-Autorisierung das konfigurierte Ablaufdatum überschritten hat und markiert sie ggf. zur Löschung."
+      "explanation": "Checks whether the current individual authorization has exceeded the configured expiry date and flags it for deletion if applicable."
     },
     {
       "number": 148,
@@ -1377,7 +1378,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Entscheidet, ob die geprüfte Autorisierung als abgelaufen eingestuft wurde und gelöscht werden muss."
+      "explanation": "Determines whether the checked authorization has been classified as expired and must be deleted."
     },
     {
       "number": 150,
@@ -1386,7 +1387,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht den abgelaufenen Autorisierungs-Detaildatensatz und aktualisiert die Zähler und Beträge (genehmigt/abgelehnt) im übergeordneten Zusammenfassungsdatensatz des Kontos."
+      "explanation": "Deletes the expired authorization detail record and updates the counters and amounts (approved/declined) in the parent summary record of the account."
     },
     {
       "number": 151,
@@ -1413,7 +1414,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt die nächste Einzel-Autorisierung des aktuellen Kontos für die weitere Ablaufprüfung."
+      "explanation": "Loads the next individual authorization for the current account for further expiry checking."
     },
     {
       "number": 154,
@@ -1440,7 +1441,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft nach Abschluss aller Detailprüfungen, ob das Konto keine genehmigten und keine abgelehnten Autorisierungen mehr enthält (vollständig bereinigt)."
+      "explanation": "After all detail checks are complete, verifies whether the account contains no more approved and no more declined authorizations (fully cleaned up)."
     },
     {
       "number": 157,
@@ -1449,7 +1450,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht den Zusammenfassungsdatensatz des Kontos, da nach der Bereinigung keine ausstehenden Autorisierungen mehr vorhanden sind."
+      "explanation": "Deletes the account summary record, as no outstanding authorizations remain after the cleanup."
     },
     {
       "number": 158,
@@ -1476,7 +1477,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob die konfigurierte Anzahl verarbeiteter Konten seit dem letzten Checkpoint erreicht wurde, um die Restart/Recovery-Sicherung auszulösen."
+      "explanation": "Checks whether the configured number of processed accounts since the last checkpoint has been reached, in order to trigger the restart/recovery save."
     },
     {
       "number": 161,
@@ -1485,7 +1486,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt einen IMS-Checkpoint, der den aktuellen Verarbeitungsstand sichert und bei einem Programmabbruch einen verlustfreien Neustart ermöglicht."
+      "explanation": "Sets an IMS checkpoint that saves the current processing state and enables a lossless restart in the event of a program abort."
     },
     {
       "number": 162,
@@ -1503,7 +1504,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt den Zähler der seit dem letzten Checkpoint verarbeiteten Konten zurück, um das nächste Checkpoint-Intervall korrekt zu messen."
+      "explanation": "Resets the counter of accounts processed since the last checkpoint in order to correctly measure the next checkpoint interval."
     },
     {
       "number": 164,
@@ -1521,7 +1522,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt den nächsten Konten-Zusammenfassungsdatensatz aus der Datenbank, um mit der Bereinigung des folgenden Kontos fortzufahren."
+      "explanation": "Loads the next account summary record from the database to continue with the cleanup of the following account."
     },
     {
       "number": 166,
@@ -1557,7 +1558,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt nach Abschluss der gesamten Verarbeitung einen abschließenden IMS-Checkpoint, um den finalen Verarbeitungsstand dauerhaft zu sichern."
+      "explanation": "Sets a final IMS checkpoint after all processing is complete, to permanently save the final processing state."
     },
     {
       "number": 170,
@@ -1575,7 +1576,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Beginnt die Ausgabe der Abschlussstatistik mit einer Leerzeile zur optischen Trennung im Job-Protokoll."
+      "explanation": "Begins the output of the final statistics with a blank line for visual separation in the job log."
     },
     {
       "number": 172,
@@ -1584,7 +1585,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt den Rahmen der Verarbeitungsstatistik im Job-Protokoll aus."
+      "explanation": "Outputs the header of the processing statistics in the job log."
     },
     {
       "number": 173,
@@ -1593,7 +1594,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt die Gesamtanzahl der gelesenen Konten-Zusammenfassungsdatensätze für Audit- und Monitoring-Zwecke aus."
+      "explanation": "Outputs the total number of account summary records read, for audit and monitoring purposes."
     },
     {
       "number": 174,
@@ -1602,7 +1603,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt die Anzahl der gelöschten Konten-Zusammenfassungsdatensätze (vollständig bereinigte Konten) für Audit-Zwecke aus."
+      "explanation": "Outputs the number of deleted account summary records (fully cleaned-up accounts) for audit purposes."
     },
     {
       "number": 175,
@@ -1611,7 +1612,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt die Gesamtanzahl der gelesenen Einzel-Autorisierungsdatensätze für Audit- und Monitoring-Zwecke aus."
+      "explanation": "Outputs the total number of individual authorization records read, for audit and monitoring purposes."
     },
     {
       "number": 176,
@@ -1620,7 +1621,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt die Anzahl der gelöschten abgelaufenen Einzel-Autorisierungsdatensätze für Audit-Zwecke aus."
+      "explanation": "Outputs the number of deleted expired individual authorization records for audit purposes."
     },
     {
       "number": 177,
@@ -1629,7 +1630,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Schließt den Rahmen der Verarbeitungsstatistik im Job-Protokoll ab."
+      "explanation": "Outputs the closing line of the processing statistics in the job log."
     },
     {
       "number": 178,
@@ -1638,7 +1639,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Gibt eine abschließende Leerzeile zur optischen Trennung im Job-Protokoll aus."
+      "explanation": "Outputs a final blank line for visual separation in the job log."
     },
     {
       "number": 179,
@@ -1656,7 +1657,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Beendet den Batch-Job geordnet und gibt die Kontrolle an den aufrufenden Job-Scheduler zurück."
+      "explanation": "Terminates the batch job in an orderly manner and returns control to the calling job scheduler."
     },
     {
       "number": 181,
@@ -1683,7 +1684,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Initialisiert den Bereinigungslauf, indem das aktuelle Datum ermittelt, die Steuerparameter aus dem Batch-Input geladen und auf gültige Werte geprüft werden – damit der Job mit klar definierten Ablaufregeln startet."
+      "explanation": "Initializes the cleanup run by determining the current date, loading the control parameters from the batch input, and validating them for correct values – so that the job starts with clearly defined processing rules."
     },
     {
       "number": 184,
@@ -1710,7 +1711,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Tagesdatum als Referenzpunkt für die spätere Berechnung, ob eine Autorisierung abgelaufen ist."
+      "explanation": "Determines the current calendar date as the reference point for subsequently calculating whether an authorization has expired."
     },
     {
       "number": 187,
@@ -1719,7 +1720,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Datum im Julianischen Format (YYDDD) als zweites Datumsformat für die Altersberechnung der Autorisierungen."
+      "explanation": "Determines the current date in Julian format (YYDDD) as a second date format for calculating the age of authorizations."
     },
     {
       "number": 188,
@@ -1737,7 +1738,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Liest die Steuerparameter des Batch-Jobs ein: Ablauftage-Schwelle, Checkpoint-Frequenz und Debug-Modus."
+      "explanation": "Reads the batch job control parameters: expiry days threshold, checkpoint frequency, and debug mode."
     },
     {
       "number": 190,
@@ -1746,7 +1747,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert den Programmstart in der Job-Ausgabe für Monitoring und Nachvollziehbarkeit des Batch-Laufs."
+      "explanation": "Logs the program start in the job output for monitoring and traceability of the batch run."
     },
     {
       "number": 191,
@@ -1755,7 +1756,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Gibt eine optische Trennlinie in der Job-Ausgabe aus zur besseren Lesbarkeit des Protokolls."
+      "explanation": "Outputs a visual separator line in the job output to improve log readability."
     },
     {
       "number": 192,
@@ -1764,7 +1765,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert die empfangenen Steuerparameter, damit im Fehlerfall nachvollziehbar ist, mit welchen Einstellungen der Job gestartet wurde."
+      "explanation": "Logs the received control parameters so that, in the event of an error, it is traceable with which settings the job was started."
     },
     {
       "number": 193,
@@ -1773,7 +1774,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert das aktuelle Verarbeitungsdatum, das als Basis für alle Ablaufprüfungen der Autorisierungen dient."
+      "explanation": "Logs the current processing date, which serves as the basis for all expiry checks of the authorizations."
     },
     {
       "number": 194,
@@ -1782,7 +1783,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Gibt eine Leerzeile in der Job-Ausgabe aus zur besseren Lesbarkeit des Protokolls."
+      "explanation": "Outputs a blank line in the job output to improve log readability."
     },
     {
       "number": 195,
@@ -1800,7 +1801,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob der übergebene Ablaufparameter einen gültigen numerischen Wert enthält und damit als Ablaufschwelle verwendbar ist."
+      "explanation": "Checks whether the passed expiry parameter contains a valid numeric value and can therefore be used as the expiry threshold."
     },
     {
       "number": 197,
@@ -1809,7 +1810,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Übernimmt die konfigurierte Anzahl Ablauftage aus dem Batch-Parameter als aktive Schwelle für die Bereinigung."
+      "explanation": "Adopts the configured number of expiry days from the batch parameter as the active threshold for the cleanup."
     },
     {
       "number": 198,
@@ -1827,7 +1828,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Setzt den Standardwert von 5 Tagen als Ablaufschwelle, falls kein gültiger numerischer Parameter übergeben wurde – Sicherheitsnetz gegen Fehlkonfiguration."
+      "explanation": "Sets the default value of 5 days as the expiry threshold if no valid numeric parameter was passed – a safety net against misconfiguration."
     },
     {
       "number": 200,
@@ -1845,7 +1846,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob die Checkpoint-Frequenz im Batch-Parameter fehlt oder ungültig ist, um einen unkontrollierten Lauf ohne Restart-Fähigkeit zu verhindern."
+      "explanation": "Checks whether the checkpoint frequency in the batch parameter is missing or invalid, in order to prevent an uncontrolled run without restart capability."
     },
     {
       "number": 202,
@@ -1854,7 +1855,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Setzt die Checkpoint-Frequenz auf den Standardwert von 5 Zusammenfassungen, damit der Job bei Abbruch sicher neu gestartet werden kann."
+      "explanation": "Sets the checkpoint frequency to the default value of 5 summaries, so that the job can be safely restarted in the event of an abort."
     },
     {
       "number": 203,
@@ -1872,7 +1873,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob die Anzeigefrequenz für Checkpoint-Meldungen im Protokoll fehlt oder ungültig angegeben wurde."
+      "explanation": "Checks whether the display frequency for checkpoint messages in the log is missing or has been specified incorrectly."
     },
     {
       "number": 205,
@@ -1881,7 +1882,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Setzt die Anzeigefrequenz für Checkpoint-Protokollmeldungen auf den Standardwert von 10, um eine regelmäßige Fortschrittsanzeige im Job-Log sicherzustellen."
+      "explanation": "Sets the display frequency for checkpoint log messages to the default value of 10, to ensure regular progress reporting in the job log."
     },
     {
       "number": 206,
@@ -1899,7 +1900,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob der Debug-Modus explizit aktiviert wurde, um erweiterte Protokollierung während der Verarbeitung zu steuern."
+      "explanation": "Checks whether debug mode has been explicitly activated, in order to control extended logging during processing."
     },
     {
       "number": 208,
@@ -1908,7 +1909,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Deaktiviert den Debug-Modus explizit, falls er nicht korrekt gesetzt wurde – verhindert ungewollte Protokollflut im Produktionsbetrieb."
+      "explanation": "Explicitly deactivates debug mode if it has not been set correctly – prevents unwanted log flooding in production operation."
     },
     {
       "number": 209,
@@ -1944,7 +1945,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Markiert das Ende des Initialisierungsbereichs (1000er-Block) des Bereinigungsjobs."
+      "explanation": "Marks the end of the initialization section (1000-block) of the cleanup job."
     },
     {
       "number": 213,
@@ -1953,7 +1954,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Gibt die Programmsteuerung an den übergeordneten Verarbeitungsablauf zurück, damit die eigentliche Bereinigung abgelaufener Autorisierungen beginnen kann."
+      "explanation": "Returns program control to the parent processing flow so that the actual cleanup of expired authorizations can begin."
     },
     {
       "number": 214,
@@ -1971,7 +1972,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Job."
+      "explanation": "Separator line for structural delimitation of the next processing section in the batch job."
     },
     {
       "number": 216,
@@ -1980,7 +1981,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Einstiegspunkt: Nächsten Konto-Zusammenfassungsdatensatz aus der Autorisierungsdatenbank laden"
+      "explanation": "Entry point: load the next account summary record from the authorization database."
     },
     {
       "number": 217,
@@ -2016,7 +2017,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Gibt die Anzahl bisher verarbeiteter Autorisierungs-Zusammenfassungen auf dem Systemprotokoll aus"
+      "explanation": "Outputs the number of authorization summaries processed so far to the system log."
     },
     {
       "number": 221,
@@ -2043,7 +2044,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Liest den nächsten Konto-Zusammenfassungsdatensatz (PAUTSUM0) sequenziell aus der IMS-Autorisierungsdatenbank"
+      "explanation": "Reads the next account summary record (PAUTSUM0) sequentially from the IMS authorization database."
     },
     {
       "number": 224,
@@ -2052,7 +2053,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Zielt auf das IMS-Segment PAUTSUM0, das die Zusammenfassung ausstehender Autorisierungen je Konto enthält"
+      "explanation": "Targets the IMS segment PAUTSUM0, which contains the summary of outstanding authorizations per account."
     },
     {
       "number": 225,
@@ -2061,7 +2062,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Überträgt den gelesenen Zusammenfassungsdatensatz in den Arbeitsbereich für die anschließende Ablaufprüfung"
+      "explanation": "Transfers the read summary record into the working area for the subsequent expiry check."
     },
     {
       "number": 226,
@@ -2088,7 +2089,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Wertet das Ergebnis des Datenbankzugriffs aus, um Erfolg, Datenbankende oder Fehler zu unterscheiden"
+      "explanation": "Evaluates the result of the database access to distinguish between success, end of database, and error."
     },
     {
       "number": 229,
@@ -2097,7 +2098,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Erfolgsfall: Der Datenbankzugriff hat einen gültigen Zusammenfassungsdatensatz geliefert"
+      "explanation": "Success case: the database access has returned a valid summary record."
     },
     {
       "number": 230,
@@ -2106,7 +2107,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Signalisiert, dass noch weitere Konten mit ausstehenden Autorisierungen zu verarbeiten sind (kein Datenbankende)"
+      "explanation": "Signals that there are further accounts with outstanding authorizations to be processed (no end of database)."
     },
     {
       "number": 231,
@@ -2115,7 +2116,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Erhöht den Audit-Zähler für gelesene Zusammenfassungsdatensätze um eins (für Verarbeitungsstatistik)"
+      "explanation": "Increments the audit counter for read summary records by one (for processing statistics)."
     },
     {
       "number": 232,
@@ -2124,7 +2125,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Erhöht den internen Verarbeitungszähler, der die Checkpoint-Frequenz für den IMS Restart/Recovery-Mechanismus steuert"
+      "explanation": "Increments the internal processing counter that controls the checkpoint frequency for the IMS restart/recovery mechanism."
     },
     {
       "number": 233,
@@ -2133,7 +2134,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Merkt sich die Kontonummer des aktuell verarbeiteten Datensatzes als Referenz für die nachfolgende Detailverarbeitung"
+      "explanation": "Saves the account number of the currently processed record as a reference for subsequent detail processing."
     },
     {
       "number": 234,
@@ -2142,7 +2143,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Statuscode 'GB': Die IMS-Datenbank enthält keine weiteren Zusammenfassungsdatensätze – alle Konten wurden durchlaufen"
+      "explanation": "Status code 'GB': the IMS database contains no further summary records – all accounts have been iterated."
     },
     {
       "number": 235,
@@ -2151,7 +2152,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Setzt das Datenbankende-Kennzeichen, damit der Batch-Job die Verarbeitungsschleife ordnungsgemäß beendet"
+      "explanation": "Sets the end-of-database flag so that the batch job terminates the processing loop in an orderly manner."
     },
     {
       "number": 236,
@@ -2160,7 +2161,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Jeder andere Statuscode weist auf einen unerwarteten Datenbankfehler beim Lesen hin"
+      "explanation": "Any other status code indicates an unexpected database error during read"
     },
     {
       "number": 237,
@@ -2169,7 +2170,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Protokolliert den fehlerhaften IMS-Statuscode zur Fehleranalyse, bevor das Programm kontrolliert abbricht"
+      "explanation": "Logs the erroneous IMS status code for error analysis before the program terminates in a controlled manner"
     },
     {
       "number": 238,
@@ -2178,7 +2179,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Protokolliert die Anzahl bisher erfolgreich gelesener Zusammenfassungen als Diagnoseinformation vor dem Abbruch"
+      "explanation": "Logs the number of summaries successfully read so far as diagnostic information before the abend"
     },
     {
       "number": 239,
@@ -2187,7 +2188,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Gibt die Anzahl der bis zum Fehler verarbeiteten Zusammenfassungsdatensätze für die Fehleranalyse aus"
+      "explanation": "Outputs the number of summary records processed up to the point of failure for error analysis"
     },
     {
       "number": 240,
@@ -2196,7 +2197,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-FIND-NEXT-AUTH-SUMMARY",
-      "explanation": "Leitet den kontrollierten Programmabbruch mit Return-Code 16 ein, um Dateninkonsistenzen in der Autorisierungsdatenbank zu verhindern"
+      "explanation": "Initiates a controlled program abend with return code 16 to prevent data inconsistencies in the authorization database"
     },
     {
       "number": 241,
@@ -2223,7 +2224,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Markiert den Austrittspunkt des Hauptverarbeitungsblocks, der die Bereinigung abgelaufener Autorisierungseinträge durchführt."
+      "explanation": "Marks the exit point of the main processing block that performs the cleanup of expired authorization entries"
     },
     {
       "number": 244,
@@ -2232,7 +2233,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Beendet den Verarbeitungsblock geordnet und gibt die Kontrolle an den übergeordneten Steuerungsablauf des Batch-Jobs zurück."
+      "explanation": "Terminates the processing block in an orderly manner and returns control to the higher-level control flow of the batch job"
     },
     {
       "number": 245,
@@ -2259,7 +2260,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Bereinigungsprozess."
+      "explanation": "Separator line for structural delimitation of the next processing section in the cleanup process"
     },
     {
       "number": 248,
@@ -2268,7 +2269,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Einstiegspunkt: Nächsten Autorisierungs-Detaildatensatz zum aktuellen Konto abrufen"
+      "explanation": "Entry point: Retrieve the next authorization detail record for the current account"
     },
     {
       "number": 249,
@@ -2295,7 +2296,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Im Debug-Modus: Protokollierung der bisherigen Anzahl gelesener Detaildatensätze zur Laufzeitverfolgung"
+      "explanation": "In debug mode: Logging the current number of detail records read so far for runtime tracing"
     },
     {
       "number": 252,
@@ -2304,7 +2305,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Gibt die aktuelle Anzahl bereits gelesener Autorisierungs-Detaildatensätze zur Diagnose auf der Konsole aus"
+      "explanation": "Outputs the current number of authorization detail records already read to the console for diagnostic purposes"
     },
     {
       "number": 253,
@@ -2331,7 +2332,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Liest den nächsten Autorisierungs-Detaildatensatz (PAUTDTL1) unterhalb des aktuellen Kontos aus der IMS-Datenbank"
+      "explanation": "Reads the next authorization detail record (PAUTDTL1) below the current account from the IMS database"
     },
     {
       "number": 256,
@@ -2340,7 +2341,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Zielt auf das IMS-Segment PAUTDTL1, das die Einzeldaten einer ausstehenden Autorisierung enthält"
+      "explanation": "Targets the IMS segment PAUTDTL1, which contains the individual data of a pending authorization"
     },
     {
       "number": 257,
@@ -2349,7 +2350,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Lädt die gelesenen Autorisierungsdetails (Datum, Betrag, Antwortcode) in den Arbeitsbereich zur weiteren Ablaufprüfung"
+      "explanation": "Loads the read authorization details (date, amount, response code) into the work area for further processing checks"
     },
     {
       "number": 258,
@@ -2367,7 +2368,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Wertet das Ergebnis des Datenbankzugriffs aus, um den weiteren Verarbeitungsweg zu bestimmen"
+      "explanation": "Evaluates the result of the database access to determine the further processing path"
     },
     {
       "number": 260,
@@ -2376,7 +2377,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Statuscode leer: Der Datenbankzugriff war erfolgreich und ein weiterer Detaildatensatz wurde gefunden"
+      "explanation": "Status code blank: The database access was successful and another detail record was found"
     },
     {
       "number": 261,
@@ -2385,7 +2386,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Signalisiert, dass weitere ausstehende Autorisierungen für dieses Konto vorhanden und zu prüfen sind"
+      "explanation": "Signals that further pending authorizations exist for this account and are to be checked"
     },
     {
       "number": 262,
@@ -2394,7 +2395,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Erhöht den Lesezähler für Detaildatensätze um eins – für die spätere Verarbeitungsstatistik und das Audit"
+      "explanation": "Increments the detail record read counter by one – for later processing statistics and audit"
     },
     {
       "number": 263,
@@ -2403,7 +2404,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Statuscode 'GE': Es gibt keinen weiteren Detaildatensatz unterhalb des aktuellen Kontos (Ende der Kindeinträge)"
+      "explanation": "Status code 'GE': There are no further detail records below the current account (end of child entries)"
     },
     {
       "number": 264,
@@ -2412,7 +2413,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Statuscode 'GB': Es gibt keinen weiteren Datensatz im gesamten Datenbankpfad (Ende der Datenbank)"
+      "explanation": "Status code 'GB': There are no further records in the entire database path (end of database)"
     },
     {
       "number": 265,
@@ -2421,7 +2422,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Signalisiert, dass alle Autorisierungs-Detaildatensätze des aktuellen Kontos vollständig verarbeitet wurden"
+      "explanation": "Signals that all authorization detail records for the current account have been fully processed"
     },
     {
       "number": 266,
@@ -2439,7 +2440,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Gibt den unerwarteten IMS-Fehlercode aus, um die Fehlerursache beim Lesen eines Autorisierungsdetails zu dokumentieren"
+      "explanation": "Outputs the unexpected IMS error code to document the cause of the error when reading an authorization detail"
     },
     {
       "number": 268,
@@ -2448,7 +2449,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Gibt die Kontonummer des betroffenen Zusammenfassungsdatensatzes aus, um den fehlerhaften Datensatz im Fehlerfall zu identifizieren"
+      "explanation": "Outputs the account number of the affected summary record to identify the erroneous record in the event of a failure"
     },
     {
       "number": 269,
@@ -2457,7 +2458,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Gibt die Anzahl bisher erfolgreich gelesener Detaildatensätze vor dem Programmabbruch aus – sichert die Nachvollziehbarkeit"
+      "explanation": "Outputs the number of detail records successfully read before the program abend – ensures traceability"
     },
     {
       "number": 270,
@@ -2466,7 +2467,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-FIND-NEXT-AUTH-DTL",
-      "explanation": "Leitet einen kontrollierten Programmabbruch ein, um Dateninkonsistenzen durch einen unkontrollierten Weiterlauf zu verhindern"
+      "explanation": "Initiates a controlled program abend to prevent data inconsistencies caused by an uncontrolled continuation"
     },
     {
       "number": 271,
@@ -2493,7 +2494,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Markiert den Endpunkt der Hauptverarbeitungsschleife über alle ausstehenden Autorisierungs-Zusammenfassungen."
+      "explanation": "Marks the end point of the main processing loop over all pending authorization summaries"
     },
     {
       "number": 274,
@@ -2502,7 +2503,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Beendet den aktuellen Schleifendurchlauf und gibt die Kontrolle an die aufrufende Verarbeitungslogik zurück, damit der nächste Zusammenfassungsdatensatz verarbeitet werden kann."
+      "explanation": "Ends the current loop iteration and returns control to the calling processing logic so that the next summary record can be processed"
     },
     {
       "number": 275,
@@ -2520,7 +2521,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Prozess."
+      "explanation": "Separator line for structural delimitation of the next processing section in the batch process"
     },
     {
       "number": 277,
@@ -2529,7 +2530,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Einstiegspunkt der Ablaufprüfung für einen einzelnen Autorisierungs-Detaildatensatz."
+      "explanation": "Entry point of the processing check for an individual authorization detail record"
     },
     {
       "number": 278,
@@ -2556,7 +2557,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Wandelt das komprimierte Autorisierungsdatum (99999-Komplement-Format) in ein lesbares Kalenderdatum (YYDDD) um, um es mit dem aktuellen Datum vergleichen zu können."
+      "explanation": "Converts the compressed authorization date (99999-complement format) into a readable calendar date (YYDDD) to enable comparison with the current date"
     },
     {
       "number": 281,
@@ -2574,7 +2575,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Berechnet das Alter der ausstehenden Autorisierung in Tagen: Differenz zwischen dem heutigen Datum und dem Datum, an dem die Autorisierung erteilt wurde."
+      "explanation": "Calculates the age of the pending authorization in days: the difference between today's date and the date on which the authorization was granted"
     },
     {
       "number": 283,
@@ -2592,7 +2593,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Prüft, ob die Autorisierung das konfigurierte Ablaufintervall (Standard: 5 Tage) erreicht oder überschritten hat und damit als veraltet gilt."
+      "explanation": "Checks whether the authorization has reached or exceeded the configured expiry interval (default: 5 days) and is therefore considered stale"
     },
     {
       "number": 285,
@@ -2601,7 +2602,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Markiert die Autorisierung als löschreif, da sie die Ablaufschwelle überschritten hat."
+      "explanation": "Marks the authorization as eligible for deletion, as it has exceeded the expiry threshold"
     },
     {
       "number": 286,
@@ -2619,7 +2620,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Unterscheidet, ob die abgelaufene Autorisierung ursprünglich genehmigt (Antwortcode '00') oder abgelehnt wurde, um die korrekten Summenwerte im Konto zu korrigieren."
+      "explanation": "Distinguishes whether the expired authorization was originally approved (response code '00') or declined, in order to correct the appropriate totals in the account"
     },
     {
       "number": 288,
@@ -2628,7 +2629,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Reduziert den Zähler genehmigter Autorisierungen im Konto-Zusammenfassungsdatensatz um 1, da dieser genehmigte Eintrag gelöscht wird."
+      "explanation": "Decrements the approved authorization counter in the account summary record by 1, as this approved entry is being deleted"
     },
     {
       "number": 289,
@@ -2637,7 +2638,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Zieht den Betrag der abgelaufenen genehmigten Autorisierung vom kumulierten Genehmigungsbetrag des Kontos ab, um die Kontosummen korrekt zu halten."
+      "explanation": "Subtracts the amount of the expired approved authorization from the cumulative approved amount of the account to keep the account totals accurate"
     },
     {
       "number": 290,
@@ -2655,7 +2656,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Reduziert den Zähler abgelehnter Autorisierungen im Konto-Zusammenfassungsdatensatz um 1, da dieser abgelehnte Eintrag gelöscht wird."
+      "explanation": "Decrements the declined authorization counter in the account summary record by 1, as this declined entry is being deleted"
     },
     {
       "number": 292,
@@ -2664,7 +2665,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Zieht den Transaktionsbetrag der abgelaufenen abgelehnten Autorisierung vom kumulierten Ablehnungsbetrag des Kontos ab."
+      "explanation": "Subtracts the transaction amount of the expired declined authorization from the cumulative declined amount of the account"
     },
     {
       "number": 293,
@@ -2691,7 +2692,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-CHECK-IF-EXPIRED",
-      "explanation": "Markiert die Autorisierung als nicht löschreif, da sie die Ablaufschwelle noch nicht erreicht hat und weiterhin gültig ist."
+      "explanation": "Marks the authorization as not eligible for deletion, as it has not yet reached the expiry threshold and remains valid"
     },
     {
       "number": 296,
@@ -2727,7 +2728,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Markiert den Endpunkt der Hauptverarbeitungsschleife, die alle ausstehenden Autorisierungs-Zusammenfassungen durchläuft."
+      "explanation": "Marks the end point of the main processing loop that iterates over all pending authorization summaries"
     },
     {
       "number": 300,
@@ -2736,7 +2737,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Gibt die Kontrolle geordnet an die aufrufende Schleife zurück, sodass der Batch-Job mit dem nächsten Konto-Zusammenfassungsdatensatz fortfahren kann."
+      "explanation": "Returns control in an orderly manner to the calling loop so that the batch job can continue with the next account summary record"
     },
     {
       "number": 301,
@@ -2754,7 +2755,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Trennlinie zur visuellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Ablauf."
+      "explanation": "Separator line for visual delimitation of the next processing section in the batch run"
     },
     {
       "number": 303,
@@ -2763,7 +2764,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Einstiegspunkt der Löschroutine für einen abgelaufenen Autorisierungs-Detaildatensatz."
+      "explanation": "Entry point of the delete routine for an expired authorization detail record"
     },
     {
       "number": 304,
@@ -2790,7 +2791,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Im Debug-Modus wird die Konto-ID der zu löschenden Autorisierung zur Nachverfolgung im Protokoll ausgegeben."
+      "explanation": "In debug mode, the account ID of the authorization to be deleted is written to the log for traceability"
     },
     {
       "number": 307,
@@ -2799,7 +2800,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Gibt die Konto-ID des betroffenen Karteninhabers im Verarbeitungsprotokoll aus, um den Löschvorgang nachvollziehbar zu machen."
+      "explanation": "Outputs the account ID of the affected cardholder in the processing log to make the deletion traceable"
     },
     {
       "number": 308,
@@ -2826,7 +2827,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Löscht den abgelaufenen Autorisierungs-Detaildatensatz physisch aus der IMS-Kreditkartendatenbank."
+      "explanation": "Physically deletes the expired authorization detail record from the IMS credit card database"
     },
     {
       "number": 311,
@@ -2835,7 +2836,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Identifiziert das zu löschende IMS-Segment als Autorisierungs-Detaildatensatz (PAUTDTL1)."
+      "explanation": "Identifies the IMS segment to be deleted as an authorization detail record (PAUTDTL1)"
     },
     {
       "number": 312,
@@ -2844,7 +2845,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Übergibt den aktuell geladenen Detaildatensatz der ausstehenden Autorisierung als Grundlage für die Löschoperation."
+      "explanation": "Passes the currently loaded pending authorization detail record as the basis for the delete operation"
     },
     {
       "number": 313,
@@ -2871,7 +2872,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Prüft, ob die Löschung in der Datenbank erfolgreich durchgeführt wurde (kein Fehlerstatuscode)."
+      "explanation": "Checks whether the deletion was successfully performed in the database (no error status code)"
     },
     {
       "number": 316,
@@ -2880,7 +2881,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Erhöht den Audit-Zähler für erfolgreich gelöschte Autorisierungs-Detaildatensätze um eins für die Verarbeitungsstatistik."
+      "explanation": "Increments the audit counter for successfully deleted authorization detail records by one for processing statistics"
     },
     {
       "number": 317,
@@ -2898,7 +2899,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Gibt den Datenbankfehlercode und die betroffene Konto-ID aus, um die fehlgeschlagene Löschung für die Fehleranalyse zu dokumentieren."
+      "explanation": "Outputs the database error code and the affected account ID to document the failed deletion for error analysis"
     },
     {
       "number": 319,
@@ -2907,7 +2908,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Gibt die Konto-ID des Karteninhabers aus, dessen Autorisierungsdatensatz nicht gelöscht werden konnte."
+      "explanation": "Outputs the account ID of the cardholder whose authorization record could not be deleted"
     },
     {
       "number": 320,
@@ -2916,7 +2917,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-DELETE-AUTH-DTL",
-      "explanation": "Bricht den Batch-Job kontrolliert ab, da ein Datenbankfehler beim Löschen Dateninkonsistenzen zwischen Detail- und Zusammenfassungsdatensätzen verursachen würde."
+      "explanation": "Abends the batch job in a controlled manner, as a database error during deletion would cause data inconsistencies between detail and summary records"
     },
     {
       "number": 321,
@@ -2952,7 +2953,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-EXIT",
-      "explanation": "Markiert den formalen Abschlusspunkt des gesamten Bereinigungsprozesses für abgelaufene Autorisierungseinträge."
+      "explanation": "Marks the formal closing point of the entire cleanup process for expired authorization entries"
     },
     {
       "number": 325,
@@ -2961,7 +2962,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-EXIT",
-      "explanation": "Beendet den Programmablauf geordnet und gibt die Kontrolle an den aufrufenden Batch-Scheduler zurück, nachdem alle Bereinigungen, Zählerfortschreibungen und der abschließende IMS-Checkpoint durchgeführt wurden."
+      "explanation": "Terminates the program run in an orderly manner and returns control to the calling batch scheduler after all cleanups, counter updates, and the final IMS checkpoint have been completed"
     },
     {
       "number": 326,
@@ -2979,7 +2980,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "5000-EXIT",
-      "explanation": "Visuelle Trennlinie zur strukturellen Abgrenzung dieses Abschlussparagraphen von weiteren Programmabschnitten."
+      "explanation": "Visual separator line for structural delimitation of this closing paragraph from further program sections"
     },
     {
       "number": 328,
@@ -2988,7 +2989,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Löscht den vollständig bereinigten Zusammenfassungsdatensatz eines Kontos aus der IMS-Datenbank, wenn keine genehmigten oder abgelehnten Autorisierungen mehr vorhanden sind. Dieser Schritt schließt die Kontobereinigung ab und hält die Datenbank frei von veralteten Einträgen."
+      "explanation": "Deletes the fully cleaned-up summary record of an account from the IMS database when no approved or declined authorizations remain. This step completes the account cleanup and keeps the database free of stale entries"
     },
     {
       "number": 329,
@@ -3015,7 +3016,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Im Debug-Modus wird die Konto-ID protokolliert, um die Löschung des Zusammenfassungsdatensatzes im Verarbeitungsprotokoll nachvollziehbar zu machen."
+      "explanation": "In debug mode, the account ID is logged to make the deletion of the summary record traceable in the processing log"
     },
     {
       "number": 332,
@@ -3024,7 +3025,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Gibt die Konto-ID des zu löschenden Zusammenfassungsdatensatzes zur Diagnose und Nachverfolgung im Batch-Protokoll aus."
+      "explanation": "Outputs the account ID of the summary record to be deleted for diagnostic and traceability purposes in the batch log"
     },
     {
       "number": 333,
@@ -3051,7 +3052,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Löscht den Autorisierungs-Zusammenfassungsdatensatz des Kontos physisch aus der IMS-Datenbank, da das Konto keine ausstehenden Autorisierungen mehr enthält."
+      "explanation": "Physically deletes the authorization summary record of the account from the IMS database, as the account no longer contains any pending authorizations"
     },
     {
       "number": 336,
@@ -3060,7 +3061,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Referenziert das IMS-Segment PAUTSUM0, das den Zusammenfassungsdatensatz mit Zählern und Beträgen der ausstehenden Autorisierungen je Konto repräsentiert."
+      "explanation": "References the IMS segment PAUTSUM0, which represents the summary record containing counters and amounts of outstanding authorizations per account."
     },
     {
       "number": 337,
@@ -3069,7 +3070,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Übergibt den aktuell geladenen Zusammenfassungsdatensatz des Kontos als Grundlage für die physische Löschung in der IMS-Datenbank."
+      "explanation": "Passes the currently loaded account summary record as the basis for physical deletion in the IMS database."
     },
     {
       "number": 338,
@@ -3096,7 +3097,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Prüft, ob die Löschung des Zusammenfassungsdatensatzes in der IMS-Datenbank erfolgreich abgeschlossen wurde (kein Fehlerstatus)."
+      "explanation": "Checks whether the deletion of the summary record in the IMS database completed successfully (no error status)."
     },
     {
       "number": 341,
@@ -3105,7 +3106,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Erhöht den Audit-Zähler für erfolgreich gelöschte Zusammenfassungsdatensätze, um die Verarbeitungsstatistik für das Monitoring aktuell zu halten."
+      "explanation": "Increments the audit counter for successfully deleted summary records to keep the processing statistics current for monitoring."
     },
     {
       "number": 342,
@@ -3123,7 +3124,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Protokolliert den IMS-Fehlerstatus im Batch-Protokoll, um die Ursache der fehlgeschlagenen Löschung des Zusammenfassungsdatensatzes zu dokumentieren."
+      "explanation": "Logs the IMS error status in the batch log to document the cause of the failed summary record deletion."
     },
     {
       "number": 344,
@@ -3132,7 +3133,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Gibt die betroffene Konto-ID im Fehlerprotokoll aus, damit der fehlerhafte Datensatz im Rahmen der Fehleranalyse eindeutig identifiziert werden kann."
+      "explanation": "Writes the affected account ID to the error log so that the faulty record can be uniquely identified during error analysis."
     },
     {
       "number": 345,
@@ -3141,7 +3142,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-DELETE-AUTH-SUMMARY",
-      "explanation": "Bricht den Batch-Job kontrolliert ab, um Dateninkonsistenzen zu verhindern, da ein nicht löschbarer Zusammenfassungsdatensatz auf ein schwerwiegendes Datenbankproblem hinweist."
+      "explanation": "Terminates the batch job in a controlled manner to prevent data inconsistencies, as a summary record that cannot be deleted indicates a serious database problem."
     },
     {
       "number": 346,
@@ -3168,7 +3169,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-EXIT",
-      "explanation": "Markiert den abschließenden Austrittspunkt des gesamten Bereinigungsprozesses für abgelaufene Autorisierungen."
+      "explanation": "Marks the final exit point of the entire cleanup process for expired authorizations."
     },
     {
       "number": 349,
@@ -3177,7 +3178,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "6000-EXIT",
-      "explanation": "Gibt die Programmsteuerung geordnet an den aufrufenden Ablauf zurück und beendet damit den Batch-Job regulär."
+      "explanation": "Returns program control to the calling process in an orderly fashion, thereby ending the batch job normally."
     },
     {
       "number": 350,
@@ -3204,7 +3205,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Einstiegspunkt der Checkpoint-Routine, die periodisch während der Bereinigung aufgerufen wird."
+      "explanation": "Entry point of the checkpoint routine, which is called periodically during the cleanup process."
     },
     {
       "number": 353,
@@ -3231,7 +3232,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Schreibt einen IMS-Checkpoint mit eindeutiger Checkpoint-ID, um den aktuellen Verarbeitungsstand (bereits gelöschte Autorisierungen) für einen möglichen Neustart zu sichern."
+      "explanation": "Writes an IMS checkpoint with a unique checkpoint ID to save the current processing state (authorizations already deleted) for a possible restart."
     },
     {
       "number": 356,
@@ -3258,7 +3259,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Prüft, ob der IMS-Checkpoint erfolgreich gesetzt wurde (kein Fehlerstatus)."
+      "explanation": "Checks whether the IMS checkpoint was set successfully (no error status)."
     },
     {
       "number": 359,
@@ -3267,7 +3268,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Erhöht den internen Checkpoint-Zähler, um das Intervall bis zur nächsten Fortschrittsmeldung zu verfolgen."
+      "explanation": "Increments the internal checkpoint counter to track the interval until the next progress message."
     },
     {
       "number": 360,
@@ -3276,7 +3277,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Prüft, ob seit der letzten Fortschrittsmeldung die konfigurierte Anzahl an Checkpoints erreicht wurde."
+      "explanation": "Checks whether the configured number of checkpoints has been reached since the last progress message."
     },
     {
       "number": 361,
@@ -3285,7 +3286,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Setzt den Checkpoint-Zähler zurück, um das nächste Meldeintervall zu starten."
+      "explanation": "Resets the checkpoint counter to start the next reporting interval."
     },
     {
       "number": 362,
@@ -3294,7 +3295,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Gibt eine Fortschrittsmeldung aus: Anzahl bisher verarbeiteter Autorisierungs-Zusammenfassungen und die aktuelle Anwendungs-ID zur Überwachung des Batch-Laufs."
+      "explanation": "Outputs a progress message: the number of authorization summaries processed so far and the current application ID for monitoring the batch run."
     },
     {
       "number": 363,
@@ -3303,7 +3304,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Fortsetzung der Fortschrittsmeldung mit der aktuell verarbeiteten Anwendungs-ID."
+      "explanation": "Continuation of the progress message with the currently processed application ID."
     },
     {
       "number": 364,
@@ -3312,7 +3313,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Abschluss der Fortschrittsmeldung."
+      "explanation": "Completion of the progress message."
     },
     {
       "number": 365,
@@ -3330,7 +3331,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Gibt eine Fehlermeldung aus mit dem IMS-Fehlerstatus, der Anzahl bisher verarbeiteter Zusammenfassungen und der aktuellen Anwendungs-ID zur Fehlerdiagnose."
+      "explanation": "Outputs an error message containing the IMS error status, the number of summaries processed so far, and the current application ID for error diagnosis."
     },
     {
       "number": 367,
@@ -3339,7 +3340,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Fortsetzung der Fehlermeldung mit Verarbeitungsstand und Anwendungs-ID."
+      "explanation": "Continuation of the error message with the processing status and application ID."
     },
     {
       "number": 368,
@@ -3348,7 +3349,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Fortsetzung der Fehlermeldung mit der aktuell verarbeiteten Anwendungs-ID."
+      "explanation": "Continuation of the error message with the currently processed application ID."
     },
     {
       "number": 369,
@@ -3357,7 +3358,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-TAKE-CHECKPOINT",
-      "explanation": "Bricht den Batch-Job kontrolliert ab, da ein fehlgeschlagener Checkpoint die Restart/Recovery-Fähigkeit gefährdet und Dateninkonsistenzen verursachen könnte."
+      "explanation": "Terminates the batch job in a controlled manner, as a failed checkpoint jeopardizes the restart/recovery capability and could cause data inconsistencies."
     },
     {
       "number": 370,
@@ -3393,7 +3394,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-EXIT",
-      "explanation": "Abschlusspunkt des Programms CBPAUP0C – markiert das Ende der Bereinigung abgelaufener Autorisierungen."
+      "explanation": "End point of program CBPAUP0C – marks the conclusion of the expired authorization cleanup."
     },
     {
       "number": 374,
@@ -3402,7 +3403,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9000-EXIT",
-      "explanation": "Beendet das Programm regulär nach Abschluss aller Lösch- und Korrekturvorgänge in der Autorisierungsdatenbank."
+      "explanation": "Terminates the program normally after all deletion and correction operations in the authorization database have been completed."
     },
     {
       "number": 375,
@@ -3429,7 +3430,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Dieser Paragraph steuert den kontrollierten Notabbruch des Bereinigungsjobs bei kritischen Datenbankfehlern. Er signalisiert dem übergeordneten Job-Scheduler einen schwerwiegenden Fehler, um Dateninkonsistenzen in der Kreditkartenautorisierungsdatenbank zu verhindern."
+      "explanation": "This paragraph controls the orderly emergency termination of the cleanup job in the event of critical database errors. It signals a severe error to the superordinate job scheduler to prevent data inconsistencies in the credit card authorization database."
     },
     {
       "number": 378,
@@ -3456,7 +3457,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Protokolliert den Programmabbruch im Job-Log, damit Betrieb und Support den Fehlerfall in der Autorisierungsbereinigung sofort identifizieren können."
+      "explanation": "Logs the program abort in the job log so that operations and support can immediately identify the error in the authorization cleanup."
     },
     {
       "number": 381,
@@ -3474,7 +3475,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Setzt den Job-Return-Code auf 16 (kritischer Fehler), damit der Batch-Scheduler nachgelagerte Jobs stoppt und keine weiteren Verarbeitungsschritte auf möglicherweise inkonsistenten Autorisierungsdaten ausgeführt werden."
+      "explanation": "Sets the job return code to 16 (critical error) so that the batch scheduler halts downstream jobs and no further processing steps are executed on potentially inconsistent authorization data."
     },
     {
       "number": 383,
@@ -3483,7 +3484,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Beendet den Bereinigungsjob sofort und übergibt die Kontrolle mit dem gesetzten Fehler-Return-Code an den aufrufenden Job-Scheduler zur Fehlerbehandlung."
+      "explanation": "Terminates the cleanup job immediately and passes control with the set error return code to the calling job scheduler for error handling."
     },
     {
       "number": 384,
@@ -3501,7 +3502,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Abschlussparagraph des Batch-Jobs – kennzeichnet das definierte Ende des gesamten Bereinigungslaufs für abgelaufene Autorisierungen."
+      "explanation": "Final paragraph of the batch job – designates the defined end of the entire cleanup run for expired authorizations."
     },
     {
       "number": 386,
@@ -3510,7 +3511,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Beendet den Programmablauf strukturiert und gibt die Kontrolle an den aufrufenden Batch-Scheduler zurück, nachdem alle Bereinigungsschritte abgeschlossen sind."
+      "explanation": "Terminates the program flow in a structured manner and returns control to the calling batch scheduler after all cleanup steps have been completed."
     }
   ],
   "variables": [
@@ -3522,7 +3523,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGMNAME",
@@ -3532,7 +3533,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-DATE",
@@ -3542,7 +3543,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-YYDDD",
@@ -3552,7 +3553,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-DATE",
@@ -3562,7 +3563,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-EXPIRY-DAYS",
@@ -3572,7 +3573,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-DAY-DIFF",
@@ -3582,7 +3583,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IDX",
@@ -3592,7 +3593,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CURR-APP-ID",
@@ -3602,7 +3603,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-CHKP",
@@ -3612,7 +3613,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-SMRY-PROC-CNT",
@@ -3622,7 +3623,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-TOT-REC-WRITTEN",
@@ -3632,7 +3633,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-READ",
@@ -3642,7 +3643,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-DELETED",
@@ -3652,7 +3653,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-READ",
@@ -3662,7 +3663,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-DELETED",
@@ -3672,7 +3673,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-ERR-FLG",
@@ -3682,7 +3683,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-ON",
@@ -3692,7 +3693,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-OFF",
@@ -3702,7 +3703,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-AUTHDB-FLAG",
@@ -3712,7 +3713,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-AUTHDB",
@@ -3722,7 +3723,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NOT-END-OF-AUTHDB",
@@ -3732,7 +3733,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-MORE-AUTHS-FLAG",
@@ -3742,7 +3743,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "MORE-AUTHS",
@@ -3752,7 +3753,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NO-MORE-AUTHS",
@@ -3762,7 +3763,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-QUALIFY-DELETE-FLAG",
@@ -3772,7 +3773,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "QUALIFIED-FOR-DELETE",
@@ -3782,7 +3783,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NOT-QUALIFIED-FOR-DELETE",
@@ -3792,7 +3793,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-INFILE-STATUS",
@@ -3802,7 +3803,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CUSTID-STATUS",
@@ -3812,7 +3813,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-FILE",
@@ -3822,7 +3823,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID.",
@@ -3832,7 +3833,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3842,7 +3843,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID-CTR",
@@ -3852,7 +3853,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-VARIABLES.",
@@ -3862,7 +3863,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-NAME",
@@ -3872,7 +3873,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PCB-OFFSET.",
@@ -3882,7 +3883,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PAUT-PCB-NUM",
@@ -3892,7 +3893,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-RETURN-CODE",
@@ -3902,7 +3903,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "STATUS-OK",
@@ -3912,7 +3913,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEGMENT-NOT-FOUND",
@@ -3922,7 +3923,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DUPLICATE-SEGMENT-FOUND",
@@ -3932,7 +3933,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WRONG-PARENTAGE",
@@ -3942,7 +3943,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-DB",
@@ -3952,7 +3953,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DATABASE-UNAVAILABLE",
@@ -3962,7 +3963,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-SCHEDULED-MORE-THAN-ONCE",
@@ -3972,7 +3973,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "COULD-NOT-SCHEDULE-PSB",
@@ -3982,7 +3983,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "RETRY-CONDITION",
@@ -3992,7 +3993,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-PSB-SCHD-FLG",
@@ -4002,7 +4003,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-SCHD",
@@ -4012,7 +4013,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-NOT-SCHD",
@@ -4022,7 +4023,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PRM-INFO.",
@@ -4032,7 +4033,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "P-EXPIRY-DAYS",
@@ -4042,7 +4043,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -4052,7 +4053,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "P-CHKP-FREQ",
@@ -4062,7 +4063,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -4072,7 +4073,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "P-CHKP-DIS-FREQ",
@@ -4082,7 +4083,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -4092,7 +4093,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "P-DEBUG-FLAG",
@@ -4102,7 +4103,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DEBUG-ON",
@@ -4112,7 +4113,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DEBUG-OFF",
@@ -4122,7 +4123,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungswert, der anzeigt, dass der Debug-Modus deaktiviert ist (Wert 'N' = No). Wird verwendet, um im Produktivbetrieb die Ausgabe von Diagnose- und Trace-Informationen zu unterdrücken und so die Performance des Bereinigungslaufs zu optimieren."
+      "description": "Condition value indicating that debug mode is disabled (value 'N' = No). Used in production to suppress the output of diagnostic and trace information, thereby optimizing the performance of the cleanup run."
     },
     {
       "name": "FILLER",
@@ -4132,7 +4133,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Nicht genutztes Füllbyte im Eingabeparameter-Datensatz (SYSIN), das vermutlich als Trennzeichen oder Ausrichtungsfeld zwischen dem Debug-Flag und weiteren Parametern dient. Hat keine eigenständige fachliche Bedeutung im Bereinigungsprozess."
+      "description": "Unused filler byte in the input parameter record (SYSIN), presumably serving as a separator or alignment field between the debug flag and additional parameters. Has no independent functional significance in the cleanup process."
     },
     {
       "name": "PENDING-AUTH-SUMMARY",
@@ -4142,7 +4143,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenstruktur für den Zusammenfassungsdatensatz einer ausstehenden Autorisierung je Konto (eingebunden via COPY CIPAUSMY). Enthält alle kontoübergreifenden Zähler und Beträge für genehmigte und abgelehnte Autorisierungen sowie Kontostammdaten wie Kreditlimit und Saldo. Dieser Datensatz wird nach jeder Löschung eines Detaileintrags aktualisiert und bei vollständiger Bereinigung eines Kontos selbst gelöscht."
+      "description": "Group structure for the summary record of a pending authorization per account (included via COPY CIPAUSMY). Contains all cross-account counters and amounts for approved and declined authorizations, as well as account master data such as credit limit and balance. This record is updated after each deletion of a detail entry and is itself deleted when an account has been fully cleaned up."
     },
     {
       "name": "PENDING-AUTH-DETAILS",
@@ -4152,7 +4153,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenstruktur für den Detaildatensatz einer einzelnen ausstehenden Autorisierungstransaktion (eingebunden via COPY CIPAUDTY). Enthält alle transaktionsspezifischen Informationen wie Autorisierungsdatum, Kartennummer, Transaktionsbetrag und Antwortcode. Anhand dieser Daten wird geprüft, ob die Autorisierung das konfigurierte Ablaufalter (Standard: 5 Tage) überschritten hat und damit für die Löschung qualifiziert."
+      "description": "Group structure for the detail record of an individual pending authorization transaction (included via COPY CIPAUDTY). Contains all transaction-specific information such as authorization date, card number, transaction amount, and response code. This data is used to determine whether the authorization has exceeded the configured expiration age (default: 5 days) and therefore qualifies for deletion."
     },
     {
       "name": "IO-PCB-MASK",
@@ -4162,7 +4163,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Platzhalter-Maske für den IMS I/O Program Communication Block (PCB). Wird für die Kommunikation mit dem IMS-Datenbanksystem benötigt, insbesondere für allgemeine Ein-/Ausgabeoperationen wie das Setzen von Checkpoints für den Restart/Recovery-Mechanismus des Batch-Jobs."
+      "description": "Placeholder mask for the IMS I/O Program Communication Block (PCB). Required for communication with the IMS database system, particularly for general input/output operations such as setting checkpoints for the batch job's restart/recovery mechanism."
     },
     {
       "name": "PGM-PCB-MASK",
@@ -4172,7 +4173,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Platzhalter-Maske für den IMS Program Communication Block (PCB) der Datenbankprogrammschnittstelle. Wird für den Datenbankzugriff auf die IMS-Segmente PAUTSUM0 (Zusammenfassungsdatensätze) und PAUTDTL1 (Detaildatensätze) verwendet und liefert nach jeder DL/I-Operation den Statuscode zurück, anhand dessen das Programm Fehler erkennt und bei Datenbankfehlern kontrolliert mit Return-Code 16 abbricht."
+      "description": "Placeholder mask for the IMS Program Communication Block (PCB) of the database program interface. Used for database access to the IMS segments PAUTSUM0 (summary records) and PAUTDTL1 (detail records), and returns the status code after each DL/I operation, which the program uses to detect errors and, in the event of a database error, terminate in a controlled manner with return code 16."
     }
   ],
   "paragraphs": [
@@ -4180,103 +4181,103 @@
       "name": "MAIN-PARA",
       "line_start": 136,
       "line_end": 182,
-      "description": "MAIN-PARA steuert den gesamten Bereinigungsprozess abgelaufener Kreditkartenautorisierungen: Er initialisiert den Job, durchläuft alle Konten mit ausstehenden Autorisierungen, löscht veraltete Einträge und gibt abschließend eine Verarbeitungsstatistik aus."
+      "description": "MAIN-PARA controls the entire cleanup process for expired credit card authorizations: it initializes the job, iterates through all accounts with outstanding authorizations, deletes outdated entries, and finally outputs a processing summary."
     },
     {
       "name": "1000-INITIALIZE",
       "line_start": 183,
       "line_end": 211,
-      "description": "Initialisiert den Bereinigungslauf, indem das aktuelle Datum ermittelt, die Steuerparameter aus dem Batch-Input geladen und auf gültige Werte geprüft werden – damit der Job mit klar definierten Ablaufregeln startet."
+      "description": "Initializes the cleanup run by determining the current date, loading the control parameters from the batch input, and validating them against acceptable values – ensuring the job starts with clearly defined processing rules."
     },
     {
       "name": "1000-EXIT",
       "line_start": 212,
       "line_end": 215,
-      "description": "Formaler Abschlusspunkt des Paragraphen 1000, der als struktureller Endpunkt für den Initialisierungsbereich des Batch-Jobs dient und die Rückkehr zum aufrufenden Steuerungsablauf signalisiert."
+      "description": "Formal exit point of paragraph 1000, which serves as the structural endpoint of the batch job's initialization section and signals the return to the calling control flow."
     },
     {
       "name": "2000-FIND-NEXT-AUTH-SUMMARY",
       "line_start": 216,
       "line_end": 242,
-      "description": "Ruft den nächsten ausstehenden Autorisierungs-Zusammenfassungsdatensatz aus der IMS-Datenbank ab, um das zugehörige Konto auf abgelaufene Autorisierungen zu prüfen. Steuert dabei den Verarbeitungsfortschritt und reagiert auf das Ende des Datenbestands oder Datenbankfehler."
+      "description": "Retrieves the next pending authorization summary record from the IMS database in order to check the associated account for expired authorizations. Controls processing progress and handles end-of-data conditions or database errors."
     },
     {
       "name": "2000-EXIT",
       "line_start": 243,
       "line_end": 247,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsblocks 2000, der den kontrollierten Rücksprung aus der Hauptverarbeitungsschleife der Autorisierungsbereinigung sicherstellt."
+      "description": "Formal exit point of processing block 2000, ensuring a controlled return from the main processing loop of the authorization cleanup."
     },
     {
       "name": "3000-FIND-NEXT-AUTH-DTL",
       "line_start": 248,
       "line_end": 272,
-      "description": "Ruft den nächsten ausstehenden Autorisierungs-Detaildatensatz zum aktuellen Konto ab und bewertet, ob weitere Autorisierungen zur Ablaufprüfung vorliegen oder die Verarbeitung des Kontos abgeschlossen ist."
+      "description": "Retrieves the next pending authorization detail record for the current account and evaluates whether additional authorizations remain for expiry checking or whether processing of the account is complete."
     },
     {
       "name": "3000-EXIT",
       "line_start": 273,
       "line_end": 276,
-      "description": "Formaler Abschlusspunkt der Verarbeitungsschleife über alle Zusammenfassungsdatensätze. Dieser Paragraph dient als struktureller Endpunkt, zu dem nach Abschluss eines Schleifendurchlaufs zurückgekehrt wird."
+      "description": "Formal exit point of the processing loop over all summary records. This paragraph serves as the structural endpoint to which control returns after each loop iteration."
     },
     {
       "name": "4000-CHECK-IF-EXPIRED",
       "line_start": 277,
       "line_end": 298,
-      "description": "Prüft, ob eine einzelne ausstehende Autorisierung das konfigurierte Ablaufdatum überschritten hat, und aktualisiert bei Ablauf die Zähler und Beträge im übergeordneten Zusammenfassungsdatensatz des Kontos entsprechend."
+      "description": "Checks whether an individual pending authorization has exceeded the configured expiry date, and if expired, updates the counters and amounts in the parent summary record of the account accordingly."
     },
     {
       "name": "4000-EXIT",
       "line_start": 299,
       "line_end": 302,
-      "description": "Formaler Abschlusspunkt der Verarbeitungsschleife über die Zusammenfassungsdatensätze. Dient als struktureller Rücksprungpunkt, damit der Batch-Prozess nach jeder Iteration geordnet zur nächsten Zusammenfassung weitergehen kann."
+      "description": "Formal exit point of the processing loop over the summary records. Serves as a structural return point so that the batch process can proceed in an orderly manner to the next summary after each iteration."
     },
     {
       "name": "5000-DELETE-AUTH-DTL",
       "line_start": 303,
       "line_end": 323,
-      "description": "Löscht einen einzelnen abgelaufenen Autorisierungs-Detaildatensatz physisch aus der IMS-Datenbank und protokolliert den Erfolg oder bricht bei einem Datenbankfehler kontrolliert ab, um Dateninkonsistenzen zu verhindern."
+      "description": "Physically deletes a single expired authorization detail record from the IMS database, logs the success, or aborts in a controlled manner upon a database error to prevent data inconsistencies."
     },
     {
       "name": "5000-EXIT",
       "line_start": 324,
       "line_end": 327,
-      "description": "Formaler Abschlusspunkt des Bereinigungsprozesses für abgelaufene Autorisierungen. Dieser Paragraph dient als struktureller Endpunkt der Programmlogik und ermöglicht eine saubere Rückkehr aus dem Verarbeitungsablauf."
+      "description": "Formal exit point of the expired authorization cleanup process. This paragraph serves as the structural endpoint of the program logic and enables a clean return from the processing flow."
     },
     {
       "name": "6000-DELETE-AUTH-SUMMARY",
       "line_start": 328,
       "line_end": 347,
-      "description": "Löscht den vollständig bereinigten Zusammenfassungsdatensatz eines Kontos aus der IMS-Datenbank, wenn keine genehmigten oder abgelehnten Autorisierungen mehr vorhanden sind. Dieser Schritt schließt die Kontobereinigung ab und hält die Datenbank frei von veralteten Einträgen."
+      "description": "Deletes the fully cleaned-up summary record of an account from the IMS database when no approved or declined authorizations remain. This step completes the account cleanup and keeps the database free of outdated entries."
     },
     {
       "name": "6000-EXIT",
       "line_start": 348,
       "line_end": 351,
-      "description": "Formaler Abschlusspunkt des Bereinigungsprozesses, der als strukturierter Rücksprungpunkt für den übergeordneten Verarbeitungsablauf dient und die geordnete Beendigung des Batch-Jobs signalisiert."
+      "description": "Formal exit point of the cleanup process, serving as a structured return point for the parent processing flow and signaling the orderly termination of the batch job."
     },
     {
       "name": "9000-TAKE-CHECKPOINT",
       "line_start": 352,
       "line_end": 372,
-      "description": "Setzt einen IMS-Checkpoint, um den aktuellen Verarbeitungsstand der Bereinigung dauerhaft zu sichern. Damit kann der Batch-Job bei einem Abbruch ohne Datenverlust oder Doppelverarbeitung an diesem Punkt neu gestartet werden."
+      "description": "Sets an IMS checkpoint to permanently save the current processing state of the cleanup. This allows the batch job to be restarted at this point without data loss or duplicate processing in the event of an abend."
     },
     {
       "name": "9000-EXIT",
       "line_start": 373,
       "line_end": 376,
-      "description": "Formaler Abschlusspunkt des Bereinigungsprogramms, der den geordneten Programmabschluss nach vollständiger Verarbeitung aller ausstehenden Autorisierungen signalisiert."
+      "description": "Formal exit point of the cleanup program, signaling the orderly program completion after all pending authorizations have been fully processed."
     },
     {
       "name": "9999-ABEND",
       "line_start": 377,
       "line_end": 384,
-      "description": "Dieser Paragraph steuert den kontrollierten Notabbruch des Bereinigungsjobs bei kritischen Datenbankfehlern. Er signalisiert dem übergeordneten Job-Scheduler einen schwerwiegenden Fehler, um Dateninkonsistenzen in der Kreditkartenautorisierungsdatenbank zu verhindern."
+      "description": "This paragraph controls the controlled emergency abort of the cleanup job in the event of critical database errors. It signals a severe error to the parent job scheduler to prevent data inconsistencies in the credit card authorization database."
     },
     {
       "name": "9999-EXIT",
       "line_start": 385,
       "line_end": 386,
-      "description": "Formaler Abschlusspunkt des Programms, der als strukturierter Rücksprungpunkt für den gesamten Bereinigungsprozess dient. Er markiert das reguläre Ende der Verarbeitung nach vollständiger Bereinigung aller abgelaufenen Autorisierungen."
+      "description": "Formal exit point of the program, serving as a structured return point for the entire cleanup process. It marks the regular end of processing after all expired authorizations have been fully cleaned up."
     }
   ],
   "copybooks": [

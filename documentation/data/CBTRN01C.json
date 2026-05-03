@@ -1,0 +1,5161 @@
+{
+  "meta": {
+    "program_name": "CBTRN01C",
+    "file_path": "app/cbl/CBTRN01C.cbl",
+    "analyzed_at": "2026-05-03T11:46:47.388058",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Batch program that reads daily credit card transactions and validates each transaction by verifying the card number and resolving it to a customer account, as a precursor to posting.",
+    "process_description": "The program sequentially reads all transactions from the daily transaction file and, for each transaction, performs a two-step lookup: first it uses the card number to find the corresponding account and customer via a cross-reference file, then it retrieves the full account record from the account master file. Transactions where the card number cannot be found in the cross-reference are flagged and skipped, while transactions where the resolved account cannot be found in the account file are also flagged. The program appears to be an earlier or lighter version of CBTRN02C, focused on the validation and lookup phase rather than the full posting of balances — it opens the transaction posting file but does not appear to write to it in the visible code. All files are opened in read-only (INPUT) mode, suggesting this may be a validation/reconciliation pass rather than a full posting run.",
+    "type": "Batch",
+    "module": "Transaction",
+    "files": {
+      "DALYTRAN": "Daily transaction file — the source file containing all credit card transactions to be processed for the day",
+      "CUSTFILE": "Customer master file — holds customer demographic and profile records, referenced by customer ID",
+      "XREFFILE": "Card-to-account cross-reference file — maps a credit card number to its associated account ID and customer ID",
+      "CARDFILE": "Card master file — holds credit card records including card status and attributes",
+      "ACCTFILE": "Account master file — holds credit card account records including balances and credit limits",
+      "TRANFILE": "Transaction history file — the indexed file where validated/posted transactions are stored as permanent records"
+    },
+    "business_rules": [
+      "Every transaction must have a valid, recognisable card number — if the card number cannot be found in the cross-reference file, the transaction is skipped and not posted",
+      "Every card number must resolve to a valid, existing account — if the account cannot be found in the account master file, the transaction is flagged with an error message",
+      "Transactions are processed strictly in the sequential order they appear in the daily transaction file — no sorting or prioritisation is applied",
+      "Any file I/O error (other than end-of-file) on the daily transaction file causes an immediate abnormal termination (abend) of the program, protecting data integrity",
+      "The card-to-account cross-reference is the authoritative source for linking a card number to an account and customer — the card number alone is not sufficient to identify an account"
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVTRA06Y",
+        "CVCUS01Y",
+        "CVACT03Y",
+        "CVACT02Y",
+        "CVACT01Y",
+        "CVTRA05Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "CBTRN02C",
+        "CBTRN03C",
+        "COPAUA0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : CBTRN01C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : BATCH COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Post the records from daily transaction file.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID.    CBTRN01C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.        AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "           SELECT DALYTRAN-FILE ASSIGN TO DALYTRAN",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                  ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  FILE STATUS  IS DALYTRAN-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "           SELECT CUSTOMER-FILE ASSIGN TO   CUSTFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "                  RECORD KEY   IS FD-CUST-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "                  FILE STATUS  IS CUSTFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "           SELECT XREF-FILE ASSIGN TO   XREFFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "                  RECORD KEY   IS FD-XREF-CARD-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "                  FILE STATUS  IS XREFFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "           SELECT CARD-FILE ASSIGN TO   CARDFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "                  RECORD KEY   IS FD-CARD-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "                  FILE STATUS  IS CARDFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "           SELECT ACCOUNT-FILE ASSIGN TO   ACCTFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "                  RECORD KEY   IS FD-ACCT-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "                  FILE STATUS  IS ACCTFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "           SELECT TRANSACT-FILE ASSIGN TO   TRANFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "                  ACCESS MODE  IS RANDOM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "                  RECORD KEY   IS FD-TRANS-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "                  FILE STATUS  IS TRANFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "      *",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       FD  DALYTRAN-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  FD-TRAN-RECORD.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "           05 FD-TRAN-ID                        PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "           05 FD-CUST-DATA                      PIC X(334).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "       FD  CUSTOMER-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "       01  FD-CUSTFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "           05 FD-CUST-ID                        PIC 9(09).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "           05 FD-CUST-DATA                      PIC X(491).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "       FD  XREF-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "       01  FD-XREFFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "           05 FD-XREF-CARD-NUM                  PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "           05 FD-XREF-DATA                      PIC X(34).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "       FD  CARD-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "       01  FD-CARDFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           05 FD-CARD-NUM                       PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "           05 FD-CARD-DATA                      PIC X(134).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "       FD  ACCOUNT-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "       01  FD-ACCTFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "           05 FD-ACCT-ID                        PIC 9(11).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "           05 FD-ACCT-DATA                      PIC X(289).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "       FD  TRANSACT-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "       01  FD-TRANFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "           05 FD-TRANS-ID                       PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "           05 FD-ACCT-DATA                      PIC X(334).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "       COPY CVTRA06Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "       01  DALYTRAN-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "           05  DALYTRAN-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "           05  DALYTRAN-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 104,
+      "code": "       COPY CVCUS01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "       01  CUSTFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 106,
+      "code": "           05  CUSTFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "           05  CUSTFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "       COPY CVACT03Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "       01  XREFFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "           05  XREFFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 112,
+      "code": "           05  XREFFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 114,
+      "code": "       COPY CVACT02Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "       01  CARDFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "           05  CARDFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "           05  CARDFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "       COPY CVACT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 120,
+      "code": "       01  ACCTFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 121,
+      "code": "           05  ACCTFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 122,
+      "code": "           05  ACCTFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 123,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 124,
+      "code": "       COPY CVTRA05Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 125,
+      "code": "       01  TRANFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "           05  TRANFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 127,
+      "code": "           05  TRANFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 128,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 129,
+      "code": "       01  IO-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 130,
+      "code": "           05  IO-STAT1            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "           05  IO-STAT2            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "           05  TWO-BYTES-LEFT      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "           05  TWO-BYTES-RIGHT     PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 137,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "       01  IO-STATUS-04.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 139,
+      "code": "           05  IO-STATUS-0401      PIC 9   VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "           05  IO-STATUS-0403      PIC 999 VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "       01  APPL-RESULT             PIC S9(9)   COMP.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "           88  APPL-AOK            VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "           88  APPL-EOF            VALUE 16.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "       01  END-OF-DAILY-TRANS-FILE             PIC X(01)    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "       01  ABCODE                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 148,
+      "code": "       01  TIMING                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "       01  WS-MISC-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 150,
+      "code": "           05 WS-XREF-READ-STATUS  PIC 9(04).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "           05 WS-ACCT-READ-STATUS  PIC 9(04).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 153,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 155,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Entry point of the program — all batch processing begins here."
+    },
+    {
+      "number": 156,
+      "code": "           DISPLAY 'START OF EXECUTION OF PROGRAM CBTRN01C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Writes a start-of-run marker to the system log so operators can confirm the batch job launched successfully."
+    },
+    {
+      "number": 157,
+      "code": "           PERFORM 0000-DALYTRAN-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the daily transaction file so the program can begin reading today's credit card transactions."
+    },
+    {
+      "number": 158,
+      "code": "           PERFORM 0100-CUSTFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the customer master file so customer profile records are available for reference during processing."
+    },
+    {
+      "number": 159,
+      "code": "           PERFORM 0200-XREFFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the card-to-account cross-reference file, which is the authoritative source for linking a card number to an account."
+    },
+    {
+      "number": 160,
+      "code": "           PERFORM 0300-CARDFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the card master file so individual card attributes and status information are accessible."
+    },
+    {
+      "number": 161,
+      "code": "           PERFORM 0400-ACCTFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the account master file so full account records, including balances and credit limits, can be retrieved."
+    },
+    {
+      "number": 162,
+      "code": "           PERFORM 0500-TRANFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Opens the transaction history file where validated transactions would be permanently recorded."
+    },
+    {
+      "number": 163,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "           PERFORM UNTIL END-OF-DAILY-TRANS-FILE = 'Y'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Begins the main processing loop — continues reading and validating transactions until every record in the daily file has been processed."
+    },
+    {
+      "number": 165,
+      "code": "               IF  END-OF-DAILY-TRANS-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Guards against re-processing after the end of the daily transaction file has been reached — ensures only live, unprocessed transactions are handled."
+    },
+    {
+      "number": 166,
+      "code": "                   PERFORM 1000-DALYTRAN-GET-NEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Reads the next credit card transaction from the daily file for validation."
+    },
+    {
+      "number": 167,
+      "code": "                   IF  END-OF-DAILY-TRANS-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Confirms a valid transaction record was actually retrieved before attempting to process it — skips display if the file is now exhausted."
+    },
+    {
+      "number": 168,
+      "code": "                       DISPLAY DALYTRAN-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Prints the full transaction details to the system log for audit and traceability purposes."
+    },
+    {
+      "number": 169,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 170,
+      "code": "                   MOVE 0                 TO WS-XREF-READ-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets the cross-reference lookup outcome to 'success' before attempting the card number lookup, ensuring no stale result from a prior transaction influences this one."
+    },
+    {
+      "number": 171,
+      "code": "                   MOVE DALYTRAN-CARD-NUM TO XREF-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Loads the card number from the current transaction into the cross-reference lookup key, preparing to identify which account this card belongs to."
+    },
+    {
+      "number": 172,
+      "code": "                   PERFORM 2000-LOOKUP-XREF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Performs the cross-reference lookup to resolve the card number to its associated account and customer."
+    },
+    {
+      "number": 173,
+      "code": "                   IF WS-XREF-READ-STATUS = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether the card number was successfully found in the cross-reference — only proceeds with account retrieval if the card is recognised."
+    },
+    {
+      "number": 174,
+      "code": "                     MOVE 0            TO WS-ACCT-READ-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets the account retrieval outcome to 'success' before attempting to fetch the account record, ensuring a clean state for this lookup."
+    },
+    {
+      "number": 175,
+      "code": "                     MOVE XREF-ACCT-ID TO ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Loads the account ID resolved from the cross-reference into the account lookup key, preparing to retrieve the full account record."
+    },
+    {
+      "number": 176,
+      "code": "                     PERFORM 3000-READ-ACCOUNT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Retrieves the full account record from the account master file using the account ID resolved from the card cross-reference."
+    },
+    {
+      "number": 177,
+      "code": "                     IF WS-ACCT-READ-STATUS NOT = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether the account record was actually found — flags the situation if the resolved account does not exist in the master file."
+    },
+    {
+      "number": 178,
+      "code": "                         DISPLAY 'ACCOUNT ' ACCT-ID ' NOT FOUND'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Writes an error message to the system log identifying the specific account that could not be located, so operations staff can investigate."
+    },
+    {
+      "number": 179,
+      "code": "                     END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 180,
+      "code": "                   ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the card number could not be resolved — the transaction cannot be processed without a valid card-to-account link."
+    },
+    {
+      "number": 181,
+      "code": "                     DISPLAY 'CARD NUMBER ' DALYTRAN-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Writes a warning to the system log identifying the unrecognised card number that triggered the skip."
+    },
+    {
+      "number": 182,
+      "code": "                     ' COULD NOT BE VERIFIED. SKIPPING TRANSACTION ID-'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Continues the warning message, explaining that the transaction is being skipped because the card could not be verified."
+    },
+    {
+      "number": 183,
+      "code": "                     DALYTRAN-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Appends the unique transaction identifier to the warning message so the specific skipped transaction can be traced in the audit log."
+    },
+    {
+      "number": 184,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 185,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 186,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 187,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 188,
+      "code": "           PERFORM 9000-DALYTRAN-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the daily transaction file after all records have been processed."
+    },
+    {
+      "number": 189,
+      "code": "           PERFORM 9100-CUSTFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the customer master file."
+    },
+    {
+      "number": 190,
+      "code": "           PERFORM 9200-XREFFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the card-to-account cross-reference file."
+    },
+    {
+      "number": 191,
+      "code": "           PERFORM 9300-CARDFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the card master file."
+    },
+    {
+      "number": 192,
+      "code": "           PERFORM 9400-ACCTFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the account master file."
+    },
+    {
+      "number": 193,
+      "code": "           PERFORM 9500-TRANFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Closes the transaction history file."
+    },
+    {
+      "number": 194,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "           DISPLAY 'END OF EXECUTION OF PROGRAM CBTRN01C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Writes an end-of-run marker to the system log so operators can confirm the batch job completed normally."
+    },
+    {
+      "number": 196,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 197,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns control to the operating system, signalling a clean and orderly end to the batch program."
+    },
+    {
+      "number": 198,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 199,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 200,
+      "code": "      * READS FILE                                                    *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 201,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 202,
+      "code": "       1000-DALYTRAN-GET-NEXT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Entry point for the routine that fetches the next daily transaction to be validated."
+    },
+    {
+      "number": 203,
+      "code": "           READ DALYTRAN-FILE INTO DALYTRAN-RECORD.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Reads the next credit card transaction record from the daily transaction file into working memory for processing."
+    },
+    {
+      "number": 204,
+      "code": "           IF  DALYTRAN-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Checks whether the transaction was read successfully without any errors."
+    },
+    {
+      "number": 205,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Records that the read operation completed successfully — the transaction is available for validation."
+    },
+    {
+      "number": 206,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 207,
+      "code": "               IF  DALYTRAN-STATUS = '10'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Checks whether the file has been fully exhausted, meaning there are no more transactions left to process today."
+    },
+    {
+      "number": 208,
+      "code": "                   MOVE 16 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Records that the end of the daily transaction file has been reached — the batch loop should stop."
+    },
+    {
+      "number": 209,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 210,
+      "code": "                   MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Records that an unexpected, unrecoverable file error occurred while trying to read a transaction."
+    },
+    {
+      "number": 211,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 212,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 213,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Checks whether the last read operation completed without any issue, allowing normal processing to continue."
+    },
+    {
+      "number": 214,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "No action needed — the transaction was read successfully and processing continues normally."
+    },
+    {
+      "number": 215,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 216,
+      "code": "               IF  APPL-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Checks whether the daily transaction file has been fully processed with no more records remaining."
+    },
+    {
+      "number": 217,
+      "code": "                   MOVE 'Y' TO END-OF-DAILY-TRANS-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Signals to the main processing loop that all of today's transactions have been read and the batch run should conclude."
+    },
+    {
+      "number": 218,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "                   DISPLAY 'ERROR READING DAILY TRANSACTION FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Writes an error message to the system log indicating that a serious, unexpected failure occurred while reading the daily transaction file."
+    },
+    {
+      "number": 220,
+      "code": "                   MOVE DALYTRAN-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Captures the specific file error code so it can be displayed in the diagnostic output for investigation."
+    },
+    {
+      "number": 221,
+      "code": "                   PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Displays the detailed technical file status information to assist operations staff in diagnosing the failure."
+    },
+    {
+      "number": 222,
+      "code": "                   PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Immediately terminates the entire batch program abnormally to prevent any further processing on a corrupted or unreadable transaction file, protecting data integrity."
+    },
+    {
+      "number": 223,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 224,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 225,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": "Marks the end of this routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 226,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 227,
+      "code": "       2000-LOOKUP-XREF.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Entry point for the cross-reference lookup step, executed once per transaction read from the daily transaction file."
+    },
+    {
+      "number": 228,
+      "code": "           MOVE XREF-CARD-NUM TO FD-XREF-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Positions the cross-reference file index using the card number extracted from the current transaction, so the correct cross-reference record can be retrieved."
+    },
+    {
+      "number": 229,
+      "code": "           READ XREF-FILE  RECORD INTO CARD-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Attempts to retrieve the cross-reference record that maps the transaction's card number to an account and customer."
+    },
+    {
+      "number": 230,
+      "code": "           KEY IS FD-XREF-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Specifies that the search key for this lookup is the credit card number from the current transaction."
+    },
+    {
+      "number": 231,
+      "code": "                INVALID KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Begins handling the case where the card number does not exist in the cross-reference file — meaning the card is unrecognised."
+    },
+    {
+      "number": 232,
+      "code": "                  DISPLAY 'INVALID CARD NUMBER FOR XREF'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Writes a diagnostic message to the system log indicating that the card number on the transaction could not be matched to any known account."
+    },
+    {
+      "number": 233,
+      "code": "                  MOVE 4 TO WS-XREF-READ-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Marks the cross-reference lookup as failed (not found), signalling downstream logic to skip this transaction rather than attempt posting."
+    },
+    {
+      "number": 234,
+      "code": "                NOT INVALID KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Begins handling the successful case where the card number was found and resolved to a known account and customer."
+    },
+    {
+      "number": 235,
+      "code": "                  DISPLAY 'SUCCESSFUL READ OF XREF'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Writes a confirmation message to the system log indicating the card number was successfully validated against the cross-reference."
+    },
+    {
+      "number": 236,
+      "code": "                  DISPLAY 'CARD NUMBER: ' XREF-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Logs the validated credit card number to the system output for audit and traceability purposes."
+    },
+    {
+      "number": 237,
+      "code": "                  DISPLAY 'ACCOUNT ID : ' XREF-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Logs the resolved account identifier to the system output, confirming which account this transaction will be applied to."
+    },
+    {
+      "number": 238,
+      "code": "                  DISPLAY 'CUSTOMER ID: ' XREF-CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Logs the resolved customer identifier to the system output, confirming which cardholder is associated with this transaction."
+    },
+    {
+      "number": 239,
+      "code": "           END-READ.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": "Closes the conditional read block, completing the cross-reference lookup attempt for the current transaction."
+    },
+    {
+      "number": 240,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-LOOKUP-XREF",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "       3000-READ-ACCOUNT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Entry point for the account lookup step — executed once per transaction after the card number has been successfully resolved to an account ID."
+    },
+    {
+      "number": 242,
+      "code": "           MOVE ACCT-ID TO FD-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Prepares the account master file search by loading the account ID (previously resolved from the card cross-reference) as the lookup key."
+    },
+    {
+      "number": 243,
+      "code": "           READ ACCOUNT-FILE RECORD INTO ACCOUNT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Attempts to retrieve the full account record — including balances and credit limits — from the account master file using the resolved account ID."
+    },
+    {
+      "number": 244,
+      "code": "           KEY IS FD-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Specifies that the search is performed by account ID, ensuring the correct account record is targeted."
+    },
+    {
+      "number": 245,
+      "code": "                INVALID KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Begins the error handling branch triggered when no matching account record exists in the account master file for the resolved account ID."
+    },
+    {
+      "number": 246,
+      "code": "                  DISPLAY 'INVALID ACCOUNT NUMBER FOUND'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Writes an alert to the system log indicating that the account ID resolved from the cross-reference does not correspond to any known account — signalling a data integrity issue."
+    },
+    {
+      "number": 247,
+      "code": "                  MOVE 4 TO WS-ACCT-READ-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Marks the account lookup as failed (not found), so the calling logic can identify this transaction as unresolvable and skip it from posting."
+    },
+    {
+      "number": 248,
+      "code": "                NOT INVALID KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Begins the success branch executed when a matching account record is successfully located in the account master file."
+    },
+    {
+      "number": 249,
+      "code": "                  DISPLAY 'SUCCESSFUL READ OF ACCOUNT FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Writes a confirmation to the system log indicating the account record was retrieved successfully and the transaction can proceed to the next validation step."
+    },
+    {
+      "number": 250,
+      "code": "           END-READ.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": "Closes the account file read operation, completing the lookup attempt regardless of whether the account was found or not."
+    },
+    {
+      "number": 251,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-READ-ACCOUNT",
+      "explanation": ""
+    },
+    {
+      "number": 252,
+      "code": "       0000-DALYTRAN-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Entry point for the routine that opens the daily transaction file before batch processing begins."
+    },
+    {
+      "number": 253,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Sets the processing status to a pending/uncertain state (8) before attempting to open the file, ensuring no false success is assumed."
+    },
+    {
+      "number": 254,
+      "code": "           OPEN INPUT DALYTRAN-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Opens the daily credit card transaction file in read-only mode, ready for sequential processing of today's transactions."
+    },
+    {
+      "number": 255,
+      "code": "           IF  DALYTRAN-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Checks whether the daily transaction file opened successfully without any errors."
+    },
+    {
+      "number": 256,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Records a successful file-open outcome, allowing batch processing to proceed normally."
+    },
+    {
+      "number": 257,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 258,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Records a failed file-open outcome (code 12), signalling that the transaction file is unavailable and processing cannot continue."
+    },
+    {
+      "number": 259,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 260,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Evaluates whether the file opened successfully and the batch run is safe to proceed."
+    },
+    {
+      "number": 261,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "No action needed — the file is open and the program can move on to reading transactions."
+    },
+    {
+      "number": 262,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 263,
+      "code": "               DISPLAY 'ERROR OPENING DAILY TRANSACTION FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Writes a human-readable error message to the operator log indicating the daily transaction file could not be opened."
+    },
+    {
+      "number": 264,
+      "code": "               MOVE DALYTRAN-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Captures the specific file system error code so it can be displayed to help diagnose why the file failed to open."
+    },
+    {
+      "number": 265,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Displays the detailed technical file status code to the operator log to support error investigation."
+    },
+    {
+      "number": 266,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Triggers an abnormal termination of the batch job, preventing any further processing when the transaction source file is inaccessible."
+    },
+    {
+      "number": 267,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 268,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": "Marks the end of this file-open routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 269,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 270,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 271,
+      "code": "       0100-CUSTFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Entry point for the routine that opens the customer master file."
+    },
+    {
+      "number": 272,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Sets the operation's internal status to a pending/unknown state before attempting to open the file, ensuring no stale result is carried forward."
+    },
+    {
+      "number": 273,
+      "code": "           OPEN INPUT CUSTOMER-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Opens the customer master file in read-only mode, making customer profile records accessible for lookup during transaction validation."
+    },
+    {
+      "number": 274,
+      "code": "           IF  CUSTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Checks whether the customer master file opened successfully without any errors."
+    },
+    {
+      "number": 275,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Records that the file opened successfully, allowing processing to continue normally."
+    },
+    {
+      "number": 276,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 277,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Records a critical failure code indicating the customer master file could not be opened, which will trigger an abnormal termination."
+    },
+    {
+      "number": 278,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 279,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Evaluates whether the file open operation completed without error before deciding how to proceed."
+    },
+    {
+      "number": 280,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "No action is taken — processing continues normally because the customer master file is available."
+    },
+    {
+      "number": 281,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 282,
+      "code": "               DISPLAY 'ERROR OPENING CUSTOMER FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Writes an error message to the system log to alert operators that the customer master file could not be opened."
+    },
+    {
+      "number": 283,
+      "code": "               MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be displayed in a diagnostic message for operator investigation."
+    },
+    {
+      "number": 284,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Displays the detailed file system error code to the operator log to assist in diagnosing why the customer master file failed to open."
+    },
+    {
+      "number": 285,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Immediately terminates the entire batch run abnormally, preventing any transactions from being processed without access to customer data."
+    },
+    {
+      "number": 286,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 287,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": "Marks the end of this file-open routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 288,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 289,
+      "code": "       0200-XREFFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Entry point for the routine that opens the card-to-account cross-reference file."
+    },
+    {
+      "number": 290,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Sets the internal processing status to a 'pending/unknown' state before attempting to open the file, ensuring no false success is assumed."
+    },
+    {
+      "number": 291,
+      "code": "           OPEN INPUT XREF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Opens the card-to-account cross-reference file in read-only mode, ready for card number lookups during transaction validation."
+    },
+    {
+      "number": 292,
+      "code": "           IF  XREFFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Checks whether the cross-reference file opened successfully."
+    },
+    {
+      "number": 293,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Records that the file opened successfully, allowing processing to continue normally."
+    },
+    {
+      "number": 294,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Handles the case where the file did not open successfully."
+    },
+    {
+      "number": 295,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Records a critical failure status, signalling that the cross-reference file is unavailable and the batch cannot proceed."
+    },
+    {
+      "number": 296,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Closes the success/failure evaluation block."
+    },
+    {
+      "number": 297,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Checks whether the cross-reference file is confirmed open and ready for use."
+    },
+    {
+      "number": 298,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "No action needed — processing continues normally when the file is available."
+    },
+    {
+      "number": 299,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Handles the failure path when the cross-reference file could not be opened."
+    },
+    {
+      "number": 300,
+      "code": "               DISPLAY 'ERROR OPENING CROSS REF FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Writes a human-readable error message to the operator log, identifying that the card-to-account cross-reference file failed to open."
+    },
+    {
+      "number": 301,
+      "code": "               MOVE XREFFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by operations staff."
+    },
+    {
+      "number": 302,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Displays the detailed technical file error code to assist support teams in diagnosing the root cause of the failure."
+    },
+    {
+      "number": 303,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Triggers an immediate abnormal termination of the batch program, preventing any transaction processing from occurring without a valid cross-reference file."
+    },
+    {
+      "number": 304,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Closes the failure-handling block."
+    },
+    {
+      "number": 305,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": "Marks the end of this file-open routine, returning control to the calling paragraph."
+    },
+    {
+      "number": 306,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0200-XREFFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 307,
+      "code": "       0300-CARDFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Entry point for the routine that opens the credit card master file for reading."
+    },
+    {
+      "number": 308,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Assumes the worst-case outcome (failure) before attempting to open the file, ensuring no false success is recorded."
+    },
+    {
+      "number": 309,
+      "code": "           OPEN INPUT CARD-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Opens the credit card master file in read-only mode, ready for card record lookups during transaction validation."
+    },
+    {
+      "number": 310,
+      "code": "           IF  CARDFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Checks whether the credit card master file opened successfully without any errors."
+    },
+    {
+      "number": 311,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Records a successful file-open outcome, allowing processing to continue normally."
+    },
+    {
+      "number": 312,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 313,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Records a critical failure outcome, indicating the credit card master file could not be opened."
+    },
+    {
+      "number": 314,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 315,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Evaluates whether the file-open attempt ended in a healthy, processable state."
+    },
+    {
+      "number": 316,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "No action needed — the file opened successfully and the batch can proceed with card lookups."
+    },
+    {
+      "number": 317,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 318,
+      "code": "               DISPLAY 'ERROR OPENING CARD FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Writes a human-readable error message to the system log, alerting operators that the credit card master file is unavailable."
+    },
+    {
+      "number": 319,
+      "code": "               MOVE CARDFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be displayed in a diagnostic message for operator investigation."
+    },
+    {
+      "number": 320,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Displays the detailed technical file error code to assist operators in diagnosing why the credit card master file failed to open."
+    },
+    {
+      "number": 321,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Immediately terminates the entire batch run abnormally, preventing any transaction processing from occurring without access to card data."
+    },
+    {
+      "number": 322,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 323,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": "Marks the end of this file-open routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 324,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0300-CARDFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 325,
+      "code": "       0400-ACCTFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Entry point for the routine that opens the account master file in preparation for transaction validation."
+    },
+    {
+      "number": 326,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Sets the operation's internal status to a 'pending/unknown' state before attempting to open the file, ensuring no stale success result is carried forward."
+    },
+    {
+      "number": 327,
+      "code": "           OPEN INPUT ACCOUNT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Opens the account master file in read-only mode, making account records available for lookup during transaction validation."
+    },
+    {
+      "number": 328,
+      "code": "           IF  ACCTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Checks whether the account master file opened successfully."
+    },
+    {
+      "number": 329,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Records that the file opened successfully, allowing processing to continue normally."
+    },
+    {
+      "number": 330,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 331,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Records a critical failure code indicating the account master file could not be opened."
+    },
+    {
+      "number": 332,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 333,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Checks whether the file open operation completed without error."
+    },
+    {
+      "number": 334,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "No action needed — the file is open and the program can proceed to validate transactions against account records."
+    },
+    {
+      "number": 335,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 336,
+      "code": "               DISPLAY 'ERROR OPENING ACCOUNT FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Writes an error message to the system log indicating that the account master file is unavailable."
+    },
+    {
+      "number": 337,
+      "code": "               MOVE ACCTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Captures the specific file system error code for diagnostic display, so operators can identify the root cause of the failure."
+    },
+    {
+      "number": 338,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Displays the detailed file system error code to the operator console to assist with troubleshooting."
+    },
+    {
+      "number": 339,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Triggers an abnormal termination of the entire batch run, preventing any transactions from being processed without access to account records."
+    },
+    {
+      "number": 340,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 341,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": "Marks the end of this file-open routine and returns control to the calling process."
+    },
+    {
+      "number": 342,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 343,
+      "code": "       0500-TRANFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Entry point for the paragraph that opens the transaction history file."
+    },
+    {
+      "number": 344,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Assumes the worst-case outcome (failure) before attempting to open the file, ensuring no false success is recorded if the open is never attempted."
+    },
+    {
+      "number": 345,
+      "code": "           OPEN INPUT TRANSACT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Attempts to open the transaction history file — the permanent indexed store where validated transactions are recorded — in read-only mode."
+    },
+    {
+      "number": 346,
+      "code": "           IF  TRANFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Checks whether the transaction history file opened successfully without any file system errors."
+    },
+    {
+      "number": 347,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Confirms a successful open by recording a clean status, allowing processing to continue normally."
+    },
+    {
+      "number": 348,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 349,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Records a critical failure code indicating the transaction history file could not be opened, triggering the error path."
+    },
+    {
+      "number": 350,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 351,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Evaluates whether the file open completed without error and the batch run may safely proceed."
+    },
+    {
+      "number": 352,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "No action needed — the file is open and the batch can continue to the next step."
+    },
+    {
+      "number": 353,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 354,
+      "code": "               DISPLAY 'ERROR OPENING TRANSACTION FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Writes a human-readable error message to the operator console identifying that the transaction history file failed to open."
+    },
+    {
+      "number": 355,
+      "code": "               MOVE TRANFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be displayed to help diagnose the root cause of the failure."
+    },
+    {
+      "number": 356,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Displays the detailed file system error code to the operator console to support investigation and resolution."
+    },
+    {
+      "number": 357,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Triggers an immediate abnormal termination of the batch program, preventing any processing from continuing without access to the transaction history file."
+    },
+    {
+      "number": 358,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 359,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 360,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0500-TRANFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 361,
+      "code": "       9000-DALYTRAN-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Entry point for the routine responsible for closing the daily transaction file after all transactions have been processed."
+    },
+    {
+      "number": 362,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Assumes a failure state by default before attempting to close the file, ensuring any unexpected outcome is treated as an error."
+    },
+    {
+      "number": 363,
+      "code": "           CLOSE DALYTRAN-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Closes the daily transaction file, releasing it from the batch job and signalling the operating system that processing is complete."
+    },
+    {
+      "number": 364,
+      "code": "           IF  DALYTRAN-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Checks whether the daily transaction file closed successfully without any I/O errors."
+    },
+    {
+      "number": 365,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Confirms the file closure was successful by recording a clean completion status."
+    },
+    {
+      "number": 366,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Handles the case where the file did not close successfully."
+    },
+    {
+      "number": 367,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Records a critical failure status indicating the daily transaction file could not be closed properly."
+    },
+    {
+      "number": 368,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Ends the file closure status check."
+    },
+    {
+      "number": 369,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Checks whether the overall file closure operation completed without errors."
+    },
+    {
+      "number": 370,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "No action is taken when the file closes successfully — processing continues normally."
+    },
+    {
+      "number": 371,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Handles the error path when the daily transaction file failed to close correctly."
+    },
+    {
+      "number": 372,
+      "code": "               DISPLAY 'ERROR CLOSING CUSTOMER FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Writes an error message to the system log indicating that the customer file could not be closed — note this message appears to reference the wrong file and may be a copy-paste defect."
+    },
+    {
+      "number": 373,
+      "code": "               MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Captures the specific I/O error code from the customer file status for diagnostic reporting."
+    },
+    {
+      "number": 374,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Displays the detailed I/O error information to assist operations staff in diagnosing the file closure failure."
+    },
+    {
+      "number": 375,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Terminates the program abnormally, preventing any further processing and alerting operations to the unresolved file closure error."
+    },
+    {
+      "number": 376,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Ends the error-handling block."
+    },
+    {
+      "number": 377,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 378,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 379,
+      "code": "       9100-CUSTFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Entry point for the routine responsible for closing the customer master file after all processing is complete."
+    },
+    {
+      "number": 380,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Initialises the operation outcome to a failure state as a precaution, so any unexpected path defaults to an error condition rather than a false success."
+    },
+    {
+      "number": 381,
+      "code": "           CLOSE CUSTOMER-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Closes the customer master file, releasing the file resource and signalling to the operating system that the batch program has finished reading customer records."
+    },
+    {
+      "number": 382,
+      "code": "           IF  CUSTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Checks whether the customer master file was closed successfully by the operating system."
+    },
+    {
+      "number": 383,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Records that the file closure completed successfully, clearing the precautionary failure state set earlier."
+    },
+    {
+      "number": 384,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 385,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Records that the file closure failed, setting the outcome to a critical error code indicating a serious file handling problem."
+    },
+    {
+      "number": 386,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Ends the success/failure evaluation of the file closure attempt."
+    },
+    {
+      "number": 387,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Checks whether the customer master file was closed without any errors."
+    },
+    {
+      "number": 388,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "If the file closed successfully, no further action is needed and processing continues normally."
+    },
+    {
+      "number": 389,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 390,
+      "code": "               DISPLAY 'ERROR CLOSING CUSTOMER FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Writes an error message to the system log alerting operations staff that the customer master file could not be closed properly."
+    },
+    {
+      "number": 391,
+      "code": "               MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed in a human-readable diagnostic message for the operations team."
+    },
+    {
+      "number": 392,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Displays the detailed file system error code to help operations staff diagnose the exact cause of the file closure failure."
+    },
+    {
+      "number": 393,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Immediately terminates the batch program abnormally, ensuring the failure is visible to job schedulers and operations staff and preventing any further processing in an unsafe state."
+    },
+    {
+      "number": 394,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Ends the error-handling block."
+    },
+    {
+      "number": 395,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": "Marks the end of this paragraph, returning control to the calling routine."
+    },
+    {
+      "number": 396,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 397,
+      "code": "       9200-XREFFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Entry point for the routine responsible for closing the card-to-account cross-reference file at the end of batch processing."
+    },
+    {
+      "number": 398,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Pre-sets the operation result to a failure state before attempting the file closure, ensuring any unexpected path is treated as an error by default."
+    },
+    {
+      "number": 399,
+      "code": "           CLOSE XREF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Closes the card-to-account cross-reference file, releasing it from the batch job so no further card number lookups can be performed."
+    },
+    {
+      "number": 400,
+      "code": "           IF  XREFFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Checks whether the cross-reference file closed successfully without any system-level errors."
+    },
+    {
+      "number": 401,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Records that the file closure completed successfully, allowing the program to continue its normal shutdown sequence."
+    },
+    {
+      "number": 402,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 403,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Records that the file closure encountered an error, flagging the shutdown as failed for subsequent error handling."
+    },
+    {
+      "number": 404,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 405,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Evaluates whether the cross-reference file was closed without error before deciding how to proceed."
+    },
+    {
+      "number": 406,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "No action is taken — the file closed cleanly and the program can continue its normal end-of-job processing."
+    },
+    {
+      "number": 407,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 408,
+      "code": "               DISPLAY 'ERROR CLOSING CROSS REF FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Writes an error message to the system log indicating that the cross-reference file could not be closed properly."
+    },
+    {
+      "number": 409,
+      "code": "               MOVE XREFFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed in a standardised diagnostic format for operations staff."
+    },
+    {
+      "number": 410,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Displays the detailed file system error information to assist operations staff in diagnosing the closure failure."
+    },
+    {
+      "number": 411,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Forces an immediate abnormal termination of the batch job, preventing any further processing and ensuring the failure is visible for investigation."
+    },
+    {
+      "number": 412,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 413,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine if the file closed successfully."
+    },
+    {
+      "number": 414,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 415,
+      "code": "       9300-CARDFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Entry point for the routine responsible for closing the credit card master file."
+    },
+    {
+      "number": 416,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Assumes failure by default before attempting the close — a defensive measure ensuring any unexpected exit is treated as an error."
+    },
+    {
+      "number": 417,
+      "code": "           CLOSE CARD-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Releases the credit card master file, signalling to the operating system that the program has finished reading card records."
+    },
+    {
+      "number": 418,
+      "code": "           IF  CARDFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Checks whether the credit card master file was closed successfully without any system-level errors."
+    },
+    {
+      "number": 419,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Confirms the close operation succeeded — the file has been cleanly released."
+    },
+    {
+      "number": 420,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 421,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Records that the file close operation failed, flagging a critical file-handling error for subsequent checks."
+    },
+    {
+      "number": 422,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 423,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Evaluates whether the file was closed without error before deciding how to proceed."
+    },
+    {
+      "number": 424,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "No further action needed — the credit card master file closed successfully and processing can continue normally."
+    },
+    {
+      "number": 425,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 426,
+      "code": "               DISPLAY 'ERROR CLOSING CARD FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Writes an error message to the system log indicating that the credit card master file could not be closed properly."
+    },
+    {
+      "number": 427,
+      "code": "               MOVE CARDFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by operations staff."
+    },
+    {
+      "number": 428,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Displays the detailed file error code to the system log to assist technical staff in diagnosing the failure."
+    },
+    {
+      "number": 429,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Triggers an abnormal program termination, halting the batch run immediately to prevent further processing in an unstable state."
+    },
+    {
+      "number": 430,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 431,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": "Marks the end of this file-close routine and returns control to the calling paragraph."
+    },
+    {
+      "number": 432,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 433,
+      "code": "       9400-ACCTFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Entry point for the account master file closure routine."
+    },
+    {
+      "number": 434,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Initialises the operation outcome to a failure state as a precaution, so any unexpected path is treated as an error by default."
+    },
+    {
+      "number": 435,
+      "code": "           CLOSE ACCOUNT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Closes the account master file, releasing the file resource back to the operating system after all account lookups are complete."
+    },
+    {
+      "number": 436,
+      "code": "           IF  ACCTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Checks whether the account master file was closed successfully by the operating system."
+    },
+    {
+      "number": 437,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Records that the file closure completed successfully, allowing normal processing to continue."
+    },
+    {
+      "number": 438,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 439,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Records that the file closure failed, flagging the operation as critically unsuccessful."
+    },
+    {
+      "number": 440,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 441,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Evaluates whether the file closure completed without error before deciding how to proceed."
+    },
+    {
+      "number": 442,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "If the closure was successful, no further action is needed and processing continues normally."
+    },
+    {
+      "number": 443,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 444,
+      "code": "               DISPLAY 'ERROR CLOSING ACCOUNT FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Writes an error message to the system log indicating that the account master file could not be closed properly."
+    },
+    {
+      "number": 445,
+      "code": "               MOVE ACCTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by operations staff."
+    },
+    {
+      "number": 446,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Displays the detailed file system error code to the operator log to assist in diagnosing the closure failure."
+    },
+    {
+      "number": 447,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Triggers an abnormal program termination, halting the batch job immediately to prevent any further processing in an unsafe state."
+    },
+    {
+      "number": 448,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 449,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine if closure was successful."
+    },
+    {
+      "number": 450,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 451,
+      "code": "       9500-TRANFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Entry point for the routine that shuts down access to the transaction history file after batch processing is complete."
+    },
+    {
+      "number": 452,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Pre-sets the operation outcome to a failure state, ensuring any unexpected path is treated as an error rather than a silent success."
+    },
+    {
+      "number": 453,
+      "code": "           CLOSE TRANSACT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Releases the transaction history file, signalling to the operating system that the batch program has finished accessing it."
+    },
+    {
+      "number": 454,
+      "code": "           IF  TRANFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Checks whether the file was closed successfully by the system."
+    },
+    {
+      "number": 455,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Records that the file closure completed without error, confirming the transaction history file was safely released."
+    },
+    {
+      "number": 456,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 457,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Records a critical failure code indicating the transaction history file could not be closed properly."
+    },
+    {
+      "number": 458,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 459,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Evaluates whether the file closure was successful before allowing the program to continue."
+    },
+    {
+      "number": 460,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "If the closure succeeded, no further action is needed and processing continues normally."
+    },
+    {
+      "number": 461,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 462,
+      "code": "               DISPLAY 'ERROR CLOSING TRANSACTION FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Writes an alert to the system log indicating that the transaction history file failed to close, flagging a potential data integrity risk."
+    },
+    {
+      "number": 463,
+      "code": "               MOVE TRANFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by operations staff."
+    },
+    {
+      "number": 464,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Displays the detailed file system error information to assist technical staff in identifying the root cause of the closure failure."
+    },
+    {
+      "number": 465,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Terminates the program abnormally, preventing any further processing and ensuring the failure is escalated for immediate investigation."
+    },
+    {
+      "number": 466,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 467,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": "Marks the end of this routine, returning control to the calling process if normal termination occurred."
+    },
+    {
+      "number": 468,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 469,
+      "code": "       Z-ABEND-PROGRAM.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Entry point for the emergency shutdown routine, invoked whenever a fatal processing error is encountered."
+    },
+    {
+      "number": 470,
+      "code": "           DISPLAY 'ABENDING PROGRAM'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Writes a clear message to the system log so operators monitoring the batch job are immediately alerted that the program is terminating abnormally."
+    },
+    {
+      "number": 471,
+      "code": "           MOVE 0 TO TIMING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Specifies that the abnormal termination should occur immediately at the current point of failure, with no deferred or timed delay."
+    },
+    {
+      "number": 472,
+      "code": "           MOVE 999 TO ABCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Sets a recognisable failure code (999) that will appear in the job log and abend report, allowing operations staff to identify this as a critical batch processing failure."
+    },
+    {
+      "number": 473,
+      "code": "           CALL 'CEE3ABD' USING ABCODE, TIMING.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Calls the IBM Language Environment utility to force an immediate abnormal termination of the program, using the failure code and timing settings above, so the job scheduler registers the job as failed and downstream dependent jobs are held."
+    },
+    {
+      "number": 474,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 475,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 476,
+      "code": "       Z-DISPLAY-IO-STATUS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Entry point for the file error status reporting routine."
+    },
+    {
+      "number": 477,
+      "code": "           IF  IO-STATUS NOT NUMERIC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Checks whether the file status code returned by the operating system is non-numeric — a sign of a severe or system-level I/O error rather than a standard application-level condition."
+    },
+    {
+      "number": 478,
+      "code": "           OR  IO-STAT1 = '9'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Also triggers the special formatting path if the status indicates a hardware or system-level failure (status category 9), which requires a different decoding method than standard file status codes."
+    },
+    {
+      "number": 479,
+      "code": "               MOVE IO-STAT1 TO IO-STATUS-04(1:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Captures the primary error category digit of the file status into the first position of the display buffer being assembled for the operator message."
+    },
+    {
+      "number": 480,
+      "code": "               MOVE 0        TO TWO-BYTES-BINARY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Clears a binary working area to zero in preparation for converting the secondary error detail byte into a printable numeric value."
+    },
+    {
+      "number": 481,
+      "code": "               MOVE IO-STAT2 TO TWO-BYTES-RIGHT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Loads the secondary error detail byte — which carries the specific system error sub-code — into the low-order position of the binary conversion area."
+    },
+    {
+      "number": 482,
+      "code": "               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Converts the raw binary system error sub-code into a numeric value that can be displayed meaningfully in the operator error message."
+    },
+    {
+      "number": 483,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Writes the fully assembled four-digit file status code to the system log, allowing operators and support staff to identify the exact nature of the file failure."
+    },
+    {
+      "number": 484,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Begins the alternative path for standard, numeric file status codes that do not represent system-level failures."
+    },
+    {
+      "number": 485,
+      "code": "               MOVE '0000' TO IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Initialises the display buffer to zeros, ensuring no residual data contaminates the status code shown to the operator."
+    },
+    {
+      "number": 486,
+      "code": "               MOVE IO-STATUS TO IO-STATUS-04(3:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Inserts the two-digit standard file status code into the correct position within the four-character display buffer so it is presented in a consistent format."
+    },
+    {
+      "number": 487,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Writes the formatted standard file status code to the system log, giving operators the information needed to determine whether the error is recoverable or requires intervention."
+    },
+    {
+      "number": 488,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Closes the conditional formatting logic."
+    },
+    {
+      "number": 489,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Returns control to the calling routine after the error status has been logged."
+    },
+    {
+      "number": 490,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 491,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 492,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 493,
+      "code": "      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:28 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 494,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "FD-TRAN-RECORD",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the transaction history file (TRANFILE). Represents the physical layout of a posted transaction record as it is written to permanent storage. Acts as the I/O bridge between working storage and the on-disk transaction history."
+    },
+    {
+      "name": "FD-TRAN-ID",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique transaction identifier in the transaction history file record. Serves as the indexed key that allows a specific posted transaction to be retrieved from the permanent transaction history file."
+    },
+    {
+      "name": "FD-CUST-DATA",
+      "level": "05",
+      "picture": "PIC X(334)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the transaction history file record beyond the transaction ID. Contains all other transaction details (type, amount, merchant, card number, timestamps, etc.) as a raw block, completing the 350-byte transaction record layout."
+    },
+    {
+      "name": "FD-CUSTFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the customer master file (CUSTFILE). Represents the physical layout of a customer record as read from disk, providing the I/O bridge to access cardholder demographic and profile information."
+    },
+    {
+      "name": "FD-CUST-ID",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique customer identifier in the customer master file record. Serves as the indexed key used to locate a specific cardholder's profile record when verifying the customer associated with a transaction."
+    },
+    {
+      "name": "FD-CUST-DATA",
+      "level": "05",
+      "picture": "PIC X(491)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the customer master file record beyond the customer ID. Contains all other customer details (name, address, SSN, FICO score, etc.) as a raw block, completing the 500-byte customer record layout."
+    },
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the card-to-account cross-reference file (XREFFILE). Represents the physical layout of a cross-reference record as read from disk, enabling the program to map a credit card number to its associated account and customer."
+    },
+    {
+      "name": "FD-XREF-CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The credit card number as stored in the cross-reference file record. Serves as the indexed key used to look up which account and customer a given card number belongs to — the primary linkage between a transaction's card number and the cardholder's account."
+    },
+    {
+      "name": "FD-XREF-DATA",
+      "level": "05",
+      "picture": "PIC X(34)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the cross-reference file record beyond the card number. Contains the associated customer ID and account ID as a raw block, completing the 50-byte cross-reference record layout."
+    },
+    {
+      "name": "FD-CARDFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the card master file (CARDFILE). Represents the physical layout of a credit card record as read from disk, providing the I/O bridge to access card-level attributes such as status, CVV, and expiration date."
+    },
+    {
+      "name": "FD-CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The credit card number as stored in the card master file record. Serves as the indexed key used to retrieve the full card record, enabling validation of card-level attributes (e.g., active status, expiration) for a transaction being processed."
+    },
+    {
+      "name": "FD-CARD-DATA",
+      "level": "05",
+      "picture": "PIC X(134)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the card master file record beyond the card number. Contains all other card attributes (account ID, CVV, embossed name, expiration date, active status, etc.) as a raw block, completing the 150-byte card record layout."
+    },
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the account master file (ACCTFILE). Represents the physical layout of a credit card account record as read from disk, providing the I/O bridge to access account balances, credit limits, and account status."
+    },
+    {
+      "name": "FD-ACCT-ID",
+      "level": "05",
+      "picture": "PIC 9(11)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique account identifier in the account master file record. Serves as the indexed key used to retrieve the full account record for a cardholder, enabling verification that the account resolved from the cross-reference actually exists and is accessible."
+    },
+    {
+      "name": "FD-ACCT-DATA",
+      "level": "05",
+      "picture": "PIC X(289)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the account master file record beyond the account ID. Contains all other account details (balance, credit limit, status, dates, etc.) as a raw block, completing the 300-byte account record layout."
+    },
+    {
+      "name": "FD-TRANFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "File buffer record for the transaction history output file (TRANFILE). Represents the physical layout of a validated transaction record as it is written to the permanent transaction history, completing the posting process for each successfully validated transaction."
+    },
+    {
+      "name": "FD-TRANS-ID",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique transaction identifier written to the transaction history file. Acts as the indexed key for the posted transaction record, enabling future retrieval of any specific transaction from the permanent history."
+    },
+    {
+      "name": "FD-ACCT-DATA",
+      "level": "05",
+      "picture": "PIC X(334)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining payload of the transaction history output record beyond the transaction ID. Contains all other transaction details (type, amount, merchant, card number, timestamps, etc.) as a raw block, completing the 350-byte posted transaction record layout."
+    },
+    {
+      "name": "DALYTRAN-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned by the operating system after every I/O operation on the daily transaction file (DALYTRAN). Used to determine whether each read succeeded, reached end-of-file, or encountered an error that would require aborting the batch run."
+    },
+    {
+      "name": "DALYTRAN-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the daily transaction file status code. A value of '0' indicates a successful read; '1' indicates end-of-file has been reached, signalling that all transactions for the day have been processed."
+    },
+    {
+      "name": "DALYTRAN-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the daily transaction file status code. Provides additional detail about the outcome of the I/O operation on the daily transaction file, used together with DALYTRAN-STAT1 to diagnose specific error conditions."
+    },
+    {
+      "name": "CUSTFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the customer master file (CUSTFILE). Used to confirm whether a customer record was successfully retrieved or whether an error occurred during the customer lookup."
+    },
+    {
+      "name": "CUSTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the customer master file status code. A value of '0' indicates the customer record was found and read successfully; other values indicate the customer could not be located or an I/O error occurred."
+    },
+    {
+      "name": "CUSTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the customer master file status code. Provides supplementary detail about the result of the customer file I/O operation, used together with CUSTFILE-STAT1 for precise error diagnosis."
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the card-to-account cross-reference file (XREFFILE). Critical for determining whether a transaction's card number was successfully resolved to an account — a failed lookup means the transaction must be skipped."
+    },
+    {
+      "name": "XREFFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the cross-reference file status code. A value of '0' means the card number was found and the account/customer linkage was successfully resolved; other values indicate the card number is unrecognised and the transaction cannot be posted."
+    },
+    {
+      "name": "XREFFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the cross-reference file status code. Provides additional detail about the cross-reference lookup result, used together with XREFFILE-STAT1 to distinguish between 'not found' and other error conditions."
+    },
+    {
+      "name": "CARDFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the card master file (CARDFILE). Used to confirm whether a card record was successfully retrieved when validating card-level attributes for a transaction."
+    },
+    {
+      "name": "CARDFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the card master file status code. A value of '0' indicates the card record was found and read successfully; other values indicate the card could not be located or an I/O error occurred during card validation."
+    },
+    {
+      "name": "CARDFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the card master file status code. Provides supplementary detail about the card file I/O result, used together with CARDFILE-STAT1 for precise error diagnosis during card validation."
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the account master file (ACCTFILE). Used to verify whether the account resolved from the cross-reference actually exists in the account master — a failed lookup means the transaction cannot be posted."
+    },
+    {
+      "name": "ACCTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the account master file status code. A value of '0' means the account record was found and retrieved successfully; other values indicate the account does not exist or an I/O error occurred, triggering an error message for the transaction."
+    },
+    {
+      "name": "ACCTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the account master file status code. Provides additional detail about the account lookup result, used together with ACCTFILE-STAT1 to distinguish between 'account not found' and other error conditions."
+    },
+    {
+      "name": "TRANFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character file status code returned after every I/O operation on the transaction history output file (TRANFILE). Used to confirm whether a validated transaction was successfully written to the permanent transaction history."
+    },
+    {
+      "name": "TRANFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the transaction history file status code. A value of '0' confirms the transaction was successfully posted to the permanent history file; other values indicate a write failure that would need to be investigated."
+    },
+    {
+      "name": "TRANFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the transaction history file status code. Provides supplementary detail about the write operation result, used together with TRANFILE-STAT1 for precise diagnosis of any posting failure."
+    },
+    {
+      "name": "IO-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A general-purpose two-character I/O status holder used to capture and evaluate file operation results in a centralised error-handling routine. Consolidates status codes from any file into a single location for uniform error reporting and abend decisions."
+    },
+    {
+      "name": "IO-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first (major) character of the general I/O status code. Used in the centralised error handler to determine the broad category of any file operation failure across all files in the batch program."
+    },
+    {
+      "name": "IO-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second (minor) character of the general I/O status code. Provides additional detail to the centralised error handler, enabling precise identification of the specific I/O error condition that occurred."
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": "01",
+      "picture": "PIC 9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A two-byte binary work field used to convert a two-character file status code into a numeric value. Enables the program to perform arithmetic comparisons on I/O status codes for error evaluation and abend code generation."
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": "TWO-BYTES-BINARY",
+      "occurs": null,
+      "is_group": true,
+      "description": "An alphanumeric overlay of the TWO-BYTES-BINARY field. Allows the same two bytes of memory to be read as individual characters, so that a file status code (two characters) can be loaded into the binary field and then interpreted numerically for error handling."
+    },
+    {
+      "name": "TWO-BYTES-LEFT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The left (first) character byte of the two-byte status conversion field. Receives the first character of a file status code so it can be combined with the right byte and interpreted as a binary number for error code processing."
+    },
+    {
+      "name": "TWO-BYTES-RIGHT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The right (second) character byte of the two-byte status conversion field. Receives the second character of a file status code so it can be combined with the left byte and interpreted as a binary number for error code processing."
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A structured work area used to decompose and display a numeric I/O status code in a human-readable format for error reporting. Splits the status number into a single leading digit and a three-digit remainder to facilitate formatted error messages."
+    },
+    {
+      "name": "IO-STATUS-0401",
+      "level": "05",
+      "picture": "PIC 9",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The leading single digit of the formatted I/O error status code. Represents the major category digit of the file status for inclusion in error messages, helping operations staff identify the class of I/O failure that caused a batch abend."
+    },
+    {
+      "name": "IO-STATUS-0403",
+      "level": "05",
+      "picture": "PIC 999",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The three-digit minor portion of the formatted I/O error status code. Represents the detailed sub-code of the file status for inclusion in error messages, providing operations staff with the specific error detail needed to diagnose and resolve a batch failure."
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": "01",
+      "picture": "PIC S9(9) COMP",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A numeric result code that captures the outcome of key processing steps within the batch run. Acts as a central indicator of whether the program is proceeding normally, has reached the end of the transaction file, or has encountered a condition requiring special handling."
+    },
+    {
+      "name": "APPL-AOK",
+      "level": "88",
+      "picture": null,
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the last processing step completed successfully (result code = 0). Used as a readable business condition to confirm that a transaction read or validation step proceeded without error."
+    },
+    {
+      "name": "APPL-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "16",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the end of the daily transaction file has been reached (result code = 16). Signals that all transactions for the day have been read and the batch processing loop should terminate normally."
+    },
+    {
+      "name": "END-OF-DAILY-TRANS-FILE",
+      "level": "01",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A processing control flag that tracks whether all daily transactions have been read. Initialised to 'N' (not finished) at the start of the batch run and set to 'Y' when the end of the daily transaction file is reached, causing the main processing loop to stop and end-of-day wrap-up to begin."
+    },
+    {
+      "name": "ABCODE",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The abnormal termination (abend) code passed to the operating system when the batch program encounters a fatal error it cannot recover from, such as an unexpected I/O failure on the daily transaction file. Allows operations staff and job schedulers to identify the specific reason the batch job failed."
+    },
+    {
+      "name": "TIMING",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A numeric work field used to capture or pass timing-related information during the batch run, typically used in conjunction with system service calls for performance measurement or elapsed-time tracking of the batch transaction processing job."
+    },
+    {
+      "name": "WS-MISC-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A working-storage group containing miscellaneous status indicators used during transaction validation. Holds the results of the two critical lookups — the card-to-account cross-reference and the account master retrieval — that determine whether each transaction can be posted."
+    },
+    {
+      "name": "WS-XREF-READ-STATUS",
+      "level": "05",
+      "picture": "PIC 9(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Records whether the card number on a transaction was successfully found in the card-to-account cross-reference file. A value of 0 means the card number is recognised and has been linked to an account and customer; a value of 4 means the card number is unknown and the transaction must be skipped and not posted."
+    },
+    {
+      "name": "WS-ACCT-READ-STATUS",
+      "level": "05",
+      "picture": "PIC 9(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Records whether the account identified through the cross-reference lookup was successfully retrieved from the account master file. A value of 0 confirms the account exists and its details are available for posting; a value of 4 means the account record is missing, triggering an error message and preventing the transaction from being posted."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 155,
+      "line_end": 201,
+      "description": "MAIN-PARA is the master orchestration routine for the daily transaction validation batch run. It opens all required files, drives a sequential loop that validates every transaction's card number and resolves it to a live account, then closes all files and terminates cleanly."
+    },
+    {
+      "name": "1000-DALYTRAN-GET-NEXT",
+      "line_start": 202,
+      "line_end": 226,
+      "description": "This paragraph advances the batch process by reading the next credit card transaction from the daily transaction file, then evaluates the outcome to either continue processing, signal that all transactions have been consumed, or halt the entire batch run if an unexpected file error occurs."
+    },
+    {
+      "name": "2000-LOOKUP-XREF",
+      "line_start": 227,
+      "line_end": 240,
+      "description": "This paragraph performs the authoritative lookup that links a credit card number to its owning account and customer by querying the card-to-account cross-reference file. It is the critical validation gate that determines whether a transaction can proceed to posting or must be skipped."
+    },
+    {
+      "name": "3000-READ-ACCOUNT",
+      "line_start": 241,
+      "line_end": 251,
+      "description": "Retrieves the full account record from the account master file using the account ID resolved from the card cross-reference lookup. If the account cannot be found, the transaction is flagged as invalid and will not be posted."
+    },
+    {
+      "name": "0000-DALYTRAN-OPEN",
+      "line_start": 252,
+      "line_end": 270,
+      "description": "This paragraph opens the daily credit card transaction file in preparation for the batch validation run. If the file cannot be opened successfully, the program immediately halts to prevent any processing against an unavailable or corrupt transaction source."
+    },
+    {
+      "name": "0100-CUSTFILE-OPEN",
+      "line_start": 271,
+      "line_end": 288,
+      "description": "This paragraph opens the customer master file so that customer profile data is available for transaction validation. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions without access to customer records."
+    },
+    {
+      "name": "0200-XREFFILE-OPEN",
+      "line_start": 289,
+      "line_end": 306,
+      "description": "This paragraph opens the card-to-account cross-reference file in preparation for transaction validation. It is a critical startup step — if the cross-reference file cannot be opened, the entire batch run is immediately aborted, since no transaction can be validated without it."
+    },
+    {
+      "name": "0300-CARDFILE-OPEN",
+      "line_start": 307,
+      "line_end": 324,
+      "description": "This paragraph opens the credit card master file so that card records can be read during transaction validation. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions without access to card data."
+    },
+    {
+      "name": "0400-ACCTFILE-OPEN",
+      "line_start": 325,
+      "line_end": 342,
+      "description": "Opens the account master file so that account records can be retrieved and validated during transaction processing. If the file cannot be opened, the batch run is immediately aborted to prevent processing transactions against an inaccessible or potentially corrupt account store."
+    },
+    {
+      "name": "0500-TRANFILE-OPEN",
+      "line_start": 343,
+      "line_end": 360,
+      "description": "This paragraph opens the transaction history file in preparation for the batch run, ensuring the permanent transaction store is accessible before processing begins. If the file cannot be opened, the program halts immediately to prevent any processing against an unavailable or corrupt transaction store."
+    },
+    {
+      "name": "9000-DALYTRAN-CLOSE",
+      "line_start": 361,
+      "line_end": 378,
+      "description": "This paragraph closes the daily transaction file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates abnormally to protect data integrity."
+    },
+    {
+      "name": "9100-CUSTFILE-CLOSE",
+      "line_start": 379,
+      "line_end": 396,
+      "description": "This paragraph safely closes the customer master file at the end of batch processing, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and halts immediately to protect data integrity."
+    },
+    {
+      "name": "9200-XREFFILE-CLOSE",
+      "line_start": 397,
+      "line_end": 414,
+      "description": "This paragraph safely closes the card-to-account cross-reference file once all transaction lookups are complete, ensuring the file is properly released and terminating the program abnormally if the closure fails to protect data integrity."
+    },
+    {
+      "name": "9300-CARDFILE-CLOSE",
+      "line_start": 415,
+      "line_end": 432,
+      "description": "This paragraph safely closes the credit card master file after all card lookups have been completed, ensuring the file is properly released. If the file cannot be closed cleanly, the program halts immediately to prevent data corruption or resource leaks."
+    },
+    {
+      "name": "9400-ACCTFILE-CLOSE",
+      "line_start": 433,
+      "line_end": 450,
+      "description": "This paragraph safely closes the account master file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates immediately to protect data integrity."
+    },
+    {
+      "name": "9500-TRANFILE-CLOSE",
+      "line_start": 451,
+      "line_end": 468,
+      "description": "Closes the transaction history file at the end of the batch run, ensuring all file resources are properly released. If the file cannot be closed cleanly, the program raises a critical error and terminates abnormally to protect data integrity."
+    },
+    {
+      "name": "Z-ABEND-PROGRAM",
+      "line_start": 469,
+      "line_end": 475,
+      "description": "This paragraph performs an immediate, controlled abnormal termination of the batch program when a critical, unrecoverable error is detected. It ensures the failure is clearly signalled to the operations team and the job scheduler, preventing any further processing that could compromise data integrity."
+    },
+    {
+      "name": "Z-DISPLAY-IO-STATUS",
+      "line_start": 476,
+      "line_end": 494,
+      "description": "This paragraph formats and displays a human-readable file status code to the system log whenever a file I/O operation produces an error, supporting operator diagnosis and audit of file processing failures during the batch run."
+    }
+  ],
+  "copybooks": [
+    "CVTRA06Y",
+    "CVCUS01Y",
+    "CVACT03Y",
+    "CVACT02Y",
+    "CVACT01Y",
+    "CVTRA05Y"
+  ]
+}

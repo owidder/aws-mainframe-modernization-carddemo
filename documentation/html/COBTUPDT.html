@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COBTUPDT – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-0001-OPEN-FILES">0001-OPEN-FILES</a>
+  
+  <a href="#para-1001-READ-NEXT-RECORDS">1001-READ-NEXT-RECORDS</a>
+  
+  <a href="#para-1002-READ-RECORDS">1002-READ-RECORDS</a>
+  
+  <a href="#para-1003-TREAT-RECORD">1003-TREAT-RECORD</a>
+  
+  <a href="#para-10031-INSERT-DB">10031-INSERT-DB</a>
+  
+  <a href="#para-10032-UPDATE-DB">10032-UPDATE-DB</a>
+  
+  <a href="#para-10033-DELETE-DB">10033-DELETE-DB</a>
+  
+  <a href="#para-9999-ABEND">9999-ABEND</a>
+  
+  <a href="#para-2001-CLOSE-STOP">2001-CLOSE-STOP</a>
+  
+  
+
+  
+  <h2>Variables (17)</h2>
+  
+  <a href="#var-WS-INPUT-VARS">WS-INPUT-VARS</a>
+  
+  <a href="#var-INPUT-TYPE">INPUT-TYPE</a>
+  
+  <a href="#var-INPUT-TR-NUMBER">INPUT-TR-NUMBER</a>
+  
+  <a href="#var-INPUT-TR-DESC">INPUT-TR-DESC</a>
+  
+  <a href="#var-FLAGS">FLAGS</a>
+  
+  <a href="#var-LASTREC">LASTREC</a>
+  
+  <a href="#var-WORKING-VARIABLES">WORKING-VARIABLES</a>
+  
+  <a href="#var-WS-RETURN-MSG">WS-RETURN-MSG</a>
+  
+  <a href="#var-WS-MISC-VARS">WS-MISC-VARS</a>
+  
+  <a href="#var-WS-VAR-SQLCODE">WS-VAR-SQLCODE</a>
+  
+  <a href="#var-WS-INF-STATUS">WS-INF-STATUS</a>
+  
+  <a href="#var-WS-INF-STAT1">WS-INF-STAT1</a>
+  
+  <a href="#var-WS-INF-STAT2">WS-INF-STAT2</a>
+  
+  <a href="#var-WS-INPUT-REC">WS-INPUT-REC</a>
+  
+  <a href="#var-INPUT-REC-TYPE">INPUT-REC-TYPE</a>
+  
+  <a href="#var-INPUT-REC-NUMBER">INPUT-REC-NUMBER</a>
+  
+  <a href="#var-INPUT-REC-DESC">INPUT-REC-DESC</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>COBTUPDT.CBL</h1>
+    <p>Batch utility program that maintains the Transaction Type reference table by processing a sequential input file to add, update, or delete transaction type codes and their descriptions.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">COBTUPDT reads a sequential input file containing transaction type maintenance instructions and applies each record to the CARDDEMO.TRANSACTION_TYPE database table. Each input record carries an operation code (A=Add, U=Update, D=Delete) along with a two-character transaction type code and a 50-character description. The program processes all records sequentially until end-of-file, performing the corresponding database operation for each valid instruction. Any invalid operation code, missing record, or database error causes the program to abend with return code 4 and an error message, ensuring data integrity of the reference table.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>Only three operation types are valid: A (Add), U (Update), D (Delete); any other value except the comment marker (*) causes an immediate abend with return code 4.</li><li>Lines prefixed with '*' are treated as comments and are silently ignored, allowing annotated input files.</li><li>A transaction type code (TR_TYPE) must already exist in the reference table for Update and Delete operations; if no matching record is found (SQLCODE +100), the program abends rather than silently continuing.</li><li>Any negative SQL error code on any database operation (Insert, Update, or Delete) causes an immediate abend, preventing partial or corrupt updates to the reference table.</li><li>The program processes records strictly sequentially with no rollback mechanism, meaning records processed before a failure are permanently committed to the database.</li><li>The transaction type code is exactly 2 characters and the description is capped at 50 characters, enforcing the data standards of the TRANSACTION_TYPE reference table.</li><li>This is a reference data maintenance program; changes to the TRANSACTION_TYPE table affect how transactions are classified and reported across the entire CardDemo system.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">INPFILE</td>
+            <td style="color:var(--subtext);">Sequential input file containing transaction type maintenance instructions (add, update, delete) to be applied to the reference table</td></tr>
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">TRANSACTION_TYPE</td>
+            <td style="color:var(--subtext);">Database reference table holding the master list of valid transaction type codes and their business descriptions used across the CardDemo system</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Transaction</span>
+      
+      <span class="badge badge-meta">237 lines</span>
+      <span class="badge badge-meta">17 variables</span>
+      <span class="badge badge-meta">9 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-02</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-0001-OPEN-FILES">
+    <h3><a href="#code-para-0001-OPEN-FILES" style="color:inherit;text-decoration:none;">0001-OPEN-FILES</a></h3>
+    <p>Opens the transaction type maintenance instruction file so the program can begin reading and processing add, update, and delete operations against the reference table. Confirms the file is accessible before any maintenance activity begins, ensuring the program does not proceed without valid input.</p>
+    <div class="para-meta"><a href="#code-para-0001-OPEN-FILES" style="color:inherit;">Lines 82–90</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1001-READ-NEXT-RECORDS">
+    <h3><a href="#code-para-1001-READ-NEXT-RECORDS" style="color:inherit;text-decoration:none;">1001-READ-NEXT-RECORDS</a></h3>
+    <p>Orchestrates the end-to-end processing of the transaction type maintenance file by reading and applying each maintenance instruction (Add, Update, or Delete) sequentially until all records have been consumed, then cleanly finalising the batch run.</p>
+    <div class="para-meta"><a href="#code-para-1001-READ-NEXT-RECORDS" style="color:inherit;">Lines 91–99</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1002-READ-RECORDS">
+    <h3><a href="#code-para-1002-READ-RECORDS" style="color:inherit;text-decoration:none;">1002-READ-RECORDS</a></h3>
+    <p>Advances to the next transaction type maintenance instruction in the input file, signalling end-of-file when all instructions have been consumed, and logs each active instruction to the operator console for audit visibility.</p>
+    <div class="para-meta"><a href="#code-para-1002-READ-RECORDS" style="color:inherit;">Lines 100–108</a></div>
+  </div>
+  
+  <div class="para-card" id="para-1003-TREAT-RECORD">
+    <h3><a href="#code-para-1003-TREAT-RECORD" style="color:inherit;text-decoration:none;">1003-TREAT-RECORD</a></h3>
+    <p>Routes each transaction type maintenance instruction to the appropriate database operation based on the operation code, ensuring that Add, Update, and Delete requests are correctly applied to the TRANSACTION_TYPE reference table, while comment lines are safely skipped and any unrecognised instruction triggers an immediate abend to protect data integrity.</p>
+    <div class="para-meta"><a href="#code-para-1003-TREAT-RECORD" style="color:inherit;">Lines 109–131</a></div>
+  </div>
+  
+  <div class="para-card" id="para-10031-INSERT-DB">
+    <h3><a href="#code-para-10031-INSERT-DB" style="color:inherit;text-decoration:none;">10031-INSERT-DB</a></h3>
+    <p>Registers a new transaction type code and its business description into the CardDemo reference table, making it available system-wide for transaction classification. Confirms successful registration or abends the program if the database rejects the new entry, protecting the integrity of the reference data.</p>
+    <div class="para-meta"><a href="#code-para-10031-INSERT-DB" style="color:inherit;">Lines 132–165</a></div>
+  </div>
+  
+  <div class="para-card" id="para-10032-UPDATE-DB">
+    <h3><a href="#code-para-10032-UPDATE-DB" style="color:inherit;text-decoration:none;">10032-UPDATE-DB</a></h3>
+    <p>Applies an Update instruction to the TRANSACTION_TYPE reference table by replacing the business description of an existing transaction type code. Validates the outcome and abends with an error if the transaction type code does not exist or a database error occurs.</p>
+    <div class="para-meta"><a href="#code-para-10032-UPDATE-DB" style="color:inherit;">Lines 166–195</a></div>
+  </div>
+  
+  <div class="para-card" id="para-10033-DELETE-DB">
+    <h3><a href="#code-para-10033-DELETE-DB" style="color:inherit;text-decoration:none;">10033-DELETE-DB</a></h3>
+    <p>Removes a transaction type code and its description from the CardDemo reference table, permanently retiring it from the system. Validates the outcome to ensure the deletion was successful, aborting with an error if the code does not exist or a database failure occurs.</p>
+    <div class="para-meta"><a href="#code-para-10033-DELETE-DB" style="color:inherit;">Lines 196–229</a></div>
+  </div>
+  
+  <div class="para-card" id="para-9999-ABEND">
+    <h3><a href="#code-para-9999-ABEND" style="color:inherit;text-decoration:none;">9999-ABEND</a></h3>
+    <p>Terminates the program abnormally when a critical processing error has occurred, surfacing the failure reason and signaling to the job scheduler that the batch run ended in error, preventing any further reference table updates.</p>
+    <div class="para-meta"><a href="#code-para-9999-ABEND" style="color:inherit;">Lines 230–233</a></div>
+  </div>
+  
+  <div class="para-card" id="para-2001-CLOSE-STOP">
+    <h3><a href="#code-para-2001-CLOSE-STOP" style="color:inherit;text-decoration:none;">2001-CLOSE-STOP</a></h3>
+    <p>Finalizes the transaction type maintenance session by releasing the input file after all maintenance instructions have been processed. This ensures the input file is properly closed before the program terminates.</p>
+    <div class="para-meta"><a href="#code-para-2001-CLOSE-STOP" style="color:inherit;">Lines 234–237</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      **************************************** *************************00010032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program:     COBTUPDT.CBL                                      *00020032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Layer:       Business logic                                    *00030032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Function:    Update Transaction type based on user input       *00040032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      ******************************************************************00050032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.                   00060032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.                                            00070032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      *                                                                 00080032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License"). 00090032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.00100032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at                         00110032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      *                                                                 00120032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0                   00130032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *                                                                 00140032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,      00150032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an     00160032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    00170032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific     00180032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License00190032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      ******************************************************************00200032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-empty">                                                                        00210032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.                                         00220032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID. COBTUPDT.                                            00230032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-empty">                                                                        00240032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.                                            00250032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-empty">                                                                        00260032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.                                           00270032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-empty">                                                                        00280032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-code">       INPUT-OUTPUT SECTION.                                            00290032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-code">       FILE-CONTROL.                                                    00300032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-code">           SELECT TR-RECORD ASSIGN TO INPFILE                           00310032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-code">                  ORGANIZATION IS SEQUENTIAL                            00311032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-code">                  ACCESS MODE IS SEQUENTIAL                             00312032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-code">                  FILE STATUS IS WS-INF-STATUS.                         00313032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-empty">                                                                        00314032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.                                                   00315032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-empty">                                                                        00316032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-section-header">       FILE SECTION.                                                    00317032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-code">       FD TR-RECORD RECORDING MODE F.                                   00318032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-variable-declaration">       01 WS-INPUT-VARS.                                                00319032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-TYPE                            PIC X(1)             00320032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00330032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-TR-NUMBER                       PIC X(2)             00340032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00350032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-TR-DESC                         PIC X(50)            00360032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00370032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-empty">                                                                        00380032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.                                         00390032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-empty">                                                                        00400032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-code">            EXEC SQL                                                    00410032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-code">                INCLUDE SQLCA                                           00420032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-code">            END-EXEC                                                    00430032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-empty">                                                                        00440032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-code">            EXEC SQL INCLUDE DCLTRTYP END-EXEC                          00450046</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-empty">                                                                        00451046</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-empty">                                                                        00460032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-variable-declaration">       01 FLAGS.                                                        00470032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-variable-declaration">         05 LASTREC                                PIC X(1)             00480032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00490032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-variable-declaration">       01 WORKING-VARIABLES.                                            00500032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-variable-declaration">         05 WS-RETURN-MSG                          PIC X(80)            00510044</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00520032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-empty">                                                                        00530032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-variable-declaration">       01 WS-MISC-VARS.                                                 00540032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-variable-declaration">         05 WS-VAR-SQLCODE                     PIC ----9.               00550032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-empty">                                                                        00560032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">       01  WS-INF-STATUS.                                               00570032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-variable-declaration">           05  WS-INF-STAT1       PIC X.                                00580032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-variable-declaration">           05  WS-INF-STAT2       PIC X.                                00590032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-empty">                                                                        00590133</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-variable-declaration">       01 WS-INPUT-REC.                                                 00591033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-REC-TYPE                        PIC X(1)             00592033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00593033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-REC-NUMBER                      PIC X(2)             00594033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00595033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-variable-declaration">          05 INPUT-REC-DESC                        PIC X(50)            00596033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-code">                                                   VALUE SPACES.        00597033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-empty">                                                                        00598033</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-empty">                                                                        00600032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.                                              00610032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-empty">                                                                        00620032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">82</td>
+      <td class="code-cell t-paragraph-header">       0001-OPEN-FILES.                                                 00630032</td>
+      <td class="expl-cell">Opens the transaction type maintenance instruction file so the program can begin reading and processing add, update, and delete operations against the reference table. Confirms the file is accessible before any maintenance activity begins, ensuring the program does not proceed without valid input.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">83</td>
+      <td class="code-cell t-statement">           OPEN INPUT TR-RECORD.                                        00640032</td>
+      <td class="expl-cell">Makes the sequential input file containing transaction type maintenance instructions available for reading.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">84</td>
+      <td class="code-cell t-statement">           IF WS-INF-STATUS = '00' THEN                                 00650032</td>
+      <td class="expl-cell">Checks whether the maintenance instruction file was successfully opened and is ready to supply records for processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">85</td>
+      <td class="code-cell t-statement">              DISPLAY 'OPEN FILE OK'                                    00660046</td>
+      <td class="expl-cell">Confirms to the operator that the maintenance instruction file is accessible and processing can safely proceed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">86</td>
+      <td class="code-cell t-statement">           ELSE                                                         00670032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">87</td>
+      <td class="code-cell t-statement">              DISPLAY 'OPEN FILE NOT OK'                                00680046</td>
+      <td class="expl-cell">Alerts the operator that the maintenance instruction file could not be opened, signalling that no transaction type updates will be applied.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">88</td>
+      <td class="code-cell t-statement">           END-IF                                                       00690032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">89</td>
+      <td class="code-cell t-statement">           EXIT.                                                        00700032</td>
+      <td class="expl-cell">Returns control to the main processing routine after the file availability check is complete.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-0001-OPEN-FILES">
+      <td class="ln">90</td>
+      <td class="code-cell t-empty">                                                                        00710032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">91</td>
+      <td class="code-cell t-paragraph-header">       1001-READ-NEXT-RECORDS.                                          00720032</td>
+      <td class="expl-cell">Entry point for the main processing loop that drives all transaction type maintenance activity.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">92</td>
+      <td class="code-cell t-statement">               PERFORM 1002-READ-RECORDS                                00740443</td>
+      <td class="expl-cell">Fetches the first maintenance instruction from the input file to prime the processing cycle before the main loop begins.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">93</td>
+      <td class="code-cell t-statement">            PERFORM UNTIL LASTREC = 'Y'                                 00740543</td>
+      <td class="expl-cell">Continues processing maintenance instructions as long as there are unprocessed records remaining in the input file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">               PERFORM 1003-TREAT-RECORD                                00740743</td>
+      <td class="expl-cell">Applies the current maintenance instruction to the TRANSACTION_TYPE reference table — performing the Add, Update, or Delete as directed by the operation code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">95</td>
+      <td class="code-cell t-statement">               PERFORM 1002-READ-RECORDS                                00740843</td>
+      <td class="expl-cell">Advances to the next maintenance instruction in the input file, ready for the next iteration of the processing loop.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">96</td>
+      <td class="code-cell t-statement">            END-PERFORM.                                                00740943</td>
+      <td class="expl-cell">Marks the end of the sequential processing loop; control exits here once all maintenance instructions have been applied to the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">97</td>
+      <td class="code-cell t-statement">            PERFORM 2001-CLOSE-STOP                                     00742041</td>
+      <td class="expl-cell">Triggers the orderly shutdown of the batch run, closing the input file and finalising the program after all reference table updates are complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">98</td>
+      <td class="code-cell t-statement">            EXIT.                                                       00780032</td>
+      <td class="expl-cell">Returns control from this paragraph back to the calling routine.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1001-READ-NEXT-RECORDS">
+      <td class="ln">99</td>
+      <td class="code-cell t-statement">            STOP RUN.                                                   00790041</td>
+      <td class="expl-cell">Terminates the batch program execution after all transaction type maintenance records have been processed and the program has been shut down cleanly.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">100</td>
+      <td class="code-cell t-paragraph-header">       1002-READ-RECORDS.                                               00840032</td>
+      <td class="expl-cell">Advances to the next transaction type maintenance instruction in the input file, signalling end-of-file when all instructions have been consumed, and logs each active instruction to the operator console for audit visibility.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">101</td>
+      <td class="code-cell t-statement">           READ TR-RECORD NEXT RECORD INTO WS-INPUT-REC                 00850033</td>
+      <td class="expl-cell">Retrieves the next transaction type maintenance instruction (operation code, type code, and description) from the input file into the processing work area.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">102</td>
+      <td class="code-cell t-statement">           AT END MOVE 'Y' TO LASTREC                                   00860032</td>
+      <td class="expl-cell">Marks the end-of-file condition when all maintenance instructions have been read, signalling the main processing loop to stop.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">103</td>
+      <td class="code-cell t-statement">           END-READ.                                                    00870032</td>
+      <td class="expl-cell">Closes the read operation for the current maintenance instruction record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">104</td>
+      <td class="code-cell t-statement">           IF LASTREC NOT EQUAL TO 'Y' THEN                             00870144</td>
+      <td class="expl-cell">Checks whether there are still unprocessed maintenance instructions remaining before attempting to log the current record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">              DISPLAY 'PROCESSING   ' WS-INPUT-REC                      00871044</td>
+      <td class="expl-cell">Writes the full content of the current maintenance instruction to the operator console, providing a real-time audit trail of each transaction type change being applied.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">106</td>
+      <td class="code-cell t-statement">           END-IF.                                                      00872044</td>
+      <td class="expl-cell">Ends the console logging step for active maintenance instructions.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">107</td>
+      <td class="code-cell t-statement">           EXIT.                                                        00880032</td>
+      <td class="expl-cell">Returns control to the main processing loop to handle the retrieved maintenance instruction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1002-READ-RECORDS">
+      <td class="ln">108</td>
+      <td class="code-cell t-empty">                                                                        00890032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">109</td>
+      <td class="code-cell t-paragraph-header">       1003-TREAT-RECORD.                                               00900032</td>
+      <td class="expl-cell">Entry point for processing a single transaction type maintenance instruction read from the input file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">           EVALUATE INPUT-REC-TYPE                                      00910033</td>
+      <td class="expl-cell">Inspects the operation code on the current input record to determine what maintenance action must be performed on the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">111</td>
+      <td class="code-cell t-statement">               WHEN 'A'                                                 00920034</td>
+      <td class="expl-cell">Identifies the instruction as a request to add a new transaction type code and description to the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">112</td>
+      <td class="code-cell t-statement">                   DISPLAY 'ADDING RECORD'                              00921034</td>
+      <td class="expl-cell">Logs to the system output that a new transaction type is being added, providing an audit trail in the batch job log.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">113</td>
+      <td class="code-cell t-statement">                   PERFORM 10031-INSERT-DB                              00930032</td>
+      <td class="expl-cell">Executes the database insert routine to register the new transaction type code and its business description in the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">114</td>
+      <td class="code-cell t-statement">               WHEN 'U'                                                 00940032</td>
+      <td class="expl-cell">Identifies the instruction as a request to update the description of an existing transaction type code in the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">115</td>
+      <td class="code-cell t-statement">                   DISPLAY 'UPDATING RECORD'                            00941034</td>
+      <td class="expl-cell">Logs to the system output that an existing transaction type description is being updated, providing an audit trail in the batch job log.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">116</td>
+      <td class="code-cell t-statement">                   PERFORM 10032-UPDATE-DB                              00950032</td>
+      <td class="expl-cell">Executes the database update routine to replace the business description of the matching transaction type code in the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">               WHEN 'D'                                                 00960032</td>
+      <td class="expl-cell">Identifies the instruction as a request to remove an existing transaction type code and its description from the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">                   DISPLAY 'DELETING RECORD'                            00961034</td>
+      <td class="expl-cell">Logs to the system output that a transaction type is being removed, providing an audit trail in the batch job log.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">                   PERFORM 10033-DELETE-DB                              00970032</td>
+      <td class="expl-cell">Executes the database delete routine to permanently remove the specified transaction type code from the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">               WHEN '*'                                                 00971045</td>
+      <td class="expl-cell">Identifies the instruction as an annotated comment line that carries no maintenance action and should be disregarded.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">121</td>
+      <td class="code-cell t-statement">                   DISPLAY 'IGNORING COMMENTED LINE'                    00972045</td>
+      <td class="expl-cell">Logs to the system output that a comment line is being skipped, confirming the program recognised and intentionally bypassed it.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">               WHEN OTHER                                               00980032</td>
+      <td class="expl-cell">Catches any operation code that is not a recognised maintenance instruction (A, U, D) or comment marker (*).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">                  STRING                                                00990032</td>
+      <td class="expl-cell">Begins composing an error message to explain why processing cannot continue for this unrecognised operation code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">                  'ERROR: TYPE NOT VALID'                               01000041</td>
+      <td class="expl-cell">Specifies the error message text indicating that the operation code found in the input record is not a valid maintenance instruction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">125</td>
+      <td class="code-cell t-statement">                  DELIMITED BY SIZE                                     01020032</td>
+      <td class="expl-cell">Defines that the full fixed-length content of the error message text is used without truncation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">126</td>
+      <td class="code-cell t-statement">                  INTO WS-RETURN-MSG                                    01030032</td>
+      <td class="expl-cell">Stores the composed error message into the program's error message buffer so it can be displayed before the program terminates abnormally.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">127</td>
+      <td class="code-cell t-statement">                  END-STRING                                            01040032</td>
+      <td class="expl-cell">Completes the construction of the error message describing the invalid operation code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    01050032</td>
+      <td class="expl-cell">Triggers the abnormal termination routine, halting the batch job with return code 4 to prevent any further invalid instructions from corrupting the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">           END-EVALUATE.                                                01060032</td>
+      <td class="expl-cell">Closes the operation-code routing logic, ensuring all valid and invalid instruction types have been handled.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">           EXIT.                                                        01070032</td>
+      <td class="expl-cell">Marks the end of this paragraph and returns control to the calling routine to process the next input record.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-1003-TREAT-RECORD">
+      <td class="ln">131</td>
+      <td class="code-cell t-empty">                                                                        01080041</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">132</td>
+      <td class="code-cell t-paragraph-header">       10031-INSERT-DB.                                                 01090032</td>
+      <td class="expl-cell">Entry point for the paragraph that handles adding a new transaction type to the reference table.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">133</td>
+      <td class="code-cell t-comment">      ******************************************************************01100032</td>
+      <td class="expl-cell">Section marker indicating this block performs the database insertion of a new transaction type record.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">134</td>
+      <td class="code-cell t-comment">      * SQL TO INSERT THE RECORD                                        01110032</td>
+      <td class="expl-cell">Documents that this block registers a new transaction type entry into the master reference table.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">135</td>
+      <td class="code-cell t-comment">      ******************************************************************01120032</td>
+      <td class="expl-cell">Closing boundary of the documentation block.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">136</td>
+      <td class="code-cell t-comment">      *                                                                 01130032</td>
+      <td class="expl-cell">Blank separator before the database operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">137</td>
+      <td class="code-cell t-statement">           EXEC SQL                                                     01140032</td>
+      <td class="expl-cell">Initiates the database operation to permanently register the new transaction type in the CardDemo system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">138</td>
+      <td class="code-cell t-statement">                INSERT INTO CARDDEMO.TRANSACTION_TYPE                   01150032</td>
+      <td class="expl-cell">Targets the TRANSACTION_TYPE master reference table where all valid transaction type codes are maintained.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">                (                                                       01160032</td>
+      <td class="expl-cell">Opens the list of fields that will be populated for the new transaction type entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">140</td>
+      <td class="code-cell t-statement">                TR_TYPE,                                                01170032</td>
+      <td class="expl-cell">Specifies that the two-character transaction type code (primary key) will be recorded in the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">                TR_DESCRIPTION                                          01180032</td>
+      <td class="expl-cell">Specifies that the business description of the transaction type will also be stored alongside the code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">                )                                                       01190032</td>
+      <td class="expl-cell">Closes the list of fields to be populated.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">                VALUES                                                  01200032</td>
+      <td class="expl-cell">Introduces the actual data values sourced from the input maintenance file that will be written to the table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">144</td>
+      <td class="code-cell t-statement">                (                                                       01210032</td>
+      <td class="expl-cell">Opens the list of values to be inserted into the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">                :INPUT-REC-NUMBER,                                      01220033</td>
+      <td class="expl-cell">Supplies the two-character transaction type code from the input record as the unique identifier for this new entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">                :INPUT-REC-DESC                                         01230033</td>
+      <td class="expl-cell">Supplies the business description (e.g. 'Purchase', 'Cash Advance') from the input record to label the new transaction type.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">                )                                                       01240032</td>
+      <td class="expl-cell">Closes the list of values being inserted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">           END-EXEC.                                                    01250034</td>
+      <td class="expl-cell">Completes the database registration operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">           MOVE SQLCODE TO WS-VAR-SQLCODE                               01260032</td>
+      <td class="expl-cell">Captures the database outcome code to determine whether the new transaction type was successfully registered.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">150</td>
+      <td class="code-cell t-empty">                                                                        01270032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE                                                01310032</td>
+      <td class="expl-cell">Evaluates the database outcome to decide whether to confirm success or trigger a failure response.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">152</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE = ZERO                                      01320032</td>
+      <td class="expl-cell">Confirms the new transaction type code and description were successfully added to the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">                  DISPLAY 'RECORD INSERTED SUCCESSFULLY'                01330044</td>
+      <td class="expl-cell">Logs a confirmation message indicating the new transaction type is now active in the CardDemo reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE < 0                                         01340032</td>
+      <td class="expl-cell">Detects a database error that prevented the new transaction type from being registered.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">155</td>
+      <td class="code-cell t-statement">                  STRING                                                01350032</td>
+      <td class="expl-cell">Begins composing a descriptive error message to explain why the transaction type could not be added.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">                  'Error accessing:'                                    01360032</td>
+      <td class="expl-cell">Includes a label identifying that the failure occurred while trying to access the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">157</td>
+      <td class="code-cell t-statement">                  ' TRANSACTION_TYPE table. SQLCODE:'                   01370032</td>
+      <td class="expl-cell">Identifies the TRANSACTION_TYPE reference table as the source of the failure and prepares to append the error code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">                  WS-VAR-SQLCODE                                        01380044</td>
+      <td class="expl-cell">Appends the specific database error code to the message so operators can diagnose the root cause of the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">                  DELIMITED BY SIZE                                     01410032</td>
+      <td class="expl-cell">Specifies that each text component is included in full without truncation in the error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">                  INTO WS-RETURN-MSG                                    01420032</td>
+      <td class="expl-cell">Stores the fully assembled error message in the program's error buffer for display before the program stops.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">                  END-STRING                                            01430032</td>
+      <td class="expl-cell">Closes the error message assembly.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">162</td>
+      <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    01440032</td>
+      <td class="expl-cell">Triggers an immediate program abend, halting all further processing to prevent corrupt or partial reference data updates.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">163</td>
+      <td class="code-cell t-statement">           END-EVALUATE                                                 01450032</td>
+      <td class="expl-cell">Closes the outcome evaluation block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">           EXIT.                                                        01460032</td>
+      <td class="expl-cell">Returns control to the calling paragraph after the insertion attempt has been handled.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10031-INSERT-DB">
+      <td class="ln">165</td>
+      <td class="code-cell t-empty">                                                                        01470032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">166</td>
+      <td class="code-cell t-paragraph-header">       10032-UPDATE-DB.                                                 01480032</td>
+      <td class="expl-cell">Entry point for the paragraph that handles Update operations against the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">167</td>
+      <td class="code-cell t-comment">      ******************************************************************01490032</td>
+      <td class="expl-cell">Section marker indicating the database update logic follows.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">168</td>
+      <td class="code-cell t-comment">      * SQL TO UPDATE THE RECORD                                        01500032</td>
+      <td class="expl-cell">Documents that this block modifies an existing record in the TRANSACTION_TYPE reference table.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">169</td>
+      <td class="code-cell t-comment">      ******************************************************************01510032</td>
+      <td class="expl-cell">Closing marker for the section documentation.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">170</td>
+      <td class="code-cell t-comment">      *                                                                 01520032</td>
+      <td class="expl-cell">Blank separator line within the paragraph.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">           EXEC SQL                                                     01522037</td>
+      <td class="expl-cell">Initiates the database operation to modify an existing transaction type entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">                UPDATE CARDDEMO.TRANSACTION_TYPE                        01523040</td>
+      <td class="expl-cell">Targets the TRANSACTION_TYPE reference table in the CardDemo system for the update.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">                   SET TR_DESCRIPTION = :INPUT-REC-DESC                 01524041</td>
+      <td class="expl-cell">Replaces the current business description of the transaction type with the new description provided in the input maintenance file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">                 WHERE TR_TYPE = :INPUT-REC-NUMBER                      01525041</td>
+      <td class="expl-cell">Restricts the update to the specific transaction type code supplied in the input record, ensuring only the intended entry is modified.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">175</td>
+      <td class="code-cell t-statement">           END-EXEC                                                     01526037</td>
+      <td class="expl-cell">Closes the database update instruction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">           MOVE SQLCODE TO WS-VAR-SQLCODE                               01580032</td>
+      <td class="expl-cell">Captures the database return code so the program can determine whether the update succeeded, found no matching record, or encountered an error.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE                                                01630032</td>
+      <td class="expl-cell">Begins evaluation of the database outcome to route processing to the appropriate success or failure handling.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE = ZERO                                      01640032</td>
+      <td class="expl-cell">Confirms the transaction type description was successfully updated in the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">                  DISPLAY 'RECORD UPDATED SUCCESSFULLY'                 01650044</td>
+      <td class="expl-cell">Logs a confirmation message indicating the transaction type record was updated without errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE = +100                                      01660032</td>
+      <td class="expl-cell">Detects that no transaction type record matching the supplied code was found in the reference table, meaning the Update cannot be applied.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">181</td>
+      <td class="code-cell t-statement">                  STRING 'No records found.' DELIMITED BY SIZE          01670041</td>
+      <td class="expl-cell">Prepares an error message stating that no matching transaction type record exists in the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">182</td>
+      <td class="code-cell t-statement">                     INTO WS-RETURN-MSG                                 01680041</td>
+      <td class="expl-cell">Stores the 'no record found' error message in the program's error buffer for display before abend.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">                  END-STRING                                            01690041</td>
+      <td class="expl-cell">Closes the error message construction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">184</td>
+      <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    01700041</td>
+      <td class="expl-cell">Triggers an immediate program abend because attempting to update a non-existent transaction type code would leave the reference table unchanged and signals a data integrity issue in the input file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">185</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE < 0                                         01710032</td>
+      <td class="expl-cell">Detects a negative database error code, indicating a technical failure prevented the update from completing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">                  STRING                                                01711044</td>
+      <td class="expl-cell">Begins constructing a detailed error message identifying the failed database operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">                  'Error accessing:'                                    01712044</td>
+      <td class="expl-cell">Includes a label in the error message indicating a database access failure occurred.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">                  ' TRANSACTION_TYPE table. SQLCODE:'                   01713044</td>
+      <td class="expl-cell">Identifies the TRANSACTION_TYPE reference table as the source of the failure and begins capturing the SQL error code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">189</td>
+      <td class="code-cell t-statement">                  WS-VAR-SQLCODE                                        01714044</td>
+      <td class="expl-cell">Appends the actual SQL error code to the error message so support staff can diagnose the root cause.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">                  DELIMITED BY SIZE                                     01717044</td>
+      <td class="expl-cell">Specifies that the full field length is used when assembling each component of the error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">                  INTO WS-RETURN-MSG                                    01718044</td>
+      <td class="expl-cell">Stores the completed database error message in the error buffer for display before the program abends.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">192</td>
+      <td class="code-cell t-statement">                  END-STRING                                            01719044</td>
+      <td class="expl-cell">Closes the error message construction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">193</td>
+      <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    01719144</td>
+      <td class="expl-cell">Triggers an immediate program abend to prevent further processing after a database error, protecting the integrity of the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">194</td>
+      <td class="code-cell t-statement">           END-EVALUATE                                                 01820032</td>
+      <td class="expl-cell">Closes the outcome evaluation block covering all database result scenarios.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10032-UPDATE-DB">
+      <td class="ln">195</td>
+      <td class="code-cell t-statement">           EXIT.                                                        01830032</td>
+      <td class="expl-cell">Marks the end of the Update processing paragraph and returns control to the calling routine.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">196</td>
+      <td class="code-cell t-paragraph-header">       10033-DELETE-DB.                                                 01850032</td>
+      <td class="expl-cell">Entry point for the transaction type deletion process.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">197</td>
+      <td class="code-cell t-comment">      ******************************************************************01860032</td>
+      <td class="expl-cell">Section marker indicating this block handles the database removal of a transaction type record.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">198</td>
+      <td class="code-cell t-comment">      * SQL TO DELETE THE RECORD                                        01870032</td>
+      <td class="expl-cell">Documents that this section performs the permanent removal of a transaction type entry from the reference table.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">199</td>
+      <td class="code-cell t-comment">      ******************************************************************01880032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">200</td>
+      <td class="code-cell t-comment">      *                                                                 01890032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">201</td>
+      <td class="code-cell t-statement">           EXEC SQL                                                     01900032</td>
+      <td class="expl-cell">Initiates the database operation to retire the transaction type from the CardDemo system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">202</td>
+      <td class="code-cell t-statement">                DELETE FROM CARDDEMO.TRANSACTION_TYPE                   01910032</td>
+      <td class="expl-cell">Targets the master transaction type reference table for the removal operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">                 WHERE TR_TYPE = :INPUT-REC-NUMBER                      01920033</td>
+      <td class="expl-cell">Identifies the specific transaction type code to be retired, matching it by its unique two-character identifier from the input record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">204</td>
+      <td class="code-cell t-statement">           END-EXEC.                                                    01930034</td>
+      <td class="expl-cell">Completes and submits the deletion request to the database.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">205</td>
+      <td class="code-cell t-statement">           MOVE SQLCODE TO WS-VAR-SQLCODE                               01940032</td>
+      <td class="expl-cell">Captures the database outcome code to determine whether the retirement of the transaction type succeeded or failed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">206</td>
+      <td class="code-cell t-empty">                                                                        01950032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">207</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE                                                01990032</td>
+      <td class="expl-cell">Evaluates the database outcome to determine the appropriate business response to the deletion attempt.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">208</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE = ZERO                                      02000032</td>
+      <td class="expl-cell">Confirms the transaction type code was successfully retired from the reference table with no errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">                  DISPLAY 'RECORD DELETED SUCCESSFULLY'                 02010032</td>
+      <td class="expl-cell">Logs a confirmation message that the transaction type has been permanently removed from the CardDemo system.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">210</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE = +100                                      02020032</td>
+      <td class="expl-cell">Identifies the scenario where the transaction type code to be deleted does not exist in the reference table.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">211</td>
+      <td class="code-cell t-statement">               STRING 'No records found.' DELIMITED BY SIZE             02030032</td>
+      <td class="expl-cell">Prepares an error message indicating the requested transaction type code could not be found for deletion.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">212</td>
+      <td class="code-cell t-statement">               INTO WS-RETURN-MSG                                       02040032</td>
+      <td class="expl-cell">Stores the 'record not found' error message in the program's error buffer for display before abend.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">               END-STRING                                               02050032</td>
+      <td class="expl-cell">Completes construction of the not-found error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">214</td>
+      <td class="code-cell t-statement">               PERFORM 9999-ABEND                                       02060032</td>
+      <td class="expl-cell">Halts the program with return code 4 because attempting to delete a non-existent transaction type indicates a data integrity issue in the input file.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">215</td>
+      <td class="code-cell t-empty">                                                                        02070032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">               WHEN SQLCODE < 0                                         02080032</td>
+      <td class="expl-cell">Identifies any database error condition that prevented the transaction type from being removed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">217</td>
+      <td class="code-cell t-statement">                  STRING                                                02090032</td>
+      <td class="expl-cell">Begins constructing a detailed error message identifying the failed database operation for operational support.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">218</td>
+      <td class="code-cell t-statement">                  'Error accessing:'                                    02100032</td>
+      <td class="expl-cell">Includes a label in the error message indicating a database access failure occurred during the deletion.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">                  ' TRANSACTION_TYPE table. SQLCODE:'                   02110032</td>
+      <td class="expl-cell">Specifies in the error message that the TRANSACTION_TYPE reference table was the target of the failed operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">                  WS-VAR-SQLCODE                                        02120032</td>
+      <td class="expl-cell">Appends the specific database error code to the message so support staff can diagnose the root cause of the failure.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">221</td>
+      <td class="code-cell t-statement">                  DELIMITED BY SIZE                                     02150032</td>
+      <td class="expl-cell">Defines the boundary for the error message string construction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">222</td>
+      <td class="code-cell t-statement">                  INTO WS-RETURN-MSG                                    02160032</td>
+      <td class="expl-cell">Stores the fully constructed database error message in the error buffer for display before program termination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">                  END-STRING                                            02170032</td>
+      <td class="expl-cell">Completes construction of the database error message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">                  PERFORM 9999-ABEND                                    02180032</td>
+      <td class="expl-cell">Halts the program with return code 4 to prevent further processing after a database error, protecting reference table integrity.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">           END-EVALUATE                                                 02190032</td>
+      <td class="expl-cell">Closes the outcome evaluation block for the deletion operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">226</td>
+      <td class="code-cell t-statement">           EXIT.                                                        02200032</td>
+      <td class="expl-cell">Marks the end of the deletion paragraph, returning control to the main processing loop.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">227</td>
+      <td class="code-cell t-empty">                                                                        02210032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">228</td>
+      <td class="code-cell t-empty">                                                                        02220032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-10033-DELETE-DB">
+      <td class="ln">229</td>
+      <td class="code-cell t-empty">                                                                        02230032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-9999-ABEND">
+      <td class="ln">230</td>
+      <td class="code-cell t-paragraph-header">       9999-ABEND.                                                      02240032</td>
+      <td class="expl-cell">Terminates the program abnormally when a critical processing error has occurred, surfacing the failure reason and signaling to the job scheduler that the batch run ended in error, preventing any further reference table updates.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">           DISPLAY WS-RETURN-MSG.                                       02250032</td>
+      <td class="expl-cell">Outputs the captured error message to the job log, identifying the exact reason the transaction type maintenance run failed (e.g. invalid operation code, missing record, or database error).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">232</td>
+      <td class="code-cell t-statement">           MOVE 4 TO RETURN-CODE                                        02251044</td>
+      <td class="expl-cell">Sets the batch return code to 4, signaling to the job scheduler and downstream processes that the program ended in failure and that manual investigation or rerun is required.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-9999-ABEND">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           EXIT.                                                        02260032</td>
+      <td class="expl-cell">Exits the error-handling routine, completing the abend sequence and returning control so the program terminates with the failure status set.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-2001-CLOSE-STOP">
+      <td class="ln">234</td>
+      <td class="code-cell t-paragraph-header">       2001-CLOSE-STOP.                                                 02261041</td>
+      <td class="expl-cell">Finalizes the transaction type maintenance session by releasing the input file after all maintenance instructions have been processed. This ensures the input file is properly closed before the program terminates.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2001-CLOSE-STOP">
+      <td class="ln">235</td>
+      <td class="code-cell t-statement">           CLOSE TR-RECORD.                                             02262041</td>
+      <td class="expl-cell">Releases the sequential input file containing transaction type maintenance instructions, signaling that all add, update, and delete operations have been consumed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-2001-CLOSE-STOP">
+      <td class="ln">236</td>
+      <td class="code-cell t-statement">           EXIT.                                                        02264041</td>
+      <td class="expl-cell">Returns control to the calling paragraph, completing the file closure routine and allowing the program to terminate cleanly.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-2001-CLOSE-STOP">
+      <td class="ln">237</td>
+      <td class="code-cell t-empty">                                                                        02270032</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-INPUT-VARS">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-INPUT-VARS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Group record structure that holds the parsed fields from an input maintenance instruction before they are validated and applied to the TRANSACTION_TYPE reference table. Acts as a working staging area for the incoming operation details.</td>
+    </tr>
+    
+    <tr id="var-INPUT-TYPE">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-TYPE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(1)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Working copy of the operation code indicating what maintenance action to perform on the TRANSACTION_TYPE reference table. Valid values are A (Add a new transaction type), U (Update an existing description), D (Delete a transaction type), or * (comment line to be ignored). Any other value triggers an immediate program failure.</td>
+    </tr>
+    
+    <tr id="var-INPUT-TR-NUMBER">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-TR-NUMBER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(2)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Working copy of the two-character transaction type code (primary key) that identifies which transaction type in the TRANSACTION_TYPE reference table is to be added, updated, or deleted. This code is used system-wide in CardDemo to classify and report transactions.</td>
+    </tr>
+    
+    <tr id="var-INPUT-TR-DESC">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-TR-DESC
+        
+        
+      </td>
+      <td class="var-pic">PIC X(50)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Working copy of the human-readable business description (up to 50 characters) associated with a transaction type code, such as 'Purchase', 'Cash Advance', or 'Refund'. Used when adding a new transaction type or updating the description of an existing one.</td>
+    </tr>
+    
+    <tr id="var-FLAGS">
+      <td class="var-level">01</td>
+      <td class="var-name">FLAGS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Group structure holding program control flags that govern the flow of the batch maintenance process.</td>
+    </tr>
+    
+    <tr id="var-LASTREC">
+      <td class="var-level">05</td>
+      <td class="var-name">LASTREC
+        
+        
+      </td>
+      <td class="var-pic">PIC X(1)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: End-of-file indicator for the input maintenance file. When set to 'Y', it signals that all transaction type maintenance instructions have been read and processed, causing the main processing loop to terminate and the program to conclude its batch run.</td>
+    </tr>
+    
+    <tr id="var-WORKING-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WORKING-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Group structure holding general-purpose working variables used during the batch maintenance process.</td>
+    </tr>
+    
+    <tr id="var-WS-RETURN-MSG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-RETURN-MSG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(80)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Error message buffer that captures a plain-language explanation of why a maintenance operation failed (e.g., duplicate transaction type code on Add, missing code on Update/Delete, or SQL error). This message is displayed to operators before the program abends, enabling rapid diagnosis of data or processing issues.</td>
+    </tr>
+    
+    <tr id="var-WS-MISC-VARS">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-MISC-VARS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Group structure holding miscellaneous working variables used to capture and evaluate database operation results during the maintenance run.</td>
+    </tr>
+    
+    <tr id="var-WS-VAR-SQLCODE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-VAR-SQLCODE
+        
+        
+      </td>
+      <td class="var-pic">PIC ----9</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Captured return code from the most recent database operation (Insert, Update, or Delete) against the TRANSACTION_TYPE reference table. A value of zero means success, +100 means the transaction type code was not found (triggering an abend for Update/Delete), and any negative value indicates a database error that immediately halts processing to prevent corrupt or partial updates to the reference table.</td>
+    </tr>
+    
+    <tr id="var-WS-INF-STATUS">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-INF-STATUS
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Two-character file status code returned by the operating system when the input maintenance file is opened. Used to confirm that the sequential input file containing transaction type maintenance instructions is accessible before processing begins; a non-success status prevents the program from running against a missing or unavailable file.</td>
+    </tr>
+    
+    <tr id="var-WS-INF-STAT1">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-INF-STAT1
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: First character of the input file status code, representing the primary category of the file open result (e.g., '0' for successful, '1' for end-of-file condition, '9' for system-specific error). Together with WS-INF-STAT2, it confirms whether the maintenance input file is ready for processing.</td>
+    </tr>
+    
+    <tr id="var-WS-INF-STAT2">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-INF-STAT2
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Second character of the input file status code, providing the specific sub-reason for the file open result. Combined with WS-INF-STAT1, it gives operators and developers the precise file system condition code needed to diagnose why the maintenance input file could not be opened, if applicable.</td>
+    </tr>
+    
+    <tr id="var-WS-INPUT-REC">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-INPUT-REC
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Physical layout of each raw record read from the sequential input maintenance file. Defines how the 53-character input record is structured into its three business components: the operation type, the transaction type code, and the description. This is the direct interface between the input file and the program's processing logic.</td>
+    </tr>
+    
+    <tr id="var-INPUT-REC-TYPE">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-REC-TYPE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(1)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Operation indicator read directly from the input file record specifying what maintenance action to perform on the TRANSACTION_TYPE reference table. Valid values are A (Add a new transaction type), U (Update an existing description), D (Delete a transaction type), or * (comment line to be silently skipped). Any unrecognised value causes an immediate program abend with return code 4.</td>
+    </tr>
+    
+    <tr id="var-INPUT-REC-NUMBER">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-REC-NUMBER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(2)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The two-character transaction type code read directly from the input file record, serving as the unique business identifier (primary key) for the entry in the TRANSACTION_TYPE reference table to be added, updated, or deleted. This code is the key used system-wide in CardDemo to classify every financial transaction.</td>
+    </tr>
+    
+    <tr id="var-INPUT-REC-DESC">
+      <td class="var-level">05</td>
+      <td class="var-name">INPUT-REC-DESC
+        
+        
+      </td>
+      <td class="var-pic">PIC X(50)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The business description (up to 50 characters) of the transaction type read directly from the input file record, such as 'Purchase', 'Cash Advance', or 'Refund'. Populated into the TRANSACTION_TYPE reference table when adding a new transaction type or replacing the description of an existing one during an Update operation.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/app-transaction-type-db2/cbl/COBTUPDT.cbl
+  </footer>
+
+</main>
+</body>
+</html>

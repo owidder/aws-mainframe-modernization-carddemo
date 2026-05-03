@@ -549,7 +549,93 @@ Important:
     return all_vars
 
 # ---------------------------------------------------------------------------
-# Phase 3: Explain paragraphs in business terms (with copybook and CALL context)
+# Phase 3a: Annotate IDENTIFICATION / ENVIRONMENT / DATA DIVISION lines
+# ---------------------------------------------------------------------------
+
+def explain_prelude_lines(struct: dict, program_name: str,
+                          biz: dict, ctx: dict, model: str) -> dict:
+    """
+    Annotates lines in IDENTIFICATION, ENVIRONMENT, and DATA DIVISION —
+    and any PROCEDURE DIVISION lines that appear before the first named paragraph.
+    These are never reached by explain_paragraph(), which only processes paragraphs.
+    """
+    prelude: list[dict] = []
+    for line in struct['lines']:
+        div  = line.get('division')
+        para = line.get('paragraph')
+        typ  = line.get('type', '')
+        if typ in ('empty', 'comment'):
+            continue
+        if div in ('IDENTIFICATION', 'ENVIRONMENT', 'DATA'):
+            prelude.append(line)
+        elif div == 'PROCEDURE' and para is None:
+            prelude.append(line)
+
+    if not prelude:
+        return {}
+
+    biz_ctx = f"""Program "{program_name}": {biz.get('purpose', '')}
+Process: {biz.get('process_description', '')}
+Files: {json.dumps(biz.get('files', {}), ensure_ascii=False)}
+Business rules: {json.dumps(biz.get('business_rules', []), ensure_ascii=False)}"""
+
+    copybook_brief = _format_copybook_content(ctx.get("copybooks", {}),
+                                              max_per_cb=800, max_total=3000)
+
+    all_expl: dict[str, str] = {}
+    chunk_size = 60
+
+    for start in range(0, len(prelude), chunk_size):
+        chunk = prelude[start:start + chunk_size]
+        code_block = '\n'.join(f'{l["number"]:4d}  {l["code"]}' for l in chunk)
+
+        prompt = f"""You are a Business Analyst documenting COBOL code for a bank.
+
+PROGRAM BUSINESS CONTEXT:
+{biz_ctx}
+
+{copybook_brief + chr(10) if copybook_brief else ""}
+TASK: Explain these COBOL IDENTIFICATION / ENVIRONMENT / DATA DIVISION lines in business terms.
+Focus on what each line means for the business process, NOT the COBOL syntax.
+
+CRITICAL RULE — Describe business purpose, never echo field/variable names:
+- BAD:  "Declares FD-ACCT-ID as PIC 9(11)"
+- GOOD: "Uniquely identifies each account record in the master file"
+- BAD:  "SELECT ACCTFILE-FILE ASSIGN TO ACCTFILE"
+- GOOD: "Links the program to the account master file that holds all customer account data"
+- BAD:  "ORGANIZATION IS INDEXED"
+- GOOD: "The account file is keyed by account number for direct lookup"
+- BAD:  "FILE STATUS IS ACCTFILE-STATUS"
+- GOOD: "Captures whether the last file operation succeeded or failed"
+- NEVER mention COBOL keywords, PIC clauses, variable names, or level numbers in the explanation
+
+COBOL code:
+```
+{code_block}
+```
+
+Reply ONLY with a JSON object mapping line numbers (as strings) to business explanations (all text in English):
+{{
+  "22": "Marks the start of the program's identity and metadata section",
+  "29": "Links the program to the account master file that holds all customer account records"
+}}
+
+Rules:
+- Explain every non-trivial line (division/section headers, SELECT, FD records, key field declarations, COPY statements, main PROCEDURE DIVISION logic)
+- Skip pure boilerplate with no business meaning: ACCESS MODE IS SEQUENTIAL, USAGE IS COMP-3, FILLER fields, continuation lines that are part of a previous statement
+- Group FD record field explanations: each output field name should be described by what data it carries
+- Keep explanations under 150 characters
+- Line numbers as strings"""
+
+        result = call_claude_json(prompt, model)
+        if isinstance(result, dict):
+            all_expl.update({str(k): v for k, v in result.items()})
+
+    return all_expl
+
+
+# ---------------------------------------------------------------------------
+# Phase 3b: Explain paragraphs in business terms (with copybook and CALL context)
 # ---------------------------------------------------------------------------
 
 def explain_paragraph(para: dict, program_name: str,
@@ -580,16 +666,20 @@ PROGRAM BUSINESS CONTEXT:
 {ctx_block + chr(10) if ctx_block else ""}
 TASK: Explain the COBOL paragraph "{para['name']}" from a BUSINESS PROCESS perspective.
 
-Rules for good explanations:
-- NOT: "Reads the next record from the file"
-- YES: "Loads the account master record of the card holder to check credit limit and balance"
-- NOT: "MOVE X TO Y copies the variable"
-- YES: "Transfers the transaction number into the posting record for the output file"
-- NOT: "IF condition checks the value"
-- YES: "Checks whether the account's transaction limit has been exceeded"
-- Comment lines: Explain their business content, not that it is a comment
+CRITICAL RULE — Variable names must be explained by their business meaning, never echoed back:
+- BAD:  "Moves the card's active status into OUT-ACCT-ACTIVE-STATUS"
+- GOOD: "Copies the account's active/inactive status flag into the output record for reporting"
+- BAD:  "Sets WS-VALIDATION-FAIL-REASON to 101"
+- GOOD: "Marks the transaction as rejected because the card number was not found in the cross-reference file"
+- BAD:  "MOVE ACCT-CURR-BAL TO OUT-ACCT-CURR-BAL"
+- GOOD: "Transfers the current outstanding balance to the output report record"
+
+More rules:
+- NEVER mention variable names in the explanation — describe what the data means in business terms
+- NOT: "Reads the next record from the file" → YES: "Reads the next account from the master file to process its balance"
+- NOT: "IF condition checks the value" → YES: "Checks whether the credit limit has been exceeded"
 - EXEC CICS: Explain the business action, not the CICS command
-- CALL statements: Explain what the called program does in business terms (context above)
+- CALL statements: Explain what the called program does in business terms
 
 COBOL code:
 ```
@@ -600,7 +690,7 @@ Reply ONLY with this JSON (all text in English):
 {{
   "description": "1-2 sentences: What is the business purpose of this paragraph?",
   "line_explanations": {{
-    "<line number as string>": "<business explanation, max 150 chars>",
+    "<line number as string>": "<business explanation without variable names, max 150 chars>",
     "<line number as string>": "<business explanation>"
   }}
 }}
@@ -652,10 +742,14 @@ def analyze_file(cobol_path: Path, output_dir: Path,
     print(f'    Variables ({n_vars} declarations)...')
     variables = explain_variables(struct['divisions']['DATA'], program_name, biz, ctx, model)
 
+    # 4b. Annotate IDENTIFICATION / ENVIRONMENT / DATA DIVISION lines
+    print(f'    Prelude sections (IDENTIFICATION / ENVIRONMENT / DATA)...')
+    prelude_expl = explain_prelude_lines(struct, program_name, biz, ctx, model)
+
     # 5. Explain paragraphs in business terms
     para_details = struct['paragraph_details']
     print(f'    Paragraphs ({len(para_details)} total)...')
-    all_line_expl: dict[str, str] = {}
+    all_line_expl: dict[str, str] = dict(prelude_expl)
     para_descriptions: dict[str, str] = {}
 
     for para in para_details:
@@ -689,6 +783,7 @@ def analyze_file(cobol_path: Path, output_dir: Path,
             'module':              biz.get('module', ''),
             'files':               biz.get('files', {}),
             'business_rules':      biz.get('business_rules', []),
+            'prelude_annotated':   True,   # IDENTIFICATION/ENVIRONMENT/DATA lines annotated
             'index_context': {
                 'copybooks_resolved': list(ctx['copybooks'].keys()),
                 'programs_resolved':  list(ctx['called_programs'].keys()),
@@ -707,20 +802,103 @@ def analyze_file(cobol_path: Path, output_dir: Path,
     return output_path
 
 # ---------------------------------------------------------------------------
+# Patch mode: add prelude annotations to an existing JSON (no full re-analysis)
+# ---------------------------------------------------------------------------
+
+def needs_prelude_patch(json_path: Path) -> bool:
+    """Returns True if the JSON was analysed before explain_prelude_lines() was added."""
+    try:
+        doc = json.loads(json_path.read_text(encoding='utf-8'))
+        return not doc.get('meta', {}).get('prelude_annotated', False)
+    except Exception:
+        return True
+
+
+def patch_prelude(cobol_path: Path, output_dir: Path, model: str = DEFAULT_MODEL) -> Path:
+    """
+    Adds IDENTIFICATION / ENVIRONMENT / DATA DIVISION line annotations to an
+    existing JSON without re-running the full analysis pipeline.
+    Skips programs that are already fully annotated.
+    """
+    output_path = output_dir / f'{cobol_path.stem.upper()}.json'
+    if not output_path.exists():
+        print(f'  [Skip] No JSON found: {output_path.name}')
+        return output_path
+
+    if not needs_prelude_patch(output_path):
+        print(f'  {output_path.name}  → already annotated, nothing to do')
+        return output_path
+
+    print(f'  Patching prelude: {cobol_path.name}')
+    doc          = json.loads(output_path.read_text(encoding='utf-8'))
+    content      = cobol_path.read_text(encoding='utf-8', errors='replace')
+    program_name = cobol_path.stem.upper()
+
+    # Re-parse structure (needed for explain_prelude_lines)
+    struct = parse_cobol_structure(content)
+
+    # Reconstruct biz context from existing JSON meta (avoids costly Phase 1 API call)
+    biz = {
+        'purpose':             doc['meta'].get('description', ''),
+        'process_description': doc['meta'].get('process_description', ''),
+        'files':               doc['meta'].get('files', {}),
+        'business_rules':      doc['meta'].get('business_rules', []),
+        'variables':           {},
+    }
+
+    # Load copybook context from Qdrant (cheap, no LLM call)
+    rel_path = str(cobol_path.resolve().relative_to(REPO_ROOT))
+    ctx = gather_index_context(content, struct['copybooks'], rel_path, output_dir)
+
+    # Run prelude annotation
+    prelude_expl = explain_prelude_lines(struct, program_name, biz, ctx, model)
+
+    # Merge: only fill in lines that are currently empty
+    expl_lookup = {str(l['number']): l['explanation'] for l in doc['lines']}
+    for lineno, expl in prelude_expl.items():
+        if not expl_lookup.get(lineno):
+            expl_lookup[lineno] = expl
+
+    for l in doc['lines']:
+        if not l['explanation']:
+            l['explanation'] = expl_lookup.get(str(l['number']), '')
+
+    doc['meta']['prelude_annotated'] = True
+    output_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding='utf-8')
+    n_added = sum(1 for v in prelude_expl.values() if v)
+    print(f'    → {output_path.name}  ({n_added} annotations added)')
+    return output_path
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('cobol_file',   type=Path)
-    parser.add_argument('--output-dir', type=Path, default=Path(__file__).parent.parent / 'data')
-    parser.add_argument('--model',      default=DEFAULT_MODEL)
-    parser.add_argument('--force',      action='store_true')
+    parser = argparse.ArgumentParser(
+        description='Analyse a COBOL file and save documentation as JSON.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Modes:
+  (default)        Full analysis: business context + variables + paragraphs + prelude
+  --force          Re-analyse even if JSON already exists
+  --patch-prelude  Add prelude annotations (IDENTIFICATION/ENVIRONMENT/DATA DIVISION)
+                   to an existing JSON without running the full analysis again
+""")
+    parser.add_argument('cobol_file',      type=Path)
+    parser.add_argument('--output-dir',    type=Path, default=Path(__file__).parent.parent / 'data')
+    parser.add_argument('--model',         default=DEFAULT_MODEL)
+    parser.add_argument('--force',         action='store_true', help='Force re-analysis even if JSON exists')
+    parser.add_argument('--patch-prelude', action='store_true', help='Only add prelude annotations to existing JSON')
     args = parser.parse_args()
 
     if not args.cobol_file.exists():
-        print(f'Fehler: {args.cobol_file} nicht gefunden', file=sys.stderr)
+        print(f'Error: {args.cobol_file} not found', file=sys.stderr)
         sys.exit(1)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    analyze_file(args.cobol_file, args.output_dir, model=args.model, force=args.force)
+
+    if args.patch_prelude:
+        patch_prelude(args.cobol_file, args.output_dir, model=args.model)
+    else:
+        analyze_file(args.cobol_file, args.output_dir, model=args.model, force=args.force)

@@ -1,0 +1,2398 @@
+{
+  "meta": {
+    "program_name": "COBTUPDT",
+    "file_path": "app/app-transaction-type-db2/cbl/COBTUPDT.cbl",
+    "analyzed_at": "2026-05-02T18:52:10.926169",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Batch utility program that maintains the Transaction Type reference table by processing a sequential input file to add, update, or delete transaction type codes and their descriptions.",
+    "process_description": "COBTUPDT reads a sequential input file containing transaction type maintenance instructions and applies each record to the CARDDEMO.TRANSACTION_TYPE database table. Each input record carries an operation code (A=Add, U=Update, D=Delete) along with a two-character transaction type code and a 50-character description. The program processes all records sequentially until end-of-file, performing the corresponding database operation for each valid instruction. Any invalid operation code, missing record, or database error causes the program to abend with return code 4 and an error message, ensuring data integrity of the reference table.",
+    "type": "Batch",
+    "module": "Transaction",
+    "files": {
+      "INPFILE": "Sequential input file containing transaction type maintenance instructions (add, update, delete) to be applied to the reference table",
+      "TRANSACTION_TYPE": "Database reference table holding the master list of valid transaction type codes and their business descriptions used across the CardDemo system"
+    },
+    "business_rules": [
+      "Only three operation types are valid: A (Add), U (Update), D (Delete); any other value except the comment marker (*) causes an immediate abend with return code 4.",
+      "Lines prefixed with '*' are treated as comments and are silently ignored, allowing annotated input files.",
+      "A transaction type code (TR_TYPE) must already exist in the reference table for Update and Delete operations; if no matching record is found (SQLCODE +100), the program abends rather than silently continuing.",
+      "Any negative SQL error code on any database operation (Insert, Update, or Delete) causes an immediate abend, preventing partial or corrupt updates to the reference table.",
+      "The program processes records strictly sequentially with no rollback mechanism, meaning records processed before a failure are permanently committed to the database.",
+      "The transaction type code is exactly 2 characters and the description is capped at 50 characters, enforcing the data standards of the TRANSACTION_TYPE reference table.",
+      "This is a reference data maintenance program; changes to the TRANSACTION_TYPE table affect how transactions are classified and reported across the entire CardDemo system."
+    ],
+    "index_context": {
+      "copybooks_resolved": [],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COTRTUPC",
+        "CBACT01C",
+        "COTRTLIC"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      **************************************** *************************00010032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program:     COBTUPDT.CBL                                      *00020032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Layer:       Business logic                                    *00030032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Function:    Update Transaction type based on user input       *00040032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      ******************************************************************00050032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.                   00060032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * All Rights Reserved.                                            00070032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      *                                                                 00080032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\"). 00090032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * You may not use this file except in compliance with the License.00100032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may obtain a copy of the License at                         00110032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      *                                                                 00120032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0                   00130032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *                                                                 00140032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      * Unless required by applicable law or agreed to in writing,      00150032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * software distributed under the License is distributed on an     00160032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    00170032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * either express or implied. See the License for the specific     00180032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * language governing permissions and limitations under the License00190032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      ******************************************************************00200032",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "                                                                        00210032",
+      "type": "empty",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.                                         00220032",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COBTUPDT.                                            00230032",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "                                                                        00240032",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "       ENVIRONMENT DIVISION.                                            00250032",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "                                                                        00260032",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.                                           00270032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "                                                                        00280032",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       INPUT-OUTPUT SECTION.                                            00290032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "       FILE-CONTROL.                                                    00300032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "           SELECT TR-RECORD ASSIGN TO INPFILE                           00310032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  ORGANIZATION IS SEQUENTIAL                            00311032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "                  ACCESS MODE IS SEQUENTIAL                             00312032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "                  FILE STATUS IS WS-INF-STATUS.                         00313032",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "                                                                        00314032",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "       DATA DIVISION.                                                   00315032",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "                                                                        00316032",
+      "type": "empty",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "       FILE SECTION.                                                    00317032",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "       FD TR-RECORD RECORDING MODE F.                                   00318032",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "       01 WS-INPUT-VARS.                                                00319032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "          05 INPUT-TYPE                            PIC X(1)             00320032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "                                                   VALUE SPACES.        00330032",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "          05 INPUT-TR-NUMBER                       PIC X(2)             00340032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "                                                   VALUE SPACES.        00350032",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "          05 INPUT-TR-DESC                         PIC X(50)            00360032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "                                                   VALUE SPACES.        00370032",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "                                                                        00380032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "       WORKING-STORAGE SECTION.                                         00390032",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "                                                                        00400032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "            EXEC SQL                                                    00410032",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "                INCLUDE SQLCA                                           00420032",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "            END-EXEC                                                    00430032",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "                                                                        00440032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "            EXEC SQL INCLUDE DCLTRTYP END-EXEC                          00450046",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "                                                                        00451046",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "                                                                        00460032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       01 FLAGS.                                                        00470032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "         05 LASTREC                                PIC X(1)             00480032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "                                                   VALUE SPACES.        00490032",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "       01 WORKING-VARIABLES.                                            00500032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "         05 WS-RETURN-MSG                          PIC X(80)            00510044",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "                                                   VALUE SPACES.        00520032",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "                                                                        00530032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "       01 WS-MISC-VARS.                                                 00540032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "         05 WS-VAR-SQLCODE                     PIC ----9.               00550032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "                                                                        00560032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  WS-INF-STATUS.                                               00570032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "           05  WS-INF-STAT1       PIC X.                                00580032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "           05  WS-INF-STAT2       PIC X.                                00590032",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "                                                                        00590133",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "       01 WS-INPUT-REC.                                                 00591033",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "          05 INPUT-REC-TYPE                        PIC X(1)             00592033",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "                                                   VALUE SPACES.        00593033",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "          05 INPUT-REC-NUMBER                      PIC X(2)             00594033",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "                                                   VALUE SPACES.        00595033",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "          05 INPUT-REC-DESC                        PIC X(50)            00596033",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "                                                   VALUE SPACES.        00597033",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "                                                                        00598033",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "                                                                        00600032",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "       PROCEDURE DIVISION.                                              00610032",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "                                                                        00620032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "       0001-OPEN-FILES.                                                 00630032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Opens the transaction type maintenance instruction file so the program can begin reading and processing add, update, and delete operations against the reference table. Confirms the file is accessible before any maintenance activity begins, ensuring the program does not proceed without valid input."
+    },
+    {
+      "number": 83,
+      "code": "           OPEN INPUT TR-RECORD.                                        00640032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Makes the sequential input file containing transaction type maintenance instructions available for reading."
+    },
+    {
+      "number": 84,
+      "code": "           IF WS-INF-STATUS = '00' THEN                                 00650032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Checks whether the maintenance instruction file was successfully opened and is ready to supply records for processing."
+    },
+    {
+      "number": 85,
+      "code": "              DISPLAY 'OPEN FILE OK'                                    00660046",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Confirms to the operator that the maintenance instruction file is accessible and processing can safely proceed."
+    },
+    {
+      "number": 86,
+      "code": "           ELSE                                                         00670032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "              DISPLAY 'OPEN FILE NOT OK'                                00680046",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Alerts the operator that the maintenance instruction file could not be opened, signalling that no transaction type updates will be applied."
+    },
+    {
+      "number": 88,
+      "code": "           END-IF                                                       00690032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "           EXIT.                                                        00700032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": "Returns control to the main processing routine after the file availability check is complete."
+    },
+    {
+      "number": 90,
+      "code": "                                                                        00710032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0001-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "       1001-READ-NEXT-RECORDS.                                          00720032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Entry point for the main processing loop that drives all transaction type maintenance activity."
+    },
+    {
+      "number": 92,
+      "code": "               PERFORM 1002-READ-RECORDS                                00740443",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Fetches the first maintenance instruction from the input file to prime the processing cycle before the main loop begins."
+    },
+    {
+      "number": 93,
+      "code": "            PERFORM UNTIL LASTREC = 'Y'                                 00740543",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Continues processing maintenance instructions as long as there are unprocessed records remaining in the input file."
+    },
+    {
+      "number": 94,
+      "code": "               PERFORM 1003-TREAT-RECORD                                00740743",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Applies the current maintenance instruction to the TRANSACTION_TYPE reference table — performing the Add, Update, or Delete as directed by the operation code."
+    },
+    {
+      "number": 95,
+      "code": "               PERFORM 1002-READ-RECORDS                                00740843",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Advances to the next maintenance instruction in the input file, ready for the next iteration of the processing loop."
+    },
+    {
+      "number": 96,
+      "code": "            END-PERFORM.                                                00740943",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Marks the end of the sequential processing loop; control exits here once all maintenance instructions have been applied to the reference table."
+    },
+    {
+      "number": 97,
+      "code": "            PERFORM 2001-CLOSE-STOP                                     00742041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Triggers the orderly shutdown of the batch run, closing the input file and finalising the program after all reference table updates are complete."
+    },
+    {
+      "number": 98,
+      "code": "            EXIT.                                                       00780032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Returns control from this paragraph back to the calling routine."
+    },
+    {
+      "number": 99,
+      "code": "            STOP RUN.                                                   00790041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1001-READ-NEXT-RECORDS",
+      "explanation": "Terminates the batch program execution after all transaction type maintenance records have been processed and the program has been shut down cleanly."
+    },
+    {
+      "number": 100,
+      "code": "       1002-READ-RECORDS.                                               00840032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Advances to the next transaction type maintenance instruction in the input file, signalling end-of-file when all instructions have been consumed, and logs each active instruction to the operator console for audit visibility."
+    },
+    {
+      "number": 101,
+      "code": "           READ TR-RECORD NEXT RECORD INTO WS-INPUT-REC                 00850033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Retrieves the next transaction type maintenance instruction (operation code, type code, and description) from the input file into the processing work area."
+    },
+    {
+      "number": 102,
+      "code": "           AT END MOVE 'Y' TO LASTREC                                   00860032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Marks the end-of-file condition when all maintenance instructions have been read, signalling the main processing loop to stop."
+    },
+    {
+      "number": 103,
+      "code": "           END-READ.                                                    00870032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Closes the read operation for the current maintenance instruction record."
+    },
+    {
+      "number": 104,
+      "code": "           IF LASTREC NOT EQUAL TO 'Y' THEN                             00870144",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Checks whether there are still unprocessed maintenance instructions remaining before attempting to log the current record."
+    },
+    {
+      "number": 105,
+      "code": "              DISPLAY 'PROCESSING   ' WS-INPUT-REC                      00871044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Writes the full content of the current maintenance instruction to the operator console, providing a real-time audit trail of each transaction type change being applied."
+    },
+    {
+      "number": 106,
+      "code": "           END-IF.                                                      00872044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Ends the console logging step for active maintenance instructions."
+    },
+    {
+      "number": 107,
+      "code": "           EXIT.                                                        00880032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": "Returns control to the main processing loop to handle the retrieved maintenance instruction."
+    },
+    {
+      "number": 108,
+      "code": "                                                                        00890032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1002-READ-RECORDS",
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "       1003-TREAT-RECORD.                                               00900032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Entry point for processing a single transaction type maintenance instruction read from the input file."
+    },
+    {
+      "number": 110,
+      "code": "           EVALUATE INPUT-REC-TYPE                                      00910033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Inspects the operation code on the current input record to determine what maintenance action must be performed on the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 111,
+      "code": "               WHEN 'A'                                                 00920034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Identifies the instruction as a request to add a new transaction type code and description to the reference table."
+    },
+    {
+      "number": 112,
+      "code": "                   DISPLAY 'ADDING RECORD'                              00921034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Logs to the system output that a new transaction type is being added, providing an audit trail in the batch job log."
+    },
+    {
+      "number": 113,
+      "code": "                   PERFORM 10031-INSERT-DB                              00930032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Executes the database insert routine to register the new transaction type code and its business description in the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 114,
+      "code": "               WHEN 'U'                                                 00940032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Identifies the instruction as a request to update the description of an existing transaction type code in the reference table."
+    },
+    {
+      "number": 115,
+      "code": "                   DISPLAY 'UPDATING RECORD'                            00941034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Logs to the system output that an existing transaction type description is being updated, providing an audit trail in the batch job log."
+    },
+    {
+      "number": 116,
+      "code": "                   PERFORM 10032-UPDATE-DB                              00950032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Executes the database update routine to replace the business description of the matching transaction type code in the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 117,
+      "code": "               WHEN 'D'                                                 00960032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Identifies the instruction as a request to remove an existing transaction type code and its description from the reference table."
+    },
+    {
+      "number": 118,
+      "code": "                   DISPLAY 'DELETING RECORD'                            00961034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Logs to the system output that a transaction type is being removed, providing an audit trail in the batch job log."
+    },
+    {
+      "number": 119,
+      "code": "                   PERFORM 10033-DELETE-DB                              00970032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Executes the database delete routine to permanently remove the specified transaction type code from the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 120,
+      "code": "               WHEN '*'                                                 00971045",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Identifies the instruction as an annotated comment line that carries no maintenance action and should be disregarded."
+    },
+    {
+      "number": 121,
+      "code": "                   DISPLAY 'IGNORING COMMENTED LINE'                    00972045",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Logs to the system output that a comment line is being skipped, confirming the program recognised and intentionally bypassed it."
+    },
+    {
+      "number": 122,
+      "code": "               WHEN OTHER                                               00980032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Catches any operation code that is not a recognised maintenance instruction (A, U, D) or comment marker (*)."
+    },
+    {
+      "number": 123,
+      "code": "                  STRING                                                00990032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Begins composing an error message to explain why processing cannot continue for this unrecognised operation code."
+    },
+    {
+      "number": 124,
+      "code": "                  'ERROR: TYPE NOT VALID'                               01000041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Specifies the error message text indicating that the operation code found in the input record is not a valid maintenance instruction."
+    },
+    {
+      "number": 125,
+      "code": "                  DELIMITED BY SIZE                                     01020032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Defines that the full fixed-length content of the error message text is used without truncation."
+    },
+    {
+      "number": 126,
+      "code": "                  INTO WS-RETURN-MSG                                    01030032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Stores the composed error message into the program's error message buffer so it can be displayed before the program terminates abnormally."
+    },
+    {
+      "number": 127,
+      "code": "                  END-STRING                                            01040032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Completes the construction of the error message describing the invalid operation code."
+    },
+    {
+      "number": 128,
+      "code": "                  PERFORM 9999-ABEND                                    01050032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Triggers the abnormal termination routine, halting the batch job with return code 4 to prevent any further invalid instructions from corrupting the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 129,
+      "code": "           END-EVALUATE.                                                01060032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Closes the operation-code routing logic, ensuring all valid and invalid instruction types have been handled."
+    },
+    {
+      "number": 130,
+      "code": "           EXIT.                                                        01070032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine to process the next input record."
+    },
+    {
+      "number": 131,
+      "code": "                                                                        01080041",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1003-TREAT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "       10031-INSERT-DB.                                                 01090032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Entry point for the paragraph that handles adding a new transaction type to the reference table."
+    },
+    {
+      "number": 133,
+      "code": "      ******************************************************************01100032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Section marker indicating this block performs the database insertion of a new transaction type record."
+    },
+    {
+      "number": 134,
+      "code": "      * SQL TO INSERT THE RECORD                                        01110032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Documents that this block registers a new transaction type entry into the master reference table."
+    },
+    {
+      "number": 135,
+      "code": "      ******************************************************************01120032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Closing boundary of the documentation block."
+    },
+    {
+      "number": 136,
+      "code": "      *                                                                 01130032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Blank separator before the database operation."
+    },
+    {
+      "number": 137,
+      "code": "           EXEC SQL                                                     01140032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Initiates the database operation to permanently register the new transaction type in the CardDemo system."
+    },
+    {
+      "number": 138,
+      "code": "                INSERT INTO CARDDEMO.TRANSACTION_TYPE                   01150032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Targets the TRANSACTION_TYPE master reference table where all valid transaction type codes are maintained."
+    },
+    {
+      "number": 139,
+      "code": "                (                                                       01160032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Opens the list of fields that will be populated for the new transaction type entry."
+    },
+    {
+      "number": 140,
+      "code": "                TR_TYPE,                                                01170032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Specifies that the two-character transaction type code (primary key) will be recorded in the reference table."
+    },
+    {
+      "number": 141,
+      "code": "                TR_DESCRIPTION                                          01180032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Specifies that the business description of the transaction type will also be stored alongside the code."
+    },
+    {
+      "number": 142,
+      "code": "                )                                                       01190032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Closes the list of fields to be populated."
+    },
+    {
+      "number": 143,
+      "code": "                VALUES                                                  01200032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Introduces the actual data values sourced from the input maintenance file that will be written to the table."
+    },
+    {
+      "number": 144,
+      "code": "                (                                                       01210032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Opens the list of values to be inserted into the reference table."
+    },
+    {
+      "number": 145,
+      "code": "                :INPUT-REC-NUMBER,                                      01220033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Supplies the two-character transaction type code from the input record as the unique identifier for this new entry."
+    },
+    {
+      "number": 146,
+      "code": "                :INPUT-REC-DESC                                         01230033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Supplies the business description (e.g. 'Purchase', 'Cash Advance') from the input record to label the new transaction type."
+    },
+    {
+      "number": 147,
+      "code": "                )                                                       01240032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Closes the list of values being inserted."
+    },
+    {
+      "number": 148,
+      "code": "           END-EXEC.                                                    01250034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Completes the database registration operation."
+    },
+    {
+      "number": 149,
+      "code": "           MOVE SQLCODE TO WS-VAR-SQLCODE                               01260032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Captures the database outcome code to determine whether the new transaction type was successfully registered."
+    },
+    {
+      "number": 150,
+      "code": "                                                                        01270032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "           EVALUATE TRUE                                                01310032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Evaluates the database outcome to decide whether to confirm success or trigger a failure response."
+    },
+    {
+      "number": 152,
+      "code": "               WHEN SQLCODE = ZERO                                      01320032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Confirms the new transaction type code and description were successfully added to the reference table."
+    },
+    {
+      "number": 153,
+      "code": "                  DISPLAY 'RECORD INSERTED SUCCESSFULLY'                01330044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Logs a confirmation message indicating the new transaction type is now active in the CardDemo reference table."
+    },
+    {
+      "number": 154,
+      "code": "               WHEN SQLCODE < 0                                         01340032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Detects a database error that prevented the new transaction type from being registered."
+    },
+    {
+      "number": 155,
+      "code": "                  STRING                                                01350032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Begins composing a descriptive error message to explain why the transaction type could not be added."
+    },
+    {
+      "number": 156,
+      "code": "                  'Error accessing:'                                    01360032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Includes a label identifying that the failure occurred while trying to access the reference table."
+    },
+    {
+      "number": 157,
+      "code": "                  ' TRANSACTION_TYPE table. SQLCODE:'                   01370032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Identifies the TRANSACTION_TYPE reference table as the source of the failure and prepares to append the error code."
+    },
+    {
+      "number": 158,
+      "code": "                  WS-VAR-SQLCODE                                        01380044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Appends the specific database error code to the message so operators can diagnose the root cause of the failure."
+    },
+    {
+      "number": 159,
+      "code": "                  DELIMITED BY SIZE                                     01410032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Specifies that each text component is included in full without truncation in the error message."
+    },
+    {
+      "number": 160,
+      "code": "                  INTO WS-RETURN-MSG                                    01420032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Stores the fully assembled error message in the program's error buffer for display before the program stops."
+    },
+    {
+      "number": 161,
+      "code": "                  END-STRING                                            01430032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Closes the error message assembly."
+    },
+    {
+      "number": 162,
+      "code": "                  PERFORM 9999-ABEND                                    01440032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Triggers an immediate program abend, halting all further processing to prevent corrupt or partial reference data updates."
+    },
+    {
+      "number": 163,
+      "code": "           END-EVALUATE                                                 01450032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Closes the outcome evaluation block."
+    },
+    {
+      "number": 164,
+      "code": "           EXIT.                                                        01460032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": "Returns control to the calling paragraph after the insertion attempt has been handled."
+    },
+    {
+      "number": 165,
+      "code": "                                                                        01470032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10031-INSERT-DB",
+      "explanation": ""
+    },
+    {
+      "number": 166,
+      "code": "       10032-UPDATE-DB.                                                 01480032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Entry point for the paragraph that handles Update operations against the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 167,
+      "code": "      ******************************************************************01490032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Section marker indicating the database update logic follows."
+    },
+    {
+      "number": 168,
+      "code": "      * SQL TO UPDATE THE RECORD                                        01500032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Documents that this block modifies an existing record in the TRANSACTION_TYPE reference table."
+    },
+    {
+      "number": 169,
+      "code": "      ******************************************************************01510032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Closing marker for the section documentation."
+    },
+    {
+      "number": 170,
+      "code": "      *                                                                 01520032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Blank separator line within the paragraph."
+    },
+    {
+      "number": 171,
+      "code": "           EXEC SQL                                                     01522037",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Initiates the database operation to modify an existing transaction type entry."
+    },
+    {
+      "number": 172,
+      "code": "                UPDATE CARDDEMO.TRANSACTION_TYPE                        01523040",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Targets the TRANSACTION_TYPE reference table in the CardDemo system for the update."
+    },
+    {
+      "number": 173,
+      "code": "                   SET TR_DESCRIPTION = :INPUT-REC-DESC                 01524041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Replaces the current business description of the transaction type with the new description provided in the input maintenance file."
+    },
+    {
+      "number": 174,
+      "code": "                 WHERE TR_TYPE = :INPUT-REC-NUMBER                      01525041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Restricts the update to the specific transaction type code supplied in the input record, ensuring only the intended entry is modified."
+    },
+    {
+      "number": 175,
+      "code": "           END-EXEC                                                     01526037",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Closes the database update instruction."
+    },
+    {
+      "number": 176,
+      "code": "           MOVE SQLCODE TO WS-VAR-SQLCODE                               01580032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Captures the database return code so the program can determine whether the update succeeded, found no matching record, or encountered an error."
+    },
+    {
+      "number": 177,
+      "code": "           EVALUATE TRUE                                                01630032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Begins evaluation of the database outcome to route processing to the appropriate success or failure handling."
+    },
+    {
+      "number": 178,
+      "code": "               WHEN SQLCODE = ZERO                                      01640032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Confirms the transaction type description was successfully updated in the reference table."
+    },
+    {
+      "number": 179,
+      "code": "                  DISPLAY 'RECORD UPDATED SUCCESSFULLY'                 01650044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Logs a confirmation message indicating the transaction type record was updated without errors."
+    },
+    {
+      "number": 180,
+      "code": "               WHEN SQLCODE = +100                                      01660032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Detects that no transaction type record matching the supplied code was found in the reference table, meaning the Update cannot be applied."
+    },
+    {
+      "number": 181,
+      "code": "                  STRING 'No records found.' DELIMITED BY SIZE          01670041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Prepares an error message stating that no matching transaction type record exists in the reference table."
+    },
+    {
+      "number": 182,
+      "code": "                     INTO WS-RETURN-MSG                                 01680041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Stores the 'no record found' error message in the program's error buffer for display before abend."
+    },
+    {
+      "number": 183,
+      "code": "                  END-STRING                                            01690041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Closes the error message construction."
+    },
+    {
+      "number": 184,
+      "code": "                  PERFORM 9999-ABEND                                    01700041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Triggers an immediate program abend because attempting to update a non-existent transaction type code would leave the reference table unchanged and signals a data integrity issue in the input file."
+    },
+    {
+      "number": 185,
+      "code": "               WHEN SQLCODE < 0                                         01710032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Detects a negative database error code, indicating a technical failure prevented the update from completing."
+    },
+    {
+      "number": 186,
+      "code": "                  STRING                                                01711044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Begins constructing a detailed error message identifying the failed database operation."
+    },
+    {
+      "number": 187,
+      "code": "                  'Error accessing:'                                    01712044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Includes a label in the error message indicating a database access failure occurred."
+    },
+    {
+      "number": 188,
+      "code": "                  ' TRANSACTION_TYPE table. SQLCODE:'                   01713044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Identifies the TRANSACTION_TYPE reference table as the source of the failure and begins capturing the SQL error code."
+    },
+    {
+      "number": 189,
+      "code": "                  WS-VAR-SQLCODE                                        01714044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Appends the actual SQL error code to the error message so support staff can diagnose the root cause."
+    },
+    {
+      "number": 190,
+      "code": "                  DELIMITED BY SIZE                                     01717044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Specifies that the full field length is used when assembling each component of the error message."
+    },
+    {
+      "number": 191,
+      "code": "                  INTO WS-RETURN-MSG                                    01718044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Stores the completed database error message in the error buffer for display before the program abends."
+    },
+    {
+      "number": 192,
+      "code": "                  END-STRING                                            01719044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Closes the error message construction."
+    },
+    {
+      "number": 193,
+      "code": "                  PERFORM 9999-ABEND                                    01719144",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Triggers an immediate program abend to prevent further processing after a database error, protecting the integrity of the reference table."
+    },
+    {
+      "number": 194,
+      "code": "           END-EVALUATE                                                 01820032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Closes the outcome evaluation block covering all database result scenarios."
+    },
+    {
+      "number": 195,
+      "code": "           EXIT.                                                        01830032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10032-UPDATE-DB",
+      "explanation": "Marks the end of the Update processing paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 196,
+      "code": "       10033-DELETE-DB.                                                 01850032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Entry point for the transaction type deletion process."
+    },
+    {
+      "number": 197,
+      "code": "      ******************************************************************01860032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Section marker indicating this block handles the database removal of a transaction type record."
+    },
+    {
+      "number": 198,
+      "code": "      * SQL TO DELETE THE RECORD                                        01870032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Documents that this section performs the permanent removal of a transaction type entry from the reference table."
+    },
+    {
+      "number": 199,
+      "code": "      ******************************************************************01880032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 200,
+      "code": "      *                                                                 01890032",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 201,
+      "code": "           EXEC SQL                                                     01900032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Initiates the database operation to retire the transaction type from the CardDemo system."
+    },
+    {
+      "number": 202,
+      "code": "                DELETE FROM CARDDEMO.TRANSACTION_TYPE                   01910032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Targets the master transaction type reference table for the removal operation."
+    },
+    {
+      "number": 203,
+      "code": "                 WHERE TR_TYPE = :INPUT-REC-NUMBER                      01920033",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Identifies the specific transaction type code to be retired, matching it by its unique two-character identifier from the input record."
+    },
+    {
+      "number": 204,
+      "code": "           END-EXEC.                                                    01930034",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Completes and submits the deletion request to the database."
+    },
+    {
+      "number": 205,
+      "code": "           MOVE SQLCODE TO WS-VAR-SQLCODE                               01940032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Captures the database outcome code to determine whether the retirement of the transaction type succeeded or failed."
+    },
+    {
+      "number": 206,
+      "code": "                                                                        01950032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 207,
+      "code": "           EVALUATE TRUE                                                01990032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Evaluates the database outcome to determine the appropriate business response to the deletion attempt."
+    },
+    {
+      "number": 208,
+      "code": "               WHEN SQLCODE = ZERO                                      02000032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Confirms the transaction type code was successfully retired from the reference table with no errors."
+    },
+    {
+      "number": 209,
+      "code": "                  DISPLAY 'RECORD DELETED SUCCESSFULLY'                 02010032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Logs a confirmation message that the transaction type has been permanently removed from the CardDemo system."
+    },
+    {
+      "number": 210,
+      "code": "               WHEN SQLCODE = +100                                      02020032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Identifies the scenario where the transaction type code to be deleted does not exist in the reference table."
+    },
+    {
+      "number": 211,
+      "code": "               STRING 'No records found.' DELIMITED BY SIZE             02030032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Prepares an error message indicating the requested transaction type code could not be found for deletion."
+    },
+    {
+      "number": 212,
+      "code": "               INTO WS-RETURN-MSG                                       02040032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Stores the 'record not found' error message in the program's error buffer for display before abend."
+    },
+    {
+      "number": 213,
+      "code": "               END-STRING                                               02050032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Completes construction of the not-found error message."
+    },
+    {
+      "number": 214,
+      "code": "               PERFORM 9999-ABEND                                       02060032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Halts the program with return code 4 because attempting to delete a non-existent transaction type indicates a data integrity issue in the input file."
+    },
+    {
+      "number": 215,
+      "code": "                                                                        02070032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 216,
+      "code": "               WHEN SQLCODE < 0                                         02080032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Identifies any database error condition that prevented the transaction type from being removed."
+    },
+    {
+      "number": 217,
+      "code": "                  STRING                                                02090032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Begins constructing a detailed error message identifying the failed database operation for operational support."
+    },
+    {
+      "number": 218,
+      "code": "                  'Error accessing:'                                    02100032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Includes a label in the error message indicating a database access failure occurred during the deletion."
+    },
+    {
+      "number": 219,
+      "code": "                  ' TRANSACTION_TYPE table. SQLCODE:'                   02110032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Specifies in the error message that the TRANSACTION_TYPE reference table was the target of the failed operation."
+    },
+    {
+      "number": 220,
+      "code": "                  WS-VAR-SQLCODE                                        02120032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Appends the specific database error code to the message so support staff can diagnose the root cause of the failure."
+    },
+    {
+      "number": 221,
+      "code": "                  DELIMITED BY SIZE                                     02150032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Defines the boundary for the error message string construction."
+    },
+    {
+      "number": 222,
+      "code": "                  INTO WS-RETURN-MSG                                    02160032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Stores the fully constructed database error message in the error buffer for display before program termination."
+    },
+    {
+      "number": 223,
+      "code": "                  END-STRING                                            02170032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Completes construction of the database error message."
+    },
+    {
+      "number": 224,
+      "code": "                  PERFORM 9999-ABEND                                    02180032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Halts the program with return code 4 to prevent further processing after a database error, protecting reference table integrity."
+    },
+    {
+      "number": 225,
+      "code": "           END-EVALUATE                                                 02190032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Closes the outcome evaluation block for the deletion operation."
+    },
+    {
+      "number": 226,
+      "code": "           EXIT.                                                        02200032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": "Marks the end of the deletion paragraph, returning control to the main processing loop."
+    },
+    {
+      "number": 227,
+      "code": "                                                                        02210032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 228,
+      "code": "                                                                        02220032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 229,
+      "code": "                                                                        02230032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "10033-DELETE-DB",
+      "explanation": ""
+    },
+    {
+      "number": 230,
+      "code": "       9999-ABEND.                                                      02240032",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Terminates the program abnormally when a critical processing error has occurred, surfacing the failure reason and signaling to the job scheduler that the batch run ended in error, preventing any further reference table updates."
+    },
+    {
+      "number": 231,
+      "code": "           DISPLAY WS-RETURN-MSG.                                       02250032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Outputs the captured error message to the job log, identifying the exact reason the transaction type maintenance run failed (e.g. invalid operation code, missing record, or database error)."
+    },
+    {
+      "number": 232,
+      "code": "           MOVE 4 TO RETURN-CODE                                        02251044",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Sets the batch return code to 4, signaling to the job scheduler and downstream processes that the program ended in failure and that manual investigation or rerun is required."
+    },
+    {
+      "number": 233,
+      "code": "           EXIT.                                                        02260032",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND",
+      "explanation": "Exits the error-handling routine, completing the abend sequence and returning control so the program terminates with the failure status set."
+    },
+    {
+      "number": 234,
+      "code": "       2001-CLOSE-STOP.                                                 02261041",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2001-CLOSE-STOP",
+      "explanation": "Finalizes the transaction type maintenance session by releasing the input file after all maintenance instructions have been processed. This ensures the input file is properly closed before the program terminates."
+    },
+    {
+      "number": 235,
+      "code": "           CLOSE TR-RECORD.                                             02262041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2001-CLOSE-STOP",
+      "explanation": "Releases the sequential input file containing transaction type maintenance instructions, signaling that all add, update, and delete operations have been consumed."
+    },
+    {
+      "number": 236,
+      "code": "           EXIT.                                                        02264041",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2001-CLOSE-STOP",
+      "explanation": "Returns control to the calling paragraph, completing the file closure routine and allowing the program to terminate cleanly."
+    },
+    {
+      "number": 237,
+      "code": "                                                                        02270032",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2001-CLOSE-STOP",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-INPUT-VARS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Group record structure that holds the parsed fields from an input maintenance instruction before they are validated and applied to the TRANSACTION_TYPE reference table. Acts as a working staging area for the incoming operation details."
+    },
+    {
+      "name": "INPUT-TYPE",
+      "level": "05",
+      "picture": "PIC X(1)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Working copy of the operation code indicating what maintenance action to perform on the TRANSACTION_TYPE reference table. Valid values are A (Add a new transaction type), U (Update an existing description), D (Delete a transaction type), or * (comment line to be ignored). Any other value triggers an immediate program failure."
+    },
+    {
+      "name": "INPUT-TR-NUMBER",
+      "level": "05",
+      "picture": "PIC X(2)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Working copy of the two-character transaction type code (primary key) that identifies which transaction type in the TRANSACTION_TYPE reference table is to be added, updated, or deleted. This code is used system-wide in CardDemo to classify and report transactions."
+    },
+    {
+      "name": "INPUT-TR-DESC",
+      "level": "05",
+      "picture": "PIC X(50)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Working copy of the human-readable business description (up to 50 characters) associated with a transaction type code, such as 'Purchase', 'Cash Advance', or 'Refund'. Used when adding a new transaction type or updating the description of an existing one."
+    },
+    {
+      "name": "FLAGS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Group structure holding program control flags that govern the flow of the batch maintenance process."
+    },
+    {
+      "name": "LASTREC",
+      "level": "05",
+      "picture": "PIC X(1)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: End-of-file indicator for the input maintenance file. When set to 'Y', it signals that all transaction type maintenance instructions have been read and processed, causing the main processing loop to terminate and the program to conclude its batch run."
+    },
+    {
+      "name": "WORKING-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Group structure holding general-purpose working variables used during the batch maintenance process."
+    },
+    {
+      "name": "WS-RETURN-MSG",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Error message buffer that captures a plain-language explanation of why a maintenance operation failed (e.g., duplicate transaction type code on Add, missing code on Update/Delete, or SQL error). This message is displayed to operators before the program abends, enabling rapid diagnosis of data or processing issues."
+    },
+    {
+      "name": "WS-MISC-VARS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Group structure holding miscellaneous working variables used to capture and evaluate database operation results during the maintenance run."
+    },
+    {
+      "name": "WS-VAR-SQLCODE",
+      "level": "05",
+      "picture": "PIC ----9",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Captured return code from the most recent database operation (Insert, Update, or Delete) against the TRANSACTION_TYPE reference table. A value of zero means success, +100 means the transaction type code was not found (triggering an abend for Update/Delete), and any negative value indicates a database error that immediately halts processing to prevent corrupt or partial updates to the reference table."
+    },
+    {
+      "name": "WS-INF-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Two-character file status code returned by the operating system when the input maintenance file is opened. Used to confirm that the sequential input file containing transaction type maintenance instructions is accessible before processing begins; a non-success status prevents the program from running against a missing or unavailable file."
+    },
+    {
+      "name": "WS-INF-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: First character of the input file status code, representing the primary category of the file open result (e.g., '0' for successful, '1' for end-of-file condition, '9' for system-specific error). Together with WS-INF-STAT2, it confirms whether the maintenance input file is ready for processing."
+    },
+    {
+      "name": "WS-INF-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Second character of the input file status code, providing the specific sub-reason for the file open result. Combined with WS-INF-STAT1, it gives operators and developers the precise file system condition code needed to diagnose why the maintenance input file could not be opened, if applicable."
+    },
+    {
+      "name": "WS-INPUT-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: Physical layout of each raw record read from the sequential input maintenance file. Defines how the 53-character input record is structured into its three business components: the operation type, the transaction type code, and the description. This is the direct interface between the input file and the program's processing logic."
+    },
+    {
+      "name": "INPUT-REC-TYPE",
+      "level": "05",
+      "picture": "PIC X(1)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Operation indicator read directly from the input file record specifying what maintenance action to perform on the TRANSACTION_TYPE reference table. Valid values are A (Add a new transaction type), U (Update an existing description), D (Delete a transaction type), or * (comment line to be silently skipped). Any unrecognised value causes an immediate program abend with return code 4."
+    },
+    {
+      "name": "INPUT-REC-NUMBER",
+      "level": "05",
+      "picture": "PIC X(2)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The two-character transaction type code read directly from the input file record, serving as the unique business identifier (primary key) for the entry in the TRANSACTION_TYPE reference table to be added, updated, or deleted. This code is the key used system-wide in CardDemo to classify every financial transaction."
+    },
+    {
+      "name": "INPUT-REC-DESC",
+      "level": "05",
+      "picture": "PIC X(50)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The business description (up to 50 characters) of the transaction type read directly from the input file record, such as 'Purchase', 'Cash Advance', or 'Refund'. Populated into the TRANSACTION_TYPE reference table when adding a new transaction type or replacing the description of an existing one during an Update operation."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "0001-OPEN-FILES",
+      "line_start": 82,
+      "line_end": 90,
+      "description": "Opens the transaction type maintenance instruction file so the program can begin reading and processing add, update, and delete operations against the reference table. Confirms the file is accessible before any maintenance activity begins, ensuring the program does not proceed without valid input."
+    },
+    {
+      "name": "1001-READ-NEXT-RECORDS",
+      "line_start": 91,
+      "line_end": 99,
+      "description": "Orchestrates the end-to-end processing of the transaction type maintenance file by reading and applying each maintenance instruction (Add, Update, or Delete) sequentially until all records have been consumed, then cleanly finalising the batch run."
+    },
+    {
+      "name": "1002-READ-RECORDS",
+      "line_start": 100,
+      "line_end": 108,
+      "description": "Advances to the next transaction type maintenance instruction in the input file, signalling end-of-file when all instructions have been consumed, and logs each active instruction to the operator console for audit visibility."
+    },
+    {
+      "name": "1003-TREAT-RECORD",
+      "line_start": 109,
+      "line_end": 131,
+      "description": "Routes each transaction type maintenance instruction to the appropriate database operation based on the operation code, ensuring that Add, Update, and Delete requests are correctly applied to the TRANSACTION_TYPE reference table, while comment lines are safely skipped and any unrecognised instruction triggers an immediate abend to protect data integrity."
+    },
+    {
+      "name": "10031-INSERT-DB",
+      "line_start": 132,
+      "line_end": 165,
+      "description": "Registers a new transaction type code and its business description into the CardDemo reference table, making it available system-wide for transaction classification. Confirms successful registration or abends the program if the database rejects the new entry, protecting the integrity of the reference data."
+    },
+    {
+      "name": "10032-UPDATE-DB",
+      "line_start": 166,
+      "line_end": 195,
+      "description": "Applies an Update instruction to the TRANSACTION_TYPE reference table by replacing the business description of an existing transaction type code. Validates the outcome and abends with an error if the transaction type code does not exist or a database error occurs."
+    },
+    {
+      "name": "10033-DELETE-DB",
+      "line_start": 196,
+      "line_end": 229,
+      "description": "Removes a transaction type code and its description from the CardDemo reference table, permanently retiring it from the system. Validates the outcome to ensure the deletion was successful, aborting with an error if the code does not exist or a database failure occurs."
+    },
+    {
+      "name": "9999-ABEND",
+      "line_start": 230,
+      "line_end": 233,
+      "description": "Terminates the program abnormally when a critical processing error has occurred, surfacing the failure reason and signaling to the job scheduler that the batch run ended in error, preventing any further reference table updates."
+    },
+    {
+      "name": "2001-CLOSE-STOP",
+      "line_start": 234,
+      "line_end": 237,
+      "description": "Finalizes the transaction type maintenance session by releasing the input file after all maintenance instructions have been processed. This ensures the input file is properly closed before the program terminates."
+    }
+  ],
+  "copybooks": []
+}

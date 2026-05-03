@@ -1,0 +1,1894 @@
+{
+  "meta": {
+    "program_name": "CBACT03C",
+    "file_path": "app/cbl/CBACT03C.cbl",
+    "analyzed_at": "2026-05-02T19:49:18.941939",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Read and print all card-to-account cross-reference records from the cross-reference file as a batch reporting/audit utility.",
+    "process_description": "This batch program sequentially reads every record in the card account cross-reference file (XREFFILE), which maps credit card numbers to their associated account identifiers. For each record found, it displays the cross-reference data to the system output (SYSOUT/job log), effectively producing a full listing of all card-to-account linkages held in the system. The program processes all records from start to finish in sequential order and terminates cleanly after the last record is read. If any file I/O error occurs during open, read, or close operations, the program abends with a standard error code (999) to signal the failure to operations staff.",
+    "type": "Batch",
+    "module": "Card",
+    "files": {
+      "XREFFILE": "Card-to-account cross-reference master file (VSAM KSDS) that links each credit card number to its associated account record, enabling lookups between card numbers and account identifiers"
+    },
+    "business_rules": [
+      "Every card-to-account cross-reference record in the file must be read and reported — no filtering or selection criteria are applied; this is a full file dump.",
+      "The credit card number (16 digits) is the unique key for each cross-reference record and determines the sequential read order.",
+      "If the cross-reference file cannot be opened, read, or closed successfully, the program must abend immediately with code 999 — no partial or silent failures are permitted.",
+      "End-of-file is a normal and expected condition (status '10') and does not constitute an error; all other non-zero statuses are treated as processing failures.",
+      "The program is read-only — it does not create, update, or delete any records, ensuring the integrity of the cross-reference data is preserved during the reporting run."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVACT03Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "CBCUS01C",
+        "COADM01C",
+        "DBUNLDGS"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : CBACT03C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : BATCH COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Read and print account cross reference data file.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID.    CBACT03C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.        AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "           SELECT XREFFILE-FILE ASSIGN TO   XREFFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  RECORD KEY   IS FD-XREF-CARD-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "                  FILE STATUS  IS XREFFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "      *",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "       FD  XREFFILE-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "       01  FD-XREFFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "           05 FD-XREF-CARD-NUM                  PIC X(16).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "           05 FD-XREF-DATA                      PIC X(34).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "       COPY CVACT03Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "       01  XREFFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           05  XREFFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "           05  XREFFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "       01  IO-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "           05  IO-STAT1            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "           05  IO-STAT2            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "           05  TWO-BYTES-LEFT      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "           05  TWO-BYTES-RIGHT     PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       01  IO-STATUS-04.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "           05  IO-STATUS-0401      PIC 9   VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "           05  IO-STATUS-0403      PIC 999 VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "       01  APPL-RESULT             PIC S9(9)   COMP.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "           88  APPL-AOK            VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "           88  APPL-EOF            VALUE 16.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       01  END-OF-FILE             PIC X(01)    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       01  ABCODE                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  TIMING                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT03C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "           PERFORM 0000-XREFFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "           PERFORM UNTIL END-OF-FILE = 'Y'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "               IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "                   PERFORM 1000-XREFFILE-GET-NEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "                   IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "                       DISPLAY CARD-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           PERFORM 9000-XREFFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT03C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "       1000-XREFFILE-GET-NEXT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Entry point for the paragraph that fetches and reports the next card-to-account linkage record."
+    },
+    {
+      "number": 93,
+      "code": "           READ XREFFILE-FILE INTO CARD-XREF-RECORD.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Reads the next card-to-account cross-reference record sequentially from the master file, loading the card number, customer ID, and account ID into working memory."
+    },
+    {
+      "number": 94,
+      "code": "           IF  XREFFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Checks whether the file read completed successfully with no errors."
+    },
+    {
+      "number": 95,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Records that the file operation succeeded, allowing normal processing to continue."
+    },
+    {
+      "number": 96,
+      "code": "               DISPLAY CARD-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Prints the full cross-reference record — card number, customer identifier, and linked account identifier — to the job log for audit and reporting purposes."
+    },
+    {
+      "number": 97,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Begins handling non-successful read outcomes."
+    },
+    {
+      "number": 98,
+      "code": "               IF  XREFFILE-STATUS = '10'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Checks whether the file has been fully exhausted, meaning all card-to-account linkages have been processed."
+    },
+    {
+      "number": 99,
+      "code": "                   MOVE 16 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Records that the end of the cross-reference file has been reached, signalling that all records have been reported."
+    },
+    {
+      "number": 100,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Begins handling the case where the read failed for a reason other than normal end-of-file — indicating a genuine file error."
+    },
+    {
+      "number": 101,
+      "code": "                   MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Records that an unexpected file error occurred, flagging the operation as failed and requiring intervention."
+    },
+    {
+      "number": 102,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Closes the end-of-file check branch."
+    },
+    {
+      "number": 103,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Closes the successful-read check branch."
+    },
+    {
+      "number": 104,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Checks whether the last file operation completed without any issue, meaning a valid cross-reference record was successfully read and reported."
+    },
+    {
+      "number": 105,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "No further action is needed for a successful read; processing will loop back to fetch the next record."
+    },
+    {
+      "number": 106,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Begins handling outcomes where the read did not succeed."
+    },
+    {
+      "number": 107,
+      "code": "               IF  APPL-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Checks whether the non-success outcome is simply the normal end of the file rather than a true error."
+    },
+    {
+      "number": 108,
+      "code": "                   MOVE 'Y' TO END-OF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Raises the end-of-file flag to stop the main processing loop, as all card-to-account linkages have now been reported."
+    },
+    {
+      "number": 109,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Begins handling the case where the file read failed due to a genuine, unrecoverable error."
+    },
+    {
+      "number": 110,
+      "code": "                   DISPLAY 'ERROR READING XREFFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Writes an error notification to the job log to alert operations staff that the cross-reference file could not be read."
+    },
+    {
+      "number": 111,
+      "code": "                   MOVE XREFFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by operations staff."
+    },
+    {
+      "number": 112,
+      "code": "                   PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Displays the detailed file error code to the job log to assist in identifying the root cause of the failure."
+    },
+    {
+      "number": 113,
+      "code": "                   PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Immediately terminates the program with abend code 999, signalling an unrecoverable failure to the operations team and preventing any silent or partial reporting."
+    },
+    {
+      "number": 114,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Closes the error-handling branch."
+    },
+    {
+      "number": 115,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Closes the outcome-routing logic."
+    },
+    {
+      "number": 116,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 117,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-XREFFILE-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "       0000-XREFFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Entry point for the file-open routine that prepares the cross-reference file for sequential reading."
+    },
+    {
+      "number": 119,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Assumes the worst-case outcome (failure) before attempting to open the file, ensuring no ambiguous state is carried forward."
+    },
+    {
+      "number": 120,
+      "code": "           OPEN INPUT XREFFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Attempts to open the card-to-account cross-reference file in read-only mode, ready for sequential processing of all card linkage records."
+    },
+    {
+      "number": 121,
+      "code": "           IF  XREFFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Checks whether the file system confirmed a fully successful open of the cross-reference file."
+    },
+    {
+      "number": 122,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Records a successful outcome, indicating the cross-reference file is ready and available for reading."
+    },
+    {
+      "number": 123,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Handles the case where the file did not open successfully."
+    },
+    {
+      "number": 124,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Records a failure outcome, signalling that the cross-reference file could not be accessed and the batch run cannot proceed."
+    },
+    {
+      "number": 125,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Closes the success/failure evaluation of the file-open attempt."
+    },
+    {
+      "number": 126,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Checks whether the file opened successfully and the batch reporting run can safely begin."
+    },
+    {
+      "number": 127,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "No further action is needed — the file is open and processing can continue normally."
+    },
+    {
+      "number": 128,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Handles the error path where the cross-reference file failed to open."
+    },
+    {
+      "number": 129,
+      "code": "               DISPLAY 'ERROR OPENING XREFFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Writes a human-readable error message to the job log so operations staff are immediately aware the cross-reference file could not be opened."
+    },
+    {
+      "number": 130,
+      "code": "               MOVE XREFFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be included in the diagnostic output for operations staff."
+    },
+    {
+      "number": 131,
+      "code": "               PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Displays the detailed file system error code in the job log to help diagnose the root cause of the open failure."
+    },
+    {
+      "number": 132,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Terminates the entire batch job immediately with a fatal abend, preventing any partial or misleading reporting output from being produced."
+    },
+    {
+      "number": 133,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Closes the error-handling block."
+    },
+    {
+      "number": 134,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": "Marks the end of the file-open routine, returning control to the calling logic."
+    },
+    {
+      "number": 135,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-XREFFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "       9000-XREFFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Entry point for the cross-reference file closure routine, executed after all card linkage records have been read and reported."
+    },
+    {
+      "number": 137,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Initialises the operation outcome to a failure state by default, ensuring any unexpected path is treated as an error rather than a silent success."
+    },
+    {
+      "number": 138,
+      "code": "           CLOSE XREFFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Closes the card-to-account cross-reference file, releasing the file resource back to the operating system after the full reporting run is complete."
+    },
+    {
+      "number": 139,
+      "code": "           IF  XREFFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Checks whether the file closed successfully without any I/O errors."
+    },
+    {
+      "number": 140,
+      "code": "               SUBTRACT APPL-RESULT FROM APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Resets the operation outcome to success, confirming the cross-reference file was closed cleanly and the reporting run completed without incident."
+    },
+    {
+      "number": 141,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Begins the error handling branch for an unsuccessful file close."
+    },
+    {
+      "number": 142,
+      "code": "               ADD 12 TO ZERO GIVING APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Records that the file close operation failed, flagging this as an unrecoverable error condition that must be escalated."
+    },
+    {
+      "number": 143,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Ends the success/failure evaluation of the file close outcome."
+    },
+    {
+      "number": 144,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Checks whether the file close completed successfully before deciding whether to proceed normally or raise an error."
+    },
+    {
+      "number": 145,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "No further action is taken — the file closed successfully and the program can terminate normally."
+    },
+    {
+      "number": 146,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Begins the error escalation path triggered when the cross-reference file could not be closed properly."
+    },
+    {
+      "number": 147,
+      "code": "               DISPLAY 'ERROR CLOSING XREFFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Writes an error message to the job log to alert operations staff that the cross-reference file failed to close correctly."
+    },
+    {
+      "number": 148,
+      "code": "               MOVE XREFFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Captures the specific I/O error code returned by the system so it can be included in the diagnostic output for operations staff."
+    },
+    {
+      "number": 149,
+      "code": "               PERFORM 9910-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Displays the detailed file I/O error code in the job log to help operations staff diagnose the exact nature of the close failure."
+    },
+    {
+      "number": 150,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Terminates the program abnormally with error code 999, signalling to the job scheduler and operations team that the reporting run ended in an unrecoverable failure."
+    },
+    {
+      "number": 151,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Ends the error handling block for the file close operation."
+    },
+    {
+      "number": 152,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": "Marks the end of the file closure routine, returning control to the calling paragraph upon successful completion."
+    },
+    {
+      "number": 153,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-XREFFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "       9999-ABEND-PROGRAM.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Entry point for the emergency shutdown routine, invoked whenever a fatal file I/O error is detected during the reporting run."
+    },
+    {
+      "number": 155,
+      "code": "           DISPLAY 'ABENDING PROGRAM'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Writes a clear termination alert message to the job log so operations staff can immediately identify that the program did not complete normally."
+    },
+    {
+      "number": 156,
+      "code": "           MOVE 0 TO TIMING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Specifies that the abend should be treated as synchronous (immediate), ensuring the failure is captured at the exact point of the error rather than deferred."
+    },
+    {
+      "number": 157,
+      "code": "           MOVE 999 TO ABCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Sets the standard failure code (999) that will be reported to the operating system, allowing operations and scheduling tools to recognise this as a critical batch processing failure."
+    },
+    {
+      "number": 158,
+      "code": "           CALL 'CEE3ABD' USING ABCODE, TIMING.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Calls the system abend handler to forcibly terminate the program and register the failure code with the operating system, halting all further processing and triggering any configured job failure alerts or restart procedures."
+    },
+    {
+      "number": 159,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "       9910-DISPLAY-IO-STATUS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Entry point for the error status display routine, invoked whenever a file operation produces an unexpected result."
+    },
+    {
+      "number": 162,
+      "code": "           IF  IO-STATUS NOT NUMERIC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Checks whether the file error code returned by the system is in an unrecognisable or non-standard format, which would require special handling to decode."
+    },
+    {
+      "number": 163,
+      "code": "           OR  IO-STAT1 = '9'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Also checks whether the error falls into the category of a serious, driver-level I/O failure (status codes beginning with '9'), which require binary decoding to interpret correctly."
+    },
+    {
+      "number": 164,
+      "code": "               MOVE IO-STAT1 TO IO-STATUS-04(1:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Captures the primary error category digit from the system-returned file status into the first position of the formatted display code."
+    },
+    {
+      "number": 165,
+      "code": "               MOVE 0        TO TWO-BYTES-BINARY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Clears a temporary numeric work area to zero, preparing it to receive and convert the secondary error detail byte into a readable number."
+    },
+    {
+      "number": 166,
+      "code": "               MOVE IO-STAT2 TO TWO-BYTES-RIGHT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Loads the secondary error detail byte — which carries the specific reason for the I/O failure — into the right-hand side of the temporary conversion area."
+    },
+    {
+      "number": 167,
+      "code": "               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Converts the raw binary secondary error detail into a displayable numeric value so it can be printed meaningfully in the job log."
+    },
+    {
+      "number": 168,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Prints the fully decoded file error status code to the job log, giving operations staff the exact system-level reason the cross-reference file operation failed."
+    },
+    {
+      "number": 169,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Begins the alternative path for standard, numeric file status codes that do not require binary decoding."
+    },
+    {
+      "number": 170,
+      "code": "               MOVE '0000' TO IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Initialises the display code to a neutral zero value before overlaying it with the actual standard error digits."
+    },
+    {
+      "number": 171,
+      "code": "               MOVE IO-STATUS TO IO-STATUS-04(3:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Overlays the last two positions of the display code with the actual standard file status digits so the full four-character error code is correctly formatted for the job log."
+    },
+    {
+      "number": 172,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Prints the formatted standard file error status code to the job log, enabling operations staff to identify the exact nature of the file processing failure."
+    },
+    {
+      "number": 173,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Closes the conditional logic block that handles both standard and non-standard file error formats."
+    },
+    {
+      "number": 174,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": "Returns control to the calling routine after the error status has been displayed."
+    },
+    {
+      "number": 175,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The physical layout of a single record as it is read from the card-to-account cross-reference file. This is the raw file buffer that holds one cross-reference entry at a time during the batch read process, structured as a card number followed by its associated account data."
+    },
+    {
+      "name": "FD-XREF-CARD-NUM",
+      "level": "05",
+      "picture": "PIC X(16)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The 16-digit credit card number as physically stored in the cross-reference file record. This is the unique identifier for each card in the file and serves as the primary key that determines the sequential order in which cards are read and reported during the batch run."
+    },
+    {
+      "name": "FD-XREF-DATA",
+      "level": "05",
+      "picture": "PIC X(34)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The 34-character block of account reference data associated with the credit card number in the cross-reference file. This contains the customer and account identifiers that link the card to its owner and account, enabling the system to resolve a card number to a specific account relationship."
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The two-character status code returned by the operating system after every file operation (open, read, close) on the cross-reference file. This is the primary indicator of whether each file interaction succeeded, reached end-of-file, or encountered an error that would require the batch job to abend."
+    },
+    {
+      "name": "XREFFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The first character of the cross-reference file status code, representing the primary outcome category of the last file operation — for example, '0' indicates success, '1' indicates end-of-file, and '9' indicates a critical system-level error requiring immediate abend."
+    },
+    {
+      "name": "XREFFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The second character of the cross-reference file status code, providing additional detail about the outcome of the last file operation. Combined with XREFFILE-STAT1, it allows the program to precisely distinguish between conditions such as normal end-of-file ('10') versus other non-zero error states that signal a processing failure."
+    },
+    {
+      "name": "IO-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: A general-purpose two-character I/O status holder used to capture and evaluate file operation results in a standardized way across the program. It supports the error-handling logic that determines whether the batch job can continue processing cross-reference records or must abend."
+    },
+    {
+      "name": "IO-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The first character of the general I/O status code, indicating the high-level result category of a file operation. A value of '0' means the operation completed successfully; any other value triggers error evaluation to determine whether the batch run must be terminated."
+    },
+    {
+      "name": "IO-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The second character of the general I/O status code, providing granular detail about the file operation result. Together with IO-STAT1, it enables precise classification of file conditions, such as distinguishing a normal end-of-file from an unexpected read failure."
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": "01",
+      "picture": "PIC 9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A two-byte binary work area used to convert the two-character file status code into a numeric value for arithmetic comparison or display. This allows the program to evaluate and report file status codes in a consistent numeric format during error handling."
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": "TWO-BYTES-BINARY",
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: An alternate character-based view of the same two-byte work area used by TWO-BYTES-BINARY. This redefinition allows the program to load the two-character file status code into the binary field character by character, enabling conversion between the text status code and its numeric equivalent for error reporting."
+    },
+    {
+      "name": "TWO-BYTES-LEFT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Holds the first character of the file status code when loading it into the binary conversion work area. This corresponds to the primary status category character (e.g., '0' for success, '1' for end-of-file) and is used as part of the status-to-numeric conversion for error diagnosis."
+    },
+    {
+      "name": "TWO-BYTES-RIGHT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Holds the second character of the file status code when loading it into the binary conversion work area. This provides the secondary detail of the status (e.g., '0' for normal end-of-file when combined with '1') and completes the two-character status representation used in error diagnosis."
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: A structured numeric representation of the file status code, broken into its two component digits for precise error classification. This is used to interpret and display the exact file status when a cross-reference file operation fails, supporting auditability of batch errors."
+    },
+    {
+      "name": "IO-STATUS-0401",
+      "level": "05",
+      "picture": "PIC 9",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The numeric equivalent of the first character of the file status code, initialized to zero (success). This represents the primary outcome category of the file operation and is used in error reporting to communicate the high-level nature of any cross-reference file failure."
+    },
+    {
+      "name": "IO-STATUS-0403",
+      "level": "05",
+      "picture": "PIC 999",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The numeric equivalent of the second character of the file status code, initialized to zero (success). This provides the detailed sub-code of the file operation result and is used alongside IO-STATUS-0401 to produce a full, human-readable error status for diagnosing cross-reference file failures during the batch run."
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": "01",
+      "picture": "PIC S9(9) COMP",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The internal application-level result code that classifies the outcome of each cross-reference file operation into one of three business states: success (continue processing), end-of-file (all records have been reported), or error (abend required). This drives the main control flow of the batch reporting job."
+    },
+    {
+      "name": "APPL-AOK",
+      "level": "88",
+      "picture": null,
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A condition name that evaluates to true when the last cross-reference file operation completed successfully. When active, it signals that the program should continue reading and reporting the next card-to-account cross-reference record."
+    },
+    {
+      "name": "APPL-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "16",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A condition name that evaluates to true when all cross-reference records have been read and the end of the file has been reached. This is a normal, expected business condition signaling that the full file dump is complete and the program should proceed to close the file and end the batch run."
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": "01",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A flag that tracks whether all card-to-account cross-reference records have been processed. Initialized to 'N' (not finished), it is set to 'Y' when the end-of-file condition is detected, causing the main read loop to stop and the batch report to conclude."
+    },
+    {
+      "name": "ABCODE",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The abend code (set to 999) passed to the system abend handler when an unrecoverable error occurs during cross-reference file processing. Its presence in the job output signals to operations staff that the batch run failed due to a critical file I/O error and requires investigation before re-running."
+    },
+    {
+      "name": "TIMING",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A numeric work field used to support timing or sequencing operations within the batch program, potentially used to measure or record elapsed processing time for performance monitoring of the cross-reference file reporting run."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "1000-XREFFILE-GET-NEXT",
+      "line_start": 92,
+      "line_end": 117,
+      "description": "This paragraph retrieves the next credit card-to-account cross-reference record from the master file and immediately reports it to the job log. It also classifies the outcome as a successful read, a normal end-of-file, or an unrecoverable error, triggering an immediate abend if the file cannot be read."
+    },
+    {
+      "name": "0000-XREFFILE-OPEN",
+      "line_start": 118,
+      "line_end": 135,
+      "description": "This paragraph opens the card-to-account cross-reference file in preparation for the full audit listing run. If the file cannot be opened for any reason, the program immediately halts with a fatal error to prevent any silent or partial reporting failure."
+    },
+    {
+      "name": "9000-XREFFILE-CLOSE",
+      "line_start": 136,
+      "line_end": 153,
+      "description": "This paragraph safely closes the card-to-account cross-reference file at the end of the reporting run, ensuring all system resources are properly released. If the file cannot be closed cleanly, the program immediately abends with a fatal error to alert operations staff of the failure."
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "line_start": 154,
+      "line_end": 160,
+      "description": "This paragraph handles unrecoverable file processing failures by immediately terminating the program in a controlled abend, signalling to operations staff that a critical error has occurred and that the cross-reference report is incomplete and unreliable."
+    },
+    {
+      "name": "9910-DISPLAY-IO-STATUS",
+      "line_start": 161,
+      "line_end": 178,
+      "description": "This paragraph formats and displays a human-readable file error status code to the job log whenever a file operation fails, giving operations staff the precise technical error detail needed to diagnose and resolve the cross-reference file processing failure."
+    }
+  ],
+  "copybooks": [
+    "CVACT03Y"
+  ]
+}

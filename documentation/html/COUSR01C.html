@@ -1,0 +1,2668 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COUSR01C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-PROCESS-ENTER-KEY">PROCESS-ENTER-KEY</a>
+  
+  <a href="#para-RETURN-TO-PREV-SCREEN">RETURN-TO-PREV-SCREEN</a>
+  
+  <a href="#para-SEND-USRADD-SCREEN">SEND-USRADD-SCREEN</a>
+  
+  <a href="#para-RECEIVE-USRADD-SCREEN">RECEIVE-USRADD-SCREEN</a>
+  
+  <a href="#para-POPULATE-HEADER-INFO">POPULATE-HEADER-INFO</a>
+  
+  <a href="#para-WRITE-USER-SEC-FILE">WRITE-USER-SEC-FILE</a>
+  
+  <a href="#para-CLEAR-CURRENT-SCREEN">CLEAR-CURRENT-SCREEN</a>
+  
+  <a href="#para-INITIALIZE-ALL-FIELDS">INITIALIZE-ALL-FIELDS</a>
+  
+  
+
+  
+  <h2>Variables (12)</h2>
+  
+  <a href="#var-WS-VARIABLES">WS-VARIABLES</a>
+  
+  <a href="#var-WS-PGMNAME">WS-PGMNAME</a>
+  
+  <a href="#var-WS-TRANID">WS-TRANID</a>
+  
+  <a href="#var-WS-MESSAGE">WS-MESSAGE</a>
+  
+  <a href="#var-WS-USRSEC-FILE">WS-USRSEC-FILE</a>
+  
+  <a href="#var-WS-ERR-FLG">WS-ERR-FLG</a>
+  
+  <a href="#var-ERR-FLG-ON">ERR-FLG-ON</a>
+  
+  <a href="#var-ERR-FLG-OFF">ERR-FLG-OFF</a>
+  
+  <a href="#var-WS-RESP-CD">WS-RESP-CD</a>
+  
+  <a href="#var-WS-REAS-CD">WS-REAS-CD</a>
+  
+  <a href="#var-DFHCOMMAREA">DFHCOMMAREA</a>
+  
+  <a href="#var-LK-COMMAREA">LK-COMMAREA</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>COUSR01C.CBL</h1>
+    <p>Add a new Regular or Admin user account to the CardDemo system's user security file.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">This program presents a data entry screen to an authorised administrator, allowing them to create a new user account in the CardDemo system. The administrator must supply the new user's first name, last name, user ID, password, and user type (Regular or Admin). Upon submission, the program validates that all fields are populated, checks that the user ID does not already exist, and if all validations pass, writes the new user record to the USRSEC security file. Success or failure feedback is displayed on screen, and duplicate user IDs are explicitly rejected to maintain uniqueness of user accounts.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>First Name is mandatory — a new user account cannot be created without a first name.</li><li>Last Name is mandatory — a new user account cannot be created without a last name.</li><li>User ID is mandatory — a new user account cannot be created without a user ID.</li><li>Password is mandatory — a new user account cannot be created without a password.</li><li>User Type is mandatory — the access level (Regular or Admin) must be specified for every new user.</li><li>User ID must be unique — if the User ID already exists in the USRSEC file, the record is rejected with a 'User ID already exists' error and no duplicate record is written.</li><li>Only authenticated and authorised users (administrators) can access this program; unauthenticated sessions are redirected to the sign-on screen (COSGN00C).</li><li>Upon successful creation, the entry form is cleared and a confirmation message is displayed, allowing the administrator to add another user immediately.</li><li>PF3 navigates back to the Admin menu (COADM01C); PF4 clears the current screen without saving; any other key press is treated as invalid.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">USRSEC</td>
+            <td style="color:var(--subtext);">User security file storing all CardDemo user account credentials and access type (Regular/Admin)</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">CICS Online</span>
+      <span class="badge badge-module">Admin</span>
+      
+      <span class="badge badge-copy">COPY COCOM01Y</span>
+      
+      <span class="badge badge-copy">COPY COUSR01</span>
+      
+      <span class="badge badge-copy">COPY COTTL01Y</span>
+      
+      <span class="badge badge-copy">COPY CSDAT01Y</span>
+      
+      <span class="badge badge-copy">COPY CSMSG01Y</span>
+      
+      <span class="badge badge-copy">COPY CSUSR01Y</span>
+      
+      <span class="badge badge-copy">COPY DFHAID</span>
+      
+      <span class="badge badge-copy">COPY DFHBMSCA</span>
+      
+      <span class="badge badge-copy">COPY DFHATTR</span>
+      
+      <span class="badge badge-meta">299 lines</span>
+      <span class="badge badge-meta">12 variables</span>
+      <span class="badge badge-meta">9 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA is the central orchestration paragraph that controls the entire user-add session flow. It determines whether to present the data entry screen, process a submitted form, or redirect the administrator based on their key press or session state.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 71–114</a></div>
+  </div>
+  
+  <div class="para-card" id="para-PROCESS-ENTER-KEY">
+    <h3><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;text-decoration:none;">PROCESS-ENTER-KEY</a></h3>
+    <p>This paragraph enforces all mandatory field validations when an administrator submits a new user creation request, and if all fields are valid, writes the new user account to the security file. It acts as the central gate-keeper ensuring no incomplete or duplicate user records are ever persisted.</p>
+    <div class="para-meta"><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;">Lines 115–164</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RETURN-TO-PREV-SCREEN">
+    <h3><a href="#code-para-RETURN-TO-PREV-SCREEN" style="color:inherit;text-decoration:none;">RETURN-TO-PREV-SCREEN</a></h3>
+    <p>This paragraph handles navigation away from the Add User screen, transferring control back to the appropriate previous screen — defaulting to the sign-on screen if no specific destination was recorded. It packages the current transaction's identity into the shared communication area before handing off control.</p>
+    <div class="para-meta"><a href="#code-para-RETURN-TO-PREV-SCREEN" style="color:inherit;">Lines 165–183</a></div>
+  </div>
+  
+  <div class="para-card" id="para-SEND-USRADD-SCREEN">
+    <h3><a href="#code-para-SEND-USRADD-SCREEN" style="color:inherit;text-decoration:none;">SEND-USRADD-SCREEN</a></h3>
+    <p>This paragraph prepares and displays the Add User data entry screen to the administrator, including any status or error messages resulting from a previous submission attempt. It ensures the screen is fully refreshed with current feedback before awaiting the next administrator input.</p>
+    <div class="para-meta"><a href="#code-para-SEND-USRADD-SCREEN" style="color:inherit;">Lines 184–200</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RECEIVE-USRADD-SCREEN">
+    <h3><a href="#code-para-RECEIVE-USRADD-SCREEN" style="color:inherit;text-decoration:none;">RECEIVE-USRADD-SCREEN</a></h3>
+    <p>This paragraph captures the data entered by the administrator on the Add User screen, retrieving all typed field values (first name, last name, user ID, password, and user type) so they can be validated and processed to create the new user account.</p>
+    <div class="para-meta"><a href="#code-para-RECEIVE-USRADD-SCREEN" style="color:inherit;">Lines 201–213</a></div>
+  </div>
+  
+  <div class="para-card" id="para-POPULATE-HEADER-INFO">
+    <h3><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;text-decoration:none;">POPULATE-HEADER-INFO</a></h3>
+    <p>This paragraph prepares the header section of the Add User screen with contextual information — application titles, the active transaction identifier, the program name, and the current date and time — so that the administrator sees a fully labelled and timestamped screen before entering new user details.</p>
+    <div class="para-meta"><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;">Lines 214–237</a></div>
+  </div>
+  
+  <div class="para-card" id="para-WRITE-USER-SEC-FILE">
+    <h3><a href="#code-para-WRITE-USER-SEC-FILE" style="color:inherit;text-decoration:none;">WRITE-USER-SEC-FILE</a></h3>
+    <p>This paragraph attempts to permanently save the new user account to the security file and then provides the administrator with immediate feedback — either confirming successful creation, rejecting a duplicate User ID, or reporting an unexpected system failure.</p>
+    <div class="para-meta"><a href="#code-para-WRITE-USER-SEC-FILE" style="color:inherit;">Lines 238–278</a></div>
+  </div>
+  
+  <div class="para-card" id="para-CLEAR-CURRENT-SCREEN">
+    <h3><a href="#code-para-CLEAR-CURRENT-SCREEN" style="color:inherit;text-decoration:none;">CLEAR-CURRENT-SCREEN</a></h3>
+    <p>Resets the user account creation form to a blank state, ready for a new entry. This is triggered when an administrator explicitly requests a screen clear (PF4) without saving any data entered.</p>
+    <div class="para-meta"><a href="#code-para-CLEAR-CURRENT-SCREEN" style="color:inherit;">Lines 279–286</a></div>
+  </div>
+  
+  <div class="para-card" id="para-INITIALIZE-ALL-FIELDS">
+    <h3><a href="#code-para-INITIALIZE-ALL-FIELDS" style="color:inherit;text-decoration:none;">INITIALIZE-ALL-FIELDS</a></h3>
+    <p>Resets the user account creation form to a blank state, clearing all previously entered data and any status messages. This is used to prepare the screen for a fresh user account entry, either after a successful creation or when the administrator explicitly clears the form.</p>
+    <div class="para-meta"><a href="#code-para-INITIALIZE-ALL-FIELDS" style="color:inherit;">Lines 287–299</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program     : COUSR01C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Type        : CICS COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Function    : Add a new Regular/Admin user to USRSEC file</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID. COUSR01C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.     AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-comment">      *                     WORKING STORAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-variable-declaration">       01 WS-VARIABLES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-variable-declaration">         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR01C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRANID                  PIC X(04) VALUE 'CU01'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-variable-declaration">         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-variable-declaration">         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-ON                         VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-OFF                        VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-copy-statement">       COPY COCOM01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-copy-statement">       COPY COUSR01.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-copy-statement">       COPY COTTL01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-copy-statement">       COPY CSDAT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-copy-statement">       COPY CSMSG01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-copy-statement">       COPY CSUSR01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-copy-statement">       COPY DFHAID.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-copy-statement">       COPY DFHBMSCA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-comment">      *COPY DFHATTR.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-comment">      *                        LINKAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-variable-declaration">       01  DFHCOMMAREA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-variable-declaration">         05  LK-COMMAREA                           PIC X(01)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-code">             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-comment">      *                      PROCEDURE DIVISION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">71</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
+      <td class="expl-cell">MAIN-PARA is the central orchestration paragraph that controls the entire user-add session flow. It determines whether to present the data entry screen, process a submitted form, or redirect the administrator based on their key press or session state.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">72</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">73</td>
+      <td class="code-cell t-statement">           SET ERR-FLG-OFF TO TRUE</td>
+      <td class="expl-cell">Clears any prior error condition so the session starts each interaction in a clean, error-free state.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">74</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">75</td>
+      <td class="code-cell t-statement">           MOVE SPACES TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previously displayed status or error message from the screen and the message area.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">76</td>
+      <td class="code-cell t-statement">                          ERRMSGO OF COUSR1AO</td>
+      <td class="expl-cell">Clears any previously displayed status or error message from the screen and the message area.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">77</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">78</td>
+      <td class="code-cell t-statement">           IF EIBCALEN = 0</td>
+      <td class="expl-cell">Checks whether this is a brand-new CICS session with no prior context — indicating no authenticated session data has been passed in.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">79</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Targets the sign-on screen as the destination, since no valid session exists and the user must authenticate first.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">80</td>
+      <td class="code-cell t-statement">               PERFORM RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell">Redirects the unauthenticated user to the sign-on screen to enforce security before any user administration can occur.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">81</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">82</td>
+      <td class="code-cell t-statement">               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA</td>
+      <td class="expl-cell">Restores the full application session context — including the authenticated administrator's identity and navigation state — from the data passed between screens.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">83</td>
+      <td class="code-cell t-statement">               IF NOT CDEMO-PGM-REENTER</td>
+      <td class="expl-cell">Checks whether this is the administrator's first arrival at the Add User screen (i.e., the screen has not yet been displayed in this interaction).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">84</td>
+      <td class="code-cell t-statement">                   SET CDEMO-PGM-REENTER    TO TRUE</td>
+      <td class="expl-cell">Marks the session to indicate the Add User screen has now been presented, so the next interaction will be treated as a form submission.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">85</td>
+      <td class="code-cell t-statement">                   MOVE LOW-VALUES          TO COUSR1AO</td>
+      <td class="expl-cell">Clears the Add User data entry form so the administrator sees a blank, ready-to-use input screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">86</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Sets the input cursor to the First Name field so the administrator can begin typing immediately without manually clicking into the field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">87</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Displays the blank Add User data entry screen to the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">88</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">89</td>
+      <td class="code-cell t-statement">                   PERFORM RECEIVE-USRADD-SCREEN</td>
+      <td class="expl-cell">Reads back the data the administrator has typed into the Add User form, capturing all entered field values for processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">90</td>
+      <td class="code-cell t-statement">                   EVALUATE EIBAID</td>
+      <td class="expl-cell">Evaluates which key the administrator pressed to determine the appropriate business action to take.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">91</td>
+      <td class="code-cell t-statement">                       WHEN DFHENTER</td>
+      <td class="expl-cell">Handles the case where the administrator pressed Enter to submit the new user details for validation and saving.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">92</td>
+      <td class="code-cell t-statement">                           PERFORM PROCESS-ENTER-KEY</td>
+      <td class="expl-cell">Runs the full validation and account creation process against the submitted new user details.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">93</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF3</td>
+      <td class="expl-cell">Handles the case where the administrator pressed PF3 to exit the Add User screen and return to the Admin menu.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">                           MOVE 'COADM01C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Targets the Admin menu as the destination for the navigation back action.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">95</td>
+      <td class="code-cell t-statement">                           PERFORM RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell">Returns the administrator to the Admin menu without saving any entered data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">96</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF4</td>
+      <td class="expl-cell">Handles the case where the administrator pressed PF4 to discard any entered data and reset the form.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">97</td>
+      <td class="code-cell t-statement">                           PERFORM CLEAR-CURRENT-SCREEN</td>
+      <td class="expl-cell">Clears all fields on the Add User form without saving, allowing the administrator to start a fresh entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">98</td>
+      <td class="code-cell t-statement">                       WHEN OTHER</td>
+      <td class="expl-cell">Handles any key press that is not a recognised function key for this screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">99</td>
+      <td class="code-cell t-statement">                           MOVE 'Y'                       TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flags the session as being in an error state because an invalid key was pressed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">100</td>
+      <td class="code-cell t-statement">                           MOVE -1       TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Positions the cursor back to the First Name field so the administrator can correct their input after the invalid key warning.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">101</td>
+      <td class="code-cell t-statement">                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE</td>
+      <td class="expl-cell">Populates the screen message area with a standard 'invalid key' warning to inform the administrator that the key they pressed is not supported.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">102</td>
+      <td class="code-cell t-statement">                           PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplays the Add User screen with the invalid key warning message so the administrator can take a valid action.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">103</td>
+      <td class="code-cell t-statement">                   END-EVALUATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">104</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">106</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">107</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RETURN</td>
+      <td class="expl-cell">Returns control to CICS, keeping the Add User transaction active and preserving the current session context so the administrator's next interaction is handled correctly.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">108</td>
+      <td class="code-cell t-exec-cics">                     TRANSID (WS-TRANID)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">109</td>
+      <td class="code-cell t-exec-cics">                     COMMAREA (CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">111</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">112</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">113</td>
+      <td class="code-cell t-comment">      *                      PROCESS-ENTER-KEY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">114</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">115</td>
+      <td class="code-cell t-paragraph-header">       PROCESS-ENTER-KEY.</td>
+      <td class="expl-cell">Entry point for processing the administrator's submission of the new user account form.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">116</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE</td>
+      <td class="expl-cell">Begin sequential validation checks against each required field of the new user account form.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">               WHEN FNAMEI OF COUSR1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the first name field has been left blank or unpopulated by the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, blocking any write to the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">                   MOVE 'First Name can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare a descriptive error message informing the administrator that the first name is mandatory.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">121</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Route the error message to the screen feedback area so the administrator can see what went wrong.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Set the cursor focus to the first name field so the administrator is guided directly to the missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplay the user creation form with the error message and cursor positioned on the first name field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">               WHEN LNAMEI OF COUSR1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the last name field has been left blank or unpopulated by the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">125</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, blocking any write to the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">126</td>
+      <td class="code-cell t-statement">                   MOVE 'Last Name can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare a descriptive error message informing the administrator that the last name is mandatory.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">127</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Route the error message to the screen feedback area so the administrator can see what went wrong.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO LNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Set the cursor focus to the last name field so the administrator is guided directly to the missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplay the user creation form with the error message and cursor positioned on the last name field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">               WHEN USERIDI OF COUSR1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the user ID field has been left blank or unpopulated by the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">131</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, blocking any write to the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">132</td>
+      <td class="code-cell t-statement">                   MOVE 'User ID can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare a descriptive error message informing the administrator that a unique user ID is mandatory.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">133</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Route the error message to the screen feedback area so the administrator can see what went wrong.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">134</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO USERIDL OF COUSR1AI</td>
+      <td class="expl-cell">Set the cursor focus to the user ID field so the administrator is guided directly to the missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">135</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplay the user creation form with the error message and cursor positioned on the user ID field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">136</td>
+      <td class="code-cell t-statement">               WHEN PASSWDI OF COUSR1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the password field has been left blank or unpopulated by the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">137</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, blocking any write to the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">138</td>
+      <td class="code-cell t-statement">                   MOVE 'Password can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare a descriptive error message informing the administrator that a password is mandatory.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Route the error message to the screen feedback area so the administrator can see what went wrong.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">140</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO PASSWDL OF COUSR1AI</td>
+      <td class="expl-cell">Set the cursor focus to the password field so the administrator is guided directly to the missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplay the user creation form with the error message and cursor positioned on the password field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">               WHEN USRTYPEI OF COUSR1AI = SPACES OR LOW-VALUES</td>
+      <td class="expl-cell">Check whether the user type (Regular or Admin access level) has been left blank or unpopulated.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flag the current operation as failed due to a validation error, blocking any write to the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">144</td>
+      <td class="code-cell t-statement">                   MOVE 'User Type can NOT be empty...' TO</td>
+      <td class="expl-cell">Prepare a descriptive error message informing the administrator that the access level designation is mandatory.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell">Route the error message to the screen feedback area so the administrator can see what went wrong.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO USRTYPEL OF COUSR1AI</td>
+      <td class="expl-cell">Set the cursor focus to the user type field so the administrator is guided directly to the missing data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplay the user creation form with the error message and cursor positioned on the user type field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">               WHEN OTHER</td>
+      <td class="expl-cell">All mandatory fields have passed the blank/empty checks; proceed to attempt the account creation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Pre-position the cursor on the first name field ready for the next data entry cycle after a successful save.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">150</td>
+      <td class="code-cell t-statement">                   CONTINUE</td>
+      <td class="expl-cell">No further action needed at this validation stage; allow processing to continue to the file write step.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">           END-EVALUATE</td>
+      <td class="expl-cell">End of the mandatory field validation decision block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">152</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">           IF NOT ERR-FLG-ON</td>
+      <td class="expl-cell">Only proceed to create the account if all mandatory field validations passed without any errors.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">               MOVE USERIDI  OF COUSR1AI TO SEC-USR-ID</td>
+      <td class="expl-cell">Copy the submitted user ID into the security file record, establishing the unique account identifier.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">155</td>
+      <td class="code-cell t-statement">               MOVE FNAMEI   OF COUSR1AI TO SEC-USR-FNAME</td>
+      <td class="expl-cell">Copy the submitted first name into the security file record for the new user account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">156</td>
+      <td class="code-cell t-statement">               MOVE LNAMEI   OF COUSR1AI TO SEC-USR-LNAME</td>
+      <td class="expl-cell">Copy the submitted last name into the security file record for the new user account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">157</td>
+      <td class="code-cell t-statement">               MOVE PASSWDI  OF COUSR1AI TO SEC-USR-PWD</td>
+      <td class="expl-cell">Copy the submitted password into the security file record, securing the new user's credentials.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">158</td>
+      <td class="code-cell t-statement">               MOVE USRTYPEI OF COUSR1AI TO SEC-USR-TYPE</td>
+      <td class="expl-cell">Copy the submitted access level designation (Regular or Admin) into the security file record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">               PERFORM WRITE-USER-SEC-FILE</td>
+      <td class="expl-cell">Attempt to write the fully populated new user account record to the security file, including duplicate ID checking.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">End of the conditional block that guards the security file write operation.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">161</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">162</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">163</td>
+      <td class="code-cell t-comment">      *                      RETURN-TO-PREV-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">164</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">165</td>
+      <td class="code-cell t-paragraph-header">       RETURN-TO-PREV-SCREEN.</td>
+      <td class="expl-cell">Entry point for the logic that returns the administrator to the previous screen in the application.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">166</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES</td>
+      <td class="expl-cell">Checks whether a destination screen was recorded in the shared communication area for this session.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">If no destination was recorded, defaults the navigation target to the CardDemo sign-on screen, ensuring the user is never left without a valid destination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the condition block that sets the default navigation destination.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">           MOVE WS-TRANID    TO CDEMO-FROM-TRANID</td>
+      <td class="expl-cell">Records the current transaction identifier (the Add User function) into the shared communication area, so the receiving screen knows which transaction is handing off control.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">           MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Records the name of the current program (Add User) into the shared communication area, so the receiving screen knows which program is transferring control.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">172</td>
+      <td class="code-cell t-comment">      *    MOVE WS-USER-ID   TO CDEMO-USER-ID</td>
+      <td class="expl-cell">Commented out — transferring the logged-in administrator's user ID to the shared session data is currently disabled.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">173</td>
+      <td class="code-cell t-comment">      *    MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE</td>
+      <td class="expl-cell">Commented out — transferring the logged-in administrator's access level (Regular or Admin) to the shared session data is currently disabled.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">           MOVE ZEROS        TO CDEMO-PGM-CONTEXT</td>
+      <td class="expl-cell">Resets the program context indicator in the shared communication area to zero, signalling to the destination screen that it should start in its default initial state rather than resuming a previous operation.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">175</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS</td>
+      <td class="expl-cell">Begins the CICS instruction to transfer control to another screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">176</td>
+      <td class="code-cell t-exec-cics">               XCTL PROGRAM(CDEMO-TO-PROGRAM)</td>
+      <td class="expl-cell">Transfers control to the destination screen that was determined earlier (either the previously recorded screen or the sign-on screen by default), ending execution of the Add User program.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">177</td>
+      <td class="code-cell t-exec-cics">               COMMAREA(CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the shared communication area — containing session identity and navigation context — to the destination screen so it has the information it needs to continue the user's session.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the CICS transfer-of-control instruction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">179</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">180</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">181</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">182</td>
+      <td class="code-cell t-comment">      *                      SEND-USRADD-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-PREV-SCREEN">
+      <td class="ln">183</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">184</td>
+      <td class="code-cell t-paragraph-header">       SEND-USRADD-SCREEN.</td>
+      <td class="expl-cell">Entry point for the routine responsible for rendering the Add New User screen to the administrator.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">185</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">186</td>
+      <td class="code-cell t-statement">           PERFORM POPULATE-HEADER-INFO</td>
+      <td class="expl-cell">Populates the screen's header area with standard application title, current date, time, and transaction identifier before display.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">187</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">           MOVE WS-MESSAGE TO ERRMSGO OF COUSR1AO</td>
+      <td class="expl-cell">Places any pending status or error message (e.g. validation failure, duplicate user ID, or success confirmation) into the message area of the screen so the administrator can see the outcome of their last action.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">189</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">190</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS SEND</td>
+      <td class="expl-cell">Begins the instruction to send the completed screen to the administrator's terminal.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">191</td>
+      <td class="code-cell t-exec-cics">                     MAP('COUSR1A')</td>
+      <td class="expl-cell">Specifies that the screen layout to be displayed is the Add New User entry form.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">192</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COUSR01')</td>
+      <td class="expl-cell">Identifies the screen map library that contains the Add New User form definition.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">193</td>
+      <td class="code-cell t-exec-cics">                     FROM(COUSR1AO)</td>
+      <td class="expl-cell">Supplies the fully populated screen data — including field values and the feedback message — as the content to be rendered on the terminal.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">194</td>
+      <td class="code-cell t-exec-cics">                     ERASE</td>
+      <td class="expl-cell">Clears any previously displayed content from the terminal before rendering the refreshed screen, ensuring no stale data remains visible.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">195</td>
+      <td class="code-cell t-exec-cics">                     CURSOR</td>
+      <td class="expl-cell">Positions the terminal cursor automatically at the appropriate input field, guiding the administrator to where data entry should begin.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">196</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the send-screen instruction, completing the display of the Add New User form to the administrator.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">197</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">198</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">199</td>
+      <td class="code-cell t-comment">      *                      RECEIVE-USRADD-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-USRADD-SCREEN">
+      <td class="ln">200</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">201</td>
+      <td class="code-cell t-paragraph-header">       RECEIVE-USRADD-SCREEN.</td>
+      <td class="expl-cell">Entry point for the step that reads the administrator's input from the Add User data entry screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">202</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">203</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RECEIVE</td>
+      <td class="expl-cell">Begins the instruction to retrieve the submitted form data from the terminal screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">204</td>
+      <td class="code-cell t-exec-cics">                     MAP('COUSR1A')</td>
+      <td class="expl-cell">Identifies the specific Add User screen layout to read from.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">205</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COUSR01')</td>
+      <td class="expl-cell">Specifies the screen map library that contains the Add User screen definition.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">206</td>
+      <td class="code-cell t-exec-cics">                     INTO(COUSR1AI)</td>
+      <td class="expl-cell">Directs the captured screen input — all entered field values — into the program's working area for further processing.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">207</td>
+      <td class="code-cell t-exec-cics">                     RESP(WS-RESP-CD)</td>
+      <td class="expl-cell">Records the outcome of the screen-read operation so the program can detect any technical failure in receiving the data.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">208</td>
+      <td class="code-cell t-exec-cics">                     RESP2(WS-REAS-CD)</td>
+      <td class="expl-cell">Captures a secondary diagnostic code providing additional detail if the screen-read operation did not complete successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">209</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the screen-read instruction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">210</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">211</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">212</td>
+      <td class="code-cell t-comment">      *                      POPULATE-HEADER-INFO</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-USRADD-SCREEN">
+      <td class="ln">213</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">214</td>
+      <td class="code-cell t-paragraph-header">       POPULATE-HEADER-INFO.</td>
+      <td class="expl-cell">This paragraph prepares the header section of the Add User screen with contextual information — application titles, the active transaction identifier, the program name, and the current date and time — so that the administrator sees a fully labelled and timestamped screen before entering new user details.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">215</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">216</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA</td>
+      <td class="expl-cell">Retrieves the current system date and time so the screen can display when the administrator is performing the add-user action.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">217</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">218</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE01           TO TITLE01O OF COUSR1AO</td>
+      <td class="expl-cell">Places the first line of the CardDemo application title onto the screen header, identifying the system to the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">219</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE02           TO TITLE02O OF COUSR1AO</td>
+      <td class="expl-cell">Places the second line of the CardDemo application title onto the screen header, completing the application branding.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">           MOVE WS-TRANID              TO TRNNAMEO OF COUSR1AO</td>
+      <td class="expl-cell">Displays the transaction code for the Add User function in the screen header, allowing the administrator to confirm they are in the correct transaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">221</td>
+      <td class="code-cell t-statement">           MOVE WS-PGMNAME             TO PGMNAMEO OF COUSR1AO</td>
+      <td class="expl-cell">Displays the name of the currently running program in the screen header, supporting auditability and navigation awareness.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">222</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">223</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM</td>
+      <td class="expl-cell">Extracts the month portion of today's date to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">224</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD</td>
+      <td class="expl-cell">Extracts the day portion of today's date to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">225</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY</td>
+      <td class="expl-cell">Extracts the two-digit year portion of today's date to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">226</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">227</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COUSR1AO</td>
+      <td class="expl-cell">Displays the fully formatted current date (MM/DD/YY) in the screen header, giving the administrator a timestamp for the session.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">228</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">229</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH</td>
+      <td class="expl-cell">Extracts the hours portion of the current time to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">230</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM</td>
+      <td class="expl-cell">Extracts the minutes portion of the current time to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">231</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS</td>
+      <td class="expl-cell">Extracts the seconds portion of the current time to format it for display on the screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">232</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COUSR1AO.</td>
+      <td class="expl-cell">Displays the fully formatted current time (HH:MM:SS) in the screen header, completing the session timestamp visible to the administrator.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">234</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">235</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">236</td>
+      <td class="code-cell t-comment">      *                      WRITE-USER-SEC-FILE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">237</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">238</td>
+      <td class="code-cell t-paragraph-header">       WRITE-USER-SEC-FILE.</td>
+      <td class="expl-cell">Entry point for the logic that writes the new user account record to the security file.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">239</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">240</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS WRITE</td>
+      <td class="expl-cell">Initiates the request to save the new user account record to the CardDemo user security file.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">241</td>
+      <td class="code-cell t-exec-cics">                DATASET   (WS-USRSEC-FILE)</td>
+      <td class="expl-cell">Identifies the user security file as the target destination for the new account record.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">242</td>
+      <td class="code-cell t-exec-cics">                FROM      (SEC-USER-DATA)</td>
+      <td class="expl-cell">Specifies the complete new user account data — name, password, user type, and ID — to be written.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">243</td>
+      <td class="code-cell t-exec-cics">                LENGTH    (LENGTH OF SEC-USER-DATA)</td>
+      <td class="expl-cell">Ensures the full user account record is written in its entirety, with no data truncated.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">244</td>
+      <td class="code-cell t-exec-cics">                RIDFLD    (SEC-USR-ID)</td>
+      <td class="expl-cell">Designates the new user's unique ID as the key that will identify this record in the security file.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">245</td>
+      <td class="code-cell t-exec-cics">                KEYLENGTH (LENGTH OF SEC-USR-ID)</td>
+      <td class="expl-cell">Confirms the exact length of the unique user ID key so the file system indexes the record correctly.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">246</td>
+      <td class="code-cell t-exec-cics">                RESP      (WS-RESP-CD)</td>
+      <td class="expl-cell">Captures the primary outcome code returned by the system after the write attempt.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">247</td>
+      <td class="code-cell t-exec-cics">                RESP2     (WS-REAS-CD)</td>
+      <td class="expl-cell">Captures a secondary diagnostic code providing additional detail if the write operation fails.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">248</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the file write request block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">249</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">250</td>
+      <td class="code-cell t-statement">           EVALUATE WS-RESP-CD</td>
+      <td class="expl-cell">Evaluates the outcome of the write attempt to determine which business response to apply.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">251</td>
+      <td class="code-cell t-statement">               WHEN DFHRESP(NORMAL)</td>
+      <td class="expl-cell">Handles the successful scenario where the new user account was saved to the security file without any issues.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">252</td>
+      <td class="code-cell t-statement">                   PERFORM INITIALIZE-ALL-FIELDS</td>
+      <td class="expl-cell">Clears all data entry fields on screen, ready for the administrator to add another new user account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">253</td>
+      <td class="code-cell t-statement">                   MOVE SPACES             TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previous status or error message from the screen before displaying the success confirmation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">                   MOVE DFHGREEN           TO ERRMSGC  OF COUSR1AO</td>
+      <td class="expl-cell">Sets the confirmation message colour to green to visually signal a successful account creation to the administrator.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">255</td>
+      <td class="code-cell t-statement">                   STRING 'User '     DELIMITED BY SIZE</td>
+      <td class="expl-cell">Begins constructing a success confirmation message that will include the newly created user's ID.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">256</td>
+      <td class="code-cell t-statement">                          SEC-USR-ID  DELIMITED BY SPACE</td>
+      <td class="expl-cell">Inserts the newly created user's unique ID into the confirmation message, stopping at the first blank character.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">257</td>
+      <td class="code-cell t-statement">                          ' has been added ...' DELIMITED BY SIZE</td>
+      <td class="expl-cell">Appends a fixed completion phrase to the confirmation message indicating the user has been added.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">258</td>
+      <td class="code-cell t-statement">                     INTO WS-MESSAGE</td>
+      <td class="expl-cell">Places the fully assembled success confirmation message into the screen message area for display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">259</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Refreshes the data entry screen, showing the success message and blank fields ready for the next new user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">260</td>
+      <td class="code-cell t-statement">               WHEN DFHRESP(DUPKEY)</td>
+      <td class="expl-cell">Handles the scenario where the write was rejected because the user ID already exists in the security file (duplicate key).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">261</td>
+      <td class="code-cell t-statement">               WHEN DFHRESP(DUPREC)</td>
+      <td class="expl-cell">Also handles the scenario where a fully duplicate record already exists in the security file.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">262</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Raises the error flag to indicate that the add operation has failed and requires administrator attention.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">263</td>
+      <td class="code-cell t-statement">                   MOVE 'User ID already exist...' TO</td>
+      <td class="expl-cell">Sets the screen message to inform the administrator that the supplied user ID is already in use and cannot be reused.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">264</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">265</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO USERIDL OF COUSR1AI</td>
+      <td class="expl-cell">Positions the screen cursor on the user ID field, directing the administrator to correct the duplicate entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">266</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplays the data entry screen with the duplicate user ID error message and cursor positioned for correction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">               WHEN OTHER</td>
+      <td class="expl-cell">Handles any unexpected or unrecognised system error that prevented the user account from being saved.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">268</td>
+      <td class="code-cell t-comment">      *            DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD</td>
+      <td class="expl-cell">Commented-out diagnostic line that would have displayed internal system response codes during development testing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">269</td>
+      <td class="code-cell t-statement">                   MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Raises the error flag to indicate that an unexpected system failure has occurred during the save operation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">270</td>
+      <td class="code-cell t-statement">                   MOVE 'Unable to Add User...' TO</td>
+      <td class="expl-cell">Sets the screen message to inform the administrator that the system was unable to create the new user account.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">271</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">                   MOVE -1       TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Positions the screen cursor on the first name field as a default starting point for the administrator to review the entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">273</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-USRADD-SCREEN</td>
+      <td class="expl-cell">Redisplays the data entry screen with the system failure error message so the administrator can retry or escalate.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">274</td>
+      <td class="code-cell t-statement">           END-EVALUATE.</td>
+      <td class="expl-cell">Closes the outcome evaluation block, completing all possible responses to the write attempt.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">275</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">276</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">277</td>
+      <td class="code-cell t-comment">      *                      CLEAR-CURRENT-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-WRITE-USER-SEC-FILE">
+      <td class="ln">278</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">279</td>
+      <td class="code-cell t-paragraph-header">       CLEAR-CURRENT-SCREEN.</td>
+      <td class="expl-cell">Resets the user account creation form to a blank state, ready for a new entry. This is triggered when an administrator explicitly requests a screen clear (PF4) without saving any data entered.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">280</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">           PERFORM INITIALIZE-ALL-FIELDS.</td>
+      <td class="expl-cell">Wipes all data entered on the form — first name, last name, user ID, password, and user type — returning every field to empty.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">           PERFORM SEND-USRADD-SCREEN.</td>
+      <td class="expl-cell">Redraws the blank user account creation screen so the administrator can immediately begin entering details for a new user.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">283</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">284</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">285</td>
+      <td class="code-cell t-comment">      *                      INITIALIZE-ALL-FIELDS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-CLEAR-CURRENT-SCREEN">
+      <td class="ln">286</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">287</td>
+      <td class="code-cell t-paragraph-header">       INITIALIZE-ALL-FIELDS.</td>
+      <td class="expl-cell">Resets the user account creation form to a blank state, clearing all previously entered data and any status messages. This is used to prepare the screen for a fresh user account entry, either after a successful creation or when the administrator explicitly clears the form.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">288</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">289</td>
+      <td class="code-cell t-statement">           MOVE -1              TO FNAMEL OF COUSR1AI</td>
+      <td class="expl-cell">Positions the screen cursor on the first name field, directing the administrator's attention to begin data entry there.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">           MOVE SPACES          TO USERIDI  OF COUSR1AI</td>
+      <td class="expl-cell">Clears the User ID field on the screen, removing any previously entered or displayed user identifier.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">291</td>
+      <td class="code-cell t-statement">                                   FNAMEI   OF COUSR1AI</td>
+      <td class="expl-cell">Clears the first name field on the screen, removing any previously entered given name.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">292</td>
+      <td class="code-cell t-statement">                                   LNAMEI   OF COUSR1AI</td>
+      <td class="expl-cell">Clears the last name field on the screen, removing any previously entered surname.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">                                   PASSWDI  OF COUSR1AI</td>
+      <td class="expl-cell">Clears the password field on the screen, removing any previously entered password value.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">                                   USRTYPEI OF COUSR1AI</td>
+      <td class="expl-cell">Clears the user type field on the screen, removing any previously selected access level designation (Regular or Admin).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">                                   WS-MESSAGE.</td>
+      <td class="expl-cell">Clears any status or error message currently displayed on the screen, such as success confirmations or validation warnings.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">296</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">297</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">298</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-INITIALIZE-ALL-FIELDS">
+      <td class="ln">299</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group-level container holding all working-storage variables used during the Add User business process, including program identity, error tracking, and file references.</td>
+    </tr>
+    
+    <tr id="var-WS-PGMNAME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-PGMNAME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">COUSR01C</td>
+      <td class="var-desc">The internal name of this program ('COUSR01C'), used to identify itself when transferring control to other programs or logging activity — essentially the program's own identity card within the CardDemo system.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANID">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRANID
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">CU01</td>
+      <td class="var-desc">The CICS transaction identifier ('CU01') associated with the Add User function. This is the transaction code an administrator invokes to launch the new user creation screen, and it is used when navigating back to this program from other screens.</td>
+    </tr>
+    
+    <tr id="var-WS-MESSAGE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-MESSAGE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(80)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">The feedback message displayed to the administrator on the screen after an action is taken — for example, confirming that a new user was successfully created, or explaining why the submission was rejected (e.g., 'User ID already exists', missing mandatory field).</td>
+    </tr>
+    
+    <tr id="var-WS-USRSEC-FILE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-USRSEC-FILE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">USRSEC  </td>
+      <td class="var-desc">The physical name of the User Security File ('USRSEC') where all CardDemo user account credentials and access types are stored. This is the target file to which a new user record is written upon successful account creation.</td>
+    </tr>
+    
+    <tr id="var-WS-ERR-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERR-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">An error indicator flag that tracks whether any validation or processing problem has occurred during the Add User process. It starts as 'N' (no error) and is set to 'Y' if, for example, a mandatory field is missing or the User ID already exists, preventing the record from being written.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">A named condition that evaluates to true when an error has been detected during the Add User process (e.g., duplicate User ID, missing mandatory field). When active, it signals that the new user record must NOT be written to the security file and the administrator must be shown an error message.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-OFF">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-OFF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">A named condition that evaluates to true when no errors have been detected, meaning all mandatory fields are present, the User ID is unique, and the new user account is safe to be written to the security file.</td>
+    </tr>
+    
+    <tr id="var-WS-RESP-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-RESP-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS response code returned after a file operation (such as writing the new user record to USRSEC or reading to check for a duplicate User ID). A non-zero value indicates that the file operation did not succeed as expected, which the program uses to detect and handle errors such as a duplicate record or file unavailability.</td>
+    </tr>
+    
+    <tr id="var-WS-REAS-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-REAS-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS reason code that provides additional detail about why a file operation failed, complementing the response code. It helps the program distinguish between different failure scenarios (e.g., record already exists vs. file not found) when attempting to add a new user to the security file.</td>
+    </tr>
+    
+    <tr id="var-DFHCOMMAREA">
+      <td class="var-level">01</td>
+      <td class="var-name">DFHCOMMAREA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The standard CICS communication area used to pass session and context information between programs. In the Add User process, it carries details such as the logged-in administrator's identity and user type, allowing the program to verify that the caller is an authenticated administrator before permitting access to the user creation function.</td>
+    </tr>
+    
+    <tr id="var-LK-COMMAREA">
+      <td class="var-level">05</td>
+      <td class="var-name">LK-COMMAREA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A placeholder field within the CICS communication area that allows the program to detect whether a communication area was passed when the program was invoked. Its presence or absence (and length) tells the program whether this is a fresh entry from the menu or a return from another screen, determining how the Add User form should be initialised.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/COUSR01C.cbl
+  </footer>
+
+</main>
+</body>
+</html>

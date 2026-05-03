@@ -1,0 +1,1894 @@
+{
+  "meta": {
+    "program_name": "CBCUS01C",
+    "file_path": "app/cbl/CBCUS01C.cbl",
+    "analyzed_at": "2026-05-03T11:19:45.745754",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Batch program that sequentially reads and prints all customer records from the customer master file for reporting or audit purposes.",
+    "process_description": "This program opens the customer master file and reads every customer record sequentially from start to finish, displaying each record to the system output. It is the customer data equivalent of CBACT02C (which does the same for card records), serving as a full customer data extract or audit report. The program handles end-of-file gracefully and will abnormally terminate (ABEND) with a diagnostic code if any unexpected file I/O error occurs, ensuring data integrity issues are surfaced immediately.",
+    "type": "Batch",
+    "module": "Customer",
+    "files": {
+      "CUSTFILE": "Customer master file (VSAM KSDS) containing all customer demographic and profile records, keyed by customer ID"
+    },
+    "business_rules": [
+      "Every customer record in the master file must be read and printed — no filtering or selection criteria are applied, ensuring a complete audit trail.",
+      "The customer file must be accessible and openable; failure to open the file results in an immediate abnormal program termination (ABEND), preventing partial or misleading output.",
+      "Any unexpected I/O error during record reading (other than normal end-of-file) causes an immediate ABEND with diagnostic status codes, ensuring data integrity issues are not silently ignored.",
+      "Records are processed in customer ID sequence (sequential access on a KSDS VSAM file), providing an ordered, reproducible output suitable for reconciliation or audit.",
+      "Normal end-of-file is the only acceptable termination condition for the read loop; all other conditions are treated as errors."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVCUS01Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "CBACT02C",
+        "COADM01C",
+        "COPAUA0C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : CBCUS01C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : BATCH COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Read and print customer data file.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID.    CBCUS01C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.        AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "           SELECT CUSTFILE-FILE ASSIGN TO   CUSTFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                  ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "                  ACCESS MODE  IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "                  RECORD KEY   IS FD-CUST-ID",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "                  FILE STATUS  IS CUSTFILE-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "      *",
+      "type": "comment",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "       FD  CUSTFILE-FILE.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "       01  FD-CUSTFILE-REC.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "           05 FD-CUST-ID                        PIC 9(09).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "           05 FD-CUST-DATA                      PIC X(491).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "       COPY CVCUS01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "       01  CUSTFILE-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           05  CUSTFILE-STAT1      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "           05  CUSTFILE-STAT2      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "       01  IO-STATUS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "           05  IO-STAT1            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "           05  IO-STAT2            PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "           05  TWO-BYTES-LEFT      PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "           05  TWO-BYTES-RIGHT     PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "       01  IO-STATUS-04.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "           05  IO-STATUS-0401      PIC 9   VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "           05  IO-STATUS-0403      PIC 999 VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "       01  APPL-RESULT             PIC S9(9)   COMP.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "           88  APPL-AOK            VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "           88  APPL-EOF            VALUE 16.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       01  END-OF-FILE             PIC X(01)    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "       01  ABCODE                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       01  TIMING                  PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "           DISPLAY 'START OF EXECUTION OF PROGRAM CBCUS01C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "           PERFORM 0000-CUSTFILE-OPEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "           PERFORM UNTIL END-OF-FILE = 'Y'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "               IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "                   PERFORM 1000-CUSTFILE-GET-NEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "                   IF  END-OF-FILE = 'N'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "                       DISPLAY CUSTOMER-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           PERFORM 9000-CUSTFILE-CLOSE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "           DISPLAY 'END OF EXECUTION OF PROGRAM CBCUS01C'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "       1000-CUSTFILE-GET-NEXT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Entry point for the routine that fetches and processes the next customer record in sequence."
+    },
+    {
+      "number": 93,
+      "code": "           READ CUSTFILE-FILE INTO CUSTOMER-RECORD.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Reads the next customer record sequentially from the master file, populating all customer demographic and profile fields for processing."
+    },
+    {
+      "number": 94,
+      "code": "           IF  CUSTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Checks whether the file read completed successfully with no errors."
+    },
+    {
+      "number": 95,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Marks the current processing outcome as successful, indicating the customer record was retrieved cleanly."
+    },
+    {
+      "number": 96,
+      "code": "               DISPLAY CUSTOMER-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Outputs the full customer profile — including identity, address, and account-related data — to the system report or audit log."
+    },
+    {
+      "number": 97,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Begins handling non-successful file read outcomes."
+    },
+    {
+      "number": 98,
+      "code": "               IF  CUSTFILE-STATUS = '10'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Checks whether the file read encountered the end of the customer master file, meaning all customers have been processed."
+    },
+    {
+      "number": 99,
+      "code": "                   MOVE 16 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Records that the end of the customer file has been reached, signalling the read loop should stop."
+    },
+    {
+      "number": 100,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Begins handling the case where the file status indicates neither success nor end-of-file — an unexpected I/O error."
+    },
+    {
+      "number": 101,
+      "code": "                   MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Records that an unexpected file error occurred, flagging the situation for error handling and potential program termination."
+    },
+    {
+      "number": 102,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Closes the end-of-file condition check."
+    },
+    {
+      "number": 103,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Closes the overall file status evaluation block."
+    },
+    {
+      "number": 104,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Checks whether the last file operation completed successfully and the customer record is valid for reporting."
+    },
+    {
+      "number": 105,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "No further action needed — the successfully read and displayed customer record requires no additional handling."
+    },
+    {
+      "number": 106,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Begins handling outcomes where the read was not fully successful."
+    },
+    {
+      "number": 107,
+      "code": "               IF  APPL-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Checks whether the reason for the non-success is simply that all customer records have already been read."
+    },
+    {
+      "number": 108,
+      "code": "                   MOVE 'Y' TO END-OF-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Sets the processing control flag to indicate the entire customer master file has been exhausted, ending the read loop."
+    },
+    {
+      "number": 109,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Begins handling the case where the outcome is neither success nor end-of-file — indicating a genuine data access problem."
+    },
+    {
+      "number": 110,
+      "code": "                   DISPLAY 'ERROR READING CUSTOMER FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Writes a human-readable error message to the system log, alerting operators that the customer file could not be read."
+    },
+    {
+      "number": 111,
+      "code": "                   MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Captures the specific file system error code so it can be included in the diagnostic output for investigation."
+    },
+    {
+      "number": 112,
+      "code": "                   PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Invokes a shared routine that formats and displays the file error code details to assist with fault diagnosis."
+    },
+    {
+      "number": 113,
+      "code": "                   PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Triggers an abnormal program termination with a diagnostic code, immediately halting processing to prevent incomplete or misleading audit output."
+    },
+    {
+      "number": 114,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Closes the unexpected error handling block."
+    },
+    {
+      "number": 115,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Closes the overall outcome evaluation block."
+    },
+    {
+      "number": 116,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": "Marks the end of this paragraph, returning control to the calling routine."
+    },
+    {
+      "number": 117,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "       0000-CUSTFILE-OPEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Entry point for the customer master file open routine."
+    },
+    {
+      "number": 119,
+      "code": "           MOVE 8 TO APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Assumes failure by default before attempting to open the file, ensuring no false success is recorded if the open attempt is never completed."
+    },
+    {
+      "number": 120,
+      "code": "           OPEN INPUT CUSTFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Attempts to open the customer master file in read-only mode, ready for sequential retrieval of all customer records."
+    },
+    {
+      "number": 121,
+      "code": "           IF  CUSTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Checks whether the file system confirmed the customer master file was opened successfully."
+    },
+    {
+      "number": 122,
+      "code": "               MOVE 0 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Records a successful file open outcome, allowing normal processing to proceed."
+    },
+    {
+      "number": 123,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 124,
+      "code": "               MOVE 12 TO APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Records a failed file open outcome, signalling that the customer master file is unavailable or inaccessible."
+    },
+    {
+      "number": 125,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Evaluates whether the file open was ultimately successful before allowing the program to continue."
+    },
+    {
+      "number": 127,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "No action needed — processing continues normally because the file is accessible."
+    },
+    {
+      "number": 128,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 129,
+      "code": "               DISPLAY 'ERROR OPENING CUSTFILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Writes a human-readable error message to the system log indicating the customer master file could not be opened."
+    },
+    {
+      "number": 130,
+      "code": "               MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Captures the specific file system error code so it can be included in the diagnostic output for investigation."
+    },
+    {
+      "number": 131,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Displays the detailed file system error code to the operator log to assist in diagnosing why the customer master file is inaccessible."
+    },
+    {
+      "number": 132,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Triggers an abnormal program termination, halting the job immediately to prevent incomplete or misleading audit output from being produced."
+    },
+    {
+      "number": 133,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine."
+    },
+    {
+      "number": 135,
+      "code": "      *---------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "       9000-CUSTFILE-CLOSE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Entry point for the customer master file closure routine."
+    },
+    {
+      "number": 137,
+      "code": "           ADD 8 TO ZERO GIVING APPL-RESULT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Initialises the processing outcome to a pending/failure state before attempting the close, ensuring any unhandled path is treated as an error."
+    },
+    {
+      "number": 138,
+      "code": "           CLOSE CUSTFILE-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Releases the customer master file, signalling to the operating system that all reading is complete and system resources can be freed."
+    },
+    {
+      "number": 139,
+      "code": "           IF  CUSTFILE-STATUS = '00'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Checks whether the file closed successfully without any system or I/O errors."
+    },
+    {
+      "number": 140,
+      "code": "               SUBTRACT APPL-RESULT FROM APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "If the closure was successful, resets the processing outcome to indicate a clean, error-free completion."
+    },
+    {
+      "number": 141,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "               ADD 12 TO ZERO GIVING APPL-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "If the closure failed, sets the processing outcome to a distinct error code, flagging that the file did not close cleanly."
+    },
+    {
+      "number": 143,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "           IF  APPL-AOK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Evaluates whether the overall file closure completed without errors before deciding how to proceed."
+    },
+    {
+      "number": 145,
+      "code": "               CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "If the closure was successful, no further action is needed and processing continues normally."
+    },
+    {
+      "number": 146,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "               DISPLAY 'ERROR CLOSING CUSTOMER FILE'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Writes a human-readable error message to the system log, alerting operations staff that the customer master file could not be closed properly."
+    },
+    {
+      "number": 148,
+      "code": "               MOVE CUSTFILE-STATUS TO IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Captures the specific file system error code so it can be displayed for diagnosis by the operations or support team."
+    },
+    {
+      "number": 149,
+      "code": "               PERFORM Z-DISPLAY-IO-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Displays the detailed file system error code to the system log, providing technical context for the failure."
+    },
+    {
+      "number": 150,
+      "code": "               PERFORM Z-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Triggers an immediate abnormal program termination, halting all processing and raising an alert so the file closure failure is not silently ignored."
+    },
+    {
+      "number": 151,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": "Marks the end of this paragraph and returns control to the calling routine if no error occurred."
+    },
+    {
+      "number": 153,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "       Z-ABEND-PROGRAM.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Entry point for the fatal error handling routine, invoked whenever the program encounters an unrecoverable condition during customer file processing."
+    },
+    {
+      "number": 155,
+      "code": "           DISPLAY 'ABENDING PROGRAM'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Writes a visible alert message to the system log, notifying operators and support staff that the program is terminating abnormally rather than completing normally."
+    },
+    {
+      "number": 156,
+      "code": "           MOVE 0 TO TIMING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Specifies that the abnormal termination should occur immediately and synchronously, with no deferred or asynchronous cleanup processing."
+    },
+    {
+      "number": 157,
+      "code": "           MOVE 999 TO ABCODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Sets the diagnostic termination code to 999, a predefined signal identifying this as a fatal customer file processing failure for triage and incident tracking."
+    },
+    {
+      "number": 158,
+      "code": "           CALL 'CEE3ABD' USING ABCODE, TIMING.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": "Invokes the system's formal abnormal termination handler, which halts execution, records the diagnostic code in the job log, and notifies the operating environment that the batch run failed — preventing any downstream processes from treating the output as complete or valid."
+    },
+    {
+      "number": 159,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "       Z-DISPLAY-IO-STATUS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Entry point for the diagnostic error-reporting routine triggered when a file operation on the customer master file produces an unexpected result."
+    },
+    {
+      "number": 162,
+      "code": "           IF  IO-STATUS NOT NUMERIC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Checks whether the file error code returned by the system is non-numeric, which would indicate a severe or unusual VSAM failure beyond a standard status code."
+    },
+    {
+      "number": 163,
+      "code": "           OR  IO-STAT1 = '9'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Also checks whether the error falls into the category of a VSAM physical or hardware-level error (status category '9'), which requires special binary decoding to interpret correctly."
+    },
+    {
+      "number": 164,
+      "code": "               MOVE IO-STAT1 TO IO-STATUS-04(1:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Captures the primary error category digit from the system-returned file status into the first position of the formatted diagnostic display code."
+    },
+    {
+      "number": 165,
+      "code": "               MOVE 0        TO TWO-BYTES-BINARY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Clears a temporary numeric work area to zero, preparing it to receive and convert the secondary error detail byte into a displayable numeric value."
+    },
+    {
+      "number": 166,
+      "code": "               MOVE IO-STAT2 TO TWO-BYTES-RIGHT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Loads the secondary error detail byte — which encodes the specific VSAM failure reason — into the right-hand side of the temporary conversion area."
+    },
+    {
+      "number": 167,
+      "code": "               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Converts the raw binary secondary error code into a human-readable numeric value so it can be included in the operator-facing diagnostic message."
+    },
+    {
+      "number": 168,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Displays the fully formatted four-digit file error code to the system output, giving operators and support staff the exact VSAM status needed to diagnose the customer file access failure."
+    },
+    {
+      "number": 169,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Begins the alternative processing path for standard, numeric file status codes that do not require binary decoding."
+    },
+    {
+      "number": 170,
+      "code": "               MOVE '0000' TO IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Initialises the diagnostic display field to a neutral zero value before inserting the actual standard error code, ensuring no residual data contaminates the message."
+    },
+    {
+      "number": 171,
+      "code": "               MOVE IO-STATUS TO IO-STATUS-04(3:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Inserts the two-digit standard file status code into the appropriate position of the diagnostic display field for clear, correctly formatted output."
+    },
+    {
+      "number": 172,
+      "code": "               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Displays the formatted standard error code to the system output, providing operators with the specific file status needed to understand why the customer record read operation failed."
+    },
+    {
+      "number": 173,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Closes the conditional error-type branching logic."
+    },
+    {
+      "number": 174,
+      "code": "           EXIT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": "Returns control to the calling routine after the diagnostic message has been displayed, allowing the program to proceed with its error-handling or termination steps."
+    },
+    {
+      "number": 175,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:28 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "FD-CUSTFILE-REC",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The physical record layout for a single customer as it is read directly from the Customer Master File (CUSTFILE). This is the raw buffer that receives each customer record from disk before its contents are interpreted for reporting."
+    },
+    {
+      "name": "FD-CUST-ID",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The unique 9-digit customer identifier as stored in the physical file record. This is the primary key that uniquely identifies each customer in the Customer Master File and determines the sequential order in which records are read and reported."
+    },
+    {
+      "name": "FD-CUST-DATA",
+      "level": "05",
+      "picture": "PIC X(491)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The remaining 491 bytes of the customer's raw profile data as read from the Customer Master File. This payload contains all personal and account-related customer information (name, address, SSN, credit score, etc.) that will be mapped into the structured CUSTOMER-RECORD layout for display and reporting."
+    },
+    {
+      "name": "CUSTFILE-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The two-character VSAM file status code returned by the operating system after every open, read, or close operation on the Customer Master File. The program inspects this code to determine whether each file operation succeeded, reached end-of-file, or encountered an error requiring an abnormal termination."
+    },
+    {
+      "name": "CUSTFILE-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first character of the Customer Master File status code, representing the major status category (e.g., '0' for successful operation, '1' for end-of-file, '9' for a hardware or VSAM-level error). Used to quickly classify whether the last file operation was successful or problematic."
+    },
+    {
+      "name": "CUSTFILE-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the Customer Master File status code, providing a more specific sub-code that further describes the nature of a file operation result. Together with CUSTFILE-STAT1, it gives the full diagnostic code used to identify the exact cause of any file I/O failure."
+    },
+    {
+      "name": "IO-STATUS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A general-purpose two-character I/O status holder used to capture and carry file operation status codes for error diagnosis and reporting. It serves as a working area to consolidate status information when converting or displaying error codes during abnormal termination handling."
+    },
+    {
+      "name": "IO-STAT1",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The first character of the general I/O status code, representing the major category of the file operation result. Used during error reporting to communicate the primary nature of a file failure to operators or downstream diagnostic processes."
+    },
+    {
+      "name": "IO-STAT2",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The second character of the general I/O status code, providing the specific sub-code detail of a file operation result. Together with IO-STAT1, it forms the complete diagnostic status used to pinpoint the exact nature of a file error during abnormal termination."
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": "01",
+      "picture": "PIC 9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A 2-byte binary numeric work area used as an intermediate conversion field. It allows the program to interpret a numeric status or result code in binary form so that its individual byte components can be extracted and examined separately for error diagnosis."
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": "TWO-BYTES-BINARY",
+      "occurs": null,
+      "is_group": true,
+      "description": "An alphanumeric overlay of the TWO-BYTES-BINARY field that allows the same 2-byte memory area to be read as two individual characters. This enables the program to split a binary status code into its left and right byte components for character-level inspection and error reporting."
+    },
+    {
+      "name": "TWO-BYTES-LEFT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The left (high-order) byte of the binary status code when viewed as two separate characters. Used to extract the major category portion of a converted status code for inclusion in error messages or diagnostic output during abnormal termination."
+    },
+    {
+      "name": "TWO-BYTES-RIGHT",
+      "level": "05",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The right (low-order) byte of the binary status code when viewed as two separate characters. Used to extract the specific sub-code portion of a converted status code for inclusion in error messages or diagnostic output during abnormal termination."
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A structured work area used to decompose and display a numeric I/O status code in a human-readable format for error reporting. It breaks the status into a 1-digit major code and a 3-digit minor code, making it easier for operators to diagnose file access failures."
+    },
+    {
+      "name": "IO-STATUS-0401",
+      "level": "05",
+      "picture": "PIC 9",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The single-digit major category of the I/O status code, initialized to zero (success). During error handling, this field holds the primary status digit that classifies the type of file operation failure encountered when reading the Customer Master File."
+    },
+    {
+      "name": "IO-STATUS-0403",
+      "level": "05",
+      "picture": "PIC 999",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The three-digit minor detail code of the I/O status, initialized to zero (no error). During error handling, this field holds the specific sub-code that further describes the exact nature of a file operation failure, providing detailed diagnostic information for operators investigating a Customer Master File access problem."
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": "01",
+      "picture": "PIC S9(9) COMP",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The internal application result code that tracks the outcome of each customer file read operation. The program sets this code after each read attempt and uses it to decide whether to continue processing records, stop at end-of-file, or trigger an abnormal termination due to an unexpected error."
+    },
+    {
+      "name": "APPL-AOK",
+      "level": "88",
+      "picture": null,
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the last customer file read operation completed successfully (result code = 0). When this condition is true, the program proceeds to print the customer record and reads the next one, continuing the normal batch reporting cycle."
+    },
+    {
+      "name": "APPL-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "16",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A condition name that evaluates to true when the Customer Master File has been fully read and no more customer records remain (result code = 16, end-of-file). This is the only acceptable way for the read loop to terminate, signalling that all customers have been successfully reported."
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": "01",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A processing control flag that tracks whether all customer records in the Customer Master File have been read. Initialized to 'N' (not finished), it is set to 'Y' when end-of-file is reached, signalling the batch loop to stop reading and proceed to close the file and end the report."
+    },
+    {
+      "name": "ABCODE",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The abnormal termination (ABEND) code passed to the system abend handler when a fatal error occurs, such as failure to open the Customer Master File or an unexpected I/O error during reading. A value of 999 is used to signal a critical batch failure, ensuring the error is visible in job logs and prevents silent data integrity issues."
+    },
+    {
+      "name": "TIMING",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A binary numeric field used to pass a timing or delay parameter to the system abend handler at the point of abnormal termination. It controls the behaviour of the abend call, such as whether a system dump should be produced immediately or after a short interval, aiding in post-failure diagnostics."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "1000-CUSTFILE-GET-NEXT",
+      "line_start": 92,
+      "line_end": 117,
+      "description": "This paragraph retrieves the next customer record from the master file and displays it for audit or reporting purposes. It distinguishes between a successful read, a normal end-of-file condition, and any unexpected I/O error — aborting the program immediately if data integrity cannot be guaranteed."
+    },
+    {
+      "name": "0000-CUSTFILE-OPEN",
+      "line_start": 118,
+      "line_end": 135,
+      "description": "This paragraph attempts to open the customer master file in preparation for a full sequential read of all customer records. If the file cannot be opened, the program immediately halts with a fatal error, preventing any partial or misleading audit output from being produced."
+    },
+    {
+      "name": "9000-CUSTFILE-CLOSE",
+      "line_start": 136,
+      "line_end": 153,
+      "description": "This paragraph safely closes the customer master file after all records have been read and reported. It verifies the file closed successfully and triggers an immediate abnormal termination with diagnostic output if the closure fails, protecting data integrity."
+    },
+    {
+      "name": "Z-ABEND-PROGRAM",
+      "line_start": 154,
+      "line_end": 160,
+      "description": "This paragraph handles unrecoverable processing failures by immediately halting the program with a formal abnormal termination signal. It ensures that any critical error — such as a file I/O failure on the customer master file — is surfaced visibly to operations staff rather than silently producing incomplete or misleading audit output."
+    },
+    {
+      "name": "Z-DISPLAY-IO-STATUS",
+      "line_start": 161,
+      "line_end": 178,
+      "description": "This paragraph formats and displays a human-readable diagnostic message whenever a file input/output error occurs during customer record processing. It ensures that operators and auditors receive a clear, standardized error code to identify and investigate any failure accessing the customer master file."
+    }
+  ],
+  "copybooks": [
+    "CVCUS01Y"
+  ]
+}

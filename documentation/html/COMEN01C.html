@@ -1,0 +1,2767 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COMEN01C – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-MAIN-PARA">MAIN-PARA</a>
+  
+  <a href="#para-PROCESS-ENTER-KEY">PROCESS-ENTER-KEY</a>
+  
+  <a href="#para-RETURN-TO-SIGNON-SCREEN">RETURN-TO-SIGNON-SCREEN</a>
+  
+  <a href="#para-SEND-MENU-SCREEN">SEND-MENU-SCREEN</a>
+  
+  <a href="#para-RECEIVE-MENU-SCREEN">RECEIVE-MENU-SCREEN</a>
+  
+  <a href="#para-POPULATE-HEADER-INFO">POPULATE-HEADER-INFO</a>
+  
+  <a href="#para-BUILD-MENU-OPTIONS">BUILD-MENU-OPTIONS</a>
+  
+  
+
+  
+  <h2>Variables (16)</h2>
+  
+  <a href="#var-WS-VARIABLES">WS-VARIABLES</a>
+  
+  <a href="#var-WS-PGMNAME">WS-PGMNAME</a>
+  
+  <a href="#var-WS-TRANID">WS-TRANID</a>
+  
+  <a href="#var-WS-MESSAGE">WS-MESSAGE</a>
+  
+  <a href="#var-WS-USRSEC-FILE">WS-USRSEC-FILE</a>
+  
+  <a href="#var-WS-ERR-FLG">WS-ERR-FLG</a>
+  
+  <a href="#var-ERR-FLG-ON">ERR-FLG-ON</a>
+  
+  <a href="#var-ERR-FLG-OFF">ERR-FLG-OFF</a>
+  
+  <a href="#var-WS-RESP-CD">WS-RESP-CD</a>
+  
+  <a href="#var-WS-REAS-CD">WS-REAS-CD</a>
+  
+  <a href="#var-WS-OPTION-X">WS-OPTION-X</a>
+  
+  <a href="#var-WS-OPTION">WS-OPTION</a>
+  
+  <a href="#var-WS-IDX">WS-IDX</a>
+  
+  <a href="#var-WS-MENU-OPT-TXT">WS-MENU-OPT-TXT</a>
+  
+  <a href="#var-DFHCOMMAREA">DFHCOMMAREA</a>
+  
+  <a href="#var-LK-COMMAREA">LK-COMMAREA</a>
+  
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>COMEN01C.CBL</h1>
+    <p>Presents and manages the main navigation menu for regular (non-admin) users of the CardDemo credit card management system, allowing them to select and launch available functional modules.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">Upon entry, the program validates that a user session exists (communication area is populated); if not, it redirects the user back to the sign-on screen. For authenticated regular users, it dynamically builds and displays a numbered menu of up to 12 available options sourced from the shared communication area, showing the current date and time in the screen header. When the user selects an option by entering a number and pressing Enter, the program validates the selection, enforces access control (blocking admin-only options from regular users), and transfers control to the corresponding functional program via CICS XCTL. Pressing PF3 returns the user to the sign-on screen, and any unsupported key press results in an error message being displayed on the menu screen.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>A valid authenticated session (non-zero communication area) must exist before the menu is displayed; otherwise the user is redirected to the sign-on screen.</li><li>Regular users are explicitly blocked from selecting menu options designated as 'Admin Only' (CDEMO-MENU-OPT-USRTYPE = 'A'); an access-denied message is displayed if attempted.</li><li>Only numeric option values within the valid range (1 to CDEMO-MENU-OPT-COUNT) are accepted; non-numeric, zero, or out-of-range entries result in a validation error message.</li><li>Menu options mapped to programs with a name beginning with 'DUMMY' are treated as placeholder features not yet implemented, and the user is informed they are 'coming soon' without any program transfer occurring.</li><li>Menu options mapped to the program 'COPAUS0C' are subject to an additional runtime availability check (CICS INQUIRE); if the program is not installed, the user is informed rather than an error being thrown.</li><li>Pressing PF3 at any time returns the user to the sign-on screen (COSGN00C), effectively ending the current session navigation.</li><li>Any key press other than Enter or PF3 is treated as invalid and results in an error message being displayed on the menu screen without any navigation occurring.</li><li>The menu supports a maximum of 12 displayable options; any options beyond 12 in the communication area are silently ignored.</li>
+      </ul>
+    </div>
+    
+    
+    <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--string);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--string);letter-spacing:.08em;margin-bottom:.4rem;">Files / Data Sources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        
+        <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">USRSEC</td>
+            <td style="color:var(--subtext);">User security file used to validate user credentials and role/type during session management</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="badges">
+      <span class="badge badge-type">CICS Online</span>
+      <span class="badge badge-module">Customer</span>
+      
+      <span class="badge badge-copy">COPY COCOM01Y</span>
+      
+      <span class="badge badge-copy">COPY COMEN02Y</span>
+      
+      <span class="badge badge-copy">COPY COMEN01</span>
+      
+      <span class="badge badge-copy">COPY COTTL01Y</span>
+      
+      <span class="badge badge-copy">COPY CSDAT01Y</span>
+      
+      <span class="badge badge-copy">COPY CSMSG01Y</span>
+      
+      <span class="badge badge-copy">COPY CSUSR01Y</span>
+      
+      <span class="badge badge-copy">COPY DFHAID</span>
+      
+      <span class="badge badge-copy">COPY DFHBMSCA</span>
+      
+      <span class="badge badge-meta">308 lines</span>
+      <span class="badge badge-meta">16 variables</span>
+      <span class="badge badge-meta">7 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-MAIN-PARA">
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA is the central orchestration routine of the regular user menu program. It validates the user's session, determines whether to display or process the menu, routes the user's key press to the appropriate business action, and ensures the session remains active upon return.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 75–114</a></div>
+  </div>
+  
+  <div class="para-card" id="para-PROCESS-ENTER-KEY">
+    <h3><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;text-decoration:none;">PROCESS-ENTER-KEY</a></h3>
+    <p>This paragraph processes the user's menu selection when they press Enter, validating the chosen option number, enforcing access control rules, and launching the appropriate functional module — or displaying a meaningful message if the option is unavailable, restricted, or not yet implemented.</p>
+    <div class="para-meta"><a href="#code-para-PROCESS-ENTER-KEY" style="color:inherit;">Lines 115–195</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RETURN-TO-SIGNON-SCREEN">
+    <h3><a href="#code-para-RETURN-TO-SIGNON-SCREEN" style="color:inherit;text-decoration:none;">RETURN-TO-SIGNON-SCREEN</a></h3>
+    <p>Terminates the current menu session and redirects the user back to the bank's sign-on screen, ensuring a clean exit from the main menu. This acts as the system's safe logout navigation path, returning control to the authentication entry point of the CardDemo application.</p>
+    <div class="para-meta"><a href="#code-para-RETURN-TO-SIGNON-SCREEN" style="color:inherit;">Lines 196–207</a></div>
+  </div>
+  
+  <div class="para-card" id="para-SEND-MENU-SCREEN">
+    <h3><a href="#code-para-SEND-MENU-SCREEN" style="color:inherit;text-decoration:none;">SEND-MENU-SCREEN</a></h3>
+    <p>Assembles and renders the complete main navigation menu screen for the authenticated regular user, combining header information, available menu options, and any pending error or informational messages before presenting the screen for user interaction.</p>
+    <div class="para-meta"><a href="#code-para-SEND-MENU-SCREEN" style="color:inherit;">Lines 208–224</a></div>
+  </div>
+  
+  <div class="para-card" id="para-RECEIVE-MENU-SCREEN">
+    <h3><a href="#code-para-RECEIVE-MENU-SCREEN" style="color:inherit;text-decoration:none;">RECEIVE-MENU-SCREEN</a></h3>
+    <p>This paragraph captures the menu selection submitted by the user from the main navigation screen, reading whatever option number the user entered before pressing Enter. It is the entry point for processing the user's navigation intent within the CardDemo menu system.</p>
+    <div class="para-meta"><a href="#code-para-RECEIVE-MENU-SCREEN" style="color:inherit;">Lines 225–237</a></div>
+  </div>
+  
+  <div class="para-card" id="para-POPULATE-HEADER-INFO">
+    <h3><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;text-decoration:none;">POPULATE-HEADER-INFO</a></h3>
+    <p>Prepares the screen header with current date, time, and application identity information before displaying the main menu to the user. This ensures every menu screen shows accurate session context and branding.</p>
+    <div class="para-meta"><a href="#code-para-POPULATE-HEADER-INFO" style="color:inherit;">Lines 238–261</a></div>
+  </div>
+  
+  <div class="para-card" id="para-BUILD-MENU-OPTIONS">
+    <h3><a href="#code-para-BUILD-MENU-OPTIONS" style="color:inherit;text-decoration:none;">BUILD-MENU-OPTIONS</a></h3>
+    <p>This paragraph dynamically constructs and populates the numbered list of functional menu options visible to the authenticated user on the main navigation screen, formatting each available feature as a numbered entry (e.g., '1. View Account Details') and placing it into the correct position on the display, up to a maximum of 12 options.</p>
+    <div class="para-meta"><a href="#code-para-BUILD-MENU-OPTIONS" style="color:inherit;">Lines 262–308</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      * Program     : COMEN01C.CBL</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      * Application : CardDemo</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Type        : CICS COBOL Program</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * Function    : Main Menu for the Regular users</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-code">       PROGRAM-ID. COMEN01C.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-code">       AUTHOR.     AWS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-division-header">       ENVIRONMENT DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-code">       CONFIGURATION SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-comment">      *                     WORKING STORAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-variable-declaration">       01 WS-VARIABLES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-variable-declaration">         05 WS-PGMNAME                 PIC X(08) VALUE 'COMEN01C'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-variable-declaration">         05 WS-TRANID                  PIC X(04) VALUE 'CM00'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-variable-declaration">         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-variable-declaration">         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-variable-declaration">         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-ON                         VALUE 'Y'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-variable-declaration">           88 ERR-FLG-OFF                        VALUE 'N'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-variable-declaration">         05 WS-OPTION-X                PIC X(02) JUST RIGHT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-variable-declaration">         05 WS-OPTION                  PIC 9(02) VALUE 0.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-variable-declaration">         05 WS-IDX                     PIC S9(04) COMP VALUE ZEROS.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-variable-declaration">         05 WS-MENU-OPT-TXT            PIC X(40) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-copy-statement">       COPY COCOM01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-copy-statement">       COPY COMEN02Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-copy-statement">       COPY COMEN01.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-copy-statement">       COPY COTTL01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-copy-statement">       COPY CSDAT01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-copy-statement">       COPY CSMSG01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-copy-statement">       COPY CSUSR01Y.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-copy-statement">       COPY DFHAID.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="copy-statement"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-copy-statement">       COPY DFHBMSCA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-comment">      *                        LINKAGE SECTION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">       01  DFHCOMMAREA.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-variable-declaration">         05  LK-COMMAREA                           PIC X(01)</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-code">             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-comment">      *                       PROCEDURE DIVISION</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-MAIN-PARA">
+      <td class="ln">75</td>
+      <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
+      <td class="expl-cell">MAIN-PARA is the central orchestration routine of the regular user menu program. It validates the user's session, determines whether to display or process the menu, routes the user's key press to the appropriate business action, and ensures the session remains active upon return.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">76</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">77</td>
+      <td class="code-cell t-statement">           SET ERR-FLG-OFF TO TRUE</td>
+      <td class="expl-cell">Clears any prior error condition so the screen starts in a clean, error-free state.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">78</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">79</td>
+      <td class="code-cell t-statement">           MOVE SPACES TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previously displayed informational or error message from the bottom of the menu screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">80</td>
+      <td class="code-cell t-statement">                          ERRMSGO OF COMEN1AO</td>
+      <td class="expl-cell">Clears the error message field on the menu screen itself, ensuring no stale messages are shown to the user.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">81</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">82</td>
+      <td class="code-cell t-statement">           IF EIBCALEN = 0</td>
+      <td class="expl-cell">Checks whether a valid authenticated session exists by testing if any session data was passed into this program.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">83</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Records that the navigation originated from the sign-on screen, so the system knows where to return the user if needed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">84</td>
+      <td class="code-cell t-statement">               PERFORM RETURN-TO-SIGNON-SCREEN</td>
+      <td class="expl-cell">Redirects the user back to the sign-on screen because no active session was found — the user must log in before accessing the menu.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">85</td>
+      <td class="code-cell t-statement">           ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">86</td>
+      <td class="code-cell t-statement">               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA</td>
+      <td class="expl-cell">Loads the current session data (user identity, role, menu options, navigation state) from the shared communication area into the working session record.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">87</td>
+      <td class="code-cell t-statement">               IF NOT CDEMO-PGM-REENTER</td>
+      <td class="expl-cell">Checks whether this is the user's first arrival at the menu (as opposed to returning after interacting with it).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">88</td>
+      <td class="code-cell t-statement">                   SET CDEMO-PGM-REENTER    TO TRUE</td>
+      <td class="expl-cell">Marks the session as having visited the menu at least once, so subsequent interactions are treated as user responses rather than fresh arrivals.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">89</td>
+      <td class="code-cell t-statement">                   MOVE LOW-VALUES          TO COMEN1AO</td>
+      <td class="expl-cell">Resets all menu screen display fields to blank, ensuring a clean menu is built and presented without leftover data from a previous screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">90</td>
+      <td class="code-cell t-statement">                   PERFORM SEND-MENU-SCREEN</td>
+      <td class="expl-cell">Builds and sends the numbered menu of available options to the user's terminal for the first time.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">91</td>
+      <td class="code-cell t-statement">               ELSE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">92</td>
+      <td class="code-cell t-statement">                   PERFORM RECEIVE-MENU-SCREEN</td>
+      <td class="expl-cell">Reads back the menu screen data submitted by the user, capturing whichever option number they entered.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">93</td>
+      <td class="code-cell t-statement">                   EVALUATE EIBAID</td>
+      <td class="expl-cell">Examines which key the user pressed to determine the appropriate business response.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">                       WHEN DFHENTER</td>
+      <td class="expl-cell">Handles the case where the user pressed Enter, indicating they have made a menu selection.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">95</td>
+      <td class="code-cell t-statement">                           PERFORM PROCESS-ENTER-KEY</td>
+      <td class="expl-cell">Validates the user's selected option number, enforces access control, and launches the chosen functional module.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">96</td>
+      <td class="code-cell t-statement">                       WHEN DFHPF3</td>
+      <td class="expl-cell">Handles the case where the user pressed PF3, which is the standard key for going back or exiting.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">97</td>
+      <td class="code-cell t-statement">                           MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Records the sign-on screen as the intended destination so the session can be properly handed off.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">98</td>
+      <td class="code-cell t-statement">                           PERFORM RETURN-TO-SIGNON-SCREEN</td>
+      <td class="expl-cell">Ends the current menu session and returns the user to the sign-on screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">99</td>
+      <td class="code-cell t-statement">                       WHEN OTHER</td>
+      <td class="expl-cell">Catches any key press that is neither Enter nor PF3 — keys that have no defined business function on this screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">100</td>
+      <td class="code-cell t-statement">                           MOVE 'Y'                       TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flags that an input error has occurred so the menu screen will be re-displayed with an error indication.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">101</td>
+      <td class="code-cell t-statement">                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE</td>
+      <td class="expl-cell">Sets the error message to inform the user that the key they pressed is not supported on this screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">102</td>
+      <td class="code-cell t-statement">                           PERFORM SEND-MENU-SCREEN</td>
+      <td class="expl-cell">Redisplays the menu screen with the invalid-key error message so the user can make a valid selection.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">103</td>
+      <td class="code-cell t-statement">                   END-EVALUATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">104</td>
+      <td class="code-cell t-statement">               END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">106</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">107</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RETURN</td>
+      <td class="expl-cell">Returns control to CICS to await the user's next interaction, keeping the session alive.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">108</td>
+      <td class="code-cell t-exec-cics">                     TRANSID (WS-TRANID)</td>
+      <td class="expl-cell">Specifies that when the user next interacts, control should return to this same menu transaction, maintaining continuity of the session.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-MAIN-PARA">
+      <td class="ln">109</td>
+      <td class="code-cell t-exec-cics">                     COMMAREA (CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the current session data (user identity, role, navigation state) forward so it is available when the user returns to this screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-MAIN-PARA">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-MAIN-PARA">
+      <td class="ln">111</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">112</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">113</td>
+      <td class="code-cell t-comment">      *                      PROCESS-ENTER-KEY</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-MAIN-PARA">
+      <td class="ln">114</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">115</td>
+      <td class="code-cell t-paragraph-header">       PROCESS-ENTER-KEY.</td>
+      <td class="expl-cell">Entry point for handling the Enter key action on the main menu screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">116</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">           PERFORM VARYING WS-IDX</td>
+      <td class="expl-cell">Scans the user's raw input from right to left, trimming trailing blank spaces to find the last meaningful character entered.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">                   FROM LENGTH OF OPTIONI OF COMEN1AI BY -1 UNTIL</td>
+      <td class="expl-cell">Starts the scan from the full length of the input field, moving backward one character at a time.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">                   OPTIONI OF COMEN1AI(WS-IDX:1) NOT = SPACES OR</td>
+      <td class="expl-cell">Continues scanning backward until a non-blank character is found, identifying the true end of the user's typed input.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">                   WS-IDX = 1</td>
+      <td class="expl-cell">Stops scanning if the beginning of the input field is reached, preventing an infinite loop on a fully blank entry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">121</td>
+      <td class="code-cell t-statement">           END-PERFORM</td>
+      <td class="expl-cell">Ends the backward scanning loop.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">           MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X</td>
+      <td class="expl-cell">Extracts only the meaningful portion of the user's input, discarding trailing spaces, to isolate the option number typed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">           INSPECT WS-OPTION-X REPLACING ALL ' ' BY '0'</td>
+      <td class="expl-cell">Replaces any remaining internal spaces in the extracted input with zeros, ensuring the value can be interpreted as a number.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">           MOVE WS-OPTION-X              TO WS-OPTION</td>
+      <td class="expl-cell">Converts the cleaned input text into a numeric value representing the menu option the user selected.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">125</td>
+      <td class="code-cell t-statement">           MOVE WS-OPTION                TO OPTIONO OF COMEN1AO</td>
+      <td class="expl-cell">Echoes the interpreted option number back to the menu screen so the user can see what was captured from their input.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">126</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">127</td>
+      <td class="code-cell t-statement">           IF WS-OPTION IS NOT NUMERIC OR</td>
+      <td class="expl-cell">Checks whether the user's entry is a valid number — rejects it if it is non-numeric, exceeds the total number of available menu options, or is zero.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">              WS-OPTION > CDEMO-MENU-OPT-COUNT OR</td>
+      <td class="expl-cell">Ensures the selected option number does not exceed the total count of options currently available on the menu.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">              WS-OPTION = ZEROS</td>
+      <td class="expl-cell">Rejects a zero entry, as zero does not correspond to any valid menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">               MOVE 'Y'     TO WS-ERR-FLG</td>
+      <td class="expl-cell">Flags the current interaction as having a validation error, preventing any further processing or navigation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">131</td>
+      <td class="code-cell t-statement">               MOVE 'Please enter a valid option number...' TO</td>
+      <td class="expl-cell">Sets a user-facing message instructing the user to enter a valid option number.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">132</td>
+      <td class="code-cell t-statement">                               WS-MESSAGE</td>
+      <td class="expl-cell">Continues building the error message text.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">133</td>
+      <td class="code-cell t-statement">               PERFORM SEND-MENU-SCREEN</td>
+      <td class="expl-cell">Redraws the menu screen with the validation error message displayed to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">134</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the input validation check block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">135</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">136</td>
+      <td class="code-cell t-statement">           IF CDEMO-USRTYP-USER AND</td>
+      <td class="expl-cell">Checks whether the logged-in user is a regular (non-admin) user AND has selected a menu option that is designated as restricted to administrators only.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">137</td>
+      <td class="code-cell t-statement">              CDEMO-MENU-OPT-USRTYPE(WS-OPTION) = 'A'</td>
+      <td class="expl-cell">Identifies that the chosen menu option is marked as admin-only, which a regular user is not permitted to access.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">138</td>
+      <td class="code-cell t-statement">               SET ERR-FLG-ON          TO TRUE</td>
+      <td class="expl-cell">Flags the interaction as an error to block any further processing or program launch.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">               MOVE SPACES             TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previous message text before setting the access-denied message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">140</td>
+      <td class="code-cell t-statement">               MOVE 'No access - Admin Only option... ' TO</td>
+      <td class="expl-cell">Sets the user-facing message informing the regular user that the selected option is restricted to administrators.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">                                       WS-MESSAGE</td>
+      <td class="expl-cell">Continues building the access-denied message text.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">               PERFORM SEND-MENU-SCREEN</td>
+      <td class="expl-cell">Redraws the menu screen displaying the access-denied message to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell">Closes the access control check block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">144</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">           IF NOT ERR-FLG-ON</td>
+      <td class="expl-cell">Proceeds to launch the selected option only if no validation or access control errors have been detected.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">              EVALUATE TRUE</td>
+      <td class="expl-cell">Begins evaluating which specific program or scenario applies to the user's validated menu selection.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">                WHEN CDEMO-MENU-OPT-PGMNAME(WS-OPTION) = 'COPAUS0C'</td>
+      <td class="expl-cell">Checks whether the selected option maps to a specific program that requires a runtime availability check before launching.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">148</td>
+      <td class="code-cell t-exec-cics">                   EXEC CICS INQUIRE</td>
+      <td class="expl-cell">Queries the CICS runtime environment to determine whether the target program is currently installed and available.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">149</td>
+      <td class="code-cell t-exec-cics">                       PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))</td>
+      <td class="expl-cell">Specifies the program name to be checked for availability.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">150</td>
+      <td class="code-cell t-exec-cics">                       NOHANDLE</td>
+      <td class="expl-cell">Instructs CICS not to raise an error automatically if the program is not found, allowing the application to handle it gracefully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">                   END-EXEC</td>
+      <td class="expl-cell">Ends the runtime availability inquiry.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">152</td>
+      <td class="code-cell t-statement">                   IF EIBRESP = DFHRESP(NORMAL)</td>
+      <td class="expl-cell">Checks whether the program was found and is available for execution.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">                      MOVE WS-TRANID    TO CDEMO-FROM-TRANID</td>
+      <td class="expl-cell">Records the current menu transaction identifier in the shared session context so the launched program knows where to return control.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">                      MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Records the current menu program name in the shared session context so the launched program knows its origin.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">155</td>
+      <td class="code-cell t-statement">                      MOVE ZEROS        TO CDEMO-PGM-CONTEXT</td>
+      <td class="expl-cell">Resets the session context flag to indicate a fresh entry into the target program rather than a re-entry.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">156</td>
+      <td class="code-cell t-exec-cics">                      EXEC CICS XCTL</td>
+      <td class="expl-cell">Transfers control from the menu to the target program, passing the full session context so the user's session is maintained.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">157</td>
+      <td class="code-cell t-exec-cics">                          PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))</td>
+      <td class="expl-cell">Specifies the name of the target program to which control is being transferred.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">158</td>
+      <td class="code-cell t-exec-cics">                          COMMAREA(CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the shared session communication area to the target program so it has access to user and session data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">159</td>
+      <td class="code-cell t-statement">                      END-EXEC</td>
+      <td class="expl-cell">Ends the program transfer command.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">160</td>
+      <td class="code-cell t-statement">                   ELSE</td>
+      <td class="expl-cell">Handles the case where the runtime check determined the target program is not currently installed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">161</td>
+      <td class="code-cell t-statement">                      MOVE SPACES             TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previous message text before composing the 'not installed' notification.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">162</td>
+      <td class="code-cell t-statement">                      MOVE DFHRED             TO ERRMSGC  OF COMEN1AO</td>
+      <td class="expl-cell">Sets the error message display colour to red to visually signal an unavailability issue to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">163</td>
+      <td class="code-cell t-statement">                      STRING 'This option '       DELIMITED BY SIZE</td>
+      <td class="expl-cell">Begins composing a message informing the user that the selected option is not currently available, starting with a fixed prefix.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">164</td>
+      <td class="code-cell t-statement">                               CDEMO-MENU-OPT-NAME(WS-OPTION)</td>
+      <td class="expl-cell">Inserts the human-readable name of the selected menu option into the message so the user knows which feature is unavailable.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">165</td>
+      <td class="code-cell t-statement">                                          DELIMITED BY '  '</td>
+      <td class="expl-cell">Delimits the option name at the first double-space to avoid including excess padding in the message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">166</td>
+      <td class="code-cell t-statement">                            ' is not installed...'   DELIMITED BY SIZE</td>
+      <td class="expl-cell">Appends a fixed suffix to the message indicating the feature is not installed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">167</td>
+      <td class="code-cell t-statement">                          INTO WS-MESSAGE</td>
+      <td class="expl-cell">Stores the fully composed unavailability message for display on the menu screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">168</td>
+      <td class="code-cell t-statement">                     END-IF</td>
+      <td class="expl-cell">Closes the 'not installed' handling block.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">169</td>
+      <td class="code-cell t-statement">                  WHEN CDEMO-MENU-OPT-PGMNAME(WS-OPTION)(1:5) = 'DUMMY'</td>
+      <td class="expl-cell">Checks whether the selected option maps to a placeholder program, indicating a feature that has been planned but not yet built.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">170</td>
+      <td class="code-cell t-statement">                     MOVE SPACES             TO WS-MESSAGE</td>
+      <td class="expl-cell">Clears any previous message text before composing the 'coming soon' notification.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">171</td>
+      <td class="code-cell t-statement">                     MOVE DFHGREEN           TO ERRMSGC  OF COMEN1AO</td>
+      <td class="expl-cell">Sets the message display colour to green to indicate a non-critical, informational status to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">172</td>
+      <td class="code-cell t-statement">                     STRING 'This option '       DELIMITED BY SIZE</td>
+      <td class="expl-cell">Begins composing a message informing the user that the selected feature is not yet available, starting with a fixed prefix.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">173</td>
+      <td class="code-cell t-statement">                             CDEMO-MENU-OPT-NAME(WS-OPTION)</td>
+      <td class="expl-cell">Inserts the human-readable name of the selected placeholder option into the message.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">174</td>
+      <td class="code-cell t-statement">                                         DELIMITED BY SPACE</td>
+      <td class="expl-cell">Delimits the option name at the first space to keep the message concise.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">175</td>
+      <td class="code-cell t-statement">                            'is coming soon ...'   DELIMITED BY SIZE</td>
+      <td class="expl-cell">Appends a fixed suffix indicating the feature is planned for a future release.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">176</td>
+      <td class="code-cell t-statement">                       INTO WS-MESSAGE</td>
+      <td class="expl-cell">Stores the fully composed 'coming soon' message for display on the menu screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">177</td>
+      <td class="code-cell t-statement">                  WHEN OTHER</td>
+      <td class="expl-cell">Handles all other valid, available, non-restricted menu options not covered by the special cases above.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">178</td>
+      <td class="code-cell t-statement">                     MOVE WS-TRANID    TO CDEMO-FROM-TRANID</td>
+      <td class="expl-cell">Records the current menu transaction identifier in the shared session context so the launched program knows where to return control.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">179</td>
+      <td class="code-cell t-statement">                     MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Records the current menu program name in the shared session context so the launched program knows its origin.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">180</td>
+      <td class="code-cell t-statement">                     MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM</td>
+      <td class="expl-cell">Repeats the recording of the originating program name (duplicate line, likely a coding artefact with no additional business effect).</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">181</td>
+      <td class="code-cell t-comment">      *              MOVE WS-USER-ID   TO CDEMO-USER-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">182</td>
+      <td class="code-cell t-comment">      *              MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">183</td>
+      <td class="code-cell t-statement">                     MOVE ZEROS        TO CDEMO-PGM-CONTEXT</td>
+      <td class="expl-cell">Resets the session context flag to indicate a fresh entry into the target program rather than a re-entry.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">184</td>
+      <td class="code-cell t-exec-cics">                     EXEC CICS</td>
+      <td class="expl-cell">Begins the command to transfer control from the menu to the user's selected functional program.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">185</td>
+      <td class="code-cell t-exec-cics">                         XCTL PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))</td>
+      <td class="expl-cell">Specifies the name of the target functional program to which control is being transferred based on the user's menu selection.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">186</td>
+      <td class="code-cell t-exec-cics">                         COMMAREA(CARDDEMO-COMMAREA)</td>
+      <td class="expl-cell">Passes the shared session communication area to the target program so it has access to user and session data.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">187</td>
+      <td class="code-cell t-statement">                     END-EXEC</td>
+      <td class="expl-cell">Ends the program transfer command.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">188</td>
+      <td class="code-cell t-statement">              END-EVALUATE</td>
+      <td class="expl-cell">Closes the evaluation of which program or scenario applies to the user's selection.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">189</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">190</td>
+      <td class="code-cell t-statement">              PERFORM SEND-MENU-SCREEN</td>
+      <td class="expl-cell">If no program transfer occurred (e.g. a 'coming soon' or 'not installed' message was set), redraws the menu screen to display the informational message to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">191</td>
+      <td class="code-cell t-statement">           END-IF.</td>
+      <td class="expl-cell">Closes the overall Enter key processing block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">192</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">193</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">194</td>
+      <td class="code-cell t-comment">      *                      RETURN-TO-SIGNON-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-PROCESS-ENTER-KEY">
+      <td class="ln">195</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">196</td>
+      <td class="code-cell t-paragraph-header">       RETURN-TO-SIGNON-SCREEN.</td>
+      <td class="expl-cell">Terminates the current menu session and redirects the user back to the bank's sign-on screen, ensuring a clean exit from the main menu. This acts as the system's safe logout navigation path, returning control to the authentication entry point of the CardDemo application.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">197</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">198</td>
+      <td class="code-cell t-statement">           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES</td>
+      <td class="expl-cell">Checks whether a specific return destination has already been set; if no destination program has been recorded in the session, the system defaults to the sign-on screen as the fallback target.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">199</td>
+      <td class="code-cell t-statement">               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM</td>
+      <td class="expl-cell">Sets the navigation destination to the CardDemo sign-on screen, ensuring the user is returned to the application's authentication entry point.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">200</td>
+      <td class="code-cell t-statement">           END-IF</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">201</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS</td>
+      <td class="expl-cell">Begins a CICS system transfer instruction to hand control over to another program.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">202</td>
+      <td class="code-cell t-exec-cics">               XCTL PROGRAM(CDEMO-TO-PROGRAM)</td>
+      <td class="expl-cell">Transfers full control to the designated destination program (the sign-on screen), ending this menu session and launching the target screen for the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">203</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the CICS transfer instruction; at this point the current program ceases execution and the user is presented with the sign-on screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">204</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">205</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">206</td>
+      <td class="code-cell t-comment">      *                      SEND-MENU-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RETURN-TO-SIGNON-SCREEN">
+      <td class="ln">207</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">208</td>
+      <td class="code-cell t-paragraph-header">       SEND-MENU-SCREEN.</td>
+      <td class="expl-cell">Entry point for the paragraph responsible for building and displaying the main navigation menu to the user.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">209</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">210</td>
+      <td class="code-cell t-statement">           PERFORM POPULATE-HEADER-INFO</td>
+      <td class="expl-cell">Populates the screen header with the current date, time, and application title information so the user sees up-to-date context.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">211</td>
+      <td class="code-cell t-statement">           PERFORM BUILD-MENU-OPTIONS</td>
+      <td class="expl-cell">Dynamically constructs the list of numbered, selectable functional options available to the regular user based on what is configured in the shared session area.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">212</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">213</td>
+      <td class="code-cell t-statement">           MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO</td>
+      <td class="expl-cell">Places any pending error or informational message (e.g. invalid selection, access denied, feature not yet available) into the designated message area at the bottom of the menu screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">214</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">215</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS SEND</td>
+      <td class="expl-cell">Initiates the transmission of the fully assembled menu screen to the user's terminal.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">216</td>
+      <td class="code-cell t-exec-cics">                     MAP('COMEN1A')</td>
+      <td class="expl-cell">Specifies which screen layout template (the main user menu screen) is used to format and present the navigation options.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">217</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COMEN01')</td>
+      <td class="expl-cell">References the screen definition library that contains the layout and field definitions for the main user menu.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">218</td>
+      <td class="code-cell t-exec-cics">                     FROM(COMEN1AO)</td>
+      <td class="expl-cell">Supplies the fully populated screen data — including header, menu options, and messages — as the content to be rendered on the terminal.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">219</td>
+      <td class="code-cell t-exec-cics">                     ERASE</td>
+      <td class="expl-cell">Clears any previously displayed content on the terminal before rendering the fresh menu screen, ensuring no stale data is visible to the user.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">220</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Closes the screen transmission instruction.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">221</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">222</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">223</td>
+      <td class="code-cell t-comment">      *                      RECEIVE-MENU-SCREEN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-SEND-MENU-SCREEN">
+      <td class="ln">224</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">225</td>
+      <td class="code-cell t-paragraph-header">       RECEIVE-MENU-SCREEN.</td>
+      <td class="expl-cell">Begin the step that retrieves the user's input from the main navigation menu screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">226</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">227</td>
+      <td class="code-cell t-exec-cics">           EXEC CICS RECEIVE</td>
+      <td class="expl-cell">Initiate the retrieval of data the user submitted from the terminal screen.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">228</td>
+      <td class="code-cell t-exec-cics">                     MAP('COMEN1A')</td>
+      <td class="expl-cell">Identify the specific screen layout (the main user menu form) from which input is being collected.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">229</td>
+      <td class="code-cell t-exec-cics">                     MAPSET('COMEN01')</td>
+      <td class="expl-cell">Reference the screen definition library that contains the layout and field definitions for the main user menu.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">230</td>
+      <td class="code-cell t-exec-cics">                     INTO(COMEN1AI)</td>
+      <td class="expl-cell">Store the captured user input — including the menu option number entered — into the working area for subsequent validation and processing.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">231</td>
+      <td class="code-cell t-exec-cics">                     RESP(WS-RESP-CD)</td>
+      <td class="expl-cell">Capture the outcome status of the screen-read operation so the program can detect whether the input was received successfully or encountered a problem.</td>
+    </tr>
+    
+    <tr class="exec-cics"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">232</td>
+      <td class="code-cell t-exec-cics">                     RESP2(WS-REAS-CD)</td>
+      <td class="expl-cell">Capture a secondary diagnostic code that provides additional detail if the screen-read operation did not complete successfully.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">233</td>
+      <td class="code-cell t-statement">           END-EXEC.</td>
+      <td class="expl-cell">Mark the end of the screen input retrieval operation.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">234</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">235</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">236</td>
+      <td class="code-cell t-comment">      *                      POPULATE-HEADER-INFO</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-RECEIVE-MENU-SCREEN">
+      <td class="ln">237</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">238</td>
+      <td class="code-cell t-paragraph-header">       POPULATE-HEADER-INFO.</td>
+      <td class="expl-cell">Prepares the screen header with current date, time, and application identity information before displaying the main menu to the user. This ensures every menu screen shows accurate session context and branding.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">239</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">240</td>
+      <td class="code-cell t-statement">           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA</td>
+      <td class="expl-cell">Retrieves the current system date and time from the operating environment to stamp the menu screen with accurate real-time information.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">241</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">242</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE01           TO TITLE01O OF COMEN1AO</td>
+      <td class="expl-cell">Places the application's primary title line (e.g. 'CardDemo') into the menu screen header for branding and user orientation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">243</td>
+      <td class="code-cell t-statement">           MOVE CCDA-TITLE02           TO TITLE02O OF COMEN1AO</td>
+      <td class="expl-cell">Places the application's secondary title line into the menu screen header, completing the two-line branding display.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">244</td>
+      <td class="code-cell t-statement">           MOVE WS-TRANID              TO TRNNAMEO OF COMEN1AO</td>
+      <td class="expl-cell">Displays the active CICS transaction identifier in the screen header so the user and support staff can identify the current session transaction.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">245</td>
+      <td class="code-cell t-statement">           MOVE WS-PGMNAME             TO PGMNAMEO OF COMEN1AO</td>
+      <td class="expl-cell">Displays the name of the currently running program in the screen header, aiding traceability and support diagnostics.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">246</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">247</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM</td>
+      <td class="expl-cell">Extracts the month component from the current system date to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">248</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD</td>
+      <td class="expl-cell">Extracts the day component from the current system date to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">249</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY</td>
+      <td class="expl-cell">Extracts the two-digit year component from the current system date to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">250</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">251</td>
+      <td class="code-cell t-statement">           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COMEN1AO</td>
+      <td class="expl-cell">Places the fully formatted current date (MM/DD/YY) into the menu screen header so the user can see today's date at a glance.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">252</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">253</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH</td>
+      <td class="expl-cell">Extracts the hours component from the current system time to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">254</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM</td>
+      <td class="expl-cell">Extracts the minutes component from the current system time to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">255</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS</td>
+      <td class="expl-cell">Extracts the seconds component from the current system time to format it for display in the screen header.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">256</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">257</td>
+      <td class="code-cell t-statement">           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COMEN1AO.</td>
+      <td class="expl-cell">Places the fully formatted current time (HH:MM:SS) into the menu screen header so the user can see the exact time of the session.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">258</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">259</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">260</td>
+      <td class="code-cell t-comment">      *                      BUILD-MENU-OPTIONS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-POPULATE-HEADER-INFO">
+      <td class="ln">261</td>
+      <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">262</td>
+      <td class="code-cell t-paragraph-header">       BUILD-MENU-OPTIONS.</td>
+      <td class="expl-cell">Entry point for the routine that builds the visible menu option list on the navigation screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">263</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">264</td>
+      <td class="code-cell t-statement">           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL</td>
+      <td class="expl-cell">Begins iterating through each available functional menu option, starting from the first and continuing until all available options have been processed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">265</td>
+      <td class="code-cell t-statement">                           WS-IDX > CDEMO-MENU-OPT-COUNT</td>
+      <td class="expl-cell">Stops the iteration once all available menu options sourced from the shared session data have been processed.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">266</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">267</td>
+      <td class="code-cell t-statement">               MOVE SPACES             TO WS-MENU-OPT-TXT</td>
+      <td class="expl-cell">Clears the formatted display text area before constructing the next menu entry, preventing leftover text from a previous option from appearing on screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">268</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">269</td>
+      <td class="code-cell t-statement">               STRING CDEMO-MENU-OPT-NUM(WS-IDX)  DELIMITED BY SIZE</td>
+      <td class="expl-cell">Begins assembling the display text for a menu entry by writing the option's sequence number (e.g., '1') into the formatted label.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">270</td>
+      <td class="code-cell t-statement">                      '. '                         DELIMITED BY SIZE</td>
+      <td class="expl-cell">Appends a period and a space after the option number to visually separate the number from the feature name (e.g., '1. ').</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">271</td>
+      <td class="code-cell t-statement">                      CDEMO-MENU-OPT-NAME(WS-IDX) DELIMITED BY SIZE</td>
+      <td class="expl-cell">Appends the human-readable name of the functional feature (e.g., 'View Account Details') to complete the formatted menu entry label.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">272</td>
+      <td class="code-cell t-statement">                 INTO WS-MENU-OPT-TXT</td>
+      <td class="expl-cell">Stores the fully assembled numbered menu entry label (e.g., '1. View Account Details') into the temporary display buffer ready for placement on screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">273</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">274</td>
+      <td class="code-cell t-statement">               EVALUATE WS-IDX</td>
+      <td class="expl-cell">Evaluates which position in the menu this option occupies, so it can be placed into the correct numbered slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">275</td>
+      <td class="code-cell t-statement">                   WHEN 1</td>
+      <td class="expl-cell">Checks whether this is the first menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">276</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN001O</td>
+      <td class="expl-cell">Places the formatted label for the first functional feature into the first visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">277</td>
+      <td class="code-cell t-statement">                   WHEN 2</td>
+      <td class="expl-cell">Checks whether this is the second menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">278</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN002O</td>
+      <td class="expl-cell">Places the formatted label for the second functional feature into the second visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">279</td>
+      <td class="code-cell t-statement">                   WHEN 3</td>
+      <td class="expl-cell">Checks whether this is the third menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">280</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN003O</td>
+      <td class="expl-cell">Places the formatted label for the third functional feature into the third visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">281</td>
+      <td class="code-cell t-statement">                   WHEN 4</td>
+      <td class="expl-cell">Checks whether this is the fourth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">282</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN004O</td>
+      <td class="expl-cell">Places the formatted label for the fourth functional feature into the fourth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">283</td>
+      <td class="code-cell t-statement">                   WHEN 5</td>
+      <td class="expl-cell">Checks whether this is the fifth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">284</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN005O</td>
+      <td class="expl-cell">Places the formatted label for the fifth functional feature into the fifth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">285</td>
+      <td class="code-cell t-statement">                   WHEN 6</td>
+      <td class="expl-cell">Checks whether this is the sixth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">286</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN006O</td>
+      <td class="expl-cell">Places the formatted label for the sixth functional feature into the sixth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">287</td>
+      <td class="code-cell t-statement">                   WHEN 7</td>
+      <td class="expl-cell">Checks whether this is the seventh menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">288</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN007O</td>
+      <td class="expl-cell">Places the formatted label for the seventh functional feature into the seventh visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">289</td>
+      <td class="code-cell t-statement">                   WHEN 8</td>
+      <td class="expl-cell">Checks whether this is the eighth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">290</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN008O</td>
+      <td class="expl-cell">Places the formatted label for the eighth functional feature into the eighth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">291</td>
+      <td class="code-cell t-statement">                   WHEN 9</td>
+      <td class="expl-cell">Checks whether this is the ninth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">292</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN009O</td>
+      <td class="expl-cell">Places the formatted label for the ninth functional feature into the ninth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">293</td>
+      <td class="code-cell t-statement">                   WHEN 10</td>
+      <td class="expl-cell">Checks whether this is the tenth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">294</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN010O</td>
+      <td class="expl-cell">Places the formatted label for the tenth functional feature into the tenth visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">295</td>
+      <td class="code-cell t-statement">                   WHEN 11</td>
+      <td class="expl-cell">Checks whether this is the eleventh menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">296</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN011O</td>
+      <td class="expl-cell">Places the formatted label for the eleventh functional feature into the eleventh visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">297</td>
+      <td class="code-cell t-statement">                   WHEN 12</td>
+      <td class="expl-cell">Checks whether this is the twelfth menu option.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">298</td>
+      <td class="code-cell t-statement">                       MOVE WS-MENU-OPT-TXT TO OPTN012O</td>
+      <td class="expl-cell">Places the formatted label for the twelfth functional feature into the twelfth and final visible slot on the navigation screen.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">299</td>
+      <td class="code-cell t-statement">                   WHEN OTHER</td>
+      <td class="expl-cell">Handles any option count beyond the supported maximum of 12.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">300</td>
+      <td class="code-cell t-statement">                       CONTINUE</td>
+      <td class="expl-cell">Silently ignores any menu options beyond the twelfth, enforcing the screen's maximum display capacity of 12 options.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">301</td>
+      <td class="code-cell t-statement">               END-EVALUATE</td>
+      <td class="expl-cell">Closes the evaluation of which screen slot the current menu option belongs to.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">302</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">303</td>
+      <td class="code-cell t-statement">           END-PERFORM.</td>
+      <td class="expl-cell">Ends the loop that processes and places all available menu options onto the navigation screen.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">304</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">305</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">306</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">307</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-BUILD-MENU-OPTIONS">
+      <td class="ln">308</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-VARIABLES">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-VARIABLES
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Group record containing all working storage variables used during menu session processing for the CardDemo main user menu screen.</td>
+    </tr>
+    
+    <tr id="var-WS-PGMNAME">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-PGMNAME
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">COMEN01C</td>
+      <td class="var-desc">The internal CICS program name of this menu program (COMEN01C). Used to identify the currently executing program when passing control between screens or logging navigation context within the CardDemo session.</td>
+    </tr>
+    
+    <tr id="var-WS-TRANID">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-TRANID
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">CM00</td>
+      <td class="var-desc">The CICS transaction identifier (CM00) associated with the main user menu. Used to re-invoke this menu screen when the user returns from a sub-function, ensuring the session stays anchored to the correct transaction context.</td>
+    </tr>
+    
+    <tr id="var-WS-MESSAGE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-MESSAGE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(80)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">The user-facing feedback message displayed at the bottom of the menu screen. Contains validation errors (e.g., invalid option selected, access denied for admin-only options, feature not yet available) or informational notices to guide the user's next action.</td>
+    </tr>
+    
+    <tr id="var-WS-USRSEC-FILE">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-USRSEC-FILE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(08)</td>
+      <td class="var-pic">USRSEC  </td>
+      <td class="var-desc">The name of the User Security file (USRSEC) used to validate user credentials and determine user role (regular user vs. admin) during session management. Referenced when performing access control checks before displaying or navigating the menu.</td>
+    </tr>
+    
+    <tr id="var-WS-ERR-FLG">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-ERR-FLG
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Error flag that tracks whether a validation problem has occurred during menu option processing. When set to 'Y', it signals that the menu screen should be redisplayed with an appropriate error message rather than transferring control to a sub-program.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-ON">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-ON
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">Y</td>
+      <td class="var-desc">Condition name indicating that a menu processing error has been detected (e.g., invalid option, out-of-range selection, access denied). When true, the program suppresses navigation and redisplays the menu with an error message.</td>
+    </tr>
+    
+    <tr id="var-ERR-FLG-OFF">
+      <td class="var-level">88</td>
+      <td class="var-name">ERR-FLG-OFF
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">N</td>
+      <td class="var-desc">Condition name indicating that no error has been detected during menu option processing. When true, the program proceeds normally with the user's selected navigation action.</td>
+    </tr>
+    
+    <tr id="var-WS-RESP-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-RESP-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS response code returned after executing CICS commands (such as reading the user security file or invoking a program). Used to detect whether a CICS operation succeeded or failed, enabling appropriate error handling during menu navigation.</td>
+    </tr>
+    
+    <tr id="var-WS-REAS-CD">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-REAS-CD
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(09) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">The CICS reason code accompanying the response code, providing additional detail about why a CICS operation (such as a program availability inquiry for COPAUS0C) succeeded or failed. Used alongside WS-RESP-CD to determine the correct user-facing message or fallback behavior.</td>
+    </tr>
+    
+    <tr id="var-WS-OPTION-X">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-OPTION-X
+        
+        
+      </td>
+      <td class="var-pic">PIC X(02) JUST RIGHT</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The raw alphanumeric representation of the menu option entered by the user on the screen, right-justified. Used as an intermediate holding field to receive the user's input before it is validated and converted to a numeric value for range and type checking.</td>
+    </tr>
+    
+    <tr id="var-WS-OPTION">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-OPTION
+        
+        
+      </td>
+      <td class="var-pic">PIC 9(02)</td>
+      <td class="var-pic">0</td>
+      <td class="var-desc">The validated numeric menu option selected by the user (1 through the maximum available count). Drives the core business logic of the menu: determining which functional module (e.g., Account View, Credit Card List) to launch, and whether the selection is within range, admin-only, or a placeholder feature.</td>
+    </tr>
+    
+    <tr id="var-WS-IDX">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-IDX
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(04) COMP</td>
+      <td class="var-pic">ZEROS</td>
+      <td class="var-desc">A loop index counter used when iterating through the available menu options to build and display the menu on screen. Tracks the current position as the program cycles through each option entry (up to the maximum of 12 displayable options).</td>
+    </tr>
+    
+    <tr id="var-WS-MENU-OPT-TXT">
+      <td class="var-level">05</td>
+      <td class="var-name">WS-MENU-OPT-TXT
+        
+        
+      </td>
+      <td class="var-pic">PIC X(40)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">A formatted display string combining the menu option number and its human-readable name (e.g., '1. Account View') for presentation on the menu screen. Constructed dynamically for each option during screen population so the user can see all available choices.</td>
+    </tr>
+    
+    <tr id="var-DFHCOMMAREA">
+      <td class="var-level">01</td>
+      <td class="var-name">DFHCOMMAREA
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">The standard CICS communication area passed between programs during screen navigation. Acts as the session handshake mechanism: its presence and content confirm that a valid authenticated session exists before the menu is displayed; if absent or empty, the user is redirected to the sign-on screen.</td>
+    </tr>
+    
+    <tr id="var-LK-COMMAREA">
+      <td class="var-level">05</td>
+      <td class="var-name">LK-COMMAREA
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">A single-byte placeholder within the CICS communication area used to detect whether a communication area was passed to this program. If this area is empty or zero-length, it indicates the user has not gone through proper authentication and must be redirected to the sign-on screen before accessing the menu.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/COMEN01C.cbl
+  </footer>
+
+</main>
+</body>
+</html>

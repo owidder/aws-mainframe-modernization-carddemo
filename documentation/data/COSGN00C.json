@@ -2,24 +2,25 @@
   "meta": {
     "program_name": "COSGN00C",
     "file_path": "app/cbl/COSGN00C.cbl",
-    "analyzed_at": "2026-05-02T14:02:18.231844",
+    "analyzed_at": "2026-05-03T13:32:21.120801",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Authentifizierung und Zugangskontrolle für das CardDemo-Kreditkartenverwaltungssystem über einen interaktiven Anmeldebildschirm.",
-    "process_description": "Das Programm stellt den Einstiegspunkt in das CardDemo-System dar und verwaltet den Anmeldeprozess für alle Benutzer. Es präsentiert dem Benutzer einen Anmeldebildschirm, nimmt Benutzer-ID und Passwort entgegen und validiert diese gegen eine zentrale Benutzersicherheitsdatei. Nach erfolgreicher Authentifizierung wird der Benutzer rollenbasiert weitergeleitet: Administratoren gelangen in das Admin-Menü (COADM01C), reguläre Benutzer in das Hauptmenü (COMEN01C). Bei fehlerhaften Eingaben oder ungültigen Zugangsdaten werden entsprechende Fehlermeldungen angezeigt und der Benutzer zur erneuten Eingabe aufgefordert.",
+    "description": "Authenticates users logging into the CardDemo credit card management system and routes them to the appropriate menu based on their user type.",
+    "process_description": "This program presents a sign-on screen to users, collecting their User ID and Password credentials. It validates the entered credentials against a User Security file (USRSEC), checking that the user exists and that the supplied password matches the stored password. Upon successful authentication, it determines whether the user is an administrator or a regular user and routes them accordingly — administrators are directed to the Admin Menu (COADM01C) and regular users to the Main Menu (COMEN01C). If authentication fails due to a missing User ID, missing password, incorrect password, or unknown user, the sign-on screen is redisplayed with an appropriate error message.",
     "type": "CICS Online",
     "module": "Authentication",
     "files": {
-      "USRSEC": "Benutzersicherheitsdatei – enthält Benutzer-ID, Passwort und Benutzertyp (Admin/Regular) für die Authentifizierung"
+      "USRSEC": "User Security file storing registered user credentials (User ID, password, and user type) used to authenticate login attempts"
     },
     "business_rules": [
-      "Benutzer-ID und Passwort sind Pflichtfelder – eine leere Eingabe wird abgewiesen und der Benutzer zur Eingabe aufgefordert",
-      "Benutzer-ID und Passwort werden vor der Validierung in Großbuchstaben umgewandelt (Groß-/Kleinschreibung spielt keine Rolle)",
-      "Das eingegebene Passwort muss exakt mit dem in der Benutzersicherheitsdatei gespeicherten Passwort übereinstimmen",
-      "Nicht gefundene Benutzer-IDs (Fehlercode 13) werden mit einer separaten Meldung 'User not found' behandelt – keine Unterscheidung zwischen falschem Passwort und unbekanntem Benutzer wird nach außen kommuniziert",
-      "Nach erfolgreicher Anmeldung erfolgt eine rollenbasierte Weiterleitung: Administratoren → COADM01C (Admin-Menü), reguläre Benutzer → COMEN01C (Hauptmenü)",
-      "Drücken von PF3 beendet die Anwendung mit einer Abschiedsnachricht ('Thank You') ohne Anmeldung",
-      "Alle anderen Funktionstasten außer ENTER und PF3 werden als ungültige Eingabe abgewiesen",
-      "Systemfehler beim Zugriff auf die Benutzersicherheitsdatei werden mit der Meldung 'Unable to verify the User' abgefangen, ohne technische Details preiszugeben"
+      "User ID is mandatory — the system will not attempt authentication if the User ID field is blank",
+      "Password is mandatory — the system will not attempt authentication if the Password field is blank",
+      "Both User ID and Password are converted to uppercase before validation, making authentication case-insensitive",
+      "A user must exist in the User Security file; if not found, access is denied with a 'User not found' message",
+      "The supplied password must exactly match the password stored in the User Security file; a mismatch results in a 'Wrong Password' error and the user must retry",
+      "Authenticated users are routed to different menus based on their user type: administrators go to the Admin Menu (COADM01C), regular users go to the Main Menu (COMEN01C)",
+      "Pressing PF3 at the sign-on screen displays a 'Thank You' message and terminates the session gracefully",
+      "Any key other than Enter or PF3 is rejected with an 'Invalid Key' error message, preventing unintended navigation",
+      "System errors during credential lookup (i.e. any response code other than 'found' or 'not found') result in an 'Unable to verify the User' message, preventing access without exposing technical details"
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -694,7 +695,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA ist der zentrale Steuerungspunkt des Anmeldeprozesses: Er entscheidet, ob ein neuer Anmeldebildschirm präsentiert wird, eine Benutzereingabe verarbeitet wird oder die Anwendung beendet wird – und hält die Sitzung für den nächsten Interaktionsschritt offen."
+      "explanation": "MAIN-PARA is the central orchestration paragraph of the sign-on process. It determines whether a user is arriving at the screen for the first time or responding to it, then routes control based on the key pressed — presenting the sign-on screen, processing credentials, accepting a graceful exit, or rejecting invalid input — before returning control to the transaction to await the next user interaction."
     },
     {
       "number": 74,
@@ -712,7 +713,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt den Fehlerstatus zurück, sodass der Anmeldebildschirm zunächst ohne Fehlermeldung angezeigt wird."
+      "explanation": "Clears any prior error condition so the sign-on attempt starts with a clean validation state."
     },
     {
       "number": 76,
@@ -730,7 +731,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht eine eventuell vorhandene Rückmeldung an den Benutzer, um keine veralteten Meldungen anzuzeigen."
+      "explanation": "Clears any previously displayed message from the working area so no stale text is carried forward."
     },
     {
       "number": 78,
@@ -739,7 +740,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Löscht gleichzeitig das Fehlermeldungsfeld auf dem Anmeldebildschirm, damit kein alter Fehlertext sichtbar bleibt."
+      "explanation": "Clears any previously displayed error message from the sign-on screen output area."
     },
     {
       "number": 79,
@@ -757,7 +758,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Prüft, ob der Benutzer die Anwendung zum ersten Mal aufruft (keine vorherige Sitzung vorhanden)."
+      "explanation": "Checks whether this is the very first time the sign-on screen is being displayed (no prior session data exists)."
     },
     {
       "number": 81,
@@ -766,7 +767,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Initialisiert den Anmeldebildschirm vollständig leer, da noch keine Benutzerdaten aus einer vorherigen Interaktion vorliegen."
+      "explanation": "Initialises the sign-on screen to a completely blank state, ready for fresh user input."
     },
     {
       "number": 82,
@@ -775,7 +776,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt den Eingabefokus automatisch auf das Benutzer-ID-Feld, damit der Benutzer sofort mit der Eingabe beginnen kann."
+      "explanation": "Positions the screen cursor in the User ID entry field, guiding the user to begin entering their credentials."
     },
     {
       "number": 83,
@@ -784,7 +785,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt dem Benutzer den leeren Anmeldebildschirm zur erstmaligen Eingabe von Benutzer-ID und Passwort an."
+      "explanation": "Displays the sign-on screen to the user so they can enter their User ID and password."
     },
     {
       "number": 84,
@@ -802,7 +803,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Wertet aus, welche Taste der Benutzer gedrückt hat, um die passende Folgeaktion einzuleiten."
+      "explanation": "Evaluates which key the user pressed to determine the appropriate business action to take."
     },
     {
       "number": 86,
@@ -811,7 +812,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt den Fall, dass der Benutzer seine Zugangsdaten eingegeben und mit ENTER bestätigt hat."
+      "explanation": "Identifies that the user pressed the Enter key, indicating they wish to submit their credentials for authentication."
     },
     {
       "number": 87,
@@ -820,7 +821,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Startet die Validierung der eingegebenen Benutzer-ID und des Passworts gegen die Benutzersicherheitsdatei."
+      "explanation": "Triggers the credential validation process — checking the submitted User ID and password against the security file."
     },
     {
       "number": 88,
@@ -829,7 +830,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt den Fall, dass der Benutzer die Anwendung über PF3 bewusst beenden möchte."
+      "explanation": "Identifies that the user pressed PF3, indicating they wish to exit the sign-on screen gracefully."
     },
     {
       "number": 89,
@@ -838,7 +839,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Bereitet die Abschiedsnachricht ('Thank You') vor, die dem Benutzer beim Verlassen der Anwendung angezeigt wird."
+      "explanation": "Prepares a courteous farewell message to be displayed to the user upon their voluntary exit."
     },
     {
       "number": 90,
@@ -847,7 +848,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt die Abschiedsnachricht als einfachen Text an und beendet damit die Anmeldesitzung für den Benutzer."
+      "explanation": "Displays the farewell message as plain text, confirming the session has ended at the user's request."
     },
     {
       "number": 91,
@@ -856,7 +857,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Behandelt alle anderen Tasten, die im Anmeldebildschirm keine gültige Funktion haben."
+      "explanation": "Catches any key press other than Enter or PF3, which are not valid actions on the sign-on screen."
     },
     {
       "number": 92,
@@ -865,7 +866,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Aktiviert den Fehlerstatus, damit auf dem Anmeldebildschirm eine Fehlermeldung eingeblendet wird."
+      "explanation": "Flags that a validation error has occurred because an unsupported key was pressed."
     },
     {
       "number": 93,
@@ -874,7 +875,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Setzt die Fehlermeldung 'Ungültige Taste', um den Benutzer auf die erlaubten Eingabemöglichkeiten hinzuweisen."
+      "explanation": "Prepares an 'Invalid Key' message to inform the user that the key they pressed is not permitted on this screen."
     },
     {
       "number": 94,
@@ -883,7 +884,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert den Benutzer zur korrekten Eingabe auf."
+      "explanation": "Redisplays the sign-on screen with the invalid key error message so the user can try again correctly."
     },
     {
       "number": 95,
@@ -919,7 +920,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Hält die Anmeldetransaktion (CC00) aktiv und übergibt die Sitzungsdaten, sodass das System beim nächsten Tastendruck des Benutzers wieder in dieses Programm zurückkehrt."
+      "explanation": "Returns control back to the CICS transaction manager, keeping the sign-on transaction active and ready to receive the user's next interaction."
     },
     {
       "number": 99,
@@ -928,7 +929,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": ""
+      "explanation": "Specifies that the sign-on transaction identifier is passed forward, ensuring session continuity for the next screen interaction."
     },
     {
       "number": 100,
@@ -937,7 +938,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": ""
+      "explanation": "Passes the shared application communication area — containing authenticated user details and session context — to the next program in the flow."
     },
     {
       "number": 101,
@@ -946,7 +947,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": ""
+      "explanation": "Specifies the exact size of the communication area being passed, ensuring the receiving program reads the correct amount of session data."
     },
     {
       "number": 102,
@@ -1009,7 +1010,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Einstiegspunkt der Anmeldeverarbeitung, der nach Betätigung der ENTER-Taste ausgeführt wird."
+      "explanation": "Entry point for processing the user's login form submission when the Enter key is pressed."
     },
     {
       "number": 109,
@@ -1027,7 +1028,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Liest die vom Benutzer eingegebenen Anmeldedaten (Benutzer-ID und Passwort) vom Anmeldebildschirm ein."
+      "explanation": "Reads the data the user typed into the sign-on screen — specifically the User ID and Password fields — from the terminal into the program."
     },
     {
       "number": 111,
@@ -1036,7 +1037,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Bezieht sich auf den Anmeldebildschirm COSGN0A, von dem die Benutzereingaben entgegengenommen werden."
+      "explanation": ""
     },
     {
       "number": 112,
@@ -1045,7 +1046,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Gibt den Bildschirm-Mapset COSGN00 an, der die Layoutdefinition des Anmeldebildschirms enthält."
+      "explanation": ""
     },
     {
       "number": 113,
@@ -1054,7 +1055,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Speichert den Rückmeldecode des Bildschirmlesevorgangs zur Fehlerauswertung."
+      "explanation": ""
     },
     {
       "number": 114,
@@ -1063,7 +1064,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Speichert einen ergänzenden Detailcode für eine genauere Fehlerdiagnose beim Bildschirmlesen."
+      "explanation": ""
     },
     {
       "number": 115,
@@ -1090,7 +1091,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Prüft die Vollständigkeit der Benutzereingaben – fehlende Pflichtfelder werden erkannt und dem Benutzer gemeldet."
+      "explanation": "Begins a series of checks to validate the credentials the user submitted before attempting authentication."
     },
     {
       "number": 118,
@@ -1099,7 +1100,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Prüft, ob der Benutzer das Pflichtfeld Benutzer-ID leer gelassen hat."
+      "explanation": "Checks whether the User ID field was left blank by the user."
     },
     {
       "number": 119,
@@ -1108,7 +1109,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm mit einer Fehlermeldung erneut angezeigt wird."
+      "explanation": "Raises an internal error flag to indicate that a validation problem has been detected, preventing further authentication steps."
     },
     {
       "number": 120,
@@ -1117,7 +1118,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Setzt die Aufforderung 'Please enter User ID ...' als Rückmeldung, um den Benutzer zur Eingabe der Benutzer-ID aufzufordern."
+      "explanation": "Sets the message displayed on the sign-on screen to prompt the user to enter their User ID."
     },
     {
       "number": 121,
@@ -1126,7 +1127,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Positioniert den Eingabecursor auf das Benutzer-ID-Feld, um dem Benutzer die Korrektur zu erleichtern."
+      "explanation": "Positions the screen cursor inside the User ID field so the user can immediately correct the missing entry."
     },
     {
       "number": 122,
@@ -1135,7 +1136,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und wartet auf eine korrigierte Eingabe."
+      "explanation": "Redisplays the sign-on screen with the error message, returning control to the user to supply the missing User ID."
     },
     {
       "number": 123,
@@ -1144,7 +1145,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Prüft, ob der Benutzer das Pflichtfeld Passwort leer gelassen hat."
+      "explanation": "Checks whether the Password field was left blank by the user."
     },
     {
       "number": 124,
@@ -1153,7 +1154,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm mit einer Fehlermeldung erneut angezeigt wird."
+      "explanation": "Raises an internal error flag to indicate that a validation problem has been detected, preventing further authentication steps."
     },
     {
       "number": 125,
@@ -1162,7 +1163,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Setzt die Aufforderung 'Please enter Password ...' als Rückmeldung, um den Benutzer zur Passworteingabe aufzufordern."
+      "explanation": "Sets the message displayed on the sign-on screen to prompt the user to enter their password."
     },
     {
       "number": 126,
@@ -1171,7 +1172,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Positioniert den Eingabecursor auf das Passwort-Feld, um dem Benutzer die Korrektur zu erleichtern."
+      "explanation": "Positions the screen cursor inside the Password field so the user can immediately correct the missing entry."
     },
     {
       "number": 127,
@@ -1180,7 +1181,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und wartet auf eine korrigierte Eingabe."
+      "explanation": "Redisplays the sign-on screen with the error message, returning control to the user to supply the missing password."
     },
     {
       "number": 128,
@@ -1189,7 +1190,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Behandelt den Normalfall: Beide Pflichtfelder wurden ausgefüllt, die Verarbeitung wird fortgesetzt."
+      "explanation": "Handles the case where both the User ID and Password fields have been filled in by the user."
     },
     {
       "number": 129,
@@ -1198,7 +1199,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Keine zusätzliche Aktion erforderlich – die Validierung der Zugangsdaten erfolgt im nächsten Schritt."
+      "explanation": "Allows processing to continue to the authentication step when both mandatory fields are present."
     },
     {
       "number": 130,
@@ -1225,7 +1226,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Normalisiert die eingegebene Benutzer-ID in Großbuchstaben, damit die Authentifizierung unabhängig von der Groß-/Kleinschreibung funktioniert."
+      "explanation": "Converts the submitted User ID to uppercase and stores it as the credential to be used for the security file lookup and for the current session, ensuring authentication is case-insensitive."
     },
     {
       "number": 133,
@@ -1234,7 +1235,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Speichert die normalisierte Benutzer-ID im Arbeitsbereich für die nachfolgende Datenbankabfrage."
+      "explanation": ""
     },
     {
       "number": 134,
@@ -1243,7 +1244,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Überträgt die normalisierte Benutzer-ID in den gemeinsamen Kommunikationsbereich für die gesamte CardDemo-Sitzung."
+      "explanation": ""
     },
     {
       "number": 135,
@@ -1252,7 +1253,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Normalisiert das eingegebene Passwort in Großbuchstaben, damit der Vergleich mit dem gespeicherten Passwort konsistent erfolgt."
+      "explanation": "Converts the submitted password to uppercase and stores it for comparison against the password held in the security file, ensuring authentication is case-insensitive."
     },
     {
       "number": 136,
@@ -1261,7 +1262,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Speichert das normalisierte Passwort im Arbeitsbereich für den anschließenden Passwortvergleich."
+      "explanation": ""
     },
     {
       "number": 137,
@@ -1279,7 +1280,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Stellt sicher, dass die Authentifizierung gegen die Benutzersicherheitsdatei nur dann erfolgt, wenn keine Eingabefehler vorliegen."
+      "explanation": "Checks that no mandatory-field validation error was raised before proceeding to verify the credentials against the security file."
     },
     {
       "number": 139,
@@ -1288,7 +1289,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "PROCESS-ENTER-KEY",
-      "explanation": "Liest den Benutzerdatensatz aus der Sicherheitsdatei und prüft Passwort sowie Benutzerrolle für die Anmeldung."
+      "explanation": "Looks up the user's record in the User Security file using the submitted User ID to verify the user exists and retrieve their stored password and role."
     },
     {
       "number": 140,
@@ -1342,7 +1343,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Einstiegspunkt: Anmeldebildschirm wird aufgebaut und an den Benutzer gesendet."
+      "explanation": "Entry point for the paragraph responsible for rendering the sign-on screen to the terminal."
     },
     {
       "number": 146,
@@ -1360,7 +1361,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Befüllt die Kopfzeile des Anmeldebildschirms mit aktuellen Systemdaten (z.B. Datum, Uhrzeit, Programmtitel)."
+      "explanation": "Populates the screen header with standard application title, date, and session information before displaying the screen."
     },
     {
       "number": 148,
@@ -1378,7 +1379,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Überträgt die aktuelle Rückmeldung (z.B. Fehlermeldung bei falschen Zugangsdaten oder Abschiedsnachricht) in das Fehlermeldungsfeld des Anmeldebildschirms."
+      "explanation": "Places the current error or informational message (e.g. 'Wrong Password', 'User not found') into the designated error message field on the sign-on screen."
     },
     {
       "number": 150,
@@ -1396,7 +1397,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Sendet den vollständig befüllten Anmeldebildschirm an das Terminal des Benutzers zur Eingabe von Benutzer-ID und Passwort."
+      "explanation": "Begins the instruction to transmit the sign-on screen to the user's terminal."
     },
     {
       "number": 152,
@@ -1405,7 +1406,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Gibt an, welche Bildschirmmaske (Anmeldemaske COSGN0A) dem Benutzer präsentiert wird."
+      "explanation": "Specifies that the screen layout to be sent is the sign-on screen map."
     },
     {
       "number": 153,
@@ -1414,7 +1415,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Referenziert den Mapset COSGN00, der die Bildschirmlayout-Definition für den Anmeldebildschirm enthält."
+      "explanation": "Identifies the screen map library (mapset) that contains the sign-on screen definition."
     },
     {
       "number": 154,
@@ -1423,7 +1424,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Stellt sicher, dass der Bildschirm mit den aktuell befüllten Ausgabedaten (Fehlermeldung, Kopfzeile) angezeigt wird."
+      "explanation": "Supplies the populated screen data — including the error message and header — as the content to be displayed."
     },
     {
       "number": 155,
@@ -1432,7 +1433,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Löscht den gesamten bisherigen Bildschirminhalt vor der Anzeige, um eine saubere Darstellung des Anmeldebildschirms zu gewährleisten."
+      "explanation": "Clears any previously displayed content from the terminal before rendering the sign-on screen, ensuring a clean presentation."
     },
     {
       "number": 156,
@@ -1441,7 +1442,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Positioniert den Eingabecursor automatisch auf das erste Eingabefeld, damit der Benutzer sofort mit der Eingabe beginnen kann."
+      "explanation": "Positions the terminal cursor automatically to the appropriate input field, guiding the user to begin entering credentials."
     },
     {
       "number": 157,
@@ -1450,7 +1451,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": ""
+      "explanation": "Closes the screen transmission instruction, completing the display of the sign-on screen to the user."
     },
     {
       "number": 158,
@@ -1468,7 +1469,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-SIGNON-SCREEN",
-      "explanation": "Abschnittstrennlinie – markiert das Ende des Anmeldebildschirm-Paragraphen und den Beginn des nächsten Verarbeitungsabschnitts."
+      "explanation": ""
     },
     {
       "number": 160,
@@ -1495,7 +1496,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Einstiegspunkt für die Ausgabe einer reinen Textnachricht an den Benutzer, ohne Bildschirmmaske."
+      "explanation": "Entry point for the routine that sends a plain-text message to the user's terminal."
     },
     {
       "number": 163,
@@ -1513,7 +1514,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Sendet die fachliche Rückmeldung (z.B. 'Thank You'-Abschiedsnachricht) als einfachen Text an den Benutzer-Terminal."
+      "explanation": "Begins the instruction to transmit a message to the user's screen."
     },
     {
       "number": 165,
@@ -1522,7 +1523,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Verwendet den aktuellen Inhalt der Benutzer-Rückmeldung (WS-MESSAGE) als anzuzeigende Nachricht."
+      "explanation": "Specifies that the content to be displayed is the current error or informational message prepared for the user (e.g. 'Thank You', 'Wrong Password')."
     },
     {
       "number": 166,
@@ -1531,7 +1532,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Stellt sicher, dass die vollständige Nachricht in ihrer definierten Länge übertragen wird – kein Abschneiden der Meldung."
+      "explanation": "Ensures the full message text is transmitted, with no characters truncated."
     },
     {
       "number": 167,
@@ -1540,7 +1541,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Löscht den aktuellen Bildschirminhalt vor der Anzeige, sodass die Nachricht auf einem leeren Bildschirm erscheint."
+      "explanation": "Clears any existing content from the user's screen before displaying the new message, ensuring a clean presentation."
     },
     {
       "number": 168,
@@ -1549,7 +1550,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Gibt die Tastatur am Terminal wieder frei, damit der Benutzer nach der Anzeige wieder Eingaben tätigen kann."
+      "explanation": "Unlocks the terminal keyboard after the message is displayed, allowing the user to interact with the screen again."
     },
     {
       "number": 169,
@@ -1558,7 +1559,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": ""
+      "explanation": "Completes the screen transmission instruction."
     },
     {
       "number": 170,
@@ -1576,7 +1577,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": "Beendet die Anmeldesitzung vollständig und gibt die Kontrolle an das CICS-System zurück – kein weiterer Programmablauf folgt."
+      "explanation": "Ends the current sign-on transaction and returns control to CICS, closing out this session interaction."
     },
     {
       "number": 172,
@@ -1585,7 +1586,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "SEND-PLAIN-TEXT",
-      "explanation": ""
+      "explanation": "Marks the end of the transaction termination instruction."
     },
     {
       "number": 173,
@@ -1630,7 +1631,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Bereitet den Kopfbereich des Anmeldebildschirms mit aktuellen Systemdaten vor, damit der Benutzer Datum, Uhrzeit, Anwendungsname und Systemidentifikation auf dem Login-Screen sieht."
+      "explanation": "Assembles the standard header information displayed at the top of the sign-on screen, including application titles, the current date and time, and system identifiers, so that users see a consistent and accurately timestamped interface when they attempt to log in."
     },
     {
       "number": 178,
@@ -1648,7 +1649,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Ermittelt das aktuelle Systemdatum und die Systemzeit als Grundlage für die Anzeige im Bildschirmkopf."
+      "explanation": "Retrieves the current system date and time so that accurate timestamp information can be displayed on the sign-on screen."
     },
     {
       "number": 180,
@@ -1666,7 +1667,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Überträgt den ersten Titeltext der CardDemo-Anwendung in den Kopfbereich des Anmeldebildschirms."
+      "explanation": "Places the first line of the CardDemo application title onto the sign-on screen header."
     },
     {
       "number": 182,
@@ -1675,7 +1676,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Überträgt den zweiten Titeltext der CardDemo-Anwendung in den Kopfbereich des Anmeldebildschirms."
+      "explanation": "Places the second line of the CardDemo application title onto the sign-on screen header."
     },
     {
       "number": 183,
@@ -1684,7 +1685,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Zeigt die Transaktions-ID (CC00) des Anmeldeprozesses im Bildschirmkopf an – dient der Nachvollziehbarkeit für Support und Benutzer."
+      "explanation": "Displays the sign-on transaction identifier in the screen header, allowing users and support staff to identify the active session transaction."
     },
     {
       "number": 184,
@@ -1693,7 +1694,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Zeigt den Namen des aktuell ausgeführten Anmeldeprogramms im Bildschirmkopf an."
+      "explanation": "Displays the name of the currently running program in the screen header for traceability and support purposes."
     },
     {
       "number": 185,
@@ -1711,7 +1712,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert den Monat aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the month portion of today's date to format it for display on the sign-on screen."
     },
     {
       "number": 187,
@@ -1720,7 +1721,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert den Tag aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the day portion of today's date to format it for display on the sign-on screen."
     },
     {
       "number": 188,
@@ -1729,7 +1730,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die zweistellige Jahreszahl aus dem Systemdatum zur formatierten Datumsdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the two-digit year portion of today's date to format it for display on the sign-on screen."
     },
     {
       "number": 189,
@@ -1747,7 +1748,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Stellt das aktuelle Datum im Format MM-DD-YY im Kopfbereich des Anmeldebildschirms dar."
+      "explanation": "Presents the fully formatted current date (MM/DD/YY) in the sign-on screen header so users can confirm the session date."
     },
     {
       "number": 191,
@@ -1765,7 +1766,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Stunden aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the hours portion of the current time to format it for display on the sign-on screen."
     },
     {
       "number": 193,
@@ -1774,7 +1775,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Minuten aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the minutes portion of the current time to format it for display on the sign-on screen."
     },
     {
       "number": 194,
@@ -1783,7 +1784,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Extrahiert die Sekunden aus der Systemzeit zur formatierten Uhrzeitdarstellung auf dem Anmeldebildschirm."
+      "explanation": "Extracts the seconds portion of the current time to format it for display on the sign-on screen."
     },
     {
       "number": 195,
@@ -1801,7 +1802,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Stellt die aktuelle Uhrzeit im Format HH-MM-SS im Kopfbereich des Anmeldebildschirms dar."
+      "explanation": "Presents the fully formatted current time (HH:MM:SS) in the sign-on screen header so users can confirm the session time."
     },
     {
       "number": 197,
@@ -1819,7 +1820,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Ermittelt die CICS-Anwendungs-ID der laufenden Instanz und zeigt sie im Bildschirmkopf an – ermöglicht die Identifikation der Anwendungsumgebung (z. B. Produktion oder Test)."
+      "explanation": "Retrieves the logical application identifier of the CICS region and displays it on the sign-on screen, helping users and support staff identify which application instance they are connected to."
     },
     {
       "number": 199,
@@ -1855,7 +1856,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "POPULATE-HEADER-INFO",
-      "explanation": "Ermittelt die System-ID des CICS-Knotens und zeigt sie im Bildschirmkopf an – unterstützt die Identifikation des verarbeitenden Systems im Rechenzentrum."
+      "explanation": "Retrieves the system identifier of the connected CICS region and displays it on the sign-on screen, helping identify the specific processing system handling the session."
     },
     {
       "number": 203,
@@ -1918,7 +1919,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Einstiegspunkt der Authentifizierungslogik – Suche und Prüfung des Benutzers in der Sicherheitsdatei"
+      "explanation": "Entry point for the credential lookup and authentication routing logic."
     },
     {
       "number": 210,
@@ -1936,7 +1937,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Sucht den Benutzerdatensatz in der zentralen Benutzersicherheitsdatei anhand der eingegebenen Benutzer-ID"
+      "explanation": "Initiates a lookup in the User Security file to retrieve the stored credentials for the entered User ID."
     },
     {
       "number": 212,
@@ -1945,7 +1946,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Gibt die zu durchsuchende Benutzersicherheitsdatei (USRSEC) als Quelle der Authentifizierungsdaten an"
+      "explanation": "Identifies the User Security file as the source of registered user credential records."
     },
     {
       "number": 213,
@@ -1954,7 +1955,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Lädt den gefundenen Benutzerdatensatz (inkl. gespeichertem Passwort und Benutzerrolle) in den Arbeitsbereich"
+      "explanation": "Specifies that the retrieved user credential record will be loaded into memory for inspection."
     },
     {
       "number": 214,
@@ -1963,7 +1964,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Stellt sicher, dass der vollständige Benutzerdatensatz mit allen Sicherheitsattributen geladen wird"
+      "explanation": "Ensures the full user credential record is read, including password and user type fields."
     },
     {
       "number": 215,
@@ -1972,7 +1973,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Identifiziert den gesuchten Benutzer eindeutig über die eingegebene und normalisierte Benutzer-ID als Suchschlüssel"
+      "explanation": "Uses the User ID entered at the sign-on screen as the search key to locate the matching user record."
     },
     {
       "number": 216,
@@ -1981,7 +1982,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Legt die exakte Länge des Suchschlüssels fest, um eine präzise Übereinstimmung in der Sicherheitsdatei zu gewährleisten"
+      "explanation": "Specifies the exact length of the User ID to ensure a precise match in the security file index."
     },
     {
       "number": 217,
@@ -1990,7 +1991,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Empfängt den Rückmeldecode des Dateizugriffs – zeigt an, ob der Benutzer gefunden wurde oder ein Fehler auftrat"
+      "explanation": "Captures the outcome of the file lookup (e.g. found, not found, or system error) for subsequent decision-making."
     },
     {
       "number": 218,
@@ -1999,7 +2000,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Empfängt einen ergänzenden Detailcode für eine differenziertere Fehlerdiagnose bei Zugriffsproblemen"
+      "explanation": "Captures a secondary diagnostic code in case the file lookup encounters a system-level issue."
     },
     {
       "number": 219,
@@ -2026,7 +2027,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Wertet das Ergebnis der Datenbankabfrage aus, um den weiteren Authentifizierungsablauf zu steuern"
+      "explanation": "Evaluates the outcome of the User Security file lookup to determine the next authentication step."
     },
     {
       "number": 222,
@@ -2035,7 +2036,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Benutzer-ID wurde erfolgreich in der Sicherheitsdatei gefunden – Passwortprüfung kann beginnen"
+      "explanation": "Handles the case where the user record was successfully found in the security file."
     },
     {
       "number": 223,
@@ -2044,7 +2045,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Prüft, ob das eingegebene Passwort exakt mit dem in der Sicherheitsdatei hinterlegten Passwort übereinstimmt"
+      "explanation": "Compares the password supplied by the user at login against the password stored in the security file."
     },
     {
       "number": 224,
@@ -2053,7 +2054,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Hinterlegt die Transaktions-ID des Anmeldeprozesses in der Sitzungskommunikation für die Nachverfolgung"
+      "explanation": "Records the current sign-on transaction identifier in the shared communication area so downstream programs know the origin transaction."
     },
     {
       "number": 225,
@@ -2062,7 +2063,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Dokumentiert das Anmeldeprogramm als Ursprung der aktuellen Sitzung in der Kommunikationsstruktur"
+      "explanation": "Records the name of this sign-on program in the shared communication area so downstream programs know which program initiated the session."
     },
     {
       "number": 226,
@@ -2071,7 +2072,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Überträgt die authentifizierte Benutzer-ID in die Sitzungskommunikation, damit Folgeprogramme den Benutzer kennen"
+      "explanation": "Stores the authenticated User ID in the shared communication area so downstream programs can identify the logged-in user."
     },
     {
       "number": 227,
@@ -2080,7 +2081,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Überträgt die Benutzerrolle (Admin oder Standardbenutzer) in die Sitzungskommunikation für die rollenbasierte Steuerung"
+      "explanation": "Stores the authenticated user's role (administrator or regular user) in the shared communication area for role-based access control in downstream programs."
     },
     {
       "number": 228,
@@ -2089,7 +2090,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt den Programmkontext auf Null, um eine frische Sitzung ohne Altdaten aus vorherigen Programmaufrufen zu signalisieren"
+      "explanation": "Resets the program navigation context to a fresh state, indicating this is a new session entry rather than a return from another screen."
     },
     {
       "number": 229,
@@ -2107,7 +2108,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Prüft, ob der authentifizierte Benutzer Administratorrechte besitzt, um die korrekte Weiterleitung zu bestimmen"
+      "explanation": "Checks whether the authenticated user holds administrator privileges to determine which menu to display."
     },
     {
       "number": 231,
@@ -2116,7 +2117,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Leitet einen Administrator nach erfolgreicher Anmeldung in das Admin-Verwaltungsmenü weiter"
+      "explanation": "Transfers control to the Administrator Menu program, ending this program's execution for admin users."
     },
     {
       "number": 232,
@@ -2125,7 +2126,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zielmenü für Administratoren: COADM01C – das administrative Hauptmenü des CardDemo-Systems"
+      "explanation": "Specifies the Administrator Menu as the destination for users with administrative privileges."
     },
     {
       "number": 233,
@@ -2134,7 +2135,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Übergibt die vollständige Sitzungskommunikation (Benutzer-ID, Rolle, Kontext) an das Admin-Menü"
+      "explanation": "Passes the session and user context data to the Administrator Menu so it can personalise and control access appropriately."
     },
     {
       "number": 234,
@@ -2152,7 +2153,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Weiterleitung für reguläre Benutzer ohne Administratorrechte"
+      "explanation": "Handles the case where the authenticated user is a regular (non-administrator) user."
     },
     {
       "number": 236,
@@ -2161,7 +2162,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Leitet einen regulären Benutzer nach erfolgreicher Anmeldung in das Standard-Hauptmenü weiter"
+      "explanation": "Transfers control to the Main Menu program, ending this program's execution for regular users."
     },
     {
       "number": 237,
@@ -2170,7 +2171,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zielmenü für reguläre Benutzer: COMEN01C – das allgemeine Hauptmenü des CardDemo-Systems"
+      "explanation": "Specifies the Main Menu as the destination for standard, non-administrative users."
     },
     {
       "number": 238,
@@ -2179,7 +2180,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Übergibt die vollständige Sitzungskommunikation (Benutzer-ID, Rolle, Kontext) an das Hauptmenü"
+      "explanation": "Passes the session and user context data to the Main Menu so it can personalise and control access appropriately."
     },
     {
       "number": 239,
@@ -2206,7 +2207,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Behandlung einer fehlgeschlagenen Passwortprüfung – das eingegebene Passwort stimmt nicht überein"
+      "explanation": "Handles the case where the user was found in the security file but the supplied password does not match the stored password."
     },
     {
       "number": 242,
@@ -2215,7 +2216,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt die Fehlermeldung 'Falsches Passwort' für die Anzeige auf dem Anmeldebildschirm"
+      "explanation": "Sets the error message displayed on the sign-on screen to inform the user that the password entered was incorrect and they should try again."
     },
     {
       "number": 243,
@@ -2233,7 +2234,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt den Eingabefokus auf das Passwortfeld, damit der Benutzer direkt eine Korrektur vornehmen kann"
+      "explanation": "Positions the cursor on the password field so the user can immediately re-enter their password without manually clicking the field."
     },
     {
       "number": 245,
@@ -2242,7 +2243,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert zur erneuten Passworteingabe auf"
+      "explanation": "Redisplays the sign-on screen with the incorrect password error message so the user can retry authentication."
     },
     {
       "number": 246,
@@ -2260,7 +2261,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Fehlercode 13 bedeutet: Die eingegebene Benutzer-ID existiert nicht in der Sicherheitsdatei"
+      "explanation": "Handles the case where no user record matching the entered User ID exists in the security file."
     },
     {
       "number": 248,
@@ -2269,7 +2270,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Aktiviert den Fehlerindikator, damit der Anmeldebildschirm im Fehlerzustand angezeigt wird"
+      "explanation": "Marks the authentication attempt as failed due to an unrecognised User ID."
     },
     {
       "number": 249,
@@ -2278,7 +2279,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt die Meldung 'Benutzer nicht gefunden' – ohne Unterscheidung zu falschem Passwort (Sicherheitsprinzip)"
+      "explanation": "Sets the error message displayed on the sign-on screen to inform the user that their User ID was not found and they should try again."
     },
     {
       "number": 250,
@@ -2287,7 +2288,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt den Eingabefokus auf das Benutzer-ID-Feld, damit der Benutzer die ID korrigieren kann"
+      "explanation": "Positions the cursor on the User ID field so the user can immediately correct or re-enter their User ID."
     },
     {
       "number": 251,
@@ -2296,7 +2297,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zeigt den Anmeldebildschirm erneut mit der Fehlermeldung an und fordert zur erneuten Eingabe auf"
+      "explanation": "Redisplays the sign-on screen with the user-not-found error message so the user can retry with a valid User ID."
     },
     {
       "number": 252,
@@ -2305,7 +2306,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Behandlung unerwarteter Systemfehler beim Zugriff auf die Benutzersicherheitsdatei"
+      "explanation": "Handles any unexpected system-level error encountered while attempting to read the security file."
     },
     {
       "number": 253,
@@ -2314,7 +2315,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Aktiviert den Fehlerindikator für die Fehleranzeige auf dem Anmeldebildschirm"
+      "explanation": "Marks the authentication attempt as failed due to a system error, preventing access without exposing technical details."
     },
     {
       "number": 254,
@@ -2323,7 +2324,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zeigt eine neutrale Fehlermeldung ohne technische Details – schützt vor ungewollter Informationspreisgabe"
+      "explanation": "Sets a generic error message informing the user that their identity could not be verified, without revealing the underlying technical cause."
     },
     {
       "number": 255,
@@ -2332,7 +2333,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Setzt den Eingabefokus auf das Benutzer-ID-Feld für eine erneute Eingabe nach dem Systemfehler"
+      "explanation": "Positions the cursor on the User ID field to prompt the user to re-enter their credentials after the system error."
     },
     {
       "number": 256,
@@ -2341,7 +2342,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Zeigt den Anmeldebildschirm mit der allgemeinen Fehlermeldung an und ermöglicht einen erneuten Anmeldeversuch"
+      "explanation": "Redisplays the sign-on screen with the generic verification failure message so the user can attempt to log in again."
     },
     {
       "number": 257,
@@ -2368,7 +2369,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "READ-USER-SEC-FILE",
-      "explanation": "Versionskennung des Programms: CardDemo v1.0, Stand 19. Juli 2022 – dient der Nachvollziehbarkeit von Änderungen"
+      "explanation": ""
     },
     {
       "number": 260,
@@ -2389,7 +2390,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Übergeordnete Gruppenstruktur, die alle Arbeitsfelder des Anmeldeprozesses bündelt. Enthält sämtliche Steuerungs- und Eingabevariablen, die während der Benutzerauthentifizierung benötigt werden."
+      "description": "Group record that holds all working storage variables used during the sign-on process, including program identity, user credentials, error tracking, and messaging for the CardDemo login workflow."
     },
     {
       "name": "WS-PGMNAME",
@@ -2399,7 +2400,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Technischer Eigenname des Anmeldeprogramms. Wird verwendet, um das Programm in CICS-Aufrufen, Fehlerprotokollen und der Kommunikationsstruktur eindeutig zu identifizieren – z. B. beim Rücksprung oder bei der Übergabe an ein Folgeprogramm."
+      "description": "The internal name of this sign-on program ('COSGN00C'). Used to identify the currently executing program when passing control or logging context to other parts of the CardDemo system, ensuring the system always knows which program initiated the authentication flow."
     },
     {
       "name": "WS-TRANID",
@@ -2409,7 +2410,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "CICS-Transaktions-ID des Anmeldevorgangs. Der Wert 'CC00' identifiziert die Anmelde-Transaktion eindeutig im CICS-System und wird benötigt, um nach einer Benutzerinteraktion (z. B. Tastendruck) das Programm erneut aufzurufen (RETURN TRANSID)."
+      "description": "The CICS transaction identifier ('CC00') assigned to the CardDemo sign-on transaction. This code uniquely identifies the login session in the CICS environment, ensuring that screen interactions and program re-entries are correctly associated with the sign-on process rather than any other CardDemo transaction."
     },
     {
       "name": "WS-MESSAGE",
@@ -2419,7 +2420,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fachliche Rückmeldung an den Benutzer auf dem Anmeldebildschirm. Enthält je nach Situation eine Fehlermeldung (z. B. 'Ungültige Anmeldedaten', 'Benutzer nicht gefunden', 'Systemfehler') oder eine Abschiedsnachricht ('Thank You') beim Beenden der Anwendung per PF3."
+      "description": "The feedback message displayed to the user on the sign-on screen. This field communicates the outcome of the login attempt — for example, 'User not found', 'Wrong Password', 'Invalid Key pressed', or 'Unable to verify the User' — guiding the user on what went wrong and what action to take next."
     },
     {
       "name": "WS-USRSEC-FILE",
@@ -2429,7 +2430,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Logischer Dateiname der Benutzersicherheitsdatei im System. Wird beim CICS-Dateizugriff (READ) verwendet, um den Benutzerdatensatz mit Passwort und Benutzerrolle nachzuschlagen und die Anmeldedaten zu verifizieren."
+      "description": "The name of the User Security file ('USRSEC') that stores registered user credentials. This value is used to reference the correct file when looking up a user's stored User ID, password, and user type during the authentication process."
     },
     {
       "name": "WS-ERR-FLG",
@@ -2439,7 +2440,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Fehlerindikator für den Anmeldevorgang. Steuert, ob auf dem Anmeldebildschirm eine Fehlermeldung angezeigt wird. Wird auf 'Y' gesetzt, sobald eine Validierungsprüfung fehlschlägt (z. B. leere Eingabe, falsches Passwort, unbekannter Benutzer), damit der Benutzer zur erneuten Eingabe aufgefordert wird."
+      "description": "An internal flag that tracks whether a validation error has occurred during the sign-on process. It starts as 'N' (no error) and is set to 'Y' if any business rule is violated (e.g., blank User ID, wrong password, user not found), preventing the system from proceeding with authentication when an error condition exists."
     },
     {
       "name": "ERR-FLG-ON",
@@ -2449,7 +2450,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname für den aktiven Fehlerzustand. Ist dieser Wert gesetzt, liegt ein Anmeldefehler vor – der Bildschirm wird mit einer Fehlermeldung erneut angezeigt und der Benutzer muss seine Eingaben korrigieren."
+      "description": "A named condition that is true when a sign-on validation error has been detected (WS-ERR-FLG = 'Y'). When this condition is active, the system knows it must stop the authentication flow, display an appropriate error message, and prompt the user to correct their input."
     },
     {
       "name": "ERR-FLG-OFF",
@@ -2459,7 +2460,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname für den fehlerfreien Zustand. Ist dieser Wert gesetzt, ist bisher kein Anmeldefehler aufgetreten – die Verarbeitung kann ohne Fehlermeldung fortgesetzt werden."
+      "description": "A named condition that is true when no sign-on validation error has been detected (WS-ERR-FLG = 'N'). When this condition is active, the system knows the login process is proceeding cleanly and can continue to the next validation step or grant access."
     },
     {
       "name": "WS-RESP-CD",
@@ -2469,7 +2470,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "CICS-Antwortcode nach dem Zugriff auf die Benutzersicherheitsdatei. Gibt an, ob der Datenbankzugriff erfolgreich war (Wert 0) oder ein Fehler aufgetreten ist (z. B. Datei nicht gefunden, Systemfehler). Wird ausgewertet, um zwischen 'Benutzer nicht gefunden', 'Systemfehler' und 'Erfolg' zu unterscheiden."
+      "description": "The response code returned by CICS after attempting to read the User Security file. This code tells the system whether the file read succeeded, whether the user record was not found, or whether a system-level error occurred — directly driving the business decision of whether to authenticate, reject, or display a system error to the user."
     },
     {
       "name": "WS-REAS-CD",
@@ -2479,7 +2480,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "CICS-Ursachencode, der den CICS-Antwortcode (WS-RESP-CD) ergänzt und eine detailliertere Fehlerdiagnose beim Zugriff auf die Benutzersicherheitsdatei ermöglicht. Wird intern für die Fehlerbehandlung ausgewertet, jedoch nicht an den Benutzer weitergegeben, um keine sicherheitsrelevanten Details preiszugeben."
+      "description": "The reason code returned by CICS alongside the response code after the User Security file lookup. It provides additional technical detail about why a file operation succeeded or failed, supporting error diagnosis when the system cannot verify user credentials and must display a generic 'Unable to verify the User' message."
     },
     {
       "name": "WS-USER-ID",
@@ -2489,7 +2490,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Vom Benutzer eingegebene Benutzer-ID auf dem Anmeldebildschirm, normalisiert in Großbuchstaben. Dient als Schlüssel für die Suche in der Benutzersicherheitsdatei und identifiziert den Benutzer eindeutig im System. Pflichtfeld – eine leere Eingabe wird abgewiesen."
+      "description": "The User ID entered by the person attempting to log in, captured from the sign-on screen. After being converted to uppercase, this value is used as the key to look up the user's record in the User Security file. If this field is blank, the system immediately rejects the login attempt without querying the file."
     },
     {
       "name": "WS-USER-PWD",
@@ -2499,7 +2500,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Vom Benutzer eingegebenes Passwort auf dem Anmeldebildschirm, normalisiert in Großbuchstaben. Wird mit dem in der Benutzersicherheitsdatei gespeicherten Passwort verglichen, um die Identität des Benutzers zu bestätigen. Pflichtfeld – eine leere Eingabe wird abgewiesen."
+      "description": "The password entered by the person attempting to log in, captured from the sign-on screen. After being converted to uppercase, this value is compared against the password stored in the User Security file for the given User ID. A mismatch results in a 'Wrong Password' error, and the user must retry. If this field is blank, the login attempt is rejected immediately."
     },
     {
       "name": "DFHCOMMAREA",
@@ -2509,7 +2510,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "CICS-Kommunikationsbereich, der Daten zwischen aufeinanderfolgenden Programmaufrufen überträgt. Beim Anmeldeprogramm wird er genutzt, um Sitzungsinformationen (Benutzer-ID, Benutzerrolle, Programmkontext) zwischen dem Anmeldebildschirm und den nachgelagerten Menüprogrammen zu übergeben."
+      "description": "The standard CICS communication area passed between transactions and programs. In the sign-on context, this area carries session and user information (such as authenticated user type and ID) from the sign-on program to downstream CardDemo programs, enabling role-based routing to either the Admin Menu or the Main Menu after successful login."
     },
     {
       "name": "LK-COMMAREA",
@@ -2519,7 +2520,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Minimale Platzhalterdeklaration für den CICS-Kommunikationsbereich beim ersten Programmaufruf. Da beim initialen Aufruf des Anmeldebildschirms noch keine Sitzungsdaten vorliegen, wird nur ein Byte reserviert. Der eigentliche Kommunikationsbereich (CARDDEMO-COMMAREA aus COCOM01Y) wird nach erfolgreicher Anmeldung befüllt und an das Zielprogramm übergeben."
+      "description": "A minimal placeholder within the CICS communication area, used to detect whether the sign-on program is being entered for the first time (no prior commarea) or re-entered after a screen interaction. Its presence or absence tells the program whether to display a fresh sign-on screen or to process credentials that the user has just submitted."
     }
   ],
   "paragraphs": [
@@ -2527,37 +2528,37 @@
       "name": "MAIN-PARA",
       "line_start": 73,
       "line_end": 107,
-      "description": "MAIN-PARA ist der zentrale Steuerungspunkt des Anmeldeprozesses: Er entscheidet, ob ein neuer Anmeldebildschirm präsentiert wird, eine Benutzereingabe verarbeitet wird oder die Anwendung beendet wird – und hält die Sitzung für den nächsten Interaktionsschritt offen."
+      "description": "MAIN-PARA is the central orchestration paragraph of the sign-on process. It determines whether a user is arriving at the screen for the first time or responding to it, then routes control based on the key pressed — presenting the sign-on screen, processing credentials, accepting a graceful exit, or rejecting invalid input — before returning control to the transaction to await the next user interaction."
     },
     {
       "name": "PROCESS-ENTER-KEY",
       "line_start": 108,
       "line_end": 144,
-      "description": "Dieser Paragraph verarbeitet die Anmeldeeingabe des Benutzers: Er prüft die Vollständigkeit der Zugangsdaten, normalisiert sie und leitet die eigentliche Authentifizierung gegen die Benutzersicherheitsdatei ein."
+      "description": "This paragraph handles the user's login submission by collecting and validating the credentials entered on the sign-on screen. It enforces mandatory field rules, normalises the credentials to uppercase for case-insensitive comparison, and triggers the lookup of the user's record in the security file if all basic validations pass."
     },
     {
       "name": "SEND-SIGNON-SCREEN",
       "line_start": 145,
       "line_end": 161,
-      "description": "Bereitet den Anmeldebildschirm für die Ausgabe an den Benutzer vor und zeigt ihn an – inklusive aktueller Kopfzeileninformationen und etwaiger Fehlermeldungen oder Hinweise zur Anmeldung."
+      "description": "Prepares and displays the sign-on screen to the user, including any error or informational message resulting from a failed or initial authentication attempt. This paragraph is the final step in presenting the login interface, ensuring the user sees current feedback before re-entering credentials."
     },
     {
       "name": "SEND-PLAIN-TEXT",
       "line_start": 162,
       "line_end": 176,
-      "description": "Zeigt dem Benutzer eine einfache Textnachricht an (z.B. die Abschiedsnachricht nach PF3-Druck) und beendet anschließend die Anmeldesitzung sauber. Dieser Paragraph stellt den kontrollierten Abschluss der Anwendungsinteraktion sicher."
+      "description": "Displays a plain-text message to the user on the terminal screen and immediately ends the session transaction. This is used to communicate a final status or error message — such as a graceful sign-off acknowledgement — before returning control to the CICS environment."
     },
     {
       "name": "POPULATE-HEADER-INFO",
       "line_start": 177,
       "line_end": 208,
-      "description": "Bereitet den Kopfbereich des Anmeldebildschirms mit aktuellen Systemdaten vor, damit der Benutzer Datum, Uhrzeit, Anwendungsname und Systemidentifikation auf dem Login-Screen sieht."
+      "description": "Assembles the standard header information displayed at the top of the sign-on screen, including application titles, the current date and time, and system identifiers, so that users see a consistent and accurately timestamped interface when they attempt to log in."
     },
     {
       "name": "READ-USER-SEC-FILE",
       "line_start": 209,
       "line_end": 260,
-      "description": "Dieser Paragraph führt die eigentliche Benutzerauthentifizierung durch: Er lädt den Benutzerdatensatz aus der Sicherheitsdatei, prüft das eingegebene Passwort und leitet den Benutzer nach erfolgreicher Anmeldung rollenbasiert in das zuständige Menü weiter."
+      "description": "This paragraph performs the core authentication check by looking up the user's credentials in the User Security file and, upon successful verification, routes the authenticated user to the appropriate menu based on their role. If authentication fails for any reason, it redisplays the sign-on screen with a specific error message guiding the user on how to proceed."
     }
   ],
   "copybooks": [

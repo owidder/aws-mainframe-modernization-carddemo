@@ -4,21 +4,21 @@
     "file_path": "app/app-authorization-ims-db2-mq/cbl/PAUDBLOD.CBL",
     "analyzed_at": "2026-05-02T18:45:44.061619",
     "model": "gcp/claude-sonnet-4-6",
-    "description": "Laden (Load) von ausstehenden Autorisierungsdaten aus sequentiellen Dateien in die IMS-Datenbank zur Wiederherstellung oder Initialbefüllung der Pending-Authorization-Datenbank.",
-    "process_description": "Das Programm PAUDBLOD ist das Gegenstück zum Entlade-Programm PAUDBUNL und liest zwei sequentielle Eingabedateien: eine mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente) und eine mit Autorisierungs-Detaildatensätzen (Child-Segmente). Zunächst werden alle Root-Segmente (Autorisierungs-Summaries je Konto) sequentiell gelesen und als übergeordnete Segmente in die IMS-Datenbank eingefügt. Anschließend werden alle Child-Segmente (Autorisierungs-Details) gelesen, wobei für jeden Detailsatz zunächst der zugehörige Root-Datensatz per Konto-ID in der IMS-Datenbank gesucht und dann der Detailsatz als untergeordnetes Segment eingefügt wird. Bereits vorhandene Datensätze (Duplikate) werden toleriert und protokolliert, ohne einen Abbruch auszulösen.",
+    "description": "Loading of outstanding authorization data from sequential files into the IMS database for recovery or initial population of the pending authorization database.",
+    "process_description": "The program PAUDBLOD is the counterpart to the unload program PAUDBUNL and reads two sequential input files: one containing authorization summary records (root segments) and one containing authorization detail records (child segments). First, all root segments (authorization summaries per account) are read sequentially and inserted as parent segments into the IMS database. Subsequently, all child segments (authorization details) are read; for each detail record, the corresponding root record is first located in the IMS database by account ID, and then the detail record is inserted as a child segment. Already existing records (duplicates) are tolerated and logged without triggering an abend.",
     "type": "Batch",
     "module": "Authentication",
     "files": {
-      "INFILE1": "Sequentielle Eingabedatei mit Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, PAUTSUM0) je Kreditkartenkonto",
-      "INFILE2": "Sequentielle Eingabedatei mit Autorisierungs-Detaildatensätzen (Child-Segmente, PAUTDTL1) mit Konto-ID als Schlüssel und Detaildaten zur einzelnen Autorisierung"
+      "INFILE1": "Sequential input file with authorization summary records (root segments, PAUTSUM0) per credit card account",
+      "INFILE2": "Sequential input file with authorization detail records (child segments, PAUTDTL1) with account ID as key and detail data for individual authorizations"
     },
     "business_rules": [
-      "Root-Segmente (Autorisierungs-Summaries) müssen vor den Child-Segmenten (Autorisierungs-Details) in die IMS-Datenbank geladen werden, da die hierarchische IMS-Struktur dies erfordert.",
-      "Für jeden Child-Datensatz muss der zugehörige Root-Datensatz anhand der Konto-ID (ACCNTID) in der IMS-Datenbank auffindbar sein, bevor der Detail-Datensatz eingefügt werden kann.",
-      "Duplikate (Status 'II' = Duplicate Segment) werden bei Root- und Child-Segmenten toleriert und protokolliert, führen aber nicht zum Programmabbruch – dies ermöglicht idempotente Wiederholungsläufe.",
-      "Child-Datensätze mit nicht-numerischer Konto-ID werden übersprungen und nicht in die Datenbank geladen.",
-      "Jeder andere Datenbankfehler (außer Duplikat und Erfolg) führt zu einem sofortigen Programmabbruch (ABEND), um Datenkonsistenz zu gewährleisten.",
-      "Das Programm arbeitet im IMS-Batch-Modus mit PSB-Scheduling und unterstützt Checkpoint/Restart-Mechanismen für die Wiederanlaufbarkeit bei Fehlern."
+      "Root segments (authorization summaries) must be loaded into the IMS database before child segments (authorization details), as required by the hierarchical IMS structure.",
+      "For each child record, the associated root record must be locatable in the IMS database by account ID (ACCNTID) before the detail record can be inserted.",
+      "Duplicates (status 'II' = Duplicate Segment) are tolerated and logged for both root and child segments, but do not cause program termination – this enables idempotent restart runs.",
+      "Child records with a non-numeric account ID are skipped and not loaded into the database.",
+      "Any other database error (other than duplicate or success) causes an immediate program abend (ABEND) to ensure data consistency.",
+      "The program operates in IMS batch mode with PSB scheduling and supports checkpoint/restart mechanisms for restartability in case of errors."
     ],
     "index_context": {
       "copybooks_resolved": [
@@ -1554,7 +1554,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss."
+      "explanation": "MAIN-PARA is the central control paragraph of the load program PAUDBLOD and orchestrates the complete business process: initialization, sequential loading of all authorization summaries (root segments) and then all authorization details (child segments) into the IMS database, followed by an orderly program termination."
     },
     {
       "number": 170,
@@ -1572,7 +1572,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Registriert das Programm beim IMS-Laufzeitsystem und stellt die Verbindung zur Pending-Authorization-Datenbank über den Programm-Kommunikationsblock (PCB) her."
+      "explanation": "Registers the program with the IMS runtime system and establishes the connection to the pending authorization database via the Program Communication Block (PCB)."
     },
     {
       "number": 172,
@@ -1590,7 +1590,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Protokolliert den Programmstart von PAUDBLOD im Systemlog zur Nachvollziehbarkeit des Batch-Laufs."
+      "explanation": "Logs the program start of PAUDBLOD to the system log for traceability of the batch run."
     },
     {
       "number": 174,
@@ -1608,7 +1608,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Führt alle Vorbereitungsschritte durch: Öffnen der Eingabedateien, Initialisierung der Zähler und Steuerungsparameter für den Ladevorgang."
+      "explanation": "Performs all preparatory steps: opening the input files, initializing counters and control parameters for the load process."
     },
     {
       "number": 176,
@@ -1626,7 +1626,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt alle Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) aus der Eingabedatei sequentiell in die IMS-Datenbank – Konto für Konto, bis alle Summary-Datensätze verarbeitet sind."
+      "explanation": "Loads all authorization summary records (root segments) from the input file sequentially into the IMS database – account by account, until all summary records have been processed."
     },
     {
       "number": 178,
@@ -1635,7 +1635,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Steuert die Verarbeitungsschleife für Root-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Summary-Eingabedatei erreicht ist."
+      "explanation": "Controls the processing loop for root segments: the load process continues until the end of the summary input file is reached."
     },
     {
       "number": 179,
@@ -1653,7 +1653,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Lädt alle Autorisierungs-Detaildatensätze (Child-Segmente) aus der Eingabedatei in die IMS-Datenbank, jeweils dem zugehörigen Konto-Root-Segment untergeordnet."
+      "explanation": "Loads all authorization detail records (child segments) from the input file into the IMS database, each subordinated to the corresponding account root segment."
     },
     {
       "number": 181,
@@ -1662,7 +1662,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Steuert die Verarbeitungsschleife für Child-Segmente: Ladevorgang wird fortgesetzt, bis das Ende der Detail-Eingabedatei erreicht ist."
+      "explanation": "Controls the processing loop for child segments: the load process continues until the end of the detail input file is reached."
     },
     {
       "number": 182,
@@ -1680,7 +1680,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Schließt alle Eingabedateien ordnungsgemäß und gibt die belegten Ressourcen frei, nachdem alle Autorisierungsdaten in die IMS-Datenbank geladen wurden."
+      "explanation": "Closes all input files in an orderly manner and releases the occupied resources after all authorization data has been loaded into the IMS database."
     },
     {
       "number": 184,
@@ -1716,7 +1716,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "MAIN-PARA",
-      "explanation": "Beendet das Ladeprogramm geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück."
+      "explanation": "Terminates the load program in an orderly manner and returns control to the IMS batch controller."
     },
     {
       "number": 188,
@@ -1743,7 +1743,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden."
+      "explanation": "Initializes the batch load run by determining and logging the current processing date and opening the two input files containing the authorization data for processing."
     },
     {
       "number": 191,
@@ -1770,7 +1770,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Tagesdatum (JJMMTT) als Referenzdatum für die Verarbeitung der Autorisierungsdaten."
+      "explanation": "Determines the current date (YYMMDD) as the reference date for processing the authorization data."
     },
     {
       "number": 194,
@@ -1779,7 +1779,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Ermittelt das aktuelle Datum im Julianischen Format (JJDDD) für die spätere Berechnung des Ablaufalters ausstehender Autorisierungen."
+      "explanation": "Determines the current date in Julian format (YYDDD) for the later calculation of the expiration age of pending authorizations."
     },
     {
       "number": 195,
@@ -1797,7 +1797,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Gibt eine optische Trennlinie im Verarbeitungsprotokoll aus, um den Beginn des Ladelaufs klar zu kennzeichnen."
+      "explanation": "Outputs a visual separator line in the processing log to clearly mark the start of the load run."
     },
     {
       "number": 197,
@@ -1806,7 +1806,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert das aktuelle Verarbeitungsdatum im Batch-Log zur Nachvollziehbarkeit und Revisionssicherheit des Ladelaufs."
+      "explanation": "Logs the current processing date in the batch log for traceability and audit compliance of the load run."
     },
     {
       "number": 198,
@@ -1815,7 +1815,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Fügt eine Leerzeile im Protokoll ein zur besseren Lesbarkeit des Verarbeitungsprotokolls."
+      "explanation": "Inserts a blank line in the log for improved readability of the processing log."
     },
     {
       "number": 199,
@@ -1842,7 +1842,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente je Kreditkartenkonto) für die Verarbeitung."
+      "explanation": "Opens the sequential input file containing the authorization summary records (root segments per credit card account) for processing."
     },
     {
       "number": 202,
@@ -1851,7 +1851,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Summaries erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg)."
+      "explanation": "Checks whether the file containing the authorization summaries was opened successfully (status blank or '00' = success)."
     },
     {
       "number": 203,
@@ -1860,7 +1860,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Summaries fehlerfrei geöffnet wurde."
+      "explanation": "Processing continues, as the authorization summary input file was opened without errors."
     },
     {
       "number": 204,
@@ -1869,7 +1869,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Fehlerbehandlung: Die Datei mit den Autorisierungs-Summaries konnte nicht geöffnet werden."
+      "explanation": "Error handling: the file containing the authorization summaries could not be opened."
     },
     {
       "number": 205,
@@ -1878,7 +1878,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Summary-Datei zur Fehlerdiagnose."
+      "explanation": "Logs the technical error code when opening the authorization summary file for error diagnosis."
     },
     {
       "number": 206,
@@ -1887,7 +1887,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Bricht den Ladelauf sofort ab, da ohne die Summary-Eingabedatei keine Root-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist."
+      "explanation": "Aborts the load run immediately, as root segments cannot be loaded without the summary input file and data consistency cannot be guaranteed."
     },
     {
       "number": 207,
@@ -1914,7 +1914,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Öffnet die sequentielle Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente je Einzelautorisierung) für die Verarbeitung."
+      "explanation": "Opens the sequential input file containing the authorization detail records (child segments per individual authorization) for processing."
     },
     {
       "number": 210,
@@ -1923,7 +1923,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Details erfolgreich geöffnet werden konnte (Status leer oder '00' = Erfolg)."
+      "explanation": "Checks whether the file containing the authorization details was opened successfully (status blank or '00' = success)."
     },
     {
       "number": 211,
@@ -1932,7 +1932,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Verarbeitung wird fortgesetzt, da die Eingabedatei der Autorisierungs-Details fehlerfrei geöffnet wurde."
+      "explanation": "Processing continues, as the authorization detail input file was opened without errors."
     },
     {
       "number": 212,
@@ -1941,7 +1941,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Fehlerbehandlung: Die Datei mit den Autorisierungs-Details konnte nicht geöffnet werden."
+      "explanation": "Error handling: the file containing the authorization details could not be opened."
     },
     {
       "number": 213,
@@ -1950,7 +1950,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Protokolliert den technischen Fehlercode beim Öffnen der Autorisierungs-Detail-Datei zur Fehlerdiagnose."
+      "explanation": "Logs the technical error code when opening the authorization detail file for error diagnosis."
     },
     {
       "number": 214,
@@ -1959,7 +1959,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-INITIALIZE",
-      "explanation": "Bricht den Ladelauf sofort ab, da ohne die Detail-Eingabedatei keine Child-Segmente geladen werden können und die Datenkonsistenz nicht gewährleistet ist."
+      "explanation": "Aborts the load run immediately, as child segments cannot be loaded without the detail input file and data consistency cannot be guaranteed."
     },
     {
       "number": 215,
@@ -1995,7 +1995,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Markiert das Ende des Initialisierungsabschnitts – alle Vorbereitungen für den IMS-Datenbanklade-Prozess (PSB-Scheduling, Dateiöffnung, Parameterübernahme) sind abgeschlossen."
+      "explanation": "Marks the end of the initialization section – all preparations for the IMS database load process (PSB scheduling, file opening, parameter acquisition) are complete."
     },
     {
       "number": 219,
@@ -2004,7 +2004,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "1000-EXIT",
-      "explanation": "Gibt die Programmsteuerung an den aufrufenden Ablaufabschnitt zurück, sodass der eigentliche Ladeprozess der Autorisierungsdaten beginnen kann."
+      "explanation": "Returns program control to the calling processing section so that the actual authorization data load process can begin."
     },
     {
       "number": 220,
@@ -2031,7 +2031,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende."
+      "explanation": "Reads the authorization summary records (root segments) per credit card account sequentially from the input file and controls their transfer into the IMS database or detects end of file."
     },
     {
       "number": 223,
@@ -2067,7 +2067,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Liest den nächsten Autorisierungs-Zusammenfassungsdatensatz (Summary/Root-Segment) eines Kreditkartenkontos aus der sequentiellen Eingabedatei."
+      "explanation": "Reads the next authorization summary record (summary/root segment) of a credit card account from the sequential input file."
     },
     {
       "number": 227,
@@ -2085,7 +2085,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Prüft, ob der Lesevorgang erfolgreich war – ein Leerzeichen oder '00' signalisiert einen fehlerfreien Datensatz, der weiterverarbeitet werden kann."
+      "explanation": "Checks whether the read operation was successful – a blank or '00' signals an error-free record that can be processed further."
     },
     {
       "number": 229,
@@ -2094,7 +2094,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Überträgt den gelesenen Datensatz in die Arbeitsstruktur für Autorisierungs-Zusammenfassungen, um ihn für den IMS-Datenbankzugriff vorzubereiten."
+      "explanation": "Transfers the read record into the working structure for authorization summaries in order to prepare it for IMS database access."
     },
     {
       "number": 230,
@@ -2103,7 +2103,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Löst das Einfügen des Autorisierungs-Summary-Datensatzes als Root-Segment in die IMS-Datenbank aus (Unterroutine 2100)."
+      "explanation": "Triggers the insertion of the authorization summary record as a root segment into the IMS database (subroutine 2100)."
     },
     {
       "number": 231,
@@ -2121,7 +2121,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Prüft, ob das Dateiende der Root-Segment-Eingabedatei erreicht wurde (Status '10' = End of File)."
+      "explanation": "Checks whether the end of the root segment input file has been reached (status '10' = End of File)."
     },
     {
       "number": 233,
@@ -2130,7 +2130,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Setzt das Steuerungskennzeichen 'Dateiende erreicht', damit die übergeordnete Verarbeitungsschleife die Lese-Phase für Root-Segmente ordnungsgemäß beendet."
+      "explanation": "Sets the control flag 'end of file reached' so that the parent processing loop terminates the read phase for root segments in an orderly manner."
     },
     {
       "number": 234,
@@ -2148,7 +2148,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-READ-ROOT-SEG-FILE",
-      "explanation": "Gibt eine Fehlermeldung aus, wenn ein unerwarteter Lesefehler bei der Autorisierungs-Summary-Datei aufgetreten ist (weder Erfolg noch Dateiende)."
+      "explanation": "Outputs an error message when an unexpected read error has occurred on the authorization summary file (neither success nor end of file)."
     },
     {
       "number": 236,
@@ -2184,7 +2184,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Markiert das Ende der Verarbeitungsroutine für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+      "explanation": "Marks the end of the processing routine for loading the authorization summary records (root segments) into the IMS database."
     },
     {
       "number": 240,
@@ -2193,7 +2193,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2000-EXIT",
-      "explanation": "Schließt die Root-Segment-Ladeschleife ab und gibt die Kontrolle an den übergeordneten Steuerungsablauf zurück."
+      "explanation": "Closes the root segment load loop and returns control to the parent control flow."
     },
     {
       "number": 241,
@@ -2211,7 +2211,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden."
+      "explanation": "This paragraph stores an authorization summary record (root segment) as the parent entry per credit card account in the IMS database. It ensures that duplicates are tolerated and genuine errors are handled by a controlled program abort."
     },
     {
       "number": 243,
@@ -2229,7 +2229,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Fügt den Autorisierungs-Summaryeintrag des Kreditkartenkontos als Root-Segment in die IMS-Pending-Authorization-Datenbank ein."
+      "explanation": "Inserts the authorization summary entry of the credit card account as a root segment into the IMS pending authorization database."
     },
     {
       "number": 245,
@@ -2238,7 +2238,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Verwendet den konfigurierten IMS-Datenbankzugriffspfad (PCB) für die Pending-Authorization-Datenbank."
+      "explanation": "Uses the configured IMS database access path (PCB) for the pending authorization database."
     },
     {
       "number": 246,
@@ -2247,7 +2247,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Übergibt die Autorisierungs-Zusammenfassungsdaten (Kontostand ausstehender Autorisierungen) als einzufügenden Datensatz."
+      "explanation": "Passes the authorization summary data (account balance of pending authorizations) as the record to be inserted."
     },
     {
       "number": 247,
@@ -2256,7 +2256,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Adressiert das Root-Segment ohne Qualifizierung, da kein übergeordnetes Segment existiert – der Eintrag wird auf oberster Hierarchieebene angelegt."
+      "explanation": "Addresses the root segment without qualification, as no parent segment exists – the entry is created at the top hierarchical level."
     },
     {
       "number": 248,
@@ -2265,7 +2265,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe."
+      "explanation": "Visual separator line in the processing log for improved readability of the batch output."
     },
     {
       "number": 249,
@@ -2274,7 +2274,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Deaktivierte Diagnoseausgabe: Würde im Debug-Betrieb den Zeitpunkt nach dem Einfügeversuch im Protokoll kennzeichnen."
+      "explanation": "Disabled diagnostic output: would mark the point in time after the insert attempt in the log during debug mode."
     },
     {
       "number": 250,
@@ -2283,7 +2283,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Deaktivierte Diagnoseausgabe: Würde den IMS-Rückgabestatus nach dem Einfügeversuch für Fehleranalysen protokollieren."
+      "explanation": "Disabled diagnostic output: would log the IMS return status after the insert attempt for error analysis."
     },
     {
       "number": 251,
@@ -2292,7 +2292,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Deaktivierte Diagnoseausgabe: Würde den Namen des betroffenen IMS-Segments zur Nachvollziehbarkeit im Fehlerfall ausgeben."
+      "explanation": "Disabled diagnostic output: would output the name of the affected IMS segment for traceability in the event of an error."
     },
     {
       "number": 252,
@@ -2301,7 +2301,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Visuelle Trennlinie im Verarbeitungsprotokoll zur besseren Lesbarkeit der Batch-Ausgabe."
+      "explanation": "Visual separator line in the processing log for improved readability of the batch output."
     },
     {
       "number": 253,
@@ -2310,7 +2310,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Prüft, ob der Autorisierungs-Summaryeintrag erfolgreich in die Datenbank geschrieben wurde (leerer Status = Erfolg)."
+      "explanation": "Checks whether the authorization summary entry was successfully written to the database (blank status = success)."
     },
     {
       "number": 254,
@@ -2319,7 +2319,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Protokolliert die erfolgreiche Neuanlage des Konto-Summaryeintrags in der Pending-Authorization-Datenbank."
+      "explanation": "Logs the successful creation of the account summary entry in the pending authorization database."
     },
     {
       "number": 255,
@@ -2328,7 +2328,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Abschluss der Erfolgsprüfung."
+      "explanation": "End of the success check."
     },
     {
       "number": 256,
@@ -2337,7 +2337,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Prüft, ob der Autorisierungs-Summaryeintrag für dieses Konto bereits in der Datenbank vorhanden ist (Duplikat-Erkennung)."
+      "explanation": "Checks whether the authorization summary entry for this account already exists in the database (duplicate detection)."
     },
     {
       "number": 257,
@@ -2346,7 +2346,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Protokolliert, dass der Konto-Summaryeintrag bereits existiert – der Datensatz wird übersprungen, ohne die Verarbeitung zu unterbrechen."
+      "explanation": "Logs that the account summary entry already exists – the record is skipped without interrupting processing."
     },
     {
       "number": 258,
@@ -2355,7 +2355,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Abschluss der Duplikat-Prüfung."
+      "explanation": "End of the duplicate check."
     },
     {
       "number": 259,
@@ -2364,7 +2364,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler beim Einfügen des Konto-Summaryeintrags aufgetreten ist (weder Erfolg noch Duplikat)."
+      "explanation": "Checks whether an unexpected database error occurred when inserting the account summary entry (neither success nor duplicate)."
     },
     {
       "number": 260,
@@ -2373,7 +2373,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Protokolliert den IMS-Fehlercode, um die Ursache des fehlgeschlagenen Einfügevorgangs für die Fehleranalyse festzuhalten."
+      "explanation": "Logs the IMS error code to record the cause of the failed insert operation for error analysis."
     },
     {
       "number": 261,
@@ -2382,7 +2382,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Löst einen kontrollierten Programmabbruch aus, um Datenbankinkonsistenzen durch einen unvollständigen Ladevorgang zu verhindern."
+      "explanation": "Triggers a controlled program abort to prevent database inconsistencies caused by an incomplete load process."
     },
     {
       "number": 262,
@@ -2391,7 +2391,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-INSERT-ROOT-SEG",
-      "explanation": "Abschluss der Fehlerbehandlung für kritische Datenbankfehler."
+      "explanation": "End of error handling for critical database errors."
     },
     {
       "number": 263,
@@ -2409,7 +2409,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-EXIT",
-      "explanation": "Abschlusspunkt des Verarbeitungsabschnitts für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+      "explanation": "End point of the processing section for loading authorization summary records (root segments) into the IMS database."
     },
     {
       "number": 265,
@@ -2418,7 +2418,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-EXIT",
-      "explanation": "Beendet den Verarbeitungsabschnitt und gibt die Steuerung an den aufrufenden Programmablauf zurück, sodass der nächste Prozessschritt (z. B. Laden der Child-Segmente) eingeleitet werden kann."
+      "explanation": "Terminates the processing section and returns control to the calling program flow so that the next process step (e.g., loading child segments) can be initiated."
     },
     {
       "number": 266,
@@ -2445,7 +2445,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "2100-EXIT",
-      "explanation": "Trennlinie zur strukturellen Abgrenzung dieses Verarbeitungsabschnitts vom nachfolgenden Programmabschnitt."
+      "explanation": "Separator line for structurally delimiting this processing section from the subsequent program section."
     },
     {
       "number": 269,
@@ -2454,7 +2454,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt."
+      "explanation": "This paragraph controls the sequential reading of authorization detail records (child segments) and forwards each valid record for insertion into the IMS database. It ensures that only records with a valid numeric account ID are processed and correctly detects end of file."
     },
     {
       "number": 270,
@@ -2481,7 +2481,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Liest den nächsten Autorisierungs-Detaildatensatz (Child-Segment) aus der sequentiellen Eingabedatei INFILE2."
+      "explanation": "Reads the next authorization detail record (child segment) from the sequential input file INFILE2."
     },
     {
       "number": 273,
@@ -2499,7 +2499,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Prüft, ob der Lesevorgang erfolgreich war – d.h. ob ein gültiger Autorisierungs-Detaildatensatz zur Verarbeitung bereitsteht."
+      "explanation": "Checks whether the read operation was successful – i.e., whether a valid authorization detail record is available for processing."
     },
     {
       "number": 275,
@@ -2508,7 +2508,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Prüft, ob die Konto-ID des gelesenen Detaildatensatzes numerisch und damit fachlich gültig ist – Datensätze mit ungültiger Konto-ID werden übersprungen."
+      "explanation": "Checks whether the account ID of the read detail record is numeric and therefore functionally valid – records with an invalid account ID are skipped."
     },
     {
       "number": 276,
@@ -2526,7 +2526,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Überträgt die Konto-ID des Detaildatensatzes als Suchschlüssel, um den zugehörigen Root-Datensatz (Autorisierungs-Summary) in der IMS-Datenbank zu lokalisieren."
+      "explanation": "Transfers the account ID of the detail record as a search key in order to locate the associated root record (authorization summary) in the IMS database."
     },
     {
       "number": 278,
@@ -2553,7 +2553,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Überträgt den gelesenen Autorisierungs-Detaildatensatz in die IMS-Segmentstruktur für die Datenbankeinlagerung."
+      "explanation": "Transfers the read authorization detail record into the IMS segment structure for database storage."
     },
     {
       "number": 281,
@@ -2562,7 +2562,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Startet die Einfügung des Autorisierungs-Detaildatensatzes als untergeordnetes Child-Segment unter dem zugehörigen Konto-Root-Segment in der IMS-Datenbank."
+      "explanation": "Initiates the insertion of the authorization detail record as a subordinate child segment under the associated account root segment in the IMS database."
     },
     {
       "number": 282,
@@ -2589,7 +2589,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Prüft, ob das Ende der Detaildatei erreicht wurde (Dateiende-Statuscode '10'), um die Verarbeitungsschleife regulär zu beenden."
+      "explanation": "Checks whether the end of the detail file has been reached (end-of-file status code '10') in order to terminate the processing loop normally."
     },
     {
       "number": 285,
@@ -2598,7 +2598,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Setzt das Steuerungskennzeichen für das Dateiende der Detaildatei, damit die übergeordnete Verarbeitungsschleife die Einlesephase für Child-Segmente ordnungsgemäß abschließt."
+      "explanation": "Sets the end-of-file control flag for the detail file so that the parent processing loop properly concludes the read phase for child segments."
     },
     {
       "number": 286,
@@ -2616,7 +2616,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-READ-CHILD-SEG-FILE",
-      "explanation": "Protokolliert einen unerwarteten Lesefehler auf der Detaildatei zur Fehlerdiagnose – dieser Zustand deutet auf ein technisches Problem beim Zugriff auf die Autorisierungs-Detaildaten hin."
+      "explanation": "Logs an unexpected read error on the detail file for error diagnosis – this condition indicates a technical problem when accessing the authorization detail data."
     },
     {
       "number": 288,
@@ -2643,7 +2643,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Markiert das Ende der Verarbeitungsgruppe für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+      "explanation": "Marks the end of the processing group for loading authorization summary records (root segments) into the IMS database."
     },
     {
       "number": 291,
@@ -2652,7 +2652,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3000-EXIT",
-      "explanation": "Gibt die Kontrolle an den aufrufenden Ablaufabschnitt zurück, sodass die Batch-Verarbeitung mit dem nächsten Verarbeitungsschritt (z. B. Checkpoint-Prüfung oder nächster Datensatz) fortgesetzt werden kann."
+      "explanation": "Returns control to the calling processing section so that batch processing can continue with the next processing step (e.g., checkpoint check or next record)."
     },
     {
       "number": 292,
@@ -2661,7 +2661,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird."
+      "explanation": "This paragraph is responsible for inserting a single authorization detail record (child segment) into the IMS database by first checking whether the associated account summary (root segment) exists before inserting the detail record hierarchically as a subordinate entry."
     },
     {
       "number": 293,
@@ -2688,7 +2688,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Setzt den IMS-Statuscode zurück, um eine saubere Fehlerauswertung für den nachfolgenden Datenbankzugriff sicherzustellen."
+      "explanation": "Resets the IMS status code to ensure clean error evaluation for the subsequent database access."
     },
     {
       "number": 296,
@@ -2697,7 +2697,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Sucht in der IMS-Datenbank den Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) des Kontos, der als übergeordneter Eintrag für den einzufügenden Detaildatensatz benötigt wird."
+      "explanation": "Searches the IMS database for the authorization summary record (root segment) of the account, which is required as the parent entry for the detail record to be inserted."
     },
     {
       "number": 297,
@@ -2706,7 +2706,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Referenziert den IMS-Programm-Kommunikationsblock (PCB) der Pending-Authorization-Datenbank für diesen Datenbankzugriff."
+      "explanation": "References the IMS Program Communication Block (PCB) of the pending authorization database for this database access."
     },
     {
       "number": 298,
@@ -2715,7 +2715,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Gibt den Zielbereich im Arbeitsspeicher an, in den der gefundene Autorisierungs-Zusammenfassungsdatensatz des Kontos geladen wird."
+      "explanation": "Specifies the target area in working storage into which the retrieved authorization summary record of the account is loaded."
     },
     {
       "number": 299,
@@ -2724,7 +2724,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Übergibt die Konto-ID als qualifizierten Suchschlüssel, um gezielt den Root-Datensatz des richtigen Kreditkartenkontos zu lokalisieren."
+      "explanation": "Passes the account ID as a qualified search key to specifically locate the root record of the correct credit card account."
     },
     {
       "number": 300,
@@ -2733,7 +2733,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle."
+      "explanation": "Visual separator marker in the batch log output for improved readability of runtime logs."
     },
     {
       "number": 301,
@@ -2769,7 +2769,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Visuelle Trennmarkierung in der Batch-Protokollausgabe zur besseren Lesbarkeit der Laufzeitprotokolle."
+      "explanation": "Visual separator marker in the batch log output for improved readability of runtime logs."
     },
     {
       "number": 305,
@@ -2778,7 +2778,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Prüft, ob der Autorisierungs-Zusammenfassungsdatensatz des Kontos erfolgreich in der IMS-Datenbank gefunden wurde (leerer Statuscode = Erfolg)."
+      "explanation": "Checks whether the authorization summary record of the account was successfully found in the IMS database (blank status code = success)."
     },
     {
       "number": 306,
@@ -2787,7 +2787,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Protokolliert den erfolgreichen Fund des übergeordneten Konto-Summary-Datensatzes im Batch-Laufzeitprotokoll."
+      "explanation": "Logs the successful retrieval of the parent account summary record in the batch runtime log."
     },
     {
       "number": 307,
@@ -2814,7 +2814,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Fügt den Autorisierungs-Detaildatensatz als untergeordnetes Segment unter dem gefundenen Konto-Summary in die IMS-Datenbank ein."
+      "explanation": "Inserts the authorization detail record as a subordinate segment under the found account summary into the IMS database."
     },
     {
       "number": 310,
@@ -2823,7 +2823,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist – toleriert wird nur ein Duplikat ('II'); jeder andere Fehler gilt als kritisch."
+      "explanation": "Checks whether an unexpected database error has occurred – only a duplicate ('II') is tolerated; any other error is considered critical."
     },
     {
       "number": 311,
@@ -2832,7 +2832,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Protokolliert den fehlgeschlagenen Suchzugriff auf den Konto-Summary-Datensatz inklusive des IMS-Fehlercodes zur Fehlerdiagnose."
+      "explanation": "Logs the failed search access to the account summary record including the IMS error code for error diagnosis."
     },
     {
       "number": 312,
@@ -2841,7 +2841,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Gibt den IMS-Key-Feedback-Bereich aus, um den genauen Datenbankpfad des fehlerhaften Zugriffs für die Fehleranalyse nachvollziehbar zu machen."
+      "explanation": "Outputs the IMS key feedback area to make the exact database path of the failed access traceable for error analysis."
     },
     {
       "number": 313,
@@ -2850,7 +2850,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Bricht die Batch-Verarbeitung sofort ab, da ein inkonsistenter Datenbankzustand vorliegt und Datenverlust oder fehlerhafte Buchungen verhindert werden müssen."
+      "explanation": "Immediately aborts batch processing because an inconsistent database state exists and data loss or erroneous postings must be prevented."
     },
     {
       "number": 314,
@@ -2859,7 +2859,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-INSERT-CHILD-SEG",
-      "explanation": "Schließt die Fehlerbehandlungslogik für den IMS-Datenbankzugriff ab."
+      "explanation": "Concludes the error handling logic for the IMS database access."
     },
     {
       "number": 315,
@@ -2868,7 +2868,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-EXIT",
-      "explanation": "Markiert den Endpunkt des Verarbeitungsblocks für das Laden der Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) in die IMS-Datenbank."
+      "explanation": "Marks the end point of the processing block for loading authorization summary records (root segments) into the IMS database."
     },
     {
       "number": 316,
@@ -2877,7 +2877,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3100-EXIT",
-      "explanation": "Schließt die Root-Segment-Ladeverarbeitung ab und gibt die Steuerung an den übergeordneten Prozessablauf zurück, damit die Verarbeitung der Autorisierungs-Detaildatensätze (Child-Segmente) fortgesetzt werden kann."
+      "explanation": "Completes the root segment load processing and returns control to the parent process flow so that processing of authorization detail records (child segments) can continue."
     },
     {
       "number": 317,
@@ -2895,7 +2895,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Einstiegspunkt für das Einfügen eines Autorisierungs-Detaildatensatzes in die IMS-Pending-Authorization-Datenbank."
+      "explanation": "Entry point for inserting an authorization detail record into the IMS pending authorization database."
     },
     {
       "number": 319,
@@ -2913,7 +2913,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Deaktivierte Diagnoseausgabe zur Nachverfolgung des Einfügevorgangs – nur bei aktiviertem Debug-Modus relevant."
+      "explanation": "Disabled diagnostic output for tracing the insert operation – only relevant when debug mode is active."
     },
     {
       "number": 321,
@@ -2922,7 +2922,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Übergibt den Autorisierungs-Detaildatensatz per IMS-Insert-Aufruf zur physischen Speicherung in der Datenbank."
+      "explanation": "Passes the authorization detail record via an IMS insert call for physical storage in the database."
     },
     {
       "number": 322,
@@ -2931,7 +2931,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Verwendet den Programm-Kommunikationsblock der Pending-Authorization-Datenbank, um den Rückgabestatus des Einfügevorgangs zu empfangen."
+      "explanation": "Uses the Program Communication Block of the pending authorization database to receive the return status of the insert operation."
     },
     {
       "number": 323,
@@ -2940,7 +2940,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Stellt die vollständigen Autorisierungsdetails (Betrag, Händler, Datum etc.) als einzufügenden Datensatz bereit."
+      "explanation": "Provides the complete authorization details (amount, merchant, date, etc.) as the record to be inserted."
     },
     {
       "number": 324,
@@ -2949,7 +2949,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Gibt die hierarchische Position des Detaildatensatzes als Child-Segment ohne zusätzliche Qualifizierung an, sodass IMS den Datensatz dem zuvor positionierten Root-Segment unterordnet."
+      "explanation": "Specifies the hierarchical position of the detail record as a child segment without additional qualification, so that IMS subordinates the record to the previously positioned root segment."
     },
     {
       "number": 325,
@@ -2967,7 +2967,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Prüft, ob der Autorisierungs-Detaildatensatz erfolgreich in die Datenbank eingefügt wurde (leerer Status = Erfolg)."
+      "explanation": "Checks whether the authorization detail record was successfully inserted into the database (blank status = success)."
     },
     {
       "number": 327,
@@ -2976,7 +2976,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Protokolliert die erfolgreiche Speicherung des Autorisierungs-Detaildatensatzes zur Nachvollziehbarkeit im Batch-Log."
+      "explanation": "Logs the successful storage of the authorization detail record for traceability in the batch log."
     },
     {
       "number": 328,
@@ -2985,7 +2985,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Abschluss der Erfolgsprüfung."
+      "explanation": "End of the success check."
     },
     {
       "number": 329,
@@ -2994,7 +2994,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Prüft, ob der Autorisierungs-Detaildatensatz bereits in der Datenbank vorhanden ist (Duplikat-Erkennung bei Wiederholungsläufen)."
+      "explanation": "Checks whether the authorization detail record already exists in the database (duplicate detection for restart runs)."
     },
     {
       "number": 330,
@@ -3003,7 +3003,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Protokolliert das erkannte Duplikat – der Datensatz wird toleriert und übersprungen, kein Abbruch erfolgt."
+      "explanation": "Logs the detected duplicate – the record is tolerated and skipped; no abort occurs."
     },
     {
       "number": 331,
@@ -3012,7 +3012,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Abschluss der Duplikat-Prüfung."
+      "explanation": "End of the duplicate check."
     },
     {
       "number": 332,
@@ -3021,7 +3021,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Prüft, ob ein unerwarteter Datenbankfehler aufgetreten ist, der weder ein Erfolg noch ein tolerierbares Duplikat ist."
+      "explanation": "Checks whether an unexpected database error has occurred that is neither a success nor a tolerable duplicate."
     },
     {
       "number": 333,
@@ -3030,7 +3030,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Gibt den fehlgeschlagenen Einfügevorgang mit dem IMS-FehlerstatusCode zur Fehlerdiagnose im Batch-Log aus."
+      "explanation": "Outputs the failed insert operation with the IMS error status code for error diagnosis in the batch log."
     },
     {
       "number": 334,
@@ -3039,7 +3039,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Gibt den Key-Feedback-Bereich aus, um den betroffenen Datenbankpfad und Schlüssel für die Fehleranalyse zu identifizieren."
+      "explanation": "Outputs the key feedback area to identify the affected database path and key for error analysis."
     },
     {
       "number": 335,
@@ -3048,7 +3048,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Löst einen kontrollierten Programmabbruch aus, um Datenkonsistenz zu wahren – fehlerhafte Teilladungen werden verhindert."
+      "explanation": "Triggers a controlled program abort to preserve data consistency – erroneous partial loads are prevented."
     },
     {
       "number": 336,
@@ -3057,7 +3057,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-INSERT-IMS-CALL",
-      "explanation": "Abschluss der Fehlerbehandlung für kritische Datenbankfehler."
+      "explanation": "End of error handling for critical database errors."
     },
     {
       "number": 337,
@@ -3075,7 +3075,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Markiert das Ende des Verarbeitungsabschnitts 3200, der für das Einfügen von Autorisierungs-Detaildatensätzen (Child-Segmente) in die IMS-Datenbank zuständig ist."
+      "explanation": "Marks the end of processing section 3200, which is responsible for inserting authorization detail records (child segments) into the IMS database."
     },
     {
       "number": 339,
@@ -3084,7 +3084,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Beendet den Detaillade-Abschnitt und gibt die Kontrolle an den übergeordneten Steuerablauf des Batch-Ladeprozesses zurück."
+      "explanation": "Terminates the detail load section and returns control to the parent control flow of the batch load process."
     },
     {
       "number": 340,
@@ -3093,7 +3093,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "3200-EXIT",
-      "explanation": "Visuelle Trennlinie zur Abgrenzung des nächsten Verarbeitungsabschnitts im Programmablauf."
+      "explanation": "Visual separator line to delimit the next processing section in the program flow."
     },
     {
       "number": 341,
@@ -3102,7 +3102,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen."
+      "explanation": "After completion of the load process, properly closes both sequential input files (root segments and detail segments) and logs any errors during closing without aborting the process."
     },
     {
       "number": 342,
@@ -3111,7 +3111,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Protokolliert den Beginn des Datei-Schließvorgangs im Batch-Log zur Nachvollziehbarkeit des Verarbeitungsfortschritts."
+      "explanation": "Logs the start of the file close operation in the batch log for traceability of processing progress."
     },
     {
       "number": 343,
@@ -3120,7 +3120,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Schließt die Eingabedatei mit den Autorisierungs-Zusammenfassungsdatensätzen (Root-Segmente, INFILE1) nach vollständiger Verarbeitung."
+      "explanation": "Closes the input file containing the authorization summary records (root segments, INFILE1) after complete processing."
     },
     {
       "number": 344,
@@ -3138,7 +3138,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Summaries fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg)."
+      "explanation": "Checks whether the file containing the authorization summaries was closed without errors (blank status or '00' = success)."
     },
     {
       "number": 346,
@@ -3147,7 +3147,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Kein Handlungsbedarf – die Datei mit den Autorisierungs-Summaries wurde erfolgreich geschlossen."
+      "explanation": "No action required – the file containing the authorization summaries was closed successfully."
     },
     {
       "number": 347,
@@ -3165,7 +3165,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Protokolliert einen Fehler beim Schließen der Autorisierungs-Summary-Datei mit dem genauen Fehlercode zur Fehlerdiagnose."
+      "explanation": "Logs an error when closing the authorization summary file with the exact error code for error diagnosis."
     },
     {
       "number": 349,
@@ -3183,7 +3183,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Schließt die Eingabedatei mit den Autorisierungs-Detaildatensätzen (Child-Segmente, INFILE2) nach vollständiger Verarbeitung."
+      "explanation": "Closes the input file containing the authorization detail records (child segments, INFILE2) after complete processing."
     },
     {
       "number": 351,
@@ -3201,7 +3201,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Prüft, ob die Datei mit den Autorisierungs-Details fehlerfrei geschlossen wurde (Status leer oder '00' = Erfolg)."
+      "explanation": "Checks whether the file containing the authorization details was closed without errors (status empty or '00' = success)."
     },
     {
       "number": 353,
@@ -3210,7 +3210,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Kein Handlungsbedarf – die Datei mit den Autorisierungs-Details wurde erfolgreich geschlossen."
+      "explanation": "No action required – the authorization details file was closed successfully."
     },
     {
       "number": 354,
@@ -3228,7 +3228,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-FILE-CLOSE",
-      "explanation": "Protokolliert einen Fehler beim Schließen der Autorisierungs-Detail-Datei mit dem genauen Fehlercode zur Fehlerdiagnose."
+      "explanation": "Logs an error when closing the authorization details file, including the exact error code for fault diagnosis."
     },
     {
       "number": 356,
@@ -3246,7 +3246,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Markiert den Endpunkt der Verarbeitungsroutine für das Laden der Autorisierungsdaten in die IMS-Datenbank."
+      "explanation": "Marks the end point of the processing routine for loading authorization data into the IMS database."
     },
     {
       "number": 358,
@@ -3255,7 +3255,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Beendet die Laderoutine und gibt die Kontrolle an den aufrufenden Programmteil zurück, der den nächsten Verarbeitungsschritt (z. B. Checkpoint oder Dateiende-Prüfung) einleitet."
+      "explanation": "Exits the load routine and returns control to the calling program section, which initiates the next processing step (e.g., checkpoint or end-of-file check)."
     },
     {
       "number": 359,
@@ -3264,7 +3264,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "4000-EXIT",
-      "explanation": "Abgrenzung zum nächsten Programmabschnitt – kennzeichnet das Ende der Lade-Prozesslogik."
+      "explanation": "Delimiter to the next program section – marks the end of the load process logic."
     },
     {
       "number": 360,
@@ -3273,7 +3273,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern."
+      "explanation": "Controlled program termination on critical database errors: signals a severe error during the IMS load process to the batch system in order to ensure data consistency of the pending authorization database and prevent uncontrolled further processing."
     },
     {
       "number": 361,
@@ -3300,7 +3300,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Gibt eine Fehlermeldung in das Job-Protokoll aus, die den Abbruch des IMS-Ladevorgangs für ausstehende Autorisierungen anzeigt."
+      "explanation": "Writes an error message to the job log indicating the termination of the IMS load process for pending authorizations."
     },
     {
       "number": 364,
@@ -3318,7 +3318,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Setzt den Rückgabecode auf 16 (höchste Fehlerstufe), damit nachgelagerte Batch-Jobs und der Job-Scheduler den kritischen Fehler erkennen und abhängige Verarbeitungsschritte nicht ausführen."
+      "explanation": "Sets the return code to 16 (highest error level) so that downstream batch jobs and the job scheduler can detect the critical error and skip dependent processing steps."
     },
     {
       "number": 366,
@@ -3327,7 +3327,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-ABEND",
-      "explanation": "Beendet das Programm und übergibt die Kontrolle mit dem gesetzten Fehler-Rückgabecode an den aufrufenden Batch-Scheduler, der dann entsprechende Fehlerbehandlungsroutinen einleiten kann."
+      "explanation": "Terminates the program and passes control with the set error return code to the calling batch scheduler, which can then initiate the appropriate error handling routines."
     },
     {
       "number": 367,
@@ -3345,7 +3345,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Markiert den finalen Austrittspunkt des Batch-Ladeprogramms nach vollständiger Verarbeitung aller Root- und Child-Segmente."
+      "explanation": "Marks the final exit point of the batch load program after complete processing of all root and child segments."
     },
     {
       "number": 369,
@@ -3354,7 +3354,7 @@
       "division": "PROCEDURE",
       "section": null,
       "paragraph": "9999-EXIT",
-      "explanation": "Beendet die Programmausführung geordnet und gibt die Kontrolle an den IMS-Batch-Controller zurück, nachdem alle Autorisierungsdaten geladen wurden."
+      "explanation": "Terminates program execution in an orderly manner and returns control to the IMS batch controller after all authorization data has been loaded."
     }
   ],
   "variables": [
@@ -3366,7 +3366,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "INFIL2-REC.",
@@ -3376,7 +3376,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ROOT-SEG-KEY",
@@ -3386,7 +3386,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CHILD-SEG-REC",
@@ -3396,7 +3396,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-VARIABLES.",
@@ -3406,7 +3406,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-PGMNAME",
@@ -3416,7 +3416,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-DATE",
@@ -3426,7 +3426,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "CURRENT-YYDDD",
@@ -3436,7 +3436,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-DATE",
@@ -3446,7 +3446,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-EXPIRY-DAYS",
@@ -3456,7 +3456,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-DAY-DIFF",
@@ -3466,7 +3466,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IDX",
@@ -3476,7 +3476,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CURR-APP-ID",
@@ -3486,7 +3486,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-CHKP",
@@ -3496,7 +3496,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-AUTH-SMRY-PROC-CNT",
@@ -3506,7 +3506,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-TOT-REC-WRITTEN",
@@ -3516,7 +3516,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-READ",
@@ -3526,7 +3526,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-SUMRY-DELETED",
@@ -3536,7 +3536,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-READ",
@@ -3546,7 +3546,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-NO-DTL-DELETED",
@@ -3556,7 +3556,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-ERR-FLG",
@@ -3566,7 +3566,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-ON",
@@ -3576,7 +3576,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ERR-FLG-OFF",
@@ -3586,7 +3586,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-AUTHDB-FLAG",
@@ -3596,7 +3596,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-AUTHDB",
@@ -3606,7 +3606,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NOT-END-OF-AUTHDB",
@@ -3616,7 +3616,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-MORE-AUTHS-FLAG",
@@ -3626,7 +3626,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "MORE-AUTHS",
@@ -3636,7 +3636,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "NO-MORE-AUTHS",
@@ -3646,7 +3646,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-INFILE1",
@@ -3656,7 +3656,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-END-OF-INFILE2",
@@ -3666,7 +3666,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-INFILE-STATUS",
@@ -3676,7 +3676,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-INFIL1-STATUS",
@@ -3686,7 +3686,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-INFIL2-STATUS",
@@ -3696,7 +3696,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-ROOT-SEG-FILE",
@@ -3706,7 +3706,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-CHILD-SEG-FILE",
@@ -3716,7 +3716,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-CUSTID-STATUS",
@@ -3726,7 +3726,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-FILE",
@@ -3736,7 +3736,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID.",
@@ -3746,7 +3746,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3756,7 +3756,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WK-CHKPT-ID-CTR",
@@ -3766,7 +3766,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-VARIABLES.",
@@ -3776,7 +3776,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-RETURN-CODE",
@@ -3786,7 +3786,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "STATUS-OK",
@@ -3796,7 +3796,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "SEGMENT-NOT-FOUND",
@@ -3806,7 +3806,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DUPLICATE-SEGMENT-FOUND",
@@ -3816,7 +3816,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WRONG-PARENTAGE",
@@ -3826,7 +3826,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "END-OF-DB",
@@ -3836,7 +3836,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "DATABASE-UNAVAILABLE",
@@ -3846,7 +3846,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "PSB-SCHEDULED-MORE-THAN-ONCE",
@@ -3856,7 +3856,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "COULD-NOT-SCHEDULE-PSB",
@@ -3866,7 +3866,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "RETRY-CONDITION",
@@ -3876,7 +3876,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "WS-IMS-PSB-SCHD-FLG",
@@ -3886,7 +3886,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-SCHD",
@@ -3896,7 +3896,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "IMS-PSB-NOT-SCHD",
@@ -3906,7 +3906,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "ROOT-QUAL-SSA.",
@@ -3916,7 +3916,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "QUAL-SSA-SEG-NAME",
@@ -3926,7 +3926,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "FILLER",
@@ -3936,7 +3936,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "QUAL-SSA-KEY-FIELD",
@@ -3946,7 +3946,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "QUAL-SSA-REL-OPER",
@@ -3956,7 +3956,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "(Analyse nicht verfügbar)"
+      "description": "(analysis not available)"
     },
     {
       "name": "QUAL-SSA-KEY-VALUE",
@@ -3966,7 +3966,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Die 11-stellige Konto-ID, die als Suchschlüssel für den qualifizierten IMS-Datenbankzugriff verwendet wird. Mit diesem Wert wird der qualifizierte SSA (Segment Search Argument) aufgebaut, um gezielt den Root-Segment-Datensatz (PAUTSUM0) eines bestimmten Kreditkartenkontos in der IMS-Datenbank zu lokalisieren, bevor zugehörige Detail-Datensätze eingefügt werden."
+      "description": "The 11-digit account ID used as the search key for qualified IMS database access. This value is used to build the qualified SSA (Segment Search Argument) in order to specifically locate the root segment record (PAUTSUM0) of a particular credit card account in the IMS database before inserting associated detail records."
     },
     {
       "name": "FILLER",
@@ -3976,7 +3976,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Abschließende schließende Klammer ')' des qualifizierten IMS-SSA (Segment Search Argument). Sie bildet das syntaktisch notwendige Ende der SSA-Suchbedingung, z. B. 'PAUTSUM0(ACCNTID  = 00012345678)'. Ohne dieses Zeichen wäre der IMS-Suchausdruck syntaktisch ungültig."
+      "description": "The closing parenthesis ')' of the qualified IMS SSA (Segment Search Argument). It forms the syntactically required end of the SSA search condition, e.g. 'PAUTSUM0(ACCNTID  = 00012345678)'. Without this character, the IMS search expression would be syntactically invalid."
     },
     {
       "name": "ROOT-UNQUAL-SSA",
@@ -3986,7 +3986,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Root-Segment PAUTSUM0 (Autorisierungs-Zusammenfassung je Kreditkartenkonto) in der IMS-Datenbank. Ein unqualifiziertes SSA enthält keinen Schlüsselfilter und wird verwendet, wenn sequenziell über alle Root-Segmente navigiert wird, ohne einen spezifischen Kontoschlüssel anzugeben."
+      "description": "Unqualified Segment Search Argument (SSA) for accessing the root segment PAUTSUM0 (authorization summary per credit card account) in the IMS database. An unqualified SSA contains no key filter and is used when navigating sequentially across all root segments without specifying a particular account key."
     },
     {
       "name": "FILLER",
@@ -3996,7 +3996,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Der IMS-Segmentname 'PAUTSUM0', der das Root-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, auf welchen Segmenttyp (Autorisierungs-Zusammenfassung je Konto) der Datenbankzugriff abzielt."
+      "description": "The IMS segment name 'PAUTSUM0', which identifies the root segment of the pending authorization database. This name tells IMS which segment type (authorization summary per account) the database access is targeting."
     },
     {
       "name": "FILLER",
@@ -4006,7 +4006,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Abschließendes Leerzeichen des unqualifizierten SSA für das Root-Segment. Gemäß IMS-SSA-Syntax signalisiert ein Leerzeichen an dieser Stelle, dass keine weitere Qualifizierung (kein Schlüsselfilter) folgt – der Zugriff erfolgt also ohne Einschränkung auf einen bestimmten Kontoschlüssel."
+      "description": "Trailing space of the unqualified SSA for the root segment. According to IMS SSA syntax, a space at this position signals that no further qualification (no key filter) follows — the access is therefore performed without restriction to a specific account key."
     },
     {
       "name": "CHILD-UNQUAL-SSA",
@@ -4016,7 +4016,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Unqualifiziertes Segment Search Argument (SSA) für den Zugriff auf das Child-Segment PAUTDTL1 (Autorisierungs-Detaildatensatz) in der IMS-Datenbank. Wird verwendet, um innerhalb eines bereits positionierten Root-Segments auf die untergeordneten Autorisierungs-Einzeltransaktionen zuzugreifen, ohne einen zusätzlichen Schlüsselfilter anzugeben."
+      "description": "Unqualified Segment Search Argument (SSA) for accessing the child segment PAUTDTL1 (authorization detail record) in the IMS database. Used to access the subordinate individual authorization transactions within an already-positioned root segment, without specifying an additional key filter."
     },
     {
       "name": "FILLER",
@@ -4026,7 +4026,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Der IMS-Segmentname 'PAUTDTL1', der das Child-Segment der Pending-Authorization-Datenbank identifiziert. Dieser Name teilt IMS mit, dass der Zugriff auf den Detaildatensatz einer einzelnen Autorisierungstransaktion (untergeordnet zum Konto-Root-Segment) abzielt."
+      "description": "The IMS segment name 'PAUTDTL1', which identifies the child segment of the pending authorization database. This name tells IMS that the access targets the detail record of an individual authorization transaction (subordinate to the account root segment)."
     },
     {
       "name": "FILLER",
@@ -4036,7 +4036,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Abschließendes Leerzeichen des unqualifizierten SSA für das Child-Segment. Signalisiert IMS gemäß SSA-Syntax, dass kein Schlüsselfilter für den Detaildatensatz angegeben wird – der Zugriff erfolgt relativ zur aktuellen Datenbankposition (unterhalb des bereits positionierten Root-Segments)."
+      "description": "Trailing space of the unqualified SSA for the child segment. Signals to IMS, in accordance with SSA syntax, that no key filter is specified for the detail record — access is performed relative to the current database position (below the already-positioned root segment)."
     },
     {
       "name": "PRM-INFO",
@@ -4046,7 +4046,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Gruppenfeld für alle Steuerungsparameter des Batch-Ladelaufs. Enthält die konfigurierbaren Laufzeitparameter, die das Verhalten des Programms bezüglich Ablauffristen, Checkpoint-Frequenz und Diagnoseausgaben steuern. Diese Parameter werden typischerweise über die JCL-SYSIN oder einen Parameterrecord übergeben."
+      "description": "Group field for all control parameters of the batch load run. Contains the configurable runtime parameters that govern the program's behavior with respect to expiration deadlines, checkpoint frequency, and diagnostic output. These parameters are typically passed via JCL SYSIN or a parameter record."
     },
     {
       "name": "P-EXPIRY-DAYS",
@@ -4056,7 +4056,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Konfigurationsparameter: Gibt an, nach wie vielen Tagen eine ausstehende Autorisierung als abgelaufen gilt und nicht mehr in die IMS-Datenbank geladen werden soll. Steuert damit die Gültigkeitsprüfung beim Laden – Autorisierungen, deren Alter diesen Schwellwert überschreitet, werden übersprungen, um veraltete Sperren auf Kreditlimits zu vermeiden."
+      "description": "Configuration parameter: Specifies the number of days after which a pending authorization is considered expired and should no longer be loaded into the IMS database. Controls the validity check during loading — authorizations whose age exceeds this threshold are skipped in order to avoid stale holds on credit limits."
     },
     {
       "name": "FILLER",
@@ -4066,7 +4066,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+      "description": "Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own."
     },
     {
       "name": "P-CHKP-FREQ",
@@ -4076,7 +4076,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen das Programm einen IMS-Checkpoint setzt. Checkpoints sichern den Verarbeitungsfortschritt, sodass bei einem Programmabbruch der Ladelauf nicht von Beginn an wiederholt werden muss, sondern ab dem letzten Checkpoint-Punkt wiederanläuft (Restart-Fähigkeit)."
+      "description": "Checkpoint frequency: Specifies the number of processed records after which the program issues an IMS checkpoint. Checkpoints preserve processing progress so that, in the event of a program failure, the load run does not have to restart from the beginning but can resume from the last checkpoint (restart capability)."
     },
     {
       "name": "FILLER",
@@ -4086,7 +4086,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+      "description": "Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own."
     },
     {
       "name": "P-CHKP-DIS-FREQ",
@@ -4096,7 +4096,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Display-Checkpoint-Frequenz: Gibt an, nach wie vielen verarbeiteten Datensätzen Zwischenstatistiken (z. B. Anzahl gelesener, geschriebener und übersprungener Datensätze) in das Protokoll ausgegeben werden. Ermöglicht die Überwachung des Ladefortschritts während der Batch-Verarbeitung, ohne den eigentlichen Checkpoint-Mechanismus zu beeinflussen."
+      "description": "Display checkpoint frequency: Specifies the number of processed records after which intermediate statistics (e.g. number of records read, written, and skipped) are written to the log. Enables monitoring of load progress during batch processing without affecting the actual checkpoint mechanism."
     },
     {
       "name": "FILLER",
@@ -4106,7 +4106,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Trennzeichen (Delimiter) zwischen den Parameterfeldern im Eingabe-Parameterrecord. Dient der korrekten Positionierung der nachfolgenden Parameter im Parameterstring und hat keinen eigenen fachlichen Inhalt."
+      "description": "Delimiter between parameter fields in the input parameter record. Serves to correctly position the subsequent parameters within the parameter string and carries no business meaning of its own."
     },
     {
       "name": "P-DEBUG-FLAG",
@@ -4116,7 +4116,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Steuerungsschalter für erweiterte Diagnoseausgaben: Wenn auf 'Y' gesetzt, gibt das Programm zusätzliche technische Detailinformationen (z. B. IMS-Statuscodes, verarbeitete Schlüsselwerte, Zwischenergebnisse) in das Protokoll aus. Erleichtert die Fehleranalyse bei Problemen im Ladelauf, ohne den Produktivbetrieb zu beeinträchtigen (dann 'N')."
+      "description": "Control switch for extended diagnostic output: When set to 'Y', the program writes additional technical detail information (e.g. IMS status codes, processed key values, intermediate results) to the log. Facilitates error analysis when problems occur during the load run without impacting production operation (where it is set to 'N')."
     },
     {
       "name": "DEBUG-ON",
@@ -4126,7 +4126,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Ist wahr, wenn der Debug-Modus aktiv ist (P-DEBUG-FLAG = 'Y'). Ermöglicht im Programmcode eine lesbare Prüfung, ob erweiterte Diagnoseausgaben für die Fehleranalyse des Ladelaufs aktiviert sind."
+      "description": "Condition name: True when debug mode is active (P-DEBUG-FLAG = 'Y'). Allows the program code to check in a readable way whether extended diagnostic output is enabled for error analysis of the load run."
     },
     {
       "name": "DEBUG-OFF",
@@ -4136,7 +4136,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Bedingungsname: Ist wahr, wenn der Debug-Modus deaktiviert ist (P-DEBUG-FLAG = 'N'). Ermöglicht im Programmcode eine lesbare Prüfung, ob der Ladelauf im normalen Produktionsmodus ohne zusätzliche Diagnoseausgaben läuft."
+      "description": "Condition name: True when debug mode is inactive (P-DEBUG-FLAG = 'N'). Allows the program code to check in a readable way whether the load run is operating in normal production mode without additional diagnostic output."
     },
     {
       "name": "FILLER",
@@ -4146,7 +4146,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Abschließendes Füllzeichen am Ende des Parameterrecords. Dient der korrekten Längenausrichtung des gesamten Parameterfelds und hat keinen eigenen fachlichen Inhalt."
+      "description": "Trailing filler at the end of the parameter record. Serves to correctly align the overall length of the parameter field and carries no business meaning of its own."
     },
     {
       "name": "PENDING-AUTH-SUMMARY",
@@ -4156,7 +4156,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Arbeitsbereich für einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) eines Kreditkartenkontos. Enthält über das eingebundene Copybook CIPAUSMY alle Felder des IMS-Root-Segments PAUTSUM0: Konto-ID, Kunden-ID, Autorisierungsstatus, Kreditlimit, Bargeldlimit, aktuelle Salden sowie Zähler und Beträge für genehmigte und abgelehnte Autorisierungen. Wird beim Lesen aus INFILE1 befüllt und anschließend als Root-Segment in die IMS-Datenbank geschrieben."
+      "description": "Working storage area for an authorization summary record (root segment) of a credit card account. Via the included copybook CIPAUSMY, it contains all fields of the IMS root segment PAUTSUM0: account ID, customer ID, authorization status, credit limit, cash limit, current balances, and counters and amounts for approved and declined authorizations. It is populated when reading from INFILE1 and subsequently written as the root segment to the IMS database."
     },
     {
       "name": "PENDING-AUTH-DETAILS",
@@ -4166,7 +4166,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "Arbeitsbereich für einen Autorisierungs-Detaildatensatz (Child-Segment) einer einzelnen Kreditkartentransaktion. Enthält über das eingebundene Copybook CIPAUDTY alle Felder des IMS-Child-Segments PAUTDTL1: Autorisierungsschlüssel (Datum/Uhrzeit), Kartennummer, Autorisierungstyp, Ablaufdatum der Karte, Transaktionsbetrag, genehmigter Betrag, Antwortcode sowie Händler- und Länderkennzeichen. Wird beim Lesen aus INFILE2 befüllt und nach erfolgreicher Lokalisierung des zugehörigen Root-Segments als Child-Segment in die IMS-Datenbank eingefügt."
+      "description": "Working storage area for an authorization detail record (child segment) of an individual credit card transaction. Via the included copybook CIPAUDTY, it contains all fields of the IMS child segment PAUTDTL1: authorization key (date/time), card number, authorization type, card expiry date, transaction amount, approved amount, response code, and merchant and country identifiers. It is populated when reading from INFILE2 and, after the associated root segment has been successfully located, inserted as a child segment into the IMS database."
     },
     {
       "name": "IO-PCB-MASK",
@@ -4176,7 +4176,7 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Platzhalter-Maske für den IMS I/O Program Communication Block (IO-PCB). Der IO-PCB ist die Schnittstelle zwischen dem COBOL-Batch-Programm und dem IMS-Laufzeitsystem für Systemdienste wie das Setzen von Checkpoints (CHKP-Aufruf) und Restart-Operationen. Diese vereinfachte Deklaration als einzelnes Zeichen dient der formalen Adressierbarkeit des IO-PCB in der ENTRY-Schnittstelle des IMS-Batch-Programms."
+      "description": "Placeholder mask for the IMS I/O Program Communication Block (IO-PCB). The IO-PCB is the interface between the COBOL batch program and the IMS runtime system for system services such as issuing checkpoints (CHKP call) and restart operations. This simplified declaration as a single character serves the purpose of formally addressing the IO-PCB in the ENTRY interface of the IMS batch program."
     }
   ],
   "paragraphs": [
@@ -4184,103 +4184,103 @@
       "name": "MAIN-PARA",
       "line_start": 169,
       "line_end": 189,
-      "description": "MAIN-PARA ist der zentrale Steuerungsparagraph des Ladeprogramms PAUDBLOD und orchestriert den vollständigen Geschäftsprozess: Initialisierung, sequentielles Laden aller Autorisierungs-Zusammenfassungen (Root-Segmente) und anschließend aller Autorisierungs-Details (Child-Segmente) in die IMS-Datenbank, gefolgt vom geordneten Programmabschluss."
+      "description": "MAIN-PARA is the central control paragraph of the load program PAUDBLOD and orchestrates the complete business process: initialization, sequential loading of all authorization summaries (root segments) and then all authorization details (child segments) into the IMS database, followed by an orderly program termination."
     },
     {
       "name": "1000-INITIALIZE",
       "line_start": 190,
       "line_end": 217,
-      "description": "Initialisiert den Batch-Ladelauf, indem das aktuelle Verarbeitungsdatum ermittelt und protokolliert sowie die beiden Eingabedateien mit den Autorisierungsdaten für die Verarbeitung geöffnet werden."
+      "description": "Initializes the batch load run by determining and logging the current processing date and opening the two input files containing the authorization data for processing."
     },
     {
       "name": "1000-EXIT",
       "line_start": 218,
       "line_end": 221,
-      "description": "Formaler Abschlusspunkt des Initialisierungsabschnitts (1000-INIT). Dient als struktureller Rücksprungpunkt nach Abschluss aller Vorbereitungsschritte für den Datenbanklade-Prozess."
+      "description": "Formal exit point of the initialization section (1000-INIT). Serves as a structural return point after completion of all preparatory steps for the database load process."
     },
     {
       "name": "2000-READ-ROOT-SEG-FILE",
       "line_start": 222,
       "line_end": 238,
-      "description": "Liest sequentiell die Autorisierungs-Zusammenfassungsdatensätze (Root-Segmente) je Kreditkartenkonto aus der Eingabedatei und steuert deren Übernahme in die IMS-Datenbank bzw. erkennt das Dateiende."
+      "description": "Sequentially reads the authorization summary records (root segments) per credit card account from the input file and controls their transfer into the IMS database or detects end of file."
     },
     {
       "name": "2000-EXIT",
       "line_start": 239,
       "line_end": 241,
-      "description": "Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 2000). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze."
+      "description": "Formal exit point of the root segment load process (paragraph 2000). Serves as the structural end point of the processing loop for authorization summary records."
     },
     {
       "name": "2100-INSERT-ROOT-SEG",
       "line_start": 242,
       "line_end": 263,
-      "description": "Dieser Paragraph speichert einen Autorisierungs-Zusammenfassungsdatensatz (Root-Segment) als übergeordneten Eintrag je Kreditkartenkonto in die IMS-Datenbank. Er stellt sicher, dass Duplikate toleriert und echte Fehler durch einen kontrollierten Programmabbruch behandelt werden."
+      "description": "This paragraph stores an authorization summary record (root segment) as a parent entry per credit card account in the IMS database. It ensures that duplicates are tolerated and genuine errors are handled by a controlled program abort."
     },
     {
       "name": "2100-EXIT",
       "line_start": 264,
       "line_end": 268,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts 2100, der das Ende der Root-Segment-Ladeverarbeitung markiert und die Rückkehr zum übergeordneten Steuerungsablauf ermöglicht."
+      "description": "Formal exit point of processing section 2100, which marks the end of the root segment load processing and enables the return to the parent control flow."
     },
     {
       "name": "3000-READ-CHILD-SEG-FILE",
       "line_start": 269,
       "line_end": 289,
-      "description": "Dieser Paragraph steuert das sequentielle Einlesen der Autorisierungs-Detaildatensätze (Child-Segmente) und leitet jeden gültigen Datensatz zur Einfügung in die IMS-Datenbank weiter. Er stellt sicher, dass nur Datensätze mit gültiger numerischer Konto-ID verarbeitet werden und erkennt das Dateiende korrekt."
+      "description": "This paragraph controls the sequential reading of authorization detail records (child segments) and forwards each valid record for insertion into the IMS database. It ensures that only records with a valid numeric account ID are processed and correctly detects end of file."
     },
     {
       "name": "3000-EXIT",
       "line_start": 290,
       "line_end": 291,
-      "description": "Formaler Abschlusspunkt der Root-Segment-Ladeschleife (3000er Paragraphengruppe). Dient als struktureller Rücksprungpunkt nach Abschluss der Verarbeitung eines Autorisierungs-Zusammenfassungsdatensatzes."
+      "description": "Formal exit point of the root segment load loop (3000-series paragraph group). Serves as a structural return point after completion of the processing of an authorization summary record."
     },
     {
       "name": "3100-INSERT-CHILD-SEG",
       "line_start": 292,
       "line_end": 314,
-      "description": "Dieser Paragraph verantwortet das Einfügen eines einzelnen Autorisierungs-Detaildatensatzes (Child-Segment) in die IMS-Datenbank, indem zunächst geprüft wird, ob das zugehörige Konto-Summary (Root-Segment) vorhanden ist, bevor der Detaildatensatz hierarchisch untergeordnet eingefügt wird."
+      "description": "This paragraph is responsible for inserting a single authorization detail record (child segment) into the IMS database by first checking whether the associated account summary (root segment) exists before inserting the detail record as a hierarchical subordinate."
     },
     {
       "name": "3100-EXIT",
       "line_start": 315,
       "line_end": 317,
-      "description": "Formaler Abschlusspunkt des Root-Segment-Ladeprozesses (Paragraph 3100). Dient als struktureller Endpunkt der Verarbeitungsschleife für Autorisierungs-Zusammenfassungsdatensätze und ermöglicht einen sauberen Rücksprung nach Abschluss der Root-Segment-Verarbeitung."
+      "description": "Formal exit point of the root segment load process (paragraph 3100). Serves as the structural end point of the processing loop for authorization summary records and enables a clean return after completion of root segment processing."
     },
     {
       "name": "3200-INSERT-IMS-CALL",
       "line_start": 318,
       "line_end": 337,
-      "description": "Dieser Paragraph fügt einen einzelnen Autorisierungs-Detaildatensatz (Child-Segment) als untergeordnetes Element in die IMS-Datenbank ein und bewertet das Ergebnis: Erfolg, Duplikat oder kritischer Fehler mit Programmabbruch."
+      "description": "This paragraph inserts a single authorization detail record (child segment) as a subordinate element into the IMS database and evaluates the result: success, duplicate, or critical error with program abort."
     },
     {
       "name": "3200-EXIT",
       "line_start": 338,
       "line_end": 340,
-      "description": "Formaler Abschlusspunkt des Verarbeitungsabschnitts 3200, der den geordneten Rücksprung zur aufrufenden Steuerlogik des Ladeprozesses sicherstellt."
+      "description": "Formal exit point of processing section 3200, which ensures an orderly return to the calling control logic of the load process."
     },
     {
       "name": "4000-FILE-CLOSE",
       "line_start": 341,
       "line_end": 356,
-      "description": "Schließt nach Abschluss des Ladevorgangs beide sequentiellen Eingabedateien (Root-Segmente und Detail-Segmente) ordnungsgemäß und protokolliert etwaige Fehler beim Schließen, ohne den Prozess abzubrechen."
+      "description": "After completion of the load process, properly closes both sequential input files (root segments and detail segments) and logs any errors during closing without aborting the process."
     },
     {
       "name": "4000-EXIT",
       "line_start": 357,
       "line_end": 359,
-      "description": "Formaler Abschlusspunkt des Lade-Prozesses für Root-Segmente. Dieser Paragraph dient als struktureller Endpunkt der Verarbeitungsschleife und ermöglicht einen sauberen Rücksprung nach Abschluss aller Datenbanklade-Operationen."
+      "description": "Formal exit point of the load process for root segments. This paragraph serves as the structural end point of the processing loop and enables a clean return after completion of all database load operations."
     },
     {
       "name": "9999-ABEND",
       "line_start": 360,
       "line_end": 367,
-      "description": "Kontrollierter Programmabbruch bei kritischen Datenbankfehlern: Signalisiert dem Batch-System einen schwerwiegenden Fehler beim IMS-Ladevorgang, um Datenkonsistenz der Pending-Authorization-Datenbank zu gewährleisten und eine unkontrollierte Weiterverarbeitung zu verhindern."
+      "description": "Controlled program abort in the event of critical database errors: signals a severe error during the IMS load operation to the batch system in order to ensure data consistency of the pending authorization database and prevent uncontrolled further processing."
     },
     {
       "name": "9999-EXIT",
       "line_start": 368,
       "line_end": 369,
-      "description": "Formaler Abschlusspunkt des Programms PAUDBLOD, der als strukturierter Rücksprungpunkt nach Abschluss aller Lade- und Protokollierungsaktivitäten dient."
+      "description": "Formal exit point of the program PAUDBLOD, serving as a structured return point after completion of all load and logging activities."
     }
   ],
   "copybooks": [

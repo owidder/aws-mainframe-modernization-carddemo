@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSUTLDTC – CardDemo Documentation</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --expl:      #89dceb;
+      --gold:      #f9e2af;
+      --cyan:      #89dceb;
+      --red:       #f38ba8;
+      --sidebar-w: 280px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1rem 0;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--subtext);
+      padding: .5rem 1rem .2rem;
+      margin-top: .8rem;
+    }
+    #sidebar a {
+      display: block;
+      padding: .25rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: .82rem;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      padding: .5rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .72rem; color: var(--subtext); font-weight: 400; margin-top: .2rem; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; overflow-x: auto; padding: 2rem; max-width: 100%; }
+
+    /* ── Header ──────────────────────────────────── */
+    .prog-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .prog-header h1 { font-family: monospace; font-size: 1.8rem; color: var(--gold); }
+    .prog-header p  { color: var(--subtext); margin-top: .5rem; line-height: 1.5; }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-copy   { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+    .badge-meta   { background: var(--bg3); color: var(--subtext); border: 1px solid var(--border); }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 2rem 0 1rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Code view ───────────────────────────────── */
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .8rem;
+    }
+    .code-table tr { border-bottom: 1px solid #31324444; }
+    .code-table tr:hover { background: #31324422; }
+    .code-table tr.division-header { background: #1c1a2a; }
+    .code-table tr.section-header  { background: #1a2a1a; }
+    .code-table tr.paragraph-header { background: #2a2420; }
+    .code-table tr.comment  { opacity: .55; }
+    .code-table tr.empty    { height: .4rem; }
+
+    .ln {
+      width: 3.5rem;
+      text-align: right;
+      padding: .1rem .5rem;
+      color: var(--comment);
+      user-select: none;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .code-cell {
+      padding: .1rem .5rem;
+      vertical-align: top;
+      white-space: pre;
+      max-width: 55ch;
+      overflow-x: auto;
+    }
+    .expl-cell {
+      padding: .15rem 1rem .15rem .75rem;
+      vertical-align: top;
+      color: #cdd6f4;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: .8rem;
+      line-height: 1.5;
+      max-width: 60ch;
+      white-space: normal;
+      border-left: 2px solid #45475a44;
+    }
+    .expl-cell:not(:empty) {
+      border-left-color: #89dceb55;
+      background: #89dceb08;
+    }
+
+    /* Code-Typen einfärben */
+    .t-comment         { color: var(--comment); font-style: italic; }
+    .t-division-header { color: var(--gold); font-weight: 700; }
+    .t-section-header  { color: var(--string); font-weight: 600; }
+    .t-paragraph-header{ color: var(--cyan); font-weight: 700; }
+    .t-copy-statement  { color: var(--keyword); }
+    .t-exec-cics       { color: #f2cdcd; }
+    .t-empty           { }
+    .t-code, .t-statement, .t-variable-declaration { color: var(--text); }
+
+    /* ── Variables table ─────────────────────────── */
+    .var-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .var-table th {
+      background: var(--bg3);
+      color: var(--subtext);
+      text-align: left;
+      padding: .4rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .var-table td {
+      padding: .4rem .8rem;
+      border-bottom: 1px solid #31324444;
+      vertical-align: top;
+    }
+    .var-table tr:hover td { background: #31324422; }
+    .var-name { font-family: monospace; color: var(--cyan); font-weight: 600; }
+    .var-level { font-family: monospace; color: var(--number); }
+    .var-pic   { font-family: monospace; color: var(--string); font-size: .75rem; }
+    .var-group { color: var(--keyword); font-size: .72rem; }
+    .var-desc  { color: var(--text); line-height: 1.4; }
+
+    /* ── Paragraph cards ─────────────────────────── */
+    .para-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: 1rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .para-card h3 {
+      font-family: monospace;
+      color: var(--cyan);
+      font-size: .95rem;
+    }
+    .para-card h3 a:hover { text-decoration: underline !important; }
+    .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
+    .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--comment);
+      font-size: .75rem;
+    }
+
+    @media print {
+      #sidebar { display: none; }
+      #main { padding: .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo
+    <span>Mainframe Documentation</span>
+  </div>
+
+  <a href="index.html" style="color:var(--subtext);margin-top:.5rem;">← Program Overview</a>
+  <a href="../analysis/index.html" style="color:var(--subtext);">📄 Analysis Docs</a>
+
+  
+  <h2>Paragraphs</h2>
+  
+  <a href="#para-A000-MAIN">A000-MAIN</a>
+  
+  <a href="#para-A000-MAIN-EXIT">A000-MAIN-EXIT</a>
+  
+  
+
+  
+  <h2>Variables (48)</h2>
+  
+  <a href="#var-WS-DATE-TO-TEST">WS-DATE-TO-TEST</a>
+  
+  <a href="#var-Vstring-length">Vstring-length</a>
+  
+  <a href="#var-Vstring-text">Vstring-text</a>
+  
+  <a href="#var-Vstring-char">Vstring-char</a>
+  
+  <a href="#var-WS-DATE-FORMAT">WS-DATE-FORMAT</a>
+  
+  <a href="#var-Vstring-length">Vstring-length</a>
+  
+  <a href="#var-Vstring-text">Vstring-text</a>
+  
+  <a href="#var-Vstring-char">Vstring-char</a>
+  
+  <a href="#var-OUTPUT-LILLIAN">OUTPUT-LILLIAN</a>
+  
+  <a href="#var-WS-MESSAGE">WS-MESSAGE</a>
+  
+  <a href="#var-WS-SEVERITY">WS-SEVERITY</a>
+  
+  <a href="#var-WS-SEVERITY-N">WS-SEVERITY-N</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-MSG-NO">WS-MSG-NO</a>
+  
+  <a href="#var-WS-MSG-NO-N">WS-MSG-NO-N</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-RESULT">WS-RESULT</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-DATE">WS-DATE</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-WS-DATE-FMT">WS-DATE-FMT</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-FILLER">FILLER</a>
+  
+  <a href="#var-FEEDBACK-CODE">FEEDBACK-CODE</a>
+  
+  <a href="#var-FEEDBACK-TOKEN-VALUE">FEEDBACK-TOKEN-VALUE</a>
+  
+  <a href="#var-FC-INVALID-DATE">FC-INVALID-DATE</a>
+  
+  <a href="#var-FC-INSUFFICIENT-DATA">FC-INSUFFICIENT-DATA</a>
+  
+  <a href="#var-FC-BAD-DATE-VALUE">FC-BAD-DATE-VALUE</a>
+  
+  <a href="#var-FC-INVALID-ERA">FC-INVALID-ERA</a>
+  
+  <a href="#var-FC-UNSUPP-RANGE">FC-UNSUPP-RANGE</a>
+  
+  <a href="#var-FC-INVALID-MONTH">FC-INVALID-MONTH</a>
+  
+  <a href="#var-FC-BAD-PIC-STRING">FC-BAD-PIC-STRING</a>
+  
+  <a href="#var-FC-NON-NUMERIC-DATA">FC-NON-NUMERIC-DATA</a>
+  
+  <a href="#var-FC-YEAR-IN-ERA-ZERO">FC-YEAR-IN-ERA-ZERO</a>
+  
+  <a href="#var-CASE-1-CONDITION-ID">CASE-1-CONDITION-ID</a>
+  
+  <a href="#var-SEVERITY">SEVERITY</a>
+  
+  <a href="#var-MSG-NO">MSG-NO</a>
+  
+  <a href="#var-CASE-2-CONDITION-ID">CASE-2-CONDITION-ID</a>
+  
+  
+  <a style="color:var(--comment);font-style:italic;">… and 8 more</a>
+  
+  
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="prog-header">
+    <h1>CSUTLDTC.CBL</h1>
+    <p>Validate whether a given date string is a legitimate calendar date according to a specified date format, returning a validation result to the calling program.</p>
+    
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">This program acts as a reusable date validation utility within the CardDemo credit card management system. It accepts a date value and its expected format mask from a calling program, then invokes the IBM Language Environment CEEDAYS API to attempt conversion of the date into a Lillian day number (an internal numeric representation of a calendar date). If the conversion succeeds, the date is confirmed as valid; if it fails, the specific reason for invalidity (e.g., bad value, invalid month, non-numeric data, unsupported range) is identified and returned to the caller. The validation result, along with severity and message codes, is passed back so the calling program can take appropriate business action such as rejecting a transaction, flagging an account record, or prompting a user to correct an entry.</p>
+    
+    
+    <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
+      <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
+        <li>A date is only considered valid if the CEEDAYS API successfully converts it to a Lillian day number with a zero feedback condition (FC-INVALID-DATE condition name, which paradoxically signals success).</li><li>The date format mask must be explicitly provided by the caller, meaning the system enforces strict format-aware validation rather than accepting ambiguous date strings.</li><li>Nine distinct categories of date invalidity are recognised and individually reported, enabling calling programs to provide precise error feedback to users or downstream processes.</li><li>The validation result severity is propagated back as the program RETURN-CODE, allowing calling programs and job control to detect and react to date validation failures programmatically.</li><li>The program is a shared utility (called via CALL), meaning all date validation across the CardDemo system is centralised here, ensuring consistent date integrity rules are applied to transactions, accounts, and card records system-wide.</li><li>Dates must be numeric where required by the format mask; alphanumeric or corrupted date fields are explicitly rejected with a 'Non-numeric data' result.</li><li>Dates must fall within the supported range of the IBM CEEDAYS API; historically extreme or future dates beyond system limits are rejected as unsupported.</li>
+      </ul>
+    </div>
+    
+    
+    <div class="badges">
+      <span class="badge badge-type">Utility</span>
+      <span class="badge badge-module">Utility</span>
+      
+      <span class="badge badge-meta">157 lines</span>
+      <span class="badge badge-meta">48 variables</span>
+      <span class="badge badge-meta">2 paragraphs</span>
+      <span class="badge badge-meta">Analyzed: 2026-05-03</span>
+    </div>
+  </div>
+
+  <!-- Paragraph Overview -->
+  
+  <div class="section-title">Paragraph Overview</div>
+  
+  <div class="para-card" id="para-A000-MAIN">
+    <h3><a href="#code-para-A000-MAIN" style="color:inherit;text-decoration:none;">A000-MAIN</a></h3>
+    <p>This paragraph is the core validation routine that submits a date and its expected format to IBM's calendar conversion service, then interprets the outcome into a human-readable business result. It acts as the central decision point that determines whether a submitted date is a legitimate calendar date and classifies any invalidity into one of nine specific business-meaningful error categories.</p>
+    <div class="para-meta"><a href="#code-para-A000-MAIN" style="color:inherit;">Lines 103–151</a></div>
+  </div>
+  
+  <div class="para-card" id="para-A000-MAIN-EXIT">
+    <h3><a href="#code-para-A000-MAIN-EXIT" style="color:inherit;text-decoration:none;">A000-MAIN-EXIT</a></h3>
+    <p>This paragraph serves as the formal exit point of the main date validation routine, cleanly returning control to the calling program after all validation logic has been completed and results have been prepared.</p>
+    <div class="para-meta"><a href="#code-para-A000-MAIN-EXIT" style="color:inherit;">Lines 152–157</a></div>
+  </div>
+  
+  
+
+  <!-- Source Code with Annotations -->
+  <div class="section-title">Source Code with Annotations</div>
+  <table class="code-table" aria-label="COBOL Source Code">
+    <tbody>
+    
+    <tr class="comment"
+        >
+      <td class="ln">1</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">2</td>
+      <td class="code-cell t-comment">      *****       CALL TO CEEDAYS                                *******</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">3</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">4</td>
+      <td class="code-cell t-comment">      * Copyright Amazon.com, Inc. or its affiliates.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">5</td>
+      <td class="code-cell t-comment">      * All Rights Reserved.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">6</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">7</td>
+      <td class="code-cell t-comment">      * Licensed under the Apache License, Version 2.0 (the "License").</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">8</td>
+      <td class="code-cell t-comment">      * You may not use this file except in compliance with the License.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">9</td>
+      <td class="code-cell t-comment">      * You may obtain a copy of the License at</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">10</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">11</td>
+      <td class="code-cell t-comment">      *    http://www.apache.org/licenses/LICENSE-2.0</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">12</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">13</td>
+      <td class="code-cell t-comment">      * Unless required by applicable law or agreed to in writing,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">14</td>
+      <td class="code-cell t-comment">      * software distributed under the License is distributed on an</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">15</td>
+      <td class="code-cell t-comment">      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">16</td>
+      <td class="code-cell t-comment">      * either express or implied. See the License for the specific</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">17</td>
+      <td class="code-cell t-comment">      * language governing permissions and limitations under the License</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">18</td>
+      <td class="code-cell t-comment">      ******************************************************************</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">19</td>
+      <td class="code-cell t-division-header">       IDENTIFICATION DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">20</td>
+      <td class="code-cell t-code">       PROGRAM-ID. CSUTLDTC.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">21</td>
+      <td class="code-cell t-division-header">       DATA DIVISION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">22</td>
+      <td class="code-cell t-section-header">       WORKING-STORAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">23</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">24</td>
+      <td class="code-cell t-comment">      ****  Date passed to CEEDAYS API</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">25</td>
+      <td class="code-cell t-variable-declaration">         01 WS-DATE-TO-TEST.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">26</td>
+      <td class="code-cell t-variable-declaration">              02  Vstring-length      PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">27</td>
+      <td class="code-cell t-variable-declaration">              02  Vstring-text.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">28</td>
+      <td class="code-cell t-variable-declaration">                  03  Vstring-char    PIC X</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">29</td>
+      <td class="code-cell t-code">                              OCCURS 0 TO 256 TIMES</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">30</td>
+      <td class="code-cell t-code">                              DEPENDING ON Vstring-length</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">31</td>
+      <td class="code-cell t-code">                                 of WS-DATE-TO-TEST.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">32</td>
+      <td class="code-cell t-comment">      ****  DATE FORMAT PASSED TO CEEDAYS API</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">33</td>
+      <td class="code-cell t-variable-declaration">         01 WS-DATE-FORMAT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">34</td>
+      <td class="code-cell t-variable-declaration">              02  Vstring-length      PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">35</td>
+      <td class="code-cell t-variable-declaration">              02  Vstring-text.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">36</td>
+      <td class="code-cell t-variable-declaration">                  03  Vstring-char    PIC X</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">37</td>
+      <td class="code-cell t-code">                              OCCURS 0 TO 256 TIMES</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">38</td>
+      <td class="code-cell t-code">                              DEPENDING ON Vstring-length</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">39</td>
+      <td class="code-cell t-code">                                 of WS-DATE-FORMAT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">40</td>
+      <td class="code-cell t-comment">      ****  OUTPUT from CEEDAYS - LILLIAN DATE FORMAT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">41</td>
+      <td class="code-cell t-variable-declaration">         01 OUTPUT-LILLIAN    PIC S9(9) USAGE IS BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">42</td>
+      <td class="code-cell t-variable-declaration">         01 WS-MESSAGE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">43</td>
+      <td class="code-cell t-variable-declaration">              02 WS-SEVERITY  PIC X(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">44</td>
+      <td class="code-cell t-variable-declaration">              02 WS-SEVERITY-N REDEFINES WS-SEVERITY PIC 9(4).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">45</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(11) VALUE 'Mesg Code:'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">46</td>
+      <td class="code-cell t-variable-declaration">              02 WS-MSG-NO    PIC X(04).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">47</td>
+      <td class="code-cell t-variable-declaration">              02 WS-MSG-NO-N  REDEFINES WS-MSG-NO PIC 9(4).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">48</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(01) VALUE SPACE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">49</td>
+      <td class="code-cell t-variable-declaration">              02 WS-RESULT    PIC X(15).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">50</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(01) VALUE SPACE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">51</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(09) VALUE 'TstDate:'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">52</td>
+      <td class="code-cell t-variable-declaration">              02 WS-DATE      PIC X(10) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">53</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(01) VALUE SPACE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">54</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(10) VALUE 'Mask used:'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">55</td>
+      <td class="code-cell t-variable-declaration">              02 WS-DATE-FMT  PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">56</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(01) VALUE SPACE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">57</td>
+      <td class="code-cell t-variable-declaration">              02 FILLER       PIC X(03) VALUE SPACES.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">58</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">59</td>
+      <td class="code-cell t-comment">      * CEEDAYS API FEEDBACK CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">60</td>
+      <td class="code-cell t-variable-declaration">          01 FEEDBACK-CODE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">61</td>
+      <td class="code-cell t-variable-declaration">           02  FEEDBACK-TOKEN-VALUE.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">62</td>
+      <td class="code-cell t-variable-declaration">             88  FC-INVALID-DATE       VALUE X'0000000000000000'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">63</td>
+      <td class="code-cell t-variable-declaration">             88  FC-INSUFFICIENT-DATA  VALUE X'000309CB59C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">64</td>
+      <td class="code-cell t-variable-declaration">             88  FC-BAD-DATE-VALUE     VALUE X'000309CC59C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">65</td>
+      <td class="code-cell t-variable-declaration">             88  FC-INVALID-ERA        VALUE X'000309CD59C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">66</td>
+      <td class="code-cell t-variable-declaration">             88  FC-UNSUPP-RANGE       VALUE X'000309D159C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">67</td>
+      <td class="code-cell t-variable-declaration">             88  FC-INVALID-MONTH      VALUE X'000309D559C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">68</td>
+      <td class="code-cell t-variable-declaration">             88  FC-BAD-PIC-STRING     VALUE X'000309D659C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">69</td>
+      <td class="code-cell t-variable-declaration">             88  FC-NON-NUMERIC-DATA   VALUE X'000309D859C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">70</td>
+      <td class="code-cell t-variable-declaration">             88  FC-YEAR-IN-ERA-ZERO   VALUE X'000309D959C3C5C5'.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">71</td>
+      <td class="code-cell t-variable-declaration">               03  CASE-1-CONDITION-ID.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">72</td>
+      <td class="code-cell t-variable-declaration">                   04  SEVERITY        PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">73</td>
+      <td class="code-cell t-variable-declaration">                   04  MSG-NO          PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">74</td>
+      <td class="code-cell t-variable-declaration">               03  CASE-2-CONDITION-ID</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="code"
+        >
+      <td class="ln">75</td>
+      <td class="code-cell t-code">                         REDEFINES CASE-1-CONDITION-ID.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">76</td>
+      <td class="code-cell t-variable-declaration">                   04  CLASS-CODE      PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">77</td>
+      <td class="code-cell t-variable-declaration">                   04  CAUSE-CODE      PIC S9(4) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">78</td>
+      <td class="code-cell t-variable-declaration">               03  CASE-SEV-CTL    PIC X.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">79</td>
+      <td class="code-cell t-variable-declaration">               03  FACILITY-ID     PIC XXX.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">80</td>
+      <td class="code-cell t-variable-declaration">           02  I-S-INFO        PIC S9(9) BINARY.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">81</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">82</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="section-header"
+        >
+      <td class="ln">83</td>
+      <td class="code-cell t-section-header">       LINKAGE SECTION.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">84</td>
+      <td class="code-cell t-variable-declaration">          01 LS-DATE         PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">85</td>
+      <td class="code-cell t-variable-declaration">          01 LS-DATE-FORMAT  PIC X(10).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="variable-declaration"
+        >
+      <td class="ln">86</td>
+      <td class="code-cell t-variable-declaration">          01 LS-RESULT       PIC X(80).</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">87</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="division-header"
+        >
+      <td class="ln">88</td>
+      <td class="code-cell t-division-header">       PROCEDURE DIVISION USING LS-DATE, LS-DATE-FORMAT, LS-RESULT.</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">89</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">90</td>
+      <td class="code-cell t-statement">           INITIALIZE WS-MESSAGE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">91</td>
+      <td class="code-cell t-statement">           MOVE SPACES TO WS-DATE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">92</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">93</td>
+      <td class="code-cell t-statement">           PERFORM A000-MAIN</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">94</td>
+      <td class="code-cell t-statement">              THRU A000-MAIN-EXIT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">95</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">96</td>
+      <td class="code-cell t-comment">      *    DISPLAY WS-MESSAGE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">97</td>
+      <td class="code-cell t-statement">           MOVE WS-MESSAGE                 TO LS-RESULT</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">98</td>
+      <td class="code-cell t-statement">           MOVE WS-SEVERITY-N              TO RETURN-CODE</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="empty"
+        >
+      <td class="ln">99</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">100</td>
+      <td class="code-cell t-statement">           EXIT PROGRAM</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        >
+      <td class="ln">101</td>
+      <td class="code-cell t-comment">      *    GOBACK</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        >
+      <td class="ln">102</td>
+      <td class="code-cell t-statement">           .</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-A000-MAIN">
+      <td class="ln">103</td>
+      <td class="code-cell t-paragraph-header">       A000-MAIN.</td>
+      <td class="expl-cell">Entry point of the main validation routine that orchestrates the entire date validation process.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-A000-MAIN">
+      <td class="ln">104</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">105</td>
+      <td class="code-cell t-statement">           MOVE LENGTH OF LS-DATE</td>
+      <td class="expl-cell">Measures the length of the date value submitted by the calling program, so the calendar conversion service knows exactly how many characters to process.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">106</td>
+      <td class="code-cell t-statement">                        TO VSTRING-LENGTH  OF WS-DATE-TO-TEST</td>
+      <td class="expl-cell">Packages that length into the structured date input prepared for submission to the calendar conversion service.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">107</td>
+      <td class="code-cell t-statement">           MOVE LS-DATE TO VSTRING-TEXT    OF WS-DATE-TO-TEST</td>
+      <td class="expl-cell">Loads the actual date value submitted by the calling program (e.g., a transaction date or card expiry date) into the structured input for the calendar conversion service.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">108</td>
+      <td class="code-cell t-statement">                           WS-DATE</td>
+      <td class="expl-cell">Also retains a working copy of the submitted date value for internal reference during processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">109</td>
+      <td class="code-cell t-statement">           MOVE LENGTH OF LS-DATE-FORMAT</td>
+      <td class="expl-cell">Measures the length of the format mask provided by the calling program (e.g., YYYY-MM-DD), so the conversion service knows how to interpret the date string.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">110</td>
+      <td class="code-cell t-statement">                         TO VSTRING-LENGTH OF WS-DATE-FORMAT</td>
+      <td class="expl-cell">Packages that format mask length into the structured format input prepared for the calendar conversion service.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">111</td>
+      <td class="code-cell t-statement">           MOVE LS-DATE-FORMAT</td>
+      <td class="expl-cell">Loads the format mask itself into the structured input, telling the conversion service the exact pattern it should use to parse the submitted date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">112</td>
+      <td class="code-cell t-statement">                         TO VSTRING-TEXT   OF WS-DATE-FORMAT</td>
+      <td class="expl-cell">Also retains a working copy of the format mask for internal reference.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">113</td>
+      <td class="code-cell t-statement">                            WS-DATE-FMT</td>
+      <td class="expl-cell">Stores an additional working copy of the format mask for use elsewhere in the program if needed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">114</td>
+      <td class="code-cell t-statement">           MOVE 0        TO OUTPUT-LILLIAN</td>
+      <td class="expl-cell">Resets the internal calendar day number to zero before validation begins, ensuring no residual value from a previous call is mistakenly treated as a successful conversion.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-A000-MAIN">
+      <td class="ln">115</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">116</td>
+      <td class="code-cell t-statement">           CALL "CEEDAYS" USING</td>
+      <td class="expl-cell">Invokes IBM's Language Environment calendar conversion service to attempt to convert the submitted date into an internal numeric day number, which is the definitive test of whether the date is a real calendar date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">117</td>
+      <td class="code-cell t-statement">                  WS-DATE-TO-TEST,</td>
+      <td class="expl-cell">Passes the submitted date value (with its length) to the calendar conversion service for processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">118</td>
+      <td class="code-cell t-statement">                  WS-DATE-FORMAT,</td>
+      <td class="expl-cell">Passes the format mask (with its length) to the calendar conversion service so it can correctly interpret the structure of the date string.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">119</td>
+      <td class="code-cell t-statement">                  OUTPUT-LILLIAN,</td>
+      <td class="expl-cell">Receives the resulting internal calendar day number from the conversion service; a non-zero value confirms the date maps to a real calendar day.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">120</td>
+      <td class="code-cell t-statement">                  FEEDBACK-CODE</td>
+      <td class="expl-cell">Receives the full feedback token from the conversion service, which contains the severity level and specific condition code needed to classify the validation outcome.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-A000-MAIN">
+      <td class="ln">121</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">122</td>
+      <td class="code-cell t-statement">           MOVE WS-DATE-TO-TEST            TO WS-DATE</td>
+      <td class="expl-cell">Refreshes the working copy of the submitted date with the version processed by the conversion service, ensuring consistency in any subsequent handling.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">123</td>
+      <td class="code-cell t-statement">           MOVE SEVERITY OF FEEDBACK-CODE  TO WS-SEVERITY-N</td>
+      <td class="expl-cell">Extracts the severity level from the conversion service's feedback, indicating how serious the outcome is (e.g., success, warning, or error), to be returned to the calling program as the overall result code.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">124</td>
+      <td class="code-cell t-statement">           MOVE MSG-NO OF FEEDBACK-CODE    TO WS-MSG-NO-N</td>
+      <td class="expl-cell">Extracts the specific condition number from the conversion service's feedback, identifying the precise nature of any date problem for detailed classification.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-A000-MAIN">
+      <td class="ln">125</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-A000-MAIN">
+      <td class="ln">126</td>
+      <td class="code-cell t-comment">      *    WS-RESULT IS 15 CHARACTERS</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-A000-MAIN">
+      <td class="ln">127</td>
+      <td class="code-cell t-comment">      *                123456789012345'</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">128</td>
+      <td class="code-cell t-statement">           EVALUATE TRUE</td>
+      <td class="expl-cell">Begins evaluating the specific outcome code returned by the calendar conversion service to determine which business result message to produce.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">129</td>
+      <td class="code-cell t-statement">              WHEN FC-INVALID-DATE</td>
+      <td class="expl-cell">Checks whether the conversion service confirmed the date as a legitimate calendar date (this condition code, despite its name, signals successful validation).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">130</td>
+      <td class="code-cell t-statement">                 MOVE 'Date is valid'      TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date is a valid calendar date, to be returned to the calling program as a positive confirmation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">131</td>
+      <td class="code-cell t-statement">              WHEN FC-INSUFFICIENT-DATA</td>
+      <td class="expl-cell">Checks whether the conversion service found the date string did not contain enough information to fully identify a calendar date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">132</td>
+      <td class="code-cell t-statement">                 MOVE 'Insufficient'       TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date lacked sufficient data to be resolved into a complete calendar date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">133</td>
+      <td class="code-cell t-statement">              WHEN FC-BAD-DATE-VALUE</td>
+      <td class="expl-cell">Checks whether the conversion service found a date component (such as day 32) that falls outside acceptable calendar value ranges.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">134</td>
+      <td class="code-cell t-statement">                 MOVE 'Datevalue error'    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date contained a value outside the permitted range for a calendar component.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">135</td>
+      <td class="code-cell t-statement">              WHEN FC-INVALID-ERA</td>
+      <td class="expl-cell">Checks whether the conversion service found an era designation in the date that does not correspond to a recognised historical era.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">136</td>
+      <td class="code-cell t-statement">                 MOVE 'Invalid Era    '    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date referenced an unrecognised or invalid historical era.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">137</td>
+      <td class="code-cell t-statement">              WHEN FC-UNSUPP-RANGE</td>
+      <td class="expl-cell">Checks whether the conversion service found the date falls outside the range of dates it is capable of processing.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">138</td>
+      <td class="code-cell t-statement">                 MOVE 'Unsupp. Range  '    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date is outside the supported date range of the system, making validation impossible.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">139</td>
+      <td class="code-cell t-statement">              WHEN FC-INVALID-MONTH</td>
+      <td class="expl-cell">Checks whether the conversion service found the month component of the date does not correspond to a valid calendar month (e.g., month 13).</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">140</td>
+      <td class="code-cell t-statement">                 MOVE 'Invalid month  '    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date contained an invalid month value.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">141</td>
+      <td class="code-cell t-statement">              WHEN FC-BAD-PIC-STRING</td>
+      <td class="expl-cell">Checks whether the conversion service found the format mask itself was malformed or unrecognisable, meaning the date could not even be parsed.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">142</td>
+      <td class="code-cell t-statement">                 MOVE 'Bad Pic String '    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the format mask provided by the calling program was invalid, preventing any date interpretation.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">143</td>
+      <td class="code-cell t-statement">              WHEN FC-NON-NUMERIC-DATA</td>
+      <td class="expl-cell">Checks whether the conversion service found non-numeric characters in a part of the date string where only digits are permitted.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">144</td>
+      <td class="code-cell t-statement">                 MOVE 'Nonnumeric data'    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date contained non-numeric data where numeric digits were required, indicating a corrupted or incorrectly formatted date field.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">145</td>
+      <td class="code-cell t-statement">              WHEN FC-YEAR-IN-ERA-ZERO</td>
+      <td class="expl-cell">Checks whether the conversion service found the year-within-era component of the date was set to zero, which is not a valid calendar year in era-based date systems.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">146</td>
+      <td class="code-cell t-statement">                 MOVE 'YearInEra is 0 '    TO WS-RESULT</td>
+      <td class="expl-cell">Records that the submitted date had a year-within-era value of zero, which does not represent a valid calendar year.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">147</td>
+      <td class="code-cell t-statement">              WHEN OTHER</td>
+      <td class="expl-cell">Handles any other unexpected condition code returned by the conversion service that does not match any of the recognised categories.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">148</td>
+      <td class="code-cell t-statement">                 MOVE 'Date is invalid'    TO WS-RESULT</td>
+      <td class="expl-cell">Records a general date invalidity result for any unrecognised failure condition, ensuring the calling program always receives a definitive outcome.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">149</td>
+      <td class="code-cell t-statement">           END-EVALUATE</td>
+      <td class="expl-cell">Closes the outcome evaluation block.</td>
+    </tr>
+    
+    <tr class="empty"
+        id="code-para-A000-MAIN">
+      <td class="ln">150</td>
+      <td class="code-cell t-empty"></td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN">
+      <td class="ln">151</td>
+      <td class="code-cell t-statement">           .</td>
+      <td class="expl-cell">Marks the end of the main validation routine, returning control to the calling program with the validation result, severity, and condition details populated.</td>
+    </tr>
+    
+    <tr class="paragraph-header"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">152</td>
+      <td class="code-cell t-paragraph-header">       A000-MAIN-EXIT.</td>
+      <td class="expl-cell">Marks the end of the main date validation process, signalling that all validation checks and result preparation are complete.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">153</td>
+      <td class="code-cell t-statement">           EXIT</td>
+      <td class="expl-cell">Returns control to the calling program, which can now act on the validation outcome — such as accepting or rejecting a transaction date, card expiry, or account date.</td>
+    </tr>
+    
+    <tr class="statement"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">154</td>
+      <td class="code-cell t-statement">           .</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">155</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">156</td>
+      <td class="code-cell t-comment">      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:35 CDT</td>
+      <td class="expl-cell">Version control metadata identifying the CardDemo release, build reference, and timestamp when this validation utility was last modified — used for audit and change tracking purposes.</td>
+    </tr>
+    
+    <tr class="comment"
+        id="code-para-A000-MAIN-EXIT">
+      <td class="ln">157</td>
+      <td class="code-cell t-comment">      *</td>
+      <td class="expl-cell"></td>
+    </tr>
+    
+    </tbody>
+  </table>
+
+  <!-- Variables Glossary -->
+  
+  <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
+  <table class="var-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>PIC</th>
+        <th>Value</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+    <tr id="var-WS-DATE-TO-TEST">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-DATE-TO-TEST
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The internal working-storage representation of the date submitted for validation, structured as a variable-length string compatible with the IBM CEEDAYS API. This holds the actual date value (e.g., a transaction date, card expiry date, or account date) that the calling program wants to verify as a legitimate calendar date.</td>
+    </tr>
+    
+    <tr id="var-Vstring-length">
+      <td class="var-level">02</td>
+      <td class="var-name">Vstring-length
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The declared length of the date string being validated. This tells the CEEDAYS API exactly how many characters make up the date value (e.g., 10 for 'YYYY-MM-DD'), ensuring the API does not misread or truncate the date during validation.</td>
+    </tr>
+    
+    <tr id="var-Vstring-text">
+      <td class="var-level">02</td>
+      <td class="var-name">Vstring-text
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The container for the actual date string characters (e.g., '2024-03-15') that will be passed to the CEEDAYS API for calendar validation. This is the raw date text submitted by the calling program.</td>
+    </tr>
+    
+    <tr id="var-Vstring-char">
+      <td class="var-level">03</td>
+      <td class="var-name">Vstring-char
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A single character position within the date string being validated. Together these characters form the complete date value (e.g., a transaction date or card expiry date) that the system checks against the calendar.</td>
+    </tr>
+    
+    <tr id="var-WS-DATE-FORMAT">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-DATE-FORMAT
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The internal working-storage representation of the date format mask, structured as a variable-length string for the CEEDAYS API. This defines how the date string should be interpreted (e.g., 'YYYY-MM-DD'), enforcing strict format-aware validation so that ambiguous date strings are never accepted by the CardDemo system.</td>
+    </tr>
+    
+    <tr id="var-Vstring-length">
+      <td class="var-level">02</td>
+      <td class="var-name">Vstring-length
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The declared length of the format mask string (e.g., 10 for 'YYYY-MM-DD'). This ensures the CEEDAYS API reads exactly the right number of format characters, preventing misinterpretation of the date structure.</td>
+    </tr>
+    
+    <tr id="var-Vstring-text">
+      <td class="var-level">02</td>
+      <td class="var-name">Vstring-text
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The container for the actual format mask characters (e.g., 'YYYY-MM-DD') that instruct the CEEDAYS API how to parse the date being validated. The calling program must supply this, enforcing the CardDemo business rule that all date validation is format-aware.</td>
+    </tr>
+    
+    <tr id="var-Vstring-char">
+      <td class="var-level">03</td>
+      <td class="var-name">Vstring-char
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A single character position within the format mask string. Together these characters define the expected date pattern (e.g., 'Y', 'M', 'D', '-') that the system uses to correctly interpret and validate the submitted date.</td>
+    </tr>
+    
+    <tr id="var-OUTPUT-LILLIAN">
+      <td class="var-level">01</td>
+      <td class="var-name">OUTPUT-LILLIAN
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(9) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The Lillian day number produced by the CEEDAYS API when a date is successfully validated. A non-zero value here confirms that the submitted date (e.g., a transaction date or card expiry date) maps to a real, legitimate calendar day. If the date is invalid, this value is meaningless and the feedback code is used instead.</td>
+    </tr>
+    
+    <tr id="var-WS-MESSAGE">
+      <td class="var-level">01</td>
+      <td class="var-name">WS-MESSAGE
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A formatted diagnostic message record that captures the full context of a date validation attempt, including the severity of the outcome, the specific error code, the validation result description, the date that was tested, and the format mask used. This is used for logging, debugging, and tracing date validation activity across the CardDemo system.</td>
+    </tr>
+    
+    <tr id="var-WS-SEVERITY">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-SEVERITY
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The alphanumeric representation of the severity code returned by the CEEDAYS API after attempting to validate a date. This indicates how serious the validation outcome is (e.g., success, warning, or error), used in the diagnostic message for tracing purposes.</td>
+    </tr>
+    
+    <tr id="var-WS-SEVERITY-N">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-SEVERITY-N
+        
+        <br><span class="var-group">REDEFINES WS-SEVERITY</span>
+      </td>
+      <td class="var-pic">PIC 9(4)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The numeric form of the CEEDAYS severity code, overlaying the same storage as WS-SEVERITY. This numeric value is returned as the program RETURN-CODE to the calling program and job control, allowing automated processes to detect and react to date validation failures programmatically (e.g., rejecting a transaction with an invalid date).</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(11)</td>
+      <td class="var-pic">Mesg Code:</td>
+      <td class="var-desc">Business meaning: A static label 'Mesg Code:' embedded in the diagnostic message to identify the message code field that follows. This makes the validation log entry human-readable for operations staff reviewing date validation failures.</td>
+    </tr>
+    
+    <tr id="var-WS-MSG-NO">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-MSG-NO
+        
+        
+      </td>
+      <td class="var-pic">PIC X(04)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The alphanumeric representation of the specific message number returned by the CEEDAYS API, identifying the precise nature of any date validation error (e.g., invalid month, non-numeric data). Used in the diagnostic message for tracing.</td>
+    </tr>
+    
+    <tr id="var-WS-MSG-NO-N">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-MSG-NO-N
+        
+        <br><span class="var-group">REDEFINES WS-MSG-NO</span>
+      </td>
+      <td class="var-pic">PIC 9(4)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The numeric form of the CEEDAYS message number, overlaying the same storage as WS-MSG-NO. This numeric code precisely identifies the category of date error (e.g., invalid month, bad date value) so that the program can map it to a human-readable result message for the calling program.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACE</td>
+      <td class="var-desc">Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff.</td>
+    </tr>
+    
+    <tr id="var-WS-RESULT">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-RESULT
+        
+        
+      </td>
+      <td class="var-pic">PIC X(15)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A short human-readable description of the date validation outcome (e.g., 'Date is valid', 'Invalid month', 'Non-numeric data') included in the internal diagnostic message. This summarises why a date was accepted or rejected during the validation process.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACE</td>
+      <td class="var-desc">Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(09)</td>
+      <td class="var-pic">TstDate:</td>
+      <td class="var-desc">Business meaning: A static label 'TstDate:' embedded in the diagnostic message to identify the date-under-test field that follows. This makes it easy for operations staff to see which date value triggered a validation result in the log.</td>
+    </tr>
+    
+    <tr id="var-WS-DATE">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">Business meaning: The date value being validated (e.g., '2024-03-15'), captured within the diagnostic message for tracing purposes. This records which specific transaction date, card expiry date, or account date was submitted for validation, aiding in audit and error investigation.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACE</td>
+      <td class="var-desc">Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">Mask used:</td>
+      <td class="var-desc">Business meaning: A static label 'Mask used:' embedded in the diagnostic message to identify the format mask field that follows. This allows operations staff to see exactly which date format was applied during validation, which is critical for diagnosing format mismatch errors.</td>
+    </tr>
+    
+    <tr id="var-WS-DATE-FMT">
+      <td class="var-level">02</td>
+      <td class="var-name">WS-DATE-FMT
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The format mask (e.g., 'YYYY-MM-DD') used during the validation attempt, captured within the diagnostic message. This records which date format was applied, enabling operations staff and developers to diagnose cases where a date was rejected due to a format mismatch.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(01)</td>
+      <td class="var-pic">SPACE</td>
+      <td class="var-desc">Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff.</td>
+    </tr>
+    
+    <tr id="var-FILLER">
+      <td class="var-level">02</td>
+      <td class="var-name">FILLER
+        
+        
+      </td>
+      <td class="var-pic">PIC X(03)</td>
+      <td class="var-pic">SPACES</td>
+      <td class="var-desc">Business meaning: Trailing padding spaces at the end of the diagnostic message, ensuring the message record is fully padded to its defined length for consistent formatting in logs and displays.</td>
+    </tr>
+    
+    <tr id="var-FEEDBACK-CODE">
+      <td class="var-level">01</td>
+      <td class="var-name">FEEDBACK-CODE
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The full feedback token returned by the IBM CEEDAYS API after a date validation attempt. This is the primary mechanism by which the system determines whether a submitted date (e.g., a transaction date or card expiry date) is valid or invalid, and if invalid, precisely why it failed. The entire CardDemo date validation logic is driven by interpreting this feedback token.</td>
+    </tr>
+    
+    <tr id="var-FEEDBACK-TOKEN-VALUE">
+      <td class="var-level">02</td>
+      <td class="var-name">FEEDBACK-TOKEN-VALUE
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The raw binary value of the CEEDAYS feedback token, against which named condition codes are tested to classify the date validation outcome. The specific bit pattern in this field determines whether the date is valid or which specific error category applies.</td>
+    </tr>
+    
+    <tr id="var-FC-INVALID-DATE">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-INVALID-DATE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'0000000000000000'</td>
+      <td class="var-desc">Business meaning: Despite its misleading name, this condition signals that the date is VALID — the CEEDAYS API returned a zero feedback code, meaning the submitted date (e.g., a transaction date or card expiry date) successfully maps to a legitimate calendar day. This is the success condition for date validation across the entire CardDemo system.</td>
+    </tr>
+    
+    <tr id="var-FC-INSUFFICIENT-DATA">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-INSUFFICIENT-DATA
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309CB59C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the date string does not contain enough information to fully resolve a calendar date — for example, a date field that is too short or missing required components. The validation result 'Insufficient data' is returned to the calling program, indicating the date cannot be accepted.</td>
+    </tr>
+    
+    <tr id="var-FC-BAD-DATE-VALUE">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-BAD-DATE-VALUE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309CC59C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the date contains a value outside acceptable calendar ranges — for example, a day value of 32 or a month value of 13. The validation result 'Bad date value' is returned, indicating the date is arithmetically impossible and must be rejected.</td>
+    </tr>
+    
+    <tr id="var-FC-INVALID-ERA">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-INVALID-ERA
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309CD59C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the era component of the date (e.g., BC/AD in certain calendar systems) is not valid. While uncommon in standard credit card processing, this condition ensures that any date with an unrecognisable era designation is explicitly rejected.</td>
+    </tr>
+    
+    <tr id="var-FC-UNSUPP-RANGE">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-UNSUPP-RANGE
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309D159C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the date falls outside the range supported by the IBM CEEDAYS API — for example, historically extreme past dates or far-future dates beyond system limits. Such dates are rejected as unsupported, protecting the CardDemo system from processing dates it cannot reliably handle.</td>
+    </tr>
+    
+    <tr id="var-FC-INVALID-MONTH">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-INVALID-MONTH
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309D559C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the month component of the submitted date does not correspond to a valid calendar month (e.g., month 00 or month 13). The validation result 'Invalid month' is returned to the calling program, enabling precise error feedback to users or downstream processes.</td>
+    </tr>
+    
+    <tr id="var-FC-BAD-PIC-STRING">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-BAD-PIC-STRING
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309D659C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the format mask (picture string) provided by the calling program is itself invalid or unrecognisable by the CEEDAYS API. This protects the system from attempting to validate a date against a malformed or unsupported format specification.</td>
+    </tr>
+    
+    <tr id="var-FC-NON-NUMERIC-DATA">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-NON-NUMERIC-DATA
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309D859C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the date string contains non-numeric characters where digits are required by the format mask — for example, letters or special characters in a date field. The validation result 'Non-numeric data' is returned, explicitly rejecting corrupted or alphanumeric date fields in line with CardDemo business rules.</td>
+    </tr>
+    
+    <tr id="var-FC-YEAR-IN-ERA-ZERO">
+      <td class="var-level">88</td>
+      <td class="var-name">FC-YEAR-IN-ERA-ZERO
+        
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">X'000309D959C3C5C5'</td>
+      <td class="var-desc">Business meaning: This condition signals that the year within the era is zero, which is not a valid calendar year in most calendar systems. This edge-case validation ensures that year-zero dates are explicitly rejected rather than silently accepted or misinterpreted.</td>
+    </tr>
+    
+    <tr id="var-CASE-1-CONDITION-ID">
+      <td class="var-level">03</td>
+      <td class="var-name">CASE-1-CONDITION-ID
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The primary condition identifier within the CEEDAYS feedback token, containing the severity and message number that classify the date validation outcome. This is the main structure used to determine whether a date is valid or which specific error category applies.</td>
+    </tr>
+    
+    <tr id="var-SEVERITY">
+      <td class="var-level">04</td>
+      <td class="var-name">SEVERITY
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The numeric severity level from the CEEDAYS feedback token indicating how serious the date validation outcome is (e.g., 0 for success, higher values for errors). This drives the RETURN-CODE returned to the calling program, allowing job control and calling programs to react appropriately to date validation failures.</td>
+    </tr>
+    
+    <tr id="var-MSG-NO">
+      <td class="var-level">04</td>
+      <td class="var-name">MSG-NO
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The specific message number from the CEEDAYS feedback token that precisely identifies the nature of any date validation error (e.g., invalid month, non-numeric data, bad date value). This is used to select the appropriate human-readable result message returned to the calling program.</td>
+    </tr>
+    
+    <tr id="var-CASE-2-CONDITION-ID">
+      <td class="var-level">03</td>
+      <td class="var-name">CASE-2-CONDITION-ID
+        <br><span class="var-group">Group field</span>
+        
+      </td>
+      <td class="var-pic">–</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: An alternative interpretation of the same feedback token bytes, providing class and cause codes for more detailed error classification. This supports advanced diagnostic scenarios where the primary condition identifier alone is insufficient to fully characterise the date validation failure.</td>
+    </tr>
+    
+    <tr id="var-CLASS-CODE">
+      <td class="var-level">04</td>
+      <td class="var-name">CLASS-CODE
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The class code from the CEEDAYS feedback token, categorising the broad type of condition encountered during date validation (e.g., a system error class versus a data error class). Used for advanced diagnostic interpretation of date validation failures.</td>
+    </tr>
+    
+    <tr id="var-CAUSE-CODE">
+      <td class="var-level">04</td>
+      <td class="var-name">CAUSE-CODE
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(4) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The cause code from the CEEDAYS feedback token, providing a more specific reason within the class for the date validation condition. Used alongside the class code for detailed diagnostic analysis of date validation failures.</td>
+    </tr>
+    
+    <tr id="var-CASE-SEV-CTL">
+      <td class="var-level">03</td>
+      <td class="var-name">CASE-SEV-CTL
+        
+        
+      </td>
+      <td class="var-pic">PIC X</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A control byte within the CEEDAYS feedback token that governs how the severity of the condition is to be interpreted. This is part of the IBM Language Environment feedback token structure and supports correct classification of the date validation outcome.</td>
+    </tr>
+    
+    <tr id="var-FACILITY-ID">
+      <td class="var-level">03</td>
+      <td class="var-name">FACILITY-ID
+        
+        
+      </td>
+      <td class="var-pic">PIC XXX</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: A three-character identifier within the CEEDAYS feedback token indicating which IBM facility or component generated the condition (e.g., 'CEE' for the IBM Language Environment). This helps operations staff and developers identify the source of a date validation error during incident investigation.</td>
+    </tr>
+    
+    <tr id="var-I-S-INFO">
+      <td class="var-level">02</td>
+      <td class="var-name">I-S-INFO
+        
+        
+      </td>
+      <td class="var-pic">PIC S9(9) BINARY</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: Additional instance-specific information within the CEEDAYS feedback token, providing supplementary detail about the date validation condition. This field supports advanced diagnostic analysis but is not directly used in the primary validation logic.</td>
+    </tr>
+    
+    <tr id="var-LS-DATE">
+      <td class="var-level">01</td>
+      <td class="var-name">LS-DATE
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The date value submitted by the calling program for validation — for example, a transaction date, card expiry date, or account date. This is the primary input to the date validation utility and represents the actual business date that needs to be confirmed as a legitimate calendar date before being accepted by the CardDemo system.</td>
+    </tr>
+    
+    <tr id="var-LS-DATE-FORMAT">
+      <td class="var-level">01</td>
+      <td class="var-name">LS-DATE-FORMAT
+        
+        
+      </td>
+      <td class="var-pic">PIC X(10)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The expected format mask for the date submitted by the calling program (e.g., 'YYYY-MM-DD'). The calling program must always supply this, enforcing the CardDemo business rule that all date validation is strictly format-aware. Without a valid format mask, the date cannot be validated regardless of its content.</td>
+    </tr>
+    
+    <tr id="var-LS-RESULT">
+      <td class="var-level">01</td>
+      <td class="var-name">LS-RESULT
+        
+        
+      </td>
+      <td class="var-pic">PIC X(80)</td>
+      <td class="var-pic">–</td>
+      <td class="var-desc">Business meaning: The human-readable validation outcome message returned to the calling program after the date validation attempt (e.g., 'Date is valid', 'Invalid month', 'Non-numeric data'). This is the primary output of the date validation utility, enabling calling programs to provide precise, meaningful feedback to users or downstream processes about why a date was accepted or rejected.</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  
+
+  <footer>
+    Generated by <code>generate_html.py</code> &middot; Model: gcp/claude-sonnet-4-6 &middot;
+    File: app/cbl/CSUTLDTC.cbl
+  </footer>
+
+</main>
+</body>
+</html>

@@ -203,6 +203,7 @@
       color: var(--cyan);
       font-size: .95rem;
     }
+    .para-card h3 a:hover { text-decoration: underline !important; }
     .para-card p { color: var(--subtext); font-size: .85rem; margin-top: .3rem; line-height: 1.4; }
     .para-card .para-meta { color: var(--comment); font-size: .72rem; margin-top: .3rem; }
 
@@ -367,15 +368,15 @@
   <!-- Header -->
   <div class="prog-header">
     <h1>CBPAUP0C.CBL</h1>
-    <p>Bereinigung abgelaufener, ausstehender Autorisierungsnachrichten aus der Kreditkartenautorisierungsdatenbank durch Löschung veralteter Einträge.</p>
+    <p>Cleanup of expired, outstanding authorization messages from the credit card authorization database by deleting outdated entries.</p>
     
-    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">Das Programm durchläuft alle ausstehenden Autorisierungszusammenfassungen (Pending Authorization Summaries) in der IMS-Datenbank und prüft für jeden zugehörigen Detaileintrag, ob die Autorisierung das konfigurierte Ablaufdatum überschritten hat. Abgelaufene Detaileinträge werden gelöscht, wobei genehmigte und abgelehnte Autorisierungen in den Zählern und Beträgen der Zusammenfassung entsprechend korrigiert werden. Wenn nach der Bereinigung eine Zusammenfassung weder genehmigte noch abgelehnte Autorisierungen enthält, wird auch der übergeordnete Zusammenfassungsdatensatz gelöscht. Der Prozess läuft als nächtlicher oder periodischer Batch-Job mit konfigurierbaren Checkpoint-Intervallen für Restart/Recovery-Fähigkeit.</p>
+    <p style="margin-top:.5rem;color:var(--text);font-size:.9rem;line-height:1.6;">The program iterates through all Pending Authorization Summaries in the IMS database and checks for each associated detail entry whether the authorization has exceeded the configured expiration date. Expired detail entries are deleted, with approved and rejected authorizations corrected accordingly in the summary counters and amounts. If after cleanup a summary contains neither approved nor rejected authorizations, the parent summary record is also deleted. The process runs as a nightly or periodic batch job with configurable checkpoint intervals for restart/recovery capability.</p>
     
     
     <div style="margin-top:1rem;padding:.75rem 1rem;background:var(--bg3);border-radius:.4rem;border-left:3px solid var(--gold);">
       <div style="font-size:.72rem;text-transform:uppercase;color:var(--gold);letter-spacing:.08em;margin-bottom:.4rem;">Business Rules</div>
       <ul style="margin:0;padding-left:1.2rem;color:var(--subtext);font-size:.83rem;line-height:1.6;">
-        <li>Eine ausstehende Autorisierung gilt als abgelaufen, wenn die Differenz zwischen aktuellem Datum und Autorisierungsdatum größer oder gleich dem konfigurierten Ablaufwert (Standard: 5 Tage) ist.</li><li>Beim Löschen eines abgelaufenen Detaileintrags werden die Zähler und Beträge in der übergeordneten Zusammenfassung aktualisiert: genehmigte Einträge (Antwortcode '00') reduzieren den Genehmigungszähler und -betrag, alle anderen Einträge reduzieren den Ablehnungszähler und -betrag.</li><li>Ein Zusammenfassungsdatensatz wird nur dann gelöscht, wenn sowohl der Zähler genehmigter als auch der Zähler abgelehnter Autorisierungen auf null oder kleiner gefallen ist (vollständig bereinigtes Konto).</li><li>Der Batch-Job setzt in konfigurierbaren Intervallen IMS-Checkpoints, um bei einem Programmabbruch einen Neustart ohne Datenverlust oder Doppelverarbeitung zu ermöglichen.</li><li>Wenn der Ablaufparameter nicht numerisch angegeben wird, greift ein Standardwert von 5 Tagen als Sicherheitsnetz.</li><li>Bei jedem Datenbankfehler (Lesen oder Löschen) bricht das Programm kontrolliert mit Return-Code 16 ab, um Dateninkonsistenzen zu verhindern.</li><li>Das Programm gibt am Ende eine vollständige Verarbeitungsstatistik aus (gelesene/gelöschte Summary- und Detail-Datensätze) für Audit- und Monitoring-Zwecke.</li>
+        <li>A pending authorization is considered expired when the difference between the current date and the authorization date is greater than or equal to the configured expiry value (default: 5 days).</li><li>When deleting an expired detail record, the counters and amounts in the parent summary record are updated: approved entries (response code '00') reduce the approval counter and amount, while all other entries reduce the rejection counter and amount.</li><li>A summary record is deleted only when both the approved authorization counter and the rejected authorization counter have dropped to zero or below (fully cleaned-up account).</li><li>The batch job sets IMS checkpoints at configurable intervals to enable a restart without data loss or duplicate processing in the event of a program failure.</li><li>If the expiry parameter is not provided as a numeric value, a default of 5 days is applied as a safety net.</li><li>On any database error (read or delete), the program terminates in a controlled manner with return code 16 to prevent data inconsistencies.</li><li>At the end of processing, the program outputs a complete processing statistics report (summary and detail records read/deleted) for audit and monitoring purposes.</li>
       </ul>
     </div>
     
@@ -385,16 +386,16 @@
       <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">PAUTSUM0</td>
-            <td style="color:var(--subtext);">IMS-Segment: Zusammenfassungsdatensatz ausstehender Autorisierungen je Konto (enthält Zähler und Beträge für genehmigte/abgelehnte Autorisierungen)</td></tr>
+            <td style="color:var(--subtext);">IMS segment: Summary record of pending authorizations per account (contains counters and amounts for approved/declined authorizations)</td></tr>
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">PAUTDTL1</td>
-            <td style="color:var(--subtext);">IMS-Segment: Detaildatensatz einer einzelnen ausstehenden Autorisierung (enthält Datum, Betrag, Antwortcode)</td></tr>
+            <td style="color:var(--subtext);">IMS segment: Detail record of an individual pending authorization (contains date, amount, response code)</td></tr>
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CIPAUSMY</td>
-            <td style="color:var(--subtext);">Copybook: Datenstruktur für den Autorisierungs-Zusammenfassungsdatensatz (Pending Authorization Summary)</td></tr>
+            <td style="color:var(--subtext);">Copybook: Data structure for the authorization summary record (Pending Authorization Summary)</td></tr>
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">CIPAUDTY</td>
-            <td style="color:var(--subtext);">Copybook: Datenstruktur für den Autorisierungs-Detaildatensatz (Pending Authorization Detail)</td></tr>
+            <td style="color:var(--subtext);">Copybook: Data structure for the authorization detail record (Pending Authorization Detail)</td></tr>
         
         <tr><td style="font-family:monospace;color:var(--cyan);padding:.1rem .5rem .1rem 0;white-space:nowrap;">SYSIN</td>
             <td style="color:var(--subtext);">Batch-Eingabeparameter: Ablauftage, Checkpoint-Frequenz, Debug-Flag</td></tr>
@@ -422,105 +423,105 @@
   <div class="section-title">Paragraph Overview</div>
   
   <div class="para-card" id="para-MAIN-PARA">
-    <h3>MAIN-PARA</h3>
-    <p>MAIN-PARA steuert den gesamten Bereinigungsprozess abgelaufener Kreditkartenautorisierungen: Er initialisiert den Job, durchläuft alle Konten mit ausstehenden Autorisierungen, löscht veraltete Einträge und gibt abschließend eine Verarbeitungsstatistik aus.</p>
-    <div class="para-meta">Lines 136–182</div>
+    <h3><a href="#code-para-MAIN-PARA" style="color:inherit;text-decoration:none;">MAIN-PARA</a></h3>
+    <p>MAIN-PARA controls the entire cleanup process for expired credit card authorizations: it initializes the job, iterates through all accounts with outstanding authorizations, deletes outdated entries, and finally outputs a processing summary.</p>
+    <div class="para-meta"><a href="#code-para-MAIN-PARA" style="color:inherit;">Lines 136–182</a></div>
   </div>
   
   <div class="para-card" id="para-1000-INITIALIZE">
-    <h3>1000-INITIALIZE</h3>
-    <p>Initialisiert den Bereinigungslauf, indem das aktuelle Datum ermittelt, die Steuerparameter aus dem Batch-Input geladen und auf gültige Werte geprüft werden – damit der Job mit klar definierten Ablaufregeln startet.</p>
-    <div class="para-meta">Lines 183–211</div>
+    <h3><a href="#code-para-1000-INITIALIZE" style="color:inherit;text-decoration:none;">1000-INITIALIZE</a></h3>
+    <p>Initializes the cleanup run by determining the current date, loading the control parameters from the batch input, and validating them against acceptable values – ensuring the job starts with clearly defined processing rules.</p>
+    <div class="para-meta"><a href="#code-para-1000-INITIALIZE" style="color:inherit;">Lines 183–211</a></div>
   </div>
   
   <div class="para-card" id="para-1000-EXIT">
-    <h3>1000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Paragraphen 1000, der als struktureller Endpunkt für den Initialisierungsbereich des Batch-Jobs dient und die Rückkehr zum aufrufenden Steuerungsablauf signalisiert.</p>
-    <div class="para-meta">Lines 212–215</div>
+    <h3><a href="#code-para-1000-EXIT" style="color:inherit;text-decoration:none;">1000-EXIT</a></h3>
+    <p>Formal exit point of paragraph 1000, which serves as the structural endpoint of the batch job's initialization section and signals the return to the calling control flow.</p>
+    <div class="para-meta"><a href="#code-para-1000-EXIT" style="color:inherit;">Lines 212–215</a></div>
   </div>
   
   <div class="para-card" id="para-2000-FIND-NEXT-AUTH-SUMMARY">
-    <h3>2000-FIND-NEXT-AUTH-SUMMARY</h3>
-    <p>Ruft den nächsten ausstehenden Autorisierungs-Zusammenfassungsdatensatz aus der IMS-Datenbank ab, um das zugehörige Konto auf abgelaufene Autorisierungen zu prüfen. Steuert dabei den Verarbeitungsfortschritt und reagiert auf das Ende des Datenbestands oder Datenbankfehler.</p>
-    <div class="para-meta">Lines 216–242</div>
+    <h3><a href="#code-para-2000-FIND-NEXT-AUTH-SUMMARY" style="color:inherit;text-decoration:none;">2000-FIND-NEXT-AUTH-SUMMARY</a></h3>
+    <p>Retrieves the next pending authorization summary record from the IMS database in order to check the associated account for expired authorizations. Controls processing progress and handles end-of-data conditions or database errors.</p>
+    <div class="para-meta"><a href="#code-para-2000-FIND-NEXT-AUTH-SUMMARY" style="color:inherit;">Lines 216–242</a></div>
   </div>
   
   <div class="para-card" id="para-2000-EXIT">
-    <h3>2000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Verarbeitungsblocks 2000, der den kontrollierten Rücksprung aus der Hauptverarbeitungsschleife der Autorisierungsbereinigung sicherstellt.</p>
-    <div class="para-meta">Lines 243–247</div>
+    <h3><a href="#code-para-2000-EXIT" style="color:inherit;text-decoration:none;">2000-EXIT</a></h3>
+    <p>Formal exit point of processing block 2000, ensuring a controlled return from the main processing loop of the authorization cleanup.</p>
+    <div class="para-meta"><a href="#code-para-2000-EXIT" style="color:inherit;">Lines 243–247</a></div>
   </div>
   
   <div class="para-card" id="para-3000-FIND-NEXT-AUTH-DTL">
-    <h3>3000-FIND-NEXT-AUTH-DTL</h3>
-    <p>Ruft den nächsten ausstehenden Autorisierungs-Detaildatensatz zum aktuellen Konto ab und bewertet, ob weitere Autorisierungen zur Ablaufprüfung vorliegen oder die Verarbeitung des Kontos abgeschlossen ist.</p>
-    <div class="para-meta">Lines 248–272</div>
+    <h3><a href="#code-para-3000-FIND-NEXT-AUTH-DTL" style="color:inherit;text-decoration:none;">3000-FIND-NEXT-AUTH-DTL</a></h3>
+    <p>Retrieves the next pending authorization detail record for the current account and evaluates whether additional authorizations remain for expiry checking or whether processing of the account is complete.</p>
+    <div class="para-meta"><a href="#code-para-3000-FIND-NEXT-AUTH-DTL" style="color:inherit;">Lines 248–272</a></div>
   </div>
   
   <div class="para-card" id="para-3000-EXIT">
-    <h3>3000-EXIT</h3>
-    <p>Formaler Abschlusspunkt der Verarbeitungsschleife über alle Zusammenfassungsdatensätze. Dieser Paragraph dient als struktureller Endpunkt, zu dem nach Abschluss eines Schleifendurchlaufs zurückgekehrt wird.</p>
-    <div class="para-meta">Lines 273–276</div>
+    <h3><a href="#code-para-3000-EXIT" style="color:inherit;text-decoration:none;">3000-EXIT</a></h3>
+    <p>Formal exit point of the processing loop over all summary records. This paragraph serves as the structural endpoint to which control returns after each loop iteration.</p>
+    <div class="para-meta"><a href="#code-para-3000-EXIT" style="color:inherit;">Lines 273–276</a></div>
   </div>
   
   <div class="para-card" id="para-4000-CHECK-IF-EXPIRED">
-    <h3>4000-CHECK-IF-EXPIRED</h3>
-    <p>Prüft, ob eine einzelne ausstehende Autorisierung das konfigurierte Ablaufdatum überschritten hat, und aktualisiert bei Ablauf die Zähler und Beträge im übergeordneten Zusammenfassungsdatensatz des Kontos entsprechend.</p>
-    <div class="para-meta">Lines 277–298</div>
+    <h3><a href="#code-para-4000-CHECK-IF-EXPIRED" style="color:inherit;text-decoration:none;">4000-CHECK-IF-EXPIRED</a></h3>
+    <p>Checks whether an individual pending authorization has exceeded the configured expiry date, and if expired, updates the counters and amounts in the parent summary record of the account accordingly.</p>
+    <div class="para-meta"><a href="#code-para-4000-CHECK-IF-EXPIRED" style="color:inherit;">Lines 277–298</a></div>
   </div>
   
   <div class="para-card" id="para-4000-EXIT">
-    <h3>4000-EXIT</h3>
-    <p>Formaler Abschlusspunkt der Verarbeitungsschleife über die Zusammenfassungsdatensätze. Dient als struktureller Rücksprungpunkt, damit der Batch-Prozess nach jeder Iteration geordnet zur nächsten Zusammenfassung weitergehen kann.</p>
-    <div class="para-meta">Lines 299–302</div>
+    <h3><a href="#code-para-4000-EXIT" style="color:inherit;text-decoration:none;">4000-EXIT</a></h3>
+    <p>Formal exit point of the processing loop over the summary records. Serves as a structural return point so that the batch process can proceed in an orderly manner to the next summary after each iteration.</p>
+    <div class="para-meta"><a href="#code-para-4000-EXIT" style="color:inherit;">Lines 299–302</a></div>
   </div>
   
   <div class="para-card" id="para-5000-DELETE-AUTH-DTL">
-    <h3>5000-DELETE-AUTH-DTL</h3>
-    <p>Löscht einen einzelnen abgelaufenen Autorisierungs-Detaildatensatz physisch aus der IMS-Datenbank und protokolliert den Erfolg oder bricht bei einem Datenbankfehler kontrolliert ab, um Dateninkonsistenzen zu verhindern.</p>
-    <div class="para-meta">Lines 303–323</div>
+    <h3><a href="#code-para-5000-DELETE-AUTH-DTL" style="color:inherit;text-decoration:none;">5000-DELETE-AUTH-DTL</a></h3>
+    <p>Physically deletes a single expired authorization detail record from the IMS database, logs the success, or aborts in a controlled manner upon a database error to prevent data inconsistencies.</p>
+    <div class="para-meta"><a href="#code-para-5000-DELETE-AUTH-DTL" style="color:inherit;">Lines 303–323</a></div>
   </div>
   
   <div class="para-card" id="para-5000-EXIT">
-    <h3>5000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Bereinigungsprozesses für abgelaufene Autorisierungen. Dieser Paragraph dient als struktureller Endpunkt der Programmlogik und ermöglicht eine saubere Rückkehr aus dem Verarbeitungsablauf.</p>
-    <div class="para-meta">Lines 324–327</div>
+    <h3><a href="#code-para-5000-EXIT" style="color:inherit;text-decoration:none;">5000-EXIT</a></h3>
+    <p>Formal exit point of the expired authorization cleanup process. This paragraph serves as the structural endpoint of the program logic and enables a clean return from the processing flow.</p>
+    <div class="para-meta"><a href="#code-para-5000-EXIT" style="color:inherit;">Lines 324–327</a></div>
   </div>
   
   <div class="para-card" id="para-6000-DELETE-AUTH-SUMMARY">
-    <h3>6000-DELETE-AUTH-SUMMARY</h3>
-    <p>Löscht den vollständig bereinigten Zusammenfassungsdatensatz eines Kontos aus der IMS-Datenbank, wenn keine genehmigten oder abgelehnten Autorisierungen mehr vorhanden sind. Dieser Schritt schließt die Kontobereinigung ab und hält die Datenbank frei von veralteten Einträgen.</p>
-    <div class="para-meta">Lines 328–347</div>
+    <h3><a href="#code-para-6000-DELETE-AUTH-SUMMARY" style="color:inherit;text-decoration:none;">6000-DELETE-AUTH-SUMMARY</a></h3>
+    <p>Deletes the fully cleaned-up summary record of an account from the IMS database when no approved or declined authorizations remain. This step completes the account cleanup and keeps the database free of outdated entries.</p>
+    <div class="para-meta"><a href="#code-para-6000-DELETE-AUTH-SUMMARY" style="color:inherit;">Lines 328–347</a></div>
   </div>
   
   <div class="para-card" id="para-6000-EXIT">
-    <h3>6000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Bereinigungsprozesses, der als strukturierter Rücksprungpunkt für den übergeordneten Verarbeitungsablauf dient und die geordnete Beendigung des Batch-Jobs signalisiert.</p>
-    <div class="para-meta">Lines 348–351</div>
+    <h3><a href="#code-para-6000-EXIT" style="color:inherit;text-decoration:none;">6000-EXIT</a></h3>
+    <p>Formal exit point of the cleanup process, serving as a structured return point for the parent processing flow and signaling the orderly termination of the batch job.</p>
+    <div class="para-meta"><a href="#code-para-6000-EXIT" style="color:inherit;">Lines 348–351</a></div>
   </div>
   
   <div class="para-card" id="para-9000-TAKE-CHECKPOINT">
-    <h3>9000-TAKE-CHECKPOINT</h3>
-    <p>Setzt einen IMS-Checkpoint, um den aktuellen Verarbeitungsstand der Bereinigung dauerhaft zu sichern. Damit kann der Batch-Job bei einem Abbruch ohne Datenverlust oder Doppelverarbeitung an diesem Punkt neu gestartet werden.</p>
-    <div class="para-meta">Lines 352–372</div>
+    <h3><a href="#code-para-9000-TAKE-CHECKPOINT" style="color:inherit;text-decoration:none;">9000-TAKE-CHECKPOINT</a></h3>
+    <p>Sets an IMS checkpoint to permanently save the current processing state of the cleanup. This allows the batch job to be restarted at this point without data loss or duplicate processing in the event of an abend.</p>
+    <div class="para-meta"><a href="#code-para-9000-TAKE-CHECKPOINT" style="color:inherit;">Lines 352–372</a></div>
   </div>
   
   <div class="para-card" id="para-9000-EXIT">
-    <h3>9000-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Bereinigungsprogramms, der den geordneten Programmabschluss nach vollständiger Verarbeitung aller ausstehenden Autorisierungen signalisiert.</p>
-    <div class="para-meta">Lines 373–376</div>
+    <h3><a href="#code-para-9000-EXIT" style="color:inherit;text-decoration:none;">9000-EXIT</a></h3>
+    <p>Formal exit point of the cleanup program, signaling the orderly program completion after all pending authorizations have been fully processed.</p>
+    <div class="para-meta"><a href="#code-para-9000-EXIT" style="color:inherit;">Lines 373–376</a></div>
   </div>
   
   <div class="para-card" id="para-9999-ABEND">
-    <h3>9999-ABEND</h3>
-    <p>Dieser Paragraph steuert den kontrollierten Notabbruch des Bereinigungsjobs bei kritischen Datenbankfehlern. Er signalisiert dem übergeordneten Job-Scheduler einen schwerwiegenden Fehler, um Dateninkonsistenzen in der Kreditkartenautorisierungsdatenbank zu verhindern.</p>
-    <div class="para-meta">Lines 377–384</div>
+    <h3><a href="#code-para-9999-ABEND" style="color:inherit;text-decoration:none;">9999-ABEND</a></h3>
+    <p>This paragraph controls the controlled emergency abort of the cleanup job in the event of critical database errors. It signals a severe error to the parent job scheduler to prevent data inconsistencies in the credit card authorization database.</p>
+    <div class="para-meta"><a href="#code-para-9999-ABEND" style="color:inherit;">Lines 377–384</a></div>
   </div>
   
   <div class="para-card" id="para-9999-EXIT">
-    <h3>9999-EXIT</h3>
-    <p>Formaler Abschlusspunkt des Programms, der als strukturierter Rücksprungpunkt für den gesamten Bereinigungsprozess dient. Er markiert das reguläre Ende der Verarbeitung nach vollständiger Bereinigung aller abgelaufenen Autorisierungen.</p>
-    <div class="para-meta">Lines 385–386</div>
+    <h3><a href="#code-para-9999-EXIT" style="color:inherit;text-decoration:none;">9999-EXIT</a></h3>
+    <p>Formal exit point of the program, serving as a structured return point for the entire cleanup process. It marks the regular end of processing after all expired authorizations have been fully cleaned up.</p>
+    <div class="para-meta"><a href="#code-para-9999-EXIT" style="color:inherit;">Lines 385–386</a></div>
   </div>
   
   
@@ -1479,7 +1480,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">136</td>
       <td class="code-cell t-paragraph-header">       MAIN-PARA.</td>
-      <td class="expl-cell">MAIN-PARA steuert den gesamten Bereinigungsprozess abgelaufener Kreditkartenautorisierungen: Er initialisiert den Job, durchläuft alle Konten mit ausstehenden Autorisierungen, löscht veraltete Einträge und gibt abschließend eine Verarbeitungsstatistik aus.</td>
+      <td class="expl-cell">MAIN-PARA controls the entire cleanup process for expired credit card authorizations: it initializes the job, iterates through all accounts with outstanding authorizations, deletes outdated entries, and finally outputs a processing statistics report.</td>
     </tr>
     
     <tr class="comment"
@@ -1493,7 +1494,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">138</td>
       <td class="code-cell t-statement">           PERFORM 1000-INITIALIZE                THRU 1000-EXIT</td>
-      <td class="expl-cell">Initialisiert den Batch-Job: Liest Eingabeparameter (Ablauftage, Checkpoint-Frequenz), setzt Zähler zurück und bereitet die IMS-Datenbankverbindung vor.</td>
+      <td class="expl-cell">Initializes the batch job: reads input parameters (expiry days, checkpoint frequency), resets counters, and prepares the IMS database connection.</td>
     </tr>
     
     <tr class="comment"
@@ -1507,7 +1508,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">140</td>
       <td class="code-cell t-statement">           PERFORM 2000-FIND-NEXT-AUTH-SUMMARY    THRU 2000-EXIT</td>
-      <td class="expl-cell">Lädt den ersten ausstehenden Autorisierungs-Zusammenfassungsdatensatz aus der Datenbank, um die Kontenverarbeitung zu starten.</td>
+      <td class="expl-cell">Loads the first outstanding authorization summary record from the database to begin account processing.</td>
     </tr>
     
     <tr class="empty"
@@ -1521,7 +1522,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">142</td>
       <td class="code-cell t-statement">           PERFORM UNTIL ERR-FLG-ON OR END-OF-AUTHDB</td>
-      <td class="expl-cell">Verarbeitungsschleife über alle Konten mit ausstehenden Autorisierungen – läuft solange, bis alle Konten geprüft wurden oder ein Datenbankfehler die Verarbeitung abbricht.</td>
+      <td class="expl-cell">Processing loop over all accounts with outstanding authorizations – runs until all accounts have been checked or a database error aborts processing.</td>
     </tr>
     
     <tr class="empty"
@@ -1535,7 +1536,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">144</td>
       <td class="code-cell t-statement">              PERFORM 3000-FIND-NEXT-AUTH-DTL     THRU 3000-EXIT</td>
-      <td class="expl-cell">Lädt den ersten Detaildatensatz (einzelne ausstehende Autorisierung) zum aktuell verarbeiteten Konto.</td>
+      <td class="expl-cell">Loads the first detail record (individual outstanding authorization) for the account currently being processed.</td>
     </tr>
     
     <tr class="empty"
@@ -1549,14 +1550,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">146</td>
       <td class="code-cell t-statement">              PERFORM UNTIL NO-MORE-AUTHS</td>
-      <td class="expl-cell">Innere Schleife über alle Einzel-Autorisierungen des aktuellen Kontos – prüft jeden Eintrag auf Ablauf.</td>
+      <td class="expl-cell">Inner loop over all individual authorizations for the current account – checks each entry for expiry.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">147</td>
       <td class="code-cell t-statement">                 PERFORM 4000-CHECK-IF-EXPIRED    THRU 4000-EXIT</td>
-      <td class="expl-cell">Prüft, ob die aktuelle Einzel-Autorisierung das konfigurierte Ablaufdatum überschritten hat und markiert sie ggf. zur Löschung.</td>
+      <td class="expl-cell">Checks whether the current individual authorization has exceeded the configured expiry date and flags it for deletion if applicable.</td>
     </tr>
     
     <tr class="empty"
@@ -1570,14 +1571,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">149</td>
       <td class="code-cell t-statement">                 IF QUALIFIED-FOR-DELETE</td>
-      <td class="expl-cell">Entscheidet, ob die geprüfte Autorisierung als abgelaufen eingestuft wurde und gelöscht werden muss.</td>
+      <td class="expl-cell">Determines whether the checked authorization has been classified as expired and must be deleted.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">150</td>
       <td class="code-cell t-statement">                    PERFORM 5000-DELETE-AUTH-DTL  THRU 5000-EXIT</td>
-      <td class="expl-cell">Löscht den abgelaufenen Autorisierungs-Detaildatensatz und aktualisiert die Zähler und Beträge (genehmigt/abgelehnt) im übergeordneten Zusammenfassungsdatensatz des Kontos.</td>
+      <td class="expl-cell">Deletes the expired authorization detail record and updates the counters and amounts (approved/declined) in the parent summary record of the account.</td>
     </tr>
     
     <tr class="statement"
@@ -1598,7 +1599,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">153</td>
       <td class="code-cell t-statement">                 PERFORM 3000-FIND-NEXT-AUTH-DTL  THRU 3000-EXIT</td>
-      <td class="expl-cell">Lädt die nächste Einzel-Autorisierung des aktuellen Kontos für die weitere Ablaufprüfung.</td>
+      <td class="expl-cell">Loads the next individual authorization for the current account for further expiry checking.</td>
     </tr>
     
     <tr class="statement"
@@ -1619,14 +1620,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">156</td>
       <td class="code-cell t-statement">              IF PA-APPROVED-AUTH-CNT <= 0 AND PA-APPROVED-AUTH-CNT <= 0</td>
-      <td class="expl-cell">Prüft nach Abschluss aller Detailprüfungen, ob das Konto keine genehmigten und keine abgelehnten Autorisierungen mehr enthält (vollständig bereinigt).</td>
+      <td class="expl-cell">After all detail checks are complete, verifies whether the account contains no more approved and no more declined authorizations (fully cleaned up).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">157</td>
       <td class="code-cell t-statement">                 PERFORM 6000-DELETE-AUTH-SUMMARY THRU 6000-EXIT</td>
-      <td class="expl-cell">Löscht den Zusammenfassungsdatensatz des Kontos, da nach der Bereinigung keine ausstehenden Autorisierungen mehr vorhanden sind.</td>
+      <td class="expl-cell">Deletes the account summary record, as no outstanding authorizations remain after the cleanup.</td>
     </tr>
     
     <tr class="statement"
@@ -1647,14 +1648,14 @@
         id="code-para-MAIN-PARA">
       <td class="ln">160</td>
       <td class="code-cell t-statement">              IF WS-AUTH-SMRY-PROC-CNT > P-CHKP-FREQ</td>
-      <td class="expl-cell">Prüft, ob die konfigurierte Anzahl verarbeiteter Konten seit dem letzten Checkpoint erreicht wurde, um die Restart/Recovery-Sicherung auszulösen.</td>
+      <td class="expl-cell">Checks whether the configured number of processed accounts since the last checkpoint has been reached, in order to trigger the restart/recovery save.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">161</td>
       <td class="code-cell t-statement">                 PERFORM 9000-TAKE-CHECKPOINT     THRU 9000-EXIT</td>
-      <td class="expl-cell">Setzt einen IMS-Checkpoint, der den aktuellen Verarbeitungsstand sichert und bei einem Programmabbruch einen verlustfreien Neustart ermöglicht.</td>
+      <td class="expl-cell">Sets an IMS checkpoint that saves the current processing state and enables a lossless restart in the event of a program abort.</td>
     </tr>
     
     <tr class="empty"
@@ -1668,7 +1669,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">163</td>
       <td class="code-cell t-statement">                 MOVE 0                         TO WS-AUTH-SMRY-PROC-CNT</td>
-      <td class="expl-cell">Setzt den Zähler der seit dem letzten Checkpoint verarbeiteten Konten zurück, um das nächste Checkpoint-Intervall korrekt zu messen.</td>
+      <td class="expl-cell">Resets the counter of accounts processed since the last checkpoint in order to correctly measure the next checkpoint interval.</td>
     </tr>
     
     <tr class="statement"
@@ -1682,7 +1683,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">165</td>
       <td class="code-cell t-statement">              PERFORM 2000-FIND-NEXT-AUTH-SUMMARY THRU 2000-EXIT</td>
-      <td class="expl-cell">Lädt den nächsten Konten-Zusammenfassungsdatensatz aus der Datenbank, um mit der Bereinigung des folgenden Kontos fortzufahren.</td>
+      <td class="expl-cell">Loads the next account summary record from the database to continue with the cleanup of the following account.</td>
     </tr>
     
     <tr class="empty"
@@ -1710,7 +1711,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">169</td>
       <td class="code-cell t-statement">           PERFORM 9000-TAKE-CHECKPOINT           THRU 9000-EXIT</td>
-      <td class="expl-cell">Setzt nach Abschluss der gesamten Verarbeitung einen abschließenden IMS-Checkpoint, um den finalen Verarbeitungsstand dauerhaft zu sichern.</td>
+      <td class="expl-cell">Sets a final IMS checkpoint after all processing is complete, to permanently save the final processing state.</td>
     </tr>
     
     <tr class="comment"
@@ -1724,56 +1725,56 @@
         id="code-para-MAIN-PARA">
       <td class="ln">171</td>
       <td class="code-cell t-statement">           DISPLAY ' '</td>
-      <td class="expl-cell">Beginnt die Ausgabe der Abschlussstatistik mit einer Leerzeile zur optischen Trennung im Job-Protokoll.</td>
+      <td class="expl-cell">Begins the output of the final statistics with a blank line for visual separation in the job log.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">172</td>
       <td class="code-cell t-statement">           DISPLAY '*-------------------------------------*'</td>
-      <td class="expl-cell">Gibt den Rahmen der Verarbeitungsstatistik im Job-Protokoll aus.</td>
+      <td class="expl-cell">Outputs the header of the processing statistics in the job log.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">173</td>
       <td class="code-cell t-statement">           DISPLAY '# TOTAL SUMMARY READ  :' WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Gibt die Gesamtanzahl der gelesenen Konten-Zusammenfassungsdatensätze für Audit- und Monitoring-Zwecke aus.</td>
+      <td class="expl-cell">Outputs the total number of account summary records read, for audit and monitoring purposes.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">174</td>
       <td class="code-cell t-statement">           DISPLAY '# SUMMARY REC DELETED :' WS-NO-SUMRY-DELETED</td>
-      <td class="expl-cell">Gibt die Anzahl der gelöschten Konten-Zusammenfassungsdatensätze (vollständig bereinigte Konten) für Audit-Zwecke aus.</td>
+      <td class="expl-cell">Outputs the number of deleted account summary records (fully cleaned-up accounts) for audit purposes.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">175</td>
       <td class="code-cell t-statement">           DISPLAY '# TOTAL DETAILS READ  :' WS-NO-DTL-READ</td>
-      <td class="expl-cell">Gibt die Gesamtanzahl der gelesenen Einzel-Autorisierungsdatensätze für Audit- und Monitoring-Zwecke aus.</td>
+      <td class="expl-cell">Outputs the total number of individual authorization records read, for audit and monitoring purposes.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">176</td>
       <td class="code-cell t-statement">           DISPLAY '# DETAILS REC DELETED :' WS-NO-DTL-DELETED</td>
-      <td class="expl-cell">Gibt die Anzahl der gelöschten abgelaufenen Einzel-Autorisierungsdatensätze für Audit-Zwecke aus.</td>
+      <td class="expl-cell">Outputs the number of deleted expired individual authorization records for audit purposes.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">177</td>
       <td class="code-cell t-statement">           DISPLAY '*-------------------------------------*'</td>
-      <td class="expl-cell">Schließt den Rahmen der Verarbeitungsstatistik im Job-Protokoll ab.</td>
+      <td class="expl-cell">Outputs the closing line of the processing statistics in the job log.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-MAIN-PARA">
       <td class="ln">178</td>
       <td class="code-cell t-statement">           DISPLAY ' '</td>
-      <td class="expl-cell">Gibt eine abschließende Leerzeile zur optischen Trennung im Job-Protokoll aus.</td>
+      <td class="expl-cell">Outputs a final blank line for visual separation in the job log.</td>
     </tr>
     
     <tr class="comment"
@@ -1787,7 +1788,7 @@
         id="code-para-MAIN-PARA">
       <td class="ln">180</td>
       <td class="code-cell t-statement">           GOBACK.</td>
-      <td class="expl-cell">Beendet den Batch-Job geordnet und gibt die Kontrolle an den aufrufenden Job-Scheduler zurück.</td>
+      <td class="expl-cell">Terminates the batch job in an orderly manner and returns control to the calling job scheduler.</td>
     </tr>
     
     <tr class="comment"
@@ -1808,7 +1809,7 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">183</td>
       <td class="code-cell t-paragraph-header">       1000-INITIALIZE.</td>
-      <td class="expl-cell">Initialisiert den Bereinigungslauf, indem das aktuelle Datum ermittelt, die Steuerparameter aus dem Batch-Input geladen und auf gültige Werte geprüft werden – damit der Job mit klar definierten Ablaufregeln startet.</td>
+      <td class="expl-cell">Initializes the cleanup run by determining the current date, loading the control parameters from the batch input, and validating them for correct values – so that the job starts with clearly defined processing rules.</td>
     </tr>
     
     <tr class="comment"
@@ -1829,14 +1830,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">186</td>
       <td class="code-cell t-statement">           ACCEPT CURRENT-DATE     FROM DATE</td>
-      <td class="expl-cell">Ermittelt das aktuelle Tagesdatum als Referenzpunkt für die spätere Berechnung, ob eine Autorisierung abgelaufen ist.</td>
+      <td class="expl-cell">Determines the current calendar date as the reference point for subsequently calculating whether an authorization has expired.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">187</td>
       <td class="code-cell t-statement">           ACCEPT CURRENT-YYDDD    FROM DAY</td>
-      <td class="expl-cell">Ermittelt das aktuelle Datum im Julianischen Format (YYDDD) als zweites Datumsformat für die Altersberechnung der Autorisierungen.</td>
+      <td class="expl-cell">Determines the current date in Julian format (YYDDD) as a second date format for calculating the age of authorizations.</td>
     </tr>
     
     <tr class="empty"
@@ -1850,42 +1851,42 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">189</td>
       <td class="code-cell t-statement">           ACCEPT PRM-INFO FROM SYSIN</td>
-      <td class="expl-cell">Liest die Steuerparameter des Batch-Jobs ein: Ablauftage-Schwelle, Checkpoint-Frequenz und Debug-Modus.</td>
+      <td class="expl-cell">Reads the batch job control parameters: expiry days threshold, checkpoint frequency, and debug mode.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">190</td>
       <td class="code-cell t-statement">           DISPLAY 'STARTING PROGRAM CBPAUP0C::'</td>
-      <td class="expl-cell">Protokolliert den Programmstart in der Job-Ausgabe für Monitoring und Nachvollziehbarkeit des Batch-Laufs.</td>
+      <td class="expl-cell">Logs the program start in the job output for monitoring and traceability of the batch run.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">191</td>
       <td class="code-cell t-statement">           DISPLAY '*-------------------------------------*'</td>
-      <td class="expl-cell">Gibt eine optische Trennlinie in der Job-Ausgabe aus zur besseren Lesbarkeit des Protokolls.</td>
+      <td class="expl-cell">Outputs a visual separator line in the job output to improve log readability.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">192</td>
       <td class="code-cell t-statement">           DISPLAY 'CBPAUP0C PARM RECEIVED :' PRM-INFO</td>
-      <td class="expl-cell">Protokolliert die empfangenen Steuerparameter, damit im Fehlerfall nachvollziehbar ist, mit welchen Einstellungen der Job gestartet wurde.</td>
+      <td class="expl-cell">Logs the received control parameters so that, in the event of an error, it is traceable with which settings the job was started.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">193</td>
       <td class="code-cell t-statement">           DISPLAY 'TODAYS DATE            :' CURRENT-YYDDD</td>
-      <td class="expl-cell">Protokolliert das aktuelle Verarbeitungsdatum, das als Basis für alle Ablaufprüfungen der Autorisierungen dient.</td>
+      <td class="expl-cell">Logs the current processing date, which serves as the basis for all expiry checks of the authorizations.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">194</td>
       <td class="code-cell t-statement">           DISPLAY ' '</td>
-      <td class="expl-cell">Gibt eine Leerzeile in der Job-Ausgabe aus zur besseren Lesbarkeit des Protokolls.</td>
+      <td class="expl-cell">Outputs a blank line in the job output to improve log readability.</td>
     </tr>
     
     <tr class="empty"
@@ -1899,14 +1900,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">196</td>
       <td class="code-cell t-statement">           IF P-EXPIRY-DAYS IS NUMERIC</td>
-      <td class="expl-cell">Prüft, ob der übergebene Ablaufparameter einen gültigen numerischen Wert enthält und damit als Ablaufschwelle verwendbar ist.</td>
+      <td class="expl-cell">Checks whether the passed expiry parameter contains a valid numeric value and can therefore be used as the expiry threshold.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">197</td>
       <td class="code-cell t-statement">              MOVE P-EXPIRY-DAYS     TO WS-EXPIRY-DAYS</td>
-      <td class="expl-cell">Übernimmt die konfigurierte Anzahl Ablauftage aus dem Batch-Parameter als aktive Schwelle für die Bereinigung.</td>
+      <td class="expl-cell">Adopts the configured number of expiry days from the batch parameter as the active threshold for the cleanup.</td>
     </tr>
     
     <tr class="statement"
@@ -1920,7 +1921,7 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">199</td>
       <td class="code-cell t-statement">              MOVE 5                 TO WS-EXPIRY-DAYS</td>
-      <td class="expl-cell">Setzt den Standardwert von 5 Tagen als Ablaufschwelle, falls kein gültiger numerischer Parameter übergeben wurde – Sicherheitsnetz gegen Fehlkonfiguration.</td>
+      <td class="expl-cell">Sets the default value of 5 days as the expiry threshold if no valid numeric parameter was passed – a safety net against misconfiguration.</td>
     </tr>
     
     <tr class="statement"
@@ -1934,14 +1935,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">201</td>
       <td class="code-cell t-statement">           IF P-CHKP-FREQ = SPACES OR 0 OR LOW-VALUES</td>
-      <td class="expl-cell">Prüft, ob die Checkpoint-Frequenz im Batch-Parameter fehlt oder ungültig ist, um einen unkontrollierten Lauf ohne Restart-Fähigkeit zu verhindern.</td>
+      <td class="expl-cell">Checks whether the checkpoint frequency in the batch parameter is missing or invalid, in order to prevent an uncontrolled run without restart capability.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">202</td>
       <td class="code-cell t-statement">              MOVE 5                 TO P-CHKP-FREQ</td>
-      <td class="expl-cell">Setzt die Checkpoint-Frequenz auf den Standardwert von 5 Zusammenfassungen, damit der Job bei Abbruch sicher neu gestartet werden kann.</td>
+      <td class="expl-cell">Sets the checkpoint frequency to the default value of 5 summaries, so that the job can be safely restarted in the event of an abort.</td>
     </tr>
     
     <tr class="statement"
@@ -1955,14 +1956,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">204</td>
       <td class="code-cell t-statement">           IF P-CHKP-DIS-FREQ = SPACES OR 0 OR LOW-VALUES</td>
-      <td class="expl-cell">Prüft, ob die Anzeigefrequenz für Checkpoint-Meldungen im Protokoll fehlt oder ungültig angegeben wurde.</td>
+      <td class="expl-cell">Checks whether the display frequency for checkpoint messages in the log is missing or has been specified incorrectly.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">205</td>
       <td class="code-cell t-statement">              MOVE 10                TO P-CHKP-DIS-FREQ</td>
-      <td class="expl-cell">Setzt die Anzeigefrequenz für Checkpoint-Protokollmeldungen auf den Standardwert von 10, um eine regelmäßige Fortschrittsanzeige im Job-Log sicherzustellen.</td>
+      <td class="expl-cell">Sets the display frequency for checkpoint log messages to the default value of 10, to ensure regular progress reporting in the job log.</td>
     </tr>
     
     <tr class="statement"
@@ -1976,14 +1977,14 @@
         id="code-para-1000-INITIALIZE">
       <td class="ln">207</td>
       <td class="code-cell t-statement">           IF P-DEBUG-FLAG NOT = 'Y'</td>
-      <td class="expl-cell">Prüft, ob der Debug-Modus explizit aktiviert wurde, um erweiterte Protokollierung während der Verarbeitung zu steuern.</td>
+      <td class="expl-cell">Checks whether debug mode has been explicitly activated, in order to control extended logging during processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-INITIALIZE">
       <td class="ln">208</td>
       <td class="code-cell t-statement">              MOVE 'N'               TO P-DEBUG-FLAG</td>
-      <td class="expl-cell">Deaktiviert den Debug-Modus explizit, falls er nicht korrekt gesetzt wurde – verhindert ungewollte Protokollflut im Produktionsbetrieb.</td>
+      <td class="expl-cell">Explicitly deactivates debug mode if it has not been set correctly – prevents unwanted log flooding in production operation.</td>
     </tr>
     
     <tr class="statement"
@@ -2011,14 +2012,14 @@
         id="code-para-1000-EXIT">
       <td class="ln">212</td>
       <td class="code-cell t-paragraph-header">       1000-EXIT.</td>
-      <td class="expl-cell">Markiert das Ende des Initialisierungsbereichs (1000er-Block) des Bereinigungsjobs.</td>
+      <td class="expl-cell">Marks the end of the initialization section (1000-block) of the cleanup job.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-1000-EXIT">
       <td class="ln">213</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Gibt die Programmsteuerung an den übergeordneten Verarbeitungsablauf zurück, damit die eigentliche Bereinigung abgelaufener Autorisierungen beginnen kann.</td>
+      <td class="expl-cell">Returns program control to the parent processing flow so that the actual cleanup of expired authorizations can begin.</td>
     </tr>
     
     <tr class="comment"
@@ -2032,14 +2033,14 @@
         id="code-para-1000-EXIT">
       <td class="ln">215</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
-      <td class="expl-cell">Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Job.</td>
+      <td class="expl-cell">Separator line for structural delimitation of the next processing section in the batch job.</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">216</td>
       <td class="code-cell t-paragraph-header">       2000-FIND-NEXT-AUTH-SUMMARY.</td>
-      <td class="expl-cell">Einstiegspunkt: Nächsten Konto-Zusammenfassungsdatensatz aus der Autorisierungsdatenbank laden</td>
+      <td class="expl-cell">Entry point: load the next account summary record from the authorization database.</td>
     </tr>
     
     <tr class="comment"
@@ -2067,7 +2068,7 @@
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">220</td>
       <td class="code-cell t-statement">               DISPLAY 'DEBUG: AUTH SMRY READ : ' WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Gibt die Anzahl bisher verarbeiteter Autorisierungs-Zusammenfassungen auf dem Systemprotokoll aus</td>
+      <td class="expl-cell">Outputs the number of authorization summaries processed so far to the system log.</td>
     </tr>
     
     <tr class="statement"
@@ -2088,21 +2089,21 @@
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">223</td>
       <td class="code-cell t-statement">            EXEC DLI GN USING PCB(PAUT-PCB-NUM)</td>
-      <td class="expl-cell">Liest den nächsten Konto-Zusammenfassungsdatensatz (PAUTSUM0) sequenziell aus der IMS-Autorisierungsdatenbank</td>
+      <td class="expl-cell">Reads the next account summary record (PAUTSUM0) sequentially from the IMS authorization database.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">224</td>
       <td class="code-cell t-statement">                 SEGMENT (PAUTSUM0)</td>
-      <td class="expl-cell">Zielt auf das IMS-Segment PAUTSUM0, das die Zusammenfassung ausstehender Autorisierungen je Konto enthält</td>
+      <td class="expl-cell">Targets the IMS segment PAUTSUM0, which contains the summary of outstanding authorizations per account.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">225</td>
       <td class="code-cell t-statement">                 INTO (PENDING-AUTH-SUMMARY)</td>
-      <td class="expl-cell">Überträgt den gelesenen Zusammenfassungsdatensatz in den Arbeitsbereich für die anschließende Ablaufprüfung</td>
+      <td class="expl-cell">Transfers the read summary record into the working area for the subsequent expiry check.</td>
     </tr>
     
     <tr class="statement"
@@ -2123,91 +2124,91 @@
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">228</td>
       <td class="code-cell t-statement">            EVALUATE DIBSTAT</td>
-      <td class="expl-cell">Wertet das Ergebnis des Datenbankzugriffs aus, um Erfolg, Datenbankende oder Fehler zu unterscheiden</td>
+      <td class="expl-cell">Evaluates the result of the database access to distinguish between success, end of database, and error.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">229</td>
       <td class="code-cell t-statement">               WHEN '  '</td>
-      <td class="expl-cell">Erfolgsfall: Der Datenbankzugriff hat einen gültigen Zusammenfassungsdatensatz geliefert</td>
+      <td class="expl-cell">Success case: the database access has returned a valid summary record.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">230</td>
       <td class="code-cell t-statement">                    SET NOT-END-OF-AUTHDB TO TRUE</td>
-      <td class="expl-cell">Signalisiert, dass noch weitere Konten mit ausstehenden Autorisierungen zu verarbeiten sind (kein Datenbankende)</td>
+      <td class="expl-cell">Signals that there are further accounts with outstanding authorizations to be processed (no end of database).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">231</td>
       <td class="code-cell t-statement">                    ADD 1                 TO WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Erhöht den Audit-Zähler für gelesene Zusammenfassungsdatensätze um eins (für Verarbeitungsstatistik)</td>
+      <td class="expl-cell">Increments the audit counter for read summary records by one (for processing statistics).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">232</td>
       <td class="code-cell t-statement">                    ADD 1                 TO WS-AUTH-SMRY-PROC-CNT</td>
-      <td class="expl-cell">Erhöht den internen Verarbeitungszähler, der die Checkpoint-Frequenz für den IMS Restart/Recovery-Mechanismus steuert</td>
+      <td class="expl-cell">Increments the internal processing counter that controls the checkpoint frequency for the IMS restart/recovery mechanism.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">233</td>
       <td class="code-cell t-statement">                    MOVE PA-ACCT-ID       TO WS-CURR-APP-ID</td>
-      <td class="expl-cell">Merkt sich die Kontonummer des aktuell verarbeiteten Datensatzes als Referenz für die nachfolgende Detailverarbeitung</td>
+      <td class="expl-cell">Saves the account number of the currently processed record as a reference for subsequent detail processing.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">234</td>
       <td class="code-cell t-statement">               WHEN 'GB'</td>
-      <td class="expl-cell">Statuscode 'GB': Die IMS-Datenbank enthält keine weiteren Zusammenfassungsdatensätze – alle Konten wurden durchlaufen</td>
+      <td class="expl-cell">Status code 'GB': the IMS database contains no further summary records – all accounts have been iterated.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">235</td>
       <td class="code-cell t-statement">                    SET END-OF-AUTHDB     TO TRUE</td>
-      <td class="expl-cell">Setzt das Datenbankende-Kennzeichen, damit der Batch-Job die Verarbeitungsschleife ordnungsgemäß beendet</td>
+      <td class="expl-cell">Sets the end-of-database flag so that the batch job terminates the processing loop in an orderly manner.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">236</td>
       <td class="code-cell t-statement">               WHEN OTHER</td>
-      <td class="expl-cell">Jeder andere Statuscode weist auf einen unerwarteten Datenbankfehler beim Lesen hin</td>
+      <td class="expl-cell">Any other status code indicates an unexpected database error during read</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">237</td>
       <td class="code-cell t-statement">                    DISPLAY 'AUTH SUMMARY READ FAILED  :' DIBSTAT</td>
-      <td class="expl-cell">Protokolliert den fehlerhaften IMS-Statuscode zur Fehleranalyse, bevor das Programm kontrolliert abbricht</td>
+      <td class="expl-cell">Logs the erroneous IMS status code for error analysis before the program terminates in a controlled manner</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">238</td>
       <td class="code-cell t-statement">                    DISPLAY 'SUMMARY READ BEFORE ABEND :'</td>
-      <td class="expl-cell">Protokolliert die Anzahl bisher erfolgreich gelesener Zusammenfassungen als Diagnoseinformation vor dem Abbruch</td>
+      <td class="expl-cell">Logs the number of summaries successfully read so far as diagnostic information before the abend</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">239</td>
       <td class="code-cell t-statement">                                                        WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Gibt die Anzahl der bis zum Fehler verarbeiteten Zusammenfassungsdatensätze für die Fehleranalyse aus</td>
+      <td class="expl-cell">Outputs the number of summary records processed up to the point of failure for error analysis</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-FIND-NEXT-AUTH-SUMMARY">
       <td class="ln">240</td>
       <td class="code-cell t-statement">                    PERFORM 9999-ABEND</td>
-      <td class="expl-cell">Leitet den kontrollierten Programmabbruch mit Return-Code 16 ein, um Dateninkonsistenzen in der Autorisierungsdatenbank zu verhindern</td>
+      <td class="expl-cell">Initiates a controlled program abend with return code 16 to prevent data inconsistencies in the authorization database</td>
     </tr>
     
     <tr class="statement"
@@ -2228,14 +2229,14 @@
         id="code-para-2000-EXIT">
       <td class="ln">243</td>
       <td class="code-cell t-paragraph-header">       2000-EXIT.</td>
-      <td class="expl-cell">Markiert den Austrittspunkt des Hauptverarbeitungsblocks, der die Bereinigung abgelaufener Autorisierungseinträge durchführt.</td>
+      <td class="expl-cell">Marks the exit point of the main processing block that performs the cleanup of expired authorization entries</td>
     </tr>
     
     <tr class="statement"
         id="code-para-2000-EXIT">
       <td class="ln">244</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Beendet den Verarbeitungsblock geordnet und gibt die Kontrolle an den übergeordneten Steuerungsablauf des Batch-Jobs zurück.</td>
+      <td class="expl-cell">Terminates the processing block in an orderly manner and returns control to the higher-level control flow of the batch job</td>
     </tr>
     
     <tr class="comment"
@@ -2256,14 +2257,14 @@
         id="code-para-2000-EXIT">
       <td class="ln">247</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
-      <td class="expl-cell">Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Bereinigungsprozess.</td>
+      <td class="expl-cell">Separator line for structural delimitation of the next processing section in the cleanup process</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">248</td>
       <td class="code-cell t-paragraph-header">       3000-FIND-NEXT-AUTH-DTL.</td>
-      <td class="expl-cell">Einstiegspunkt: Nächsten Autorisierungs-Detaildatensatz zum aktuellen Konto abrufen</td>
+      <td class="expl-cell">Entry point: Retrieve the next authorization detail record for the current account</td>
     </tr>
     
     <tr class="comment"
@@ -2284,14 +2285,14 @@
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">251</td>
       <td class="code-cell t-statement">            IF DEBUG-ON</td>
-      <td class="expl-cell">Im Debug-Modus: Protokollierung der bisherigen Anzahl gelesener Detaildatensätze zur Laufzeitverfolgung</td>
+      <td class="expl-cell">In debug mode: Logging the current number of detail records read so far for runtime tracing</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">252</td>
       <td class="code-cell t-statement">               DISPLAY 'DEBUG: AUTH DTL READ : ' WS-NO-DTL-READ</td>
-      <td class="expl-cell">Gibt die aktuelle Anzahl bereits gelesener Autorisierungs-Detaildatensätze zur Diagnose auf der Konsole aus</td>
+      <td class="expl-cell">Outputs the current number of authorization detail records already read to the console for diagnostic purposes</td>
     </tr>
     
     <tr class="statement"
@@ -2312,21 +2313,21 @@
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">255</td>
       <td class="code-cell t-statement">            EXEC DLI GNP USING PCB(PAUT-PCB-NUM)</td>
-      <td class="expl-cell">Liest den nächsten Autorisierungs-Detaildatensatz (PAUTDTL1) unterhalb des aktuellen Kontos aus der IMS-Datenbank</td>
+      <td class="expl-cell">Reads the next authorization detail record (PAUTDTL1) below the current account from the IMS database</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">256</td>
       <td class="code-cell t-statement">                 SEGMENT (PAUTDTL1)</td>
-      <td class="expl-cell">Zielt auf das IMS-Segment PAUTDTL1, das die Einzeldaten einer ausstehenden Autorisierung enthält</td>
+      <td class="expl-cell">Targets the IMS segment PAUTDTL1, which contains the individual data of a pending authorization</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">257</td>
       <td class="code-cell t-statement">                 INTO (PENDING-AUTH-DETAILS)</td>
-      <td class="expl-cell">Lädt die gelesenen Autorisierungsdetails (Datum, Betrag, Antwortcode) in den Arbeitsbereich zur weiteren Ablaufprüfung</td>
+      <td class="expl-cell">Loads the read authorization details (date, amount, response code) into the work area for further processing checks</td>
     </tr>
     
     <tr class="statement"
@@ -2340,49 +2341,49 @@
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">259</td>
       <td class="code-cell t-statement">            EVALUATE DIBSTAT</td>
-      <td class="expl-cell">Wertet das Ergebnis des Datenbankzugriffs aus, um den weiteren Verarbeitungsweg zu bestimmen</td>
+      <td class="expl-cell">Evaluates the result of the database access to determine the further processing path</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">260</td>
       <td class="code-cell t-statement">               WHEN '  '</td>
-      <td class="expl-cell">Statuscode leer: Der Datenbankzugriff war erfolgreich und ein weiterer Detaildatensatz wurde gefunden</td>
+      <td class="expl-cell">Status code blank: The database access was successful and another detail record was found</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">261</td>
       <td class="code-cell t-statement">                    SET MORE-AUTHS       TO TRUE</td>
-      <td class="expl-cell">Signalisiert, dass weitere ausstehende Autorisierungen für dieses Konto vorhanden und zu prüfen sind</td>
+      <td class="expl-cell">Signals that further pending authorizations exist for this account and are to be checked</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">262</td>
       <td class="code-cell t-statement">                    ADD 1                TO WS-NO-DTL-READ</td>
-      <td class="expl-cell">Erhöht den Lesezähler für Detaildatensätze um eins – für die spätere Verarbeitungsstatistik und das Audit</td>
+      <td class="expl-cell">Increments the detail record read counter by one – for later processing statistics and audit</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">263</td>
       <td class="code-cell t-statement">               WHEN 'GE'</td>
-      <td class="expl-cell">Statuscode 'GE': Es gibt keinen weiteren Detaildatensatz unterhalb des aktuellen Kontos (Ende der Kindeinträge)</td>
+      <td class="expl-cell">Status code 'GE': There are no further detail records below the current account (end of child entries)</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">264</td>
       <td class="code-cell t-statement">               WHEN 'GB'</td>
-      <td class="expl-cell">Statuscode 'GB': Es gibt keinen weiteren Datensatz im gesamten Datenbankpfad (Ende der Datenbank)</td>
+      <td class="expl-cell">Status code 'GB': There are no further records in the entire database path (end of database)</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">265</td>
       <td class="code-cell t-statement">                    SET NO-MORE-AUTHS    TO TRUE</td>
-      <td class="expl-cell">Signalisiert, dass alle Autorisierungs-Detaildatensätze des aktuellen Kontos vollständig verarbeitet wurden</td>
+      <td class="expl-cell">Signals that all authorization detail records for the current account have been fully processed</td>
     </tr>
     
     <tr class="statement"
@@ -2396,28 +2397,28 @@
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">267</td>
       <td class="code-cell t-statement">                    DISPLAY 'AUTH DETAIL READ FAILED  :' DIBSTAT</td>
-      <td class="expl-cell">Gibt den unerwarteten IMS-Fehlercode aus, um die Fehlerursache beim Lesen eines Autorisierungsdetails zu dokumentieren</td>
+      <td class="expl-cell">Outputs the unexpected IMS error code to document the cause of the error when reading an authorization detail</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">268</td>
       <td class="code-cell t-statement">                    DISPLAY 'SUMMARY AUTH APP ID      :' PA-ACCT-ID</td>
-      <td class="expl-cell">Gibt die Kontonummer des betroffenen Zusammenfassungsdatensatzes aus, um den fehlerhaften Datensatz im Fehlerfall zu identifizieren</td>
+      <td class="expl-cell">Outputs the account number of the affected summary record to identify the erroneous record in the event of a failure</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">269</td>
       <td class="code-cell t-statement">                    DISPLAY 'DETAIL READ BEFORE ABEND :' WS-NO-DTL-READ</td>
-      <td class="expl-cell">Gibt die Anzahl bisher erfolgreich gelesener Detaildatensätze vor dem Programmabbruch aus – sichert die Nachvollziehbarkeit</td>
+      <td class="expl-cell">Outputs the number of detail records successfully read before the program abend – ensures traceability</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-FIND-NEXT-AUTH-DTL">
       <td class="ln">270</td>
       <td class="code-cell t-statement">                    PERFORM 9999-ABEND</td>
-      <td class="expl-cell">Leitet einen kontrollierten Programmabbruch ein, um Dateninkonsistenzen durch einen unkontrollierten Weiterlauf zu verhindern</td>
+      <td class="expl-cell">Initiates a controlled program abend to prevent data inconsistencies caused by an uncontrolled continuation</td>
     </tr>
     
     <tr class="statement"
@@ -2438,14 +2439,14 @@
         id="code-para-3000-EXIT">
       <td class="ln">273</td>
       <td class="code-cell t-paragraph-header">       3000-EXIT.</td>
-      <td class="expl-cell">Markiert den Endpunkt der Hauptverarbeitungsschleife über alle ausstehenden Autorisierungs-Zusammenfassungen.</td>
+      <td class="expl-cell">Marks the end point of the main processing loop over all pending authorization summaries</td>
     </tr>
     
     <tr class="statement"
         id="code-para-3000-EXIT">
       <td class="ln">274</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Beendet den aktuellen Schleifendurchlauf und gibt die Kontrolle an die aufrufende Verarbeitungslogik zurück, damit der nächste Zusammenfassungsdatensatz verarbeitet werden kann.</td>
+      <td class="expl-cell">Ends the current loop iteration and returns control to the calling processing logic so that the next summary record can be processed</td>
     </tr>
     
     <tr class="comment"
@@ -2459,14 +2460,14 @@
         id="code-para-3000-EXIT">
       <td class="ln">276</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
-      <td class="expl-cell">Trennlinie zur strukturellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Prozess.</td>
+      <td class="expl-cell">Separator line for structural delimitation of the next processing section in the batch process</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">277</td>
       <td class="code-cell t-paragraph-header">       4000-CHECK-IF-EXPIRED.</td>
-      <td class="expl-cell">Einstiegspunkt der Ablaufprüfung für einen einzelnen Autorisierungs-Detaildatensatz.</td>
+      <td class="expl-cell">Entry point of the processing check for an individual authorization detail record</td>
     </tr>
     
     <tr class="comment"
@@ -2487,7 +2488,7 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">280</td>
       <td class="code-cell t-statement">            COMPUTE WS-AUTH-DATE = 99999 - PA-AUTH-DATE-9C</td>
-      <td class="expl-cell">Wandelt das komprimierte Autorisierungsdatum (99999-Komplement-Format) in ein lesbares Kalenderdatum (YYDDD) um, um es mit dem aktuellen Datum vergleichen zu können.</td>
+      <td class="expl-cell">Converts the compressed authorization date (99999-complement format) into a readable calendar date (YYDDD) to enable comparison with the current date</td>
     </tr>
     
     <tr class="empty"
@@ -2501,7 +2502,7 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">282</td>
       <td class="code-cell t-statement">            COMPUTE WS-DAY-DIFF = CURRENT-YYDDD - WS-AUTH-DATE</td>
-      <td class="expl-cell">Berechnet das Alter der ausstehenden Autorisierung in Tagen: Differenz zwischen dem heutigen Datum und dem Datum, an dem die Autorisierung erteilt wurde.</td>
+      <td class="expl-cell">Calculates the age of the pending authorization in days: the difference between today's date and the date on which the authorization was granted</td>
     </tr>
     
     <tr class="empty"
@@ -2515,14 +2516,14 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">284</td>
       <td class="code-cell t-statement">            IF WS-DAY-DIFF >= WS-EXPIRY-DAYS</td>
-      <td class="expl-cell">Prüft, ob die Autorisierung das konfigurierte Ablaufintervall (Standard: 5 Tage) erreicht oder überschritten hat und damit als veraltet gilt.</td>
+      <td class="expl-cell">Checks whether the authorization has reached or exceeded the configured expiry interval (default: 5 days) and is therefore considered stale</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">285</td>
       <td class="code-cell t-statement">               SET QUALIFIED-FOR-DELETE       TO TRUE</td>
-      <td class="expl-cell">Markiert die Autorisierung als löschreif, da sie die Ablaufschwelle überschritten hat.</td>
+      <td class="expl-cell">Marks the authorization as eligible for deletion, as it has exceeded the expiry threshold</td>
     </tr>
     
     <tr class="empty"
@@ -2536,21 +2537,21 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">287</td>
       <td class="code-cell t-statement">               IF PA-AUTH-RESP-CODE = '00'</td>
-      <td class="expl-cell">Unterscheidet, ob die abgelaufene Autorisierung ursprünglich genehmigt (Antwortcode '00') oder abgelehnt wurde, um die korrekten Summenwerte im Konto zu korrigieren.</td>
+      <td class="expl-cell">Distinguishes whether the expired authorization was originally approved (response code '00') or declined, in order to correct the appropriate totals in the account</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">288</td>
       <td class="code-cell t-statement">                  SUBTRACT 1                  FROM PA-APPROVED-AUTH-CNT</td>
-      <td class="expl-cell">Reduziert den Zähler genehmigter Autorisierungen im Konto-Zusammenfassungsdatensatz um 1, da dieser genehmigte Eintrag gelöscht wird.</td>
+      <td class="expl-cell">Decrements the approved authorization counter in the account summary record by 1, as this approved entry is being deleted</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">289</td>
       <td class="code-cell t-statement">                  SUBTRACT PA-APPROVED-AMT    FROM PA-APPROVED-AUTH-AMT</td>
-      <td class="expl-cell">Zieht den Betrag der abgelaufenen genehmigten Autorisierung vom kumulierten Genehmigungsbetrag des Kontos ab, um die Kontosummen korrekt zu halten.</td>
+      <td class="expl-cell">Subtracts the amount of the expired approved authorization from the cumulative approved amount of the account to keep the account totals accurate</td>
     </tr>
     
     <tr class="statement"
@@ -2564,14 +2565,14 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">291</td>
       <td class="code-cell t-statement">                  SUBTRACT 1                  FROM PA-DECLINED-AUTH-CNT</td>
-      <td class="expl-cell">Reduziert den Zähler abgelehnter Autorisierungen im Konto-Zusammenfassungsdatensatz um 1, da dieser abgelehnte Eintrag gelöscht wird.</td>
+      <td class="expl-cell">Decrements the declined authorization counter in the account summary record by 1, as this declined entry is being deleted</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">292</td>
       <td class="code-cell t-statement">                  SUBTRACT PA-TRANSACTION-AMT FROM PA-DECLINED-AUTH-AMT</td>
-      <td class="expl-cell">Zieht den Transaktionsbetrag der abgelaufenen abgelehnten Autorisierung vom kumulierten Ablehnungsbetrag des Kontos ab.</td>
+      <td class="expl-cell">Subtracts the transaction amount of the expired declined authorization from the cumulative declined amount of the account</td>
     </tr>
     
     <tr class="statement"
@@ -2592,7 +2593,7 @@
         id="code-para-4000-CHECK-IF-EXPIRED">
       <td class="ln">295</td>
       <td class="code-cell t-statement">               SET NOT-QUALIFIED-FOR-DELETE   TO TRUE</td>
-      <td class="expl-cell">Markiert die Autorisierung als nicht löschreif, da sie die Ablaufschwelle noch nicht erreicht hat und weiterhin gültig ist.</td>
+      <td class="expl-cell">Marks the authorization as not eligible for deletion, as it has not yet reached the expiry threshold and remains valid</td>
     </tr>
     
     <tr class="statement"
@@ -2620,14 +2621,14 @@
         id="code-para-4000-EXIT">
       <td class="ln">299</td>
       <td class="code-cell t-paragraph-header">       4000-EXIT.</td>
-      <td class="expl-cell">Markiert den Endpunkt der Hauptverarbeitungsschleife, die alle ausstehenden Autorisierungs-Zusammenfassungen durchläuft.</td>
+      <td class="expl-cell">Marks the end point of the main processing loop that iterates over all pending authorization summaries</td>
     </tr>
     
     <tr class="statement"
         id="code-para-4000-EXIT">
       <td class="ln">300</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Gibt die Kontrolle geordnet an die aufrufende Schleife zurück, sodass der Batch-Job mit dem nächsten Konto-Zusammenfassungsdatensatz fortfahren kann.</td>
+      <td class="expl-cell">Returns control in an orderly manner to the calling loop so that the batch job can continue with the next account summary record</td>
     </tr>
     
     <tr class="comment"
@@ -2641,14 +2642,14 @@
         id="code-para-4000-EXIT">
       <td class="ln">302</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
-      <td class="expl-cell">Trennlinie zur visuellen Abgrenzung des nächsten Verarbeitungsabschnitts im Batch-Ablauf.</td>
+      <td class="expl-cell">Separator line for visual delimitation of the next processing section in the batch run</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">303</td>
       <td class="code-cell t-paragraph-header">       5000-DELETE-AUTH-DTL.</td>
-      <td class="expl-cell">Einstiegspunkt der Löschroutine für einen abgelaufenen Autorisierungs-Detaildatensatz.</td>
+      <td class="expl-cell">Entry point of the delete routine for an expired authorization detail record</td>
     </tr>
     
     <tr class="comment"
@@ -2669,14 +2670,14 @@
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">306</td>
       <td class="code-cell t-statement">            IF DEBUG-ON</td>
-      <td class="expl-cell">Im Debug-Modus wird die Konto-ID der zu löschenden Autorisierung zur Nachverfolgung im Protokoll ausgegeben.</td>
+      <td class="expl-cell">In debug mode, the account ID of the authorization to be deleted is written to the log for traceability</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">307</td>
       <td class="code-cell t-statement">               DISPLAY 'DEBUG: AUTH DTL DLET : ' PA-ACCT-ID</td>
-      <td class="expl-cell">Gibt die Konto-ID des betroffenen Karteninhabers im Verarbeitungsprotokoll aus, um den Löschvorgang nachvollziehbar zu machen.</td>
+      <td class="expl-cell">Outputs the account ID of the affected cardholder in the processing log to make the deletion traceable</td>
     </tr>
     
     <tr class="statement"
@@ -2697,21 +2698,21 @@
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">310</td>
       <td class="code-cell t-statement">            EXEC DLI DLET USING PCB(PAUT-PCB-NUM)</td>
-      <td class="expl-cell">Löscht den abgelaufenen Autorisierungs-Detaildatensatz physisch aus der IMS-Kreditkartendatenbank.</td>
+      <td class="expl-cell">Physically deletes the expired authorization detail record from the IMS credit card database</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">311</td>
       <td class="code-cell t-statement">                 SEGMENT (PAUTDTL1)</td>
-      <td class="expl-cell">Identifiziert das zu löschende IMS-Segment als Autorisierungs-Detaildatensatz (PAUTDTL1).</td>
+      <td class="expl-cell">Identifies the IMS segment to be deleted as an authorization detail record (PAUTDTL1)</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">312</td>
       <td class="code-cell t-statement">                 FROM (PENDING-AUTH-DETAILS)</td>
-      <td class="expl-cell">Übergibt den aktuell geladenen Detaildatensatz der ausstehenden Autorisierung als Grundlage für die Löschoperation.</td>
+      <td class="expl-cell">Passes the currently loaded pending authorization detail record as the basis for the delete operation</td>
     </tr>
     
     <tr class="statement"
@@ -2732,14 +2733,14 @@
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">315</td>
       <td class="code-cell t-statement">            IF DIBSTAT = SPACES</td>
-      <td class="expl-cell">Prüft, ob die Löschung in der Datenbank erfolgreich durchgeführt wurde (kein Fehlerstatuscode).</td>
+      <td class="expl-cell">Checks whether the deletion was successfully performed in the database (no error status code)</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">316</td>
       <td class="code-cell t-statement">               ADD 1                     TO WS-NO-DTL-DELETED</td>
-      <td class="expl-cell">Erhöht den Audit-Zähler für erfolgreich gelöschte Autorisierungs-Detaildatensätze um eins für die Verarbeitungsstatistik.</td>
+      <td class="expl-cell">Increments the audit counter for successfully deleted authorization detail records by one for processing statistics</td>
     </tr>
     
     <tr class="statement"
@@ -2753,21 +2754,21 @@
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">318</td>
       <td class="code-cell t-statement">               DISPLAY 'AUTH DETAIL DELETE FAILED :' DIBSTAT</td>
-      <td class="expl-cell">Gibt den Datenbankfehlercode und die betroffene Konto-ID aus, um die fehlgeschlagene Löschung für die Fehleranalyse zu dokumentieren.</td>
+      <td class="expl-cell">Outputs the database error code and the affected account ID to document the failed deletion for error analysis</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">319</td>
       <td class="code-cell t-statement">               DISPLAY 'AUTH APP ID               :' PA-ACCT-ID</td>
-      <td class="expl-cell">Gibt die Konto-ID des Karteninhabers aus, dessen Autorisierungsdatensatz nicht gelöscht werden konnte.</td>
+      <td class="expl-cell">Outputs the account ID of the cardholder whose authorization record could not be deleted</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-DELETE-AUTH-DTL">
       <td class="ln">320</td>
       <td class="code-cell t-statement">               PERFORM 9999-ABEND</td>
-      <td class="expl-cell">Bricht den Batch-Job kontrolliert ab, da ein Datenbankfehler beim Löschen Dateninkonsistenzen zwischen Detail- und Zusammenfassungsdatensätzen verursachen würde.</td>
+      <td class="expl-cell">Abends the batch job in a controlled manner, as a database error during deletion would cause data inconsistencies between detail and summary records</td>
     </tr>
     
     <tr class="statement"
@@ -2795,14 +2796,14 @@
         id="code-para-5000-EXIT">
       <td class="ln">324</td>
       <td class="code-cell t-paragraph-header">       5000-EXIT.</td>
-      <td class="expl-cell">Markiert den formalen Abschlusspunkt des gesamten Bereinigungsprozesses für abgelaufene Autorisierungseinträge.</td>
+      <td class="expl-cell">Marks the formal closing point of the entire cleanup process for expired authorization entries</td>
     </tr>
     
     <tr class="statement"
         id="code-para-5000-EXIT">
       <td class="ln">325</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Beendet den Programmablauf geordnet und gibt die Kontrolle an den aufrufenden Batch-Scheduler zurück, nachdem alle Bereinigungen, Zählerfortschreibungen und der abschließende IMS-Checkpoint durchgeführt wurden.</td>
+      <td class="expl-cell">Terminates the program run in an orderly manner and returns control to the calling batch scheduler after all cleanups, counter updates, and the final IMS checkpoint have been completed</td>
     </tr>
     
     <tr class="comment"
@@ -2816,14 +2817,14 @@
         id="code-para-5000-EXIT">
       <td class="ln">327</td>
       <td class="code-cell t-comment">      *----------------------------------------------------------------*</td>
-      <td class="expl-cell">Visuelle Trennlinie zur strukturellen Abgrenzung dieses Abschlussparagraphen von weiteren Programmabschnitten.</td>
+      <td class="expl-cell">Visual separator line for structural delimitation of this closing paragraph from further program sections</td>
     </tr>
     
     <tr class="paragraph-header"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">328</td>
       <td class="code-cell t-paragraph-header">       6000-DELETE-AUTH-SUMMARY.</td>
-      <td class="expl-cell">Löscht den vollständig bereinigten Zusammenfassungsdatensatz eines Kontos aus der IMS-Datenbank, wenn keine genehmigten oder abgelehnten Autorisierungen mehr vorhanden sind. Dieser Schritt schließt die Kontobereinigung ab und hält die Datenbank frei von veralteten Einträgen.</td>
+      <td class="expl-cell">Deletes the fully cleaned-up summary record of an account from the IMS database when no approved or declined authorizations remain. This step completes the account cleanup and keeps the database free of stale entries</td>
     </tr>
     
     <tr class="comment"
@@ -2844,14 +2845,14 @@
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">331</td>
       <td class="code-cell t-statement">            IF DEBUG-ON</td>
-      <td class="expl-cell">Im Debug-Modus wird die Konto-ID protokolliert, um die Löschung des Zusammenfassungsdatensatzes im Verarbeitungsprotokoll nachvollziehbar zu machen.</td>
+      <td class="expl-cell">In debug mode, the account ID is logged to make the deletion of the summary record traceable in the processing log</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">332</td>
       <td class="code-cell t-statement">               DISPLAY 'DEBUG: AUTH SMRY DLET : ' PA-ACCT-ID</td>
-      <td class="expl-cell">Gibt die Konto-ID des zu löschenden Zusammenfassungsdatensatzes zur Diagnose und Nachverfolgung im Batch-Protokoll aus.</td>
+      <td class="expl-cell">Outputs the account ID of the summary record to be deleted for diagnostic and traceability purposes in the batch log</td>
     </tr>
     
     <tr class="statement"
@@ -2872,21 +2873,21 @@
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">335</td>
       <td class="code-cell t-statement">            EXEC DLI DLET USING PCB(PAUT-PCB-NUM)</td>
-      <td class="expl-cell">Löscht den Autorisierungs-Zusammenfassungsdatensatz des Kontos physisch aus der IMS-Datenbank, da das Konto keine ausstehenden Autorisierungen mehr enthält.</td>
+      <td class="expl-cell">Physically deletes the authorization summary record of the account from the IMS database, as the account no longer contains any pending authorizations</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">336</td>
       <td class="code-cell t-statement">                 SEGMENT (PAUTSUM0)</td>
-      <td class="expl-cell">Referenziert das IMS-Segment PAUTSUM0, das den Zusammenfassungsdatensatz mit Zählern und Beträgen der ausstehenden Autorisierungen je Konto repräsentiert.</td>
+      <td class="expl-cell">References the IMS segment PAUTSUM0, which represents the summary record containing counters and amounts of outstanding authorizations per account.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">337</td>
       <td class="code-cell t-statement">                 FROM (PENDING-AUTH-SUMMARY)</td>
-      <td class="expl-cell">Übergibt den aktuell geladenen Zusammenfassungsdatensatz des Kontos als Grundlage für die physische Löschung in der IMS-Datenbank.</td>
+      <td class="expl-cell">Passes the currently loaded account summary record as the basis for physical deletion in the IMS database.</td>
     </tr>
     
     <tr class="statement"
@@ -2907,14 +2908,14 @@
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">340</td>
       <td class="code-cell t-statement">            IF DIBSTAT = SPACES</td>
-      <td class="expl-cell">Prüft, ob die Löschung des Zusammenfassungsdatensatzes in der IMS-Datenbank erfolgreich abgeschlossen wurde (kein Fehlerstatus).</td>
+      <td class="expl-cell">Checks whether the deletion of the summary record in the IMS database completed successfully (no error status).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">341</td>
       <td class="code-cell t-statement">               ADD 1                     TO WS-NO-SUMRY-DELETED</td>
-      <td class="expl-cell">Erhöht den Audit-Zähler für erfolgreich gelöschte Zusammenfassungsdatensätze, um die Verarbeitungsstatistik für das Monitoring aktuell zu halten.</td>
+      <td class="expl-cell">Increments the audit counter for successfully deleted summary records to keep the processing statistics current for monitoring.</td>
     </tr>
     
     <tr class="statement"
@@ -2928,21 +2929,21 @@
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">343</td>
       <td class="code-cell t-statement">               DISPLAY 'AUTH SUMMARY DELETE FAILED :' DIBSTAT</td>
-      <td class="expl-cell">Protokolliert den IMS-Fehlerstatus im Batch-Protokoll, um die Ursache der fehlgeschlagenen Löschung des Zusammenfassungsdatensatzes zu dokumentieren.</td>
+      <td class="expl-cell">Logs the IMS error status in the batch log to document the cause of the failed summary record deletion.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">344</td>
       <td class="code-cell t-statement">               DISPLAY 'AUTH APP ID                :' PA-ACCT-ID</td>
-      <td class="expl-cell">Gibt die betroffene Konto-ID im Fehlerprotokoll aus, damit der fehlerhafte Datensatz im Rahmen der Fehleranalyse eindeutig identifiziert werden kann.</td>
+      <td class="expl-cell">Writes the affected account ID to the error log so that the faulty record can be uniquely identified during error analysis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-DELETE-AUTH-SUMMARY">
       <td class="ln">345</td>
       <td class="code-cell t-statement">               PERFORM 9999-ABEND</td>
-      <td class="expl-cell">Bricht den Batch-Job kontrolliert ab, um Dateninkonsistenzen zu verhindern, da ein nicht löschbarer Zusammenfassungsdatensatz auf ein schwerwiegendes Datenbankproblem hinweist.</td>
+      <td class="expl-cell">Terminates the batch job in a controlled manner to prevent data inconsistencies, as a summary record that cannot be deleted indicates a serious database problem.</td>
     </tr>
     
     <tr class="statement"
@@ -2963,14 +2964,14 @@
         id="code-para-6000-EXIT">
       <td class="ln">348</td>
       <td class="code-cell t-paragraph-header">       6000-EXIT.</td>
-      <td class="expl-cell">Markiert den abschließenden Austrittspunkt des gesamten Bereinigungsprozesses für abgelaufene Autorisierungen.</td>
+      <td class="expl-cell">Marks the final exit point of the entire cleanup process for expired authorizations.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-6000-EXIT">
       <td class="ln">349</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Gibt die Programmsteuerung geordnet an den aufrufenden Ablauf zurück und beendet damit den Batch-Job regulär.</td>
+      <td class="expl-cell">Returns program control to the calling process in an orderly fashion, thereby ending the batch job normally.</td>
     </tr>
     
     <tr class="comment"
@@ -2991,7 +2992,7 @@
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">352</td>
       <td class="code-cell t-paragraph-header">       9000-TAKE-CHECKPOINT.</td>
-      <td class="expl-cell">Einstiegspunkt der Checkpoint-Routine, die periodisch während der Bereinigung aufgerufen wird.</td>
+      <td class="expl-cell">Entry point of the checkpoint routine, which is called periodically during the cleanup process.</td>
     </tr>
     
     <tr class="comment"
@@ -3012,7 +3013,7 @@
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">355</td>
       <td class="code-cell t-statement">           EXEC DLI CHKP ID(WK-CHKPT-ID)</td>
-      <td class="expl-cell">Schreibt einen IMS-Checkpoint mit eindeutiger Checkpoint-ID, um den aktuellen Verarbeitungsstand (bereits gelöschte Autorisierungen) für einen möglichen Neustart zu sichern.</td>
+      <td class="expl-cell">Writes an IMS checkpoint with a unique checkpoint ID to save the current processing state (authorizations already deleted) for a possible restart.</td>
     </tr>
     
     <tr class="statement"
@@ -3033,49 +3034,49 @@
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">358</td>
       <td class="code-cell t-statement">           IF DIBSTAT = SPACES</td>
-      <td class="expl-cell">Prüft, ob der IMS-Checkpoint erfolgreich gesetzt wurde (kein Fehlerstatus).</td>
+      <td class="expl-cell">Checks whether the IMS checkpoint was set successfully (no error status).</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">359</td>
       <td class="code-cell t-statement">              ADD 1                      TO WS-NO-CHKP</td>
-      <td class="expl-cell">Erhöht den internen Checkpoint-Zähler, um das Intervall bis zur nächsten Fortschrittsmeldung zu verfolgen.</td>
+      <td class="expl-cell">Increments the internal checkpoint counter to track the interval until the next progress message.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">360</td>
       <td class="code-cell t-statement">              IF WS-NO-CHKP >= P-CHKP-DIS-FREQ</td>
-      <td class="expl-cell">Prüft, ob seit der letzten Fortschrittsmeldung die konfigurierte Anzahl an Checkpoints erreicht wurde.</td>
+      <td class="expl-cell">Checks whether the configured number of checkpoints has been reached since the last progress message.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">361</td>
       <td class="code-cell t-statement">                 MOVE 0                  TO WS-NO-CHKP</td>
-      <td class="expl-cell">Setzt den Checkpoint-Zähler zurück, um das nächste Meldeintervall zu starten.</td>
+      <td class="expl-cell">Resets the checkpoint counter to start the next reporting interval.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">362</td>
       <td class="code-cell t-statement">                 DISPLAY 'CHKP SUCCESS: AUTH COUNT - ' WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Gibt eine Fortschrittsmeldung aus: Anzahl bisher verarbeiteter Autorisierungs-Zusammenfassungen und die aktuelle Anwendungs-ID zur Überwachung des Batch-Laufs.</td>
+      <td class="expl-cell">Outputs a progress message: the number of authorization summaries processed so far and the current application ID for monitoring the batch run.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">363</td>
       <td class="code-cell t-statement">                      ', APP ID - ' WS-CURR-APP-ID</td>
-      <td class="expl-cell">Fortsetzung der Fortschrittsmeldung mit der aktuell verarbeiteten Anwendungs-ID.</td>
+      <td class="expl-cell">Continuation of the progress message with the currently processed application ID.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">364</td>
       <td class="code-cell t-statement">              END-IF</td>
-      <td class="expl-cell">Abschluss der Fortschrittsmeldung.</td>
+      <td class="expl-cell">Completion of the progress message.</td>
     </tr>
     
     <tr class="statement"
@@ -3089,28 +3090,28 @@
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">366</td>
       <td class="code-cell t-statement">              DISPLAY 'CHKP FAILED: DIBSTAT - ' DIBSTAT</td>
-      <td class="expl-cell">Gibt eine Fehlermeldung aus mit dem IMS-Fehlerstatus, der Anzahl bisher verarbeiteter Zusammenfassungen und der aktuellen Anwendungs-ID zur Fehlerdiagnose.</td>
+      <td class="expl-cell">Outputs an error message containing the IMS error status, the number of summaries processed so far, and the current application ID for error diagnosis.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">367</td>
       <td class="code-cell t-statement">                      ', REC COUNT - ' WS-NO-SUMRY-READ</td>
-      <td class="expl-cell">Fortsetzung der Fehlermeldung mit Verarbeitungsstand und Anwendungs-ID.</td>
+      <td class="expl-cell">Continuation of the error message with the processing status and application ID.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">368</td>
       <td class="code-cell t-statement">                      ', APP ID - ' WS-CURR-APP-ID</td>
-      <td class="expl-cell">Fortsetzung der Fehlermeldung mit der aktuell verarbeiteten Anwendungs-ID.</td>
+      <td class="expl-cell">Continuation of the error message with the currently processed application ID.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-TAKE-CHECKPOINT">
       <td class="ln">369</td>
       <td class="code-cell t-statement">              PERFORM 9999-ABEND</td>
-      <td class="expl-cell">Bricht den Batch-Job kontrolliert ab, da ein fehlgeschlagener Checkpoint die Restart/Recovery-Fähigkeit gefährdet und Dateninkonsistenzen verursachen könnte.</td>
+      <td class="expl-cell">Terminates the batch job in a controlled manner, as a failed checkpoint jeopardizes the restart/recovery capability and could cause data inconsistencies.</td>
     </tr>
     
     <tr class="statement"
@@ -3138,14 +3139,14 @@
         id="code-para-9000-EXIT">
       <td class="ln">373</td>
       <td class="code-cell t-paragraph-header">       9000-EXIT.</td>
-      <td class="expl-cell">Abschlusspunkt des Programms CBPAUP0C – markiert das Ende der Bereinigung abgelaufener Autorisierungen.</td>
+      <td class="expl-cell">End point of program CBPAUP0C – marks the conclusion of the expired authorization cleanup.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9000-EXIT">
       <td class="ln">374</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Beendet das Programm regulär nach Abschluss aller Lösch- und Korrekturvorgänge in der Autorisierungsdatenbank.</td>
+      <td class="expl-cell">Terminates the program normally after all deletion and correction operations in the authorization database have been completed.</td>
     </tr>
     
     <tr class="comment"
@@ -3166,7 +3167,7 @@
         id="code-para-9999-ABEND">
       <td class="ln">377</td>
       <td class="code-cell t-paragraph-header">       9999-ABEND.</td>
-      <td class="expl-cell">Dieser Paragraph steuert den kontrollierten Notabbruch des Bereinigungsjobs bei kritischen Datenbankfehlern. Er signalisiert dem übergeordneten Job-Scheduler einen schwerwiegenden Fehler, um Dateninkonsistenzen in der Kreditkartenautorisierungsdatenbank zu verhindern.</td>
+      <td class="expl-cell">This paragraph controls the orderly emergency termination of the cleanup job in the event of critical database errors. It signals a severe error to the superordinate job scheduler to prevent data inconsistencies in the credit card authorization database.</td>
     </tr>
     
     <tr class="comment"
@@ -3187,7 +3188,7 @@
         id="code-para-9999-ABEND">
       <td class="ln">380</td>
       <td class="code-cell t-statement">           DISPLAY 'CBPAUP0C ABENDING ...'</td>
-      <td class="expl-cell">Protokolliert den Programmabbruch im Job-Log, damit Betrieb und Support den Fehlerfall in der Autorisierungsbereinigung sofort identifizieren können.</td>
+      <td class="expl-cell">Logs the program abort in the job log so that operations and support can immediately identify the error in the authorization cleanup.</td>
     </tr>
     
     <tr class="empty"
@@ -3201,14 +3202,14 @@
         id="code-para-9999-ABEND">
       <td class="ln">382</td>
       <td class="code-cell t-statement">           MOVE 16 TO RETURN-CODE</td>
-      <td class="expl-cell">Setzt den Job-Return-Code auf 16 (kritischer Fehler), damit der Batch-Scheduler nachgelagerte Jobs stoppt und keine weiteren Verarbeitungsschritte auf möglicherweise inkonsistenten Autorisierungsdaten ausgeführt werden.</td>
+      <td class="expl-cell">Sets the job return code to 16 (critical error) so that the batch scheduler halts downstream jobs and no further processing steps are executed on potentially inconsistent authorization data.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9999-ABEND">
       <td class="ln">383</td>
       <td class="code-cell t-statement">           GOBACK.</td>
-      <td class="expl-cell">Beendet den Bereinigungsjob sofort und übergibt die Kontrolle mit dem gesetzten Fehler-Return-Code an den aufrufenden Job-Scheduler zur Fehlerbehandlung.</td>
+      <td class="expl-cell">Terminates the cleanup job immediately and passes control with the set error return code to the calling job scheduler for error handling.</td>
     </tr>
     
     <tr class="comment"
@@ -3222,14 +3223,14 @@
         id="code-para-9999-EXIT">
       <td class="ln">385</td>
       <td class="code-cell t-paragraph-header">       9999-EXIT.</td>
-      <td class="expl-cell">Abschlussparagraph des Batch-Jobs – kennzeichnet das definierte Ende des gesamten Bereinigungslaufs für abgelaufene Autorisierungen.</td>
+      <td class="expl-cell">Final paragraph of the batch job – designates the defined end of the entire cleanup run for expired authorizations.</td>
     </tr>
     
     <tr class="statement"
         id="code-para-9999-EXIT">
       <td class="ln">386</td>
       <td class="code-cell t-statement">            EXIT.</td>
-      <td class="expl-cell">Beendet den Programmablauf strukturiert und gibt die Kontrolle an den aufrufenden Batch-Scheduler zurück, nachdem alle Bereinigungsschritte abgeschlossen sind.</td>
+      <td class="expl-cell">Terminates the program flow in a structured manner and returns control to the calling batch scheduler after all cleanup steps have been completed.</td>
     </tr>
     
     </tbody>
@@ -3258,7 +3259,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-PGMNAME">
@@ -3269,7 +3270,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-CURRENT-DATE">
@@ -3280,7 +3281,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-CURRENT-YYDDD">
@@ -3291,7 +3292,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-AUTH-DATE">
@@ -3302,7 +3303,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-EXPIRY-DAYS">
@@ -3313,7 +3314,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-DAY-DIFF">
@@ -3324,7 +3325,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IDX">
@@ -3335,7 +3336,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-CURR-APP-ID">
@@ -3346,7 +3347,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-CHKP">
@@ -3357,7 +3358,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-AUTH-SMRY-PROC-CNT">
@@ -3368,7 +3369,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-TOT-REC-WRITTEN">
@@ -3379,7 +3380,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-SUMRY-READ">
@@ -3390,7 +3391,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-SUMRY-DELETED">
@@ -3401,7 +3402,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-DTL-READ">
@@ -3412,7 +3413,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-NO-DTL-DELETED">
@@ -3423,7 +3424,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-ERR-FLG">
@@ -3434,7 +3435,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ERR-FLG-ON">
@@ -3445,7 +3446,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-ERR-FLG-OFF">
@@ -3456,7 +3457,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-END-OF-AUTHDB-FLAG">
@@ -3467,7 +3468,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-AUTHDB">
@@ -3478,7 +3479,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-NOT-END-OF-AUTHDB">
@@ -3489,7 +3490,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-MORE-AUTHS-FLAG">
@@ -3500,7 +3501,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-MORE-AUTHS">
@@ -3511,7 +3512,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-NO-MORE-AUTHS">
@@ -3522,7 +3523,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-QUALIFY-DELETE-FLAG">
@@ -3533,7 +3534,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-QUALIFIED-FOR-DELETE">
@@ -3544,7 +3545,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-NOT-QUALIFIED-FOR-DELETE">
@@ -3555,7 +3556,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-INFILE-STATUS">
@@ -3566,7 +3567,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-CUSTID-STATUS">
@@ -3577,7 +3578,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-FILE">
@@ -3588,7 +3589,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WK-CHKPT-ID.">
@@ -3599,7 +3600,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3610,7 +3611,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WK-CHKPT-ID-CTR">
@@ -3621,7 +3622,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-IMS-VARIABLES.">
@@ -3632,7 +3633,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PSB-NAME">
@@ -3643,7 +3644,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PCB-OFFSET.">
@@ -3654,7 +3655,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PAUT-PCB-NUM">
@@ -3665,7 +3666,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-RETURN-CODE">
@@ -3676,7 +3677,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-STATUS-OK">
@@ -3687,7 +3688,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-SEGMENT-NOT-FOUND">
@@ -3698,7 +3699,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DUPLICATE-SEGMENT-FOUND">
@@ -3709,7 +3710,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WRONG-PARENTAGE">
@@ -3720,7 +3721,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-END-OF-DB">
@@ -3731,7 +3732,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DATABASE-UNAVAILABLE">
@@ -3742,7 +3743,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PSB-SCHEDULED-MORE-THAN-ONCE">
@@ -3753,7 +3754,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-COULD-NOT-SCHEDULE-PSB">
@@ -3764,7 +3765,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-RETRY-CONDITION">
@@ -3775,7 +3776,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-WS-IMS-PSB-SCHD-FLG">
@@ -3786,7 +3787,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-PSB-SCHD">
@@ -3797,7 +3798,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-IMS-PSB-NOT-SCHD">
@@ -3808,7 +3809,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-PRM-INFO.">
@@ -3819,7 +3820,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-P-EXPIRY-DAYS">
@@ -3830,7 +3831,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3841,7 +3842,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-P-CHKP-FREQ">
@@ -3852,7 +3853,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3863,7 +3864,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-P-CHKP-DIS-FREQ">
@@ -3874,7 +3875,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3885,7 +3886,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-P-DEBUG-FLAG">
@@ -3896,7 +3897,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DEBUG-ON">
@@ -3907,7 +3908,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">(Analyse nicht verfügbar)</td>
+      <td class="var-desc">(analysis not available)</td>
     </tr>
     
     <tr id="var-DEBUG-OFF">
@@ -3918,7 +3919,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">N</td>
-      <td class="var-desc">Bedingungswert, der anzeigt, dass der Debug-Modus deaktiviert ist (Wert 'N' = No). Wird verwendet, um im Produktivbetrieb die Ausgabe von Diagnose- und Trace-Informationen zu unterdrücken und so die Performance des Bereinigungslaufs zu optimieren.</td>
+      <td class="var-desc">Condition value indicating that debug mode is disabled (value 'N' = No). Used in production to suppress the output of diagnostic and trace information, thereby optimizing the performance of the cleanup run.</td>
     </tr>
     
     <tr id="var-FILLER">
@@ -3929,7 +3930,7 @@
       </td>
       <td class="var-pic">PIC X(01)</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Nicht genutztes Füllbyte im Eingabeparameter-Datensatz (SYSIN), das vermutlich als Trennzeichen oder Ausrichtungsfeld zwischen dem Debug-Flag und weiteren Parametern dient. Hat keine eigenständige fachliche Bedeutung im Bereinigungsprozess.</td>
+      <td class="var-desc">Unused filler byte in the input parameter record (SYSIN), presumably serving as a separator or alignment field between the debug flag and additional parameters. Has no independent functional significance in the cleanup process.</td>
     </tr>
     
     <tr id="var-PENDING-AUTH-SUMMARY">
@@ -3940,7 +3941,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Gruppenstruktur für den Zusammenfassungsdatensatz einer ausstehenden Autorisierung je Konto (eingebunden via COPY CIPAUSMY). Enthält alle kontoübergreifenden Zähler und Beträge für genehmigte und abgelehnte Autorisierungen sowie Kontostammdaten wie Kreditlimit und Saldo. Dieser Datensatz wird nach jeder Löschung eines Detaileintrags aktualisiert und bei vollständiger Bereinigung eines Kontos selbst gelöscht.</td>
+      <td class="var-desc">Group structure for the summary record of a pending authorization per account (included via COPY CIPAUSMY). Contains all cross-account counters and amounts for approved and declined authorizations, as well as account master data such as credit limit and balance. This record is updated after each deletion of a detail entry and is itself deleted when an account has been fully cleaned up.</td>
     </tr>
     
     <tr id="var-PENDING-AUTH-DETAILS">
@@ -3951,7 +3952,7 @@
       </td>
       <td class="var-pic">–</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Gruppenstruktur für den Detaildatensatz einer einzelnen ausstehenden Autorisierungstransaktion (eingebunden via COPY CIPAUDTY). Enthält alle transaktionsspezifischen Informationen wie Autorisierungsdatum, Kartennummer, Transaktionsbetrag und Antwortcode. Anhand dieser Daten wird geprüft, ob die Autorisierung das konfigurierte Ablaufalter (Standard: 5 Tage) überschritten hat und damit für die Löschung qualifiziert.</td>
+      <td class="var-desc">Group structure for the detail record of an individual pending authorization transaction (included via COPY CIPAUDTY). Contains all transaction-specific information such as authorization date, card number, transaction amount, and response code. This data is used to determine whether the authorization has exceeded the configured expiration age (default: 5 days) and therefore qualifies for deletion.</td>
     </tr>
     
     <tr id="var-IO-PCB-MASK">
@@ -3962,7 +3963,7 @@
       </td>
       <td class="var-pic">PIC X</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Platzhalter-Maske für den IMS I/O Program Communication Block (PCB). Wird für die Kommunikation mit dem IMS-Datenbanksystem benötigt, insbesondere für allgemeine Ein-/Ausgabeoperationen wie das Setzen von Checkpoints für den Restart/Recovery-Mechanismus des Batch-Jobs.</td>
+      <td class="var-desc">Placeholder mask for the IMS I/O Program Communication Block (PCB). Required for communication with the IMS database system, particularly for general input/output operations such as setting checkpoints for the batch job's restart/recovery mechanism.</td>
     </tr>
     
     <tr id="var-PGM-PCB-MASK">
@@ -3973,7 +3974,7 @@
       </td>
       <td class="var-pic">PIC X</td>
       <td class="var-pic">–</td>
-      <td class="var-desc">Platzhalter-Maske für den IMS Program Communication Block (PCB) der Datenbankprogrammschnittstelle. Wird für den Datenbankzugriff auf die IMS-Segmente PAUTSUM0 (Zusammenfassungsdatensätze) und PAUTDTL1 (Detaildatensätze) verwendet und liefert nach jeder DL/I-Operation den Statuscode zurück, anhand dessen das Programm Fehler erkennt und bei Datenbankfehlern kontrolliert mit Return-Code 16 abbricht.</td>
+      <td class="var-desc">Placeholder mask for the IMS Program Communication Block (PCB) of the database program interface. Used for database access to the IMS segments PAUTSUM0 (summary records) and PAUTDTL1 (detail records), and returns the status code after each DL/I operation, which the program uses to detect errors and, in the event of a database error, terminate in a controlled manner with return code 16.</td>
     </tr>
     
     </tbody>

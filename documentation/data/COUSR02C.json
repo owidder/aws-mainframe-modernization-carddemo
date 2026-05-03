@@ -1,0 +1,4091 @@
+{
+  "meta": {
+    "program_name": "COUSR02C",
+    "file_path": "app/cbl/COUSR02C.cbl",
+    "analyzed_at": "2026-05-03T13:57:20.135962",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Allow administrators to look up and update an existing user account's details in the CardDemo system's user security file.",
+    "process_description": "The program presents an administrator with a user update screen where they can enter a User ID to retrieve an existing user's profile (first name, last name, password, and user type) from the security file. Once the user record is displayed, the administrator can modify any of the editable fields and save the changes by pressing PF5, or navigate away using PF3/PF12 which also triggers a save attempt before returning to the previous screen. The program validates that all mandatory fields (User ID, First Name, Last Name, Password, User Type) are non-empty before writing changes, and only performs the file update if at least one field has actually been modified.",
+    "type": "CICS Online",
+    "module": "Admin",
+    "files": {
+      "USRSEC": "User security file storing all system user accounts including credentials and user type (Regular or Admin)"
+    },
+    "business_rules": [
+      "User ID is mandatory and cannot be empty when looking up or updating a user account",
+      "First Name, Last Name, Password, and User Type are all mandatory fields and cannot be left blank when saving an update",
+      "A file update is only performed if at least one field (First Name, Last Name, Password, or User Type) has been changed from its current stored value — no unnecessary writes occur",
+      "If the entered User ID does not exist in the security file, the update is rejected with a 'User ID NOT found' error message",
+      "The record is read with an UPDATE lock (CICS READ UPDATE) to prevent concurrent modification of the same user record",
+      "PF3 saves any pending changes and returns the administrator to the calling program (defaulting to the Admin menu COADM01C if no calling program is recorded)",
+      "PF12 discards any unsaved changes and navigates directly back to the Admin menu (COADM01C) without saving",
+      "PF5 explicitly saves the updated user information while keeping the administrator on the update screen",
+      "PF4 clears the current screen input without saving",
+      "If the session communication area is empty (no prior context), the user is redirected to the sign-on screen (COSGN00C), preventing unauthorised direct access"
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "COCOM01Y",
+        "COUSR02",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "COUSR03C",
+        "COUSR00C",
+        "COUSR01C"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      * Program     : COUSR02C.CBL",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Type        : CICS COBOL Program",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Function    : Update a user in USRSEC file",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "       PROGRAM-ID. COUSR02C.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "       AUTHOR.     AWS.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "",
+      "type": "empty",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "       CONFIGURATION SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      *                     WORKING STORAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       01 WS-VARIABLES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR02C'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "         05 WS-TRANID                  PIC X(04) VALUE 'CU02'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "         05 WS-MESSAGE                 PIC X(80) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "         05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "           88 ERR-FLG-ON                         VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "           88 ERR-FLG-OFF                        VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "         05 WS-USR-MODIFIED            PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "           88 USR-MODIFIED-YES                   VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "           88 USR-MODIFIED-NO                    VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "       COPY COCOM01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "          05 CDEMO-CU02-INFO.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "             10 CDEMO-CU02-USRID-FIRST     PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "             10 CDEMO-CU02-USRID-LAST      PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "             10 CDEMO-CU02-PAGE-NUM        PIC 9(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "             10 CDEMO-CU02-NEXT-PAGE-FLG   PIC X(01) VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "                88 NEXT-PAGE-YES                     VALUE 'Y'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "                88 NEXT-PAGE-NO                      VALUE 'N'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "             10 CDEMO-CU02-USR-SEL-FLG     PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "             10 CDEMO-CU02-USR-SELECTED    PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "       COPY COUSR02.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "       COPY COTTL01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "       COPY CSDAT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "       COPY CSMSG01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "       COPY CSUSR01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "       COPY DFHAID.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "       COPY DFHBMSCA.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "      *                        LINKAGE SECTION",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "       01  DFHCOMMAREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "         05  LK-COMMAREA                           PIC X(01)",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.",
+      "type": "code",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "      *                       PROCEDURE DIVISION",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "       MAIN-PARA.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "MAIN-PARA is the central orchestration paragraph that controls the entire user update session flow. It determines whether an administrator is starting a new session or continuing an existing one, then routes their key presses to the appropriate business actions such as saving changes, clearing the screen, or navigating away."
+    },
+    {
+      "number": 83,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "           SET ERR-FLG-OFF     TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets any prior error condition so the screen starts clean before processing the current interaction."
+    },
+    {
+      "number": 85,
+      "code": "           SET USR-MODIFIED-NO TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Resets the 'changes detected' indicator, assuming no user data has been modified until proven otherwise."
+    },
+    {
+      "number": 86,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           MOVE SPACES TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears any previously displayed status or error message from the working area and the screen's message field."
+    },
+    {
+      "number": 88,
+      "code": "                          ERRMSGO OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "           IF EIBCALEN = 0",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this is a brand-new session with no prior context — indicating the administrator arrived without going through the normal application flow."
+    },
+    {
+      "number": 91,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Directs the session to the sign-on screen, enforcing that unauthenticated or context-free access is not permitted."
+    },
+    {
+      "number": 92,
+      "code": "               PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Redirects the administrator to the sign-on screen to prevent unauthorised direct access to the user update function."
+    },
+    {
+      "number": 93,
+      "code": "           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Restores the full application session context (user identity, navigation history, selected record) from the data passed by the previous screen."
+    },
+    {
+      "number": 95,
+      "code": "               IF NOT CDEMO-PGM-REENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether this is the administrator's first arrival on the update screen (as opposed to a return after submitting input)."
+    },
+    {
+      "number": 96,
+      "code": "                   SET CDEMO-PGM-REENTER    TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Marks the session as active on this screen so that the next interaction is treated as a return visit rather than a first entry."
+    },
+    {
+      "number": 97,
+      "code": "                   MOVE LOW-VALUES          TO COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Clears the update screen output area so it is presented fresh without any stale data from a previous session."
+    },
+    {
+      "number": 98,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Positions the screen cursor on the User ID entry field, prompting the administrator to begin there."
+    },
+    {
+      "number": 99,
+      "code": "                   IF CDEMO-CU02-USR-SELECTED NOT =",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether a specific user account was pre-selected from the user list screen to be loaded for editing."
+    },
+    {
+      "number": 100,
+      "code": "                                              SPACES AND LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "                       MOVE CDEMO-CU02-USR-SELECTED TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Populates the User ID field on the screen with the account identifier that was passed from the user list, ready for retrieval."
+    },
+    {
+      "number": 102,
+      "code": "                            USRIDINI OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "                       PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Triggers the lookup of the pre-selected user account from the security file and populates the screen with that user's current details."
+    },
+    {
+      "number": 104,
+      "code": "                   END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Displays the user update screen to the administrator, either pre-populated with the selected user's data or blank for manual entry."
+    },
+    {
+      "number": 106,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "                   PERFORM RECEIVE-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Reads back the administrator's input from the update screen, capturing any changes they have made to the displayed user details."
+    },
+    {
+      "number": 108,
+      "code": "                   EVALUATE EIBAID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Evaluates which function key the administrator pressed to determine the intended business action."
+    },
+    {
+      "number": 109,
+      "code": "                       WHEN DFHENTER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the case where the administrator pressed Enter to submit a User ID lookup or confirm their input."
+    },
+    {
+      "number": 110,
+      "code": "                           PERFORM PROCESS-ENTER-KEY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Executes the user account lookup, retrieving the matching record from the security file and displaying it for editing."
+    },
+    {
+      "number": 111,
+      "code": "                       WHEN DFHPF3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the PF3 key press, which saves any pending changes and then navigates back to the previous screen."
+    },
+    {
+      "number": 112,
+      "code": "                           PERFORM UPDATE-USER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Attempts to save any modifications the administrator has made to the user account before leaving the screen."
+    },
+    {
+      "number": 113,
+      "code": "                           IF CDEMO-FROM-PROGRAM = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Checks whether there is a recorded originating screen to return to after saving."
+    },
+    {
+      "number": 114,
+      "code": "                               MOVE 'COADM01C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Defaults the return destination to the Admin menu when no originating screen is recorded in the session."
+    },
+    {
+      "number": 115,
+      "code": "                           ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "                               MOVE CDEMO-FROM-PROGRAM TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the return destination to whichever screen originally launched this user update function."
+    },
+    {
+      "number": 117,
+      "code": "                               CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "                           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Navigates the administrator back to the appropriate previous screen after the save attempt."
+    },
+    {
+      "number": 120,
+      "code": "                       WHEN DFHPF4",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the PF4 key press, which clears the current screen input without saving any changes."
+    },
+    {
+      "number": 121,
+      "code": "                           PERFORM CLEAR-CURRENT-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Wipes all input fields on the update screen, allowing the administrator to start entering data afresh."
+    },
+    {
+      "number": 122,
+      "code": "                       WHEN DFHPF5",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the PF5 key press, which explicitly saves the updated user account information."
+    },
+    {
+      "number": 123,
+      "code": "                           PERFORM UPDATE-USER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Saves the administrator's changes to the user account in the security file while keeping them on the update screen."
+    },
+    {
+      "number": 124,
+      "code": "                       WHEN DFHPF12",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Handles the PF12 key press, which discards any unsaved changes and exits immediately to the Admin menu."
+    },
+    {
+      "number": 125,
+      "code": "                           MOVE 'COADM01C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Sets the Admin menu as the destination for the immediate exit, bypassing any save of pending changes."
+    },
+    {
+      "number": 126,
+      "code": "                           PERFORM RETURN-TO-PREV-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Navigates the administrator directly to the Admin menu without saving, discarding any unsaved modifications."
+    },
+    {
+      "number": 127,
+      "code": "                       WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Catches any unrecognised key press not mapped to a supported business action."
+    },
+    {
+      "number": 128,
+      "code": "                           MOVE 'Y'                       TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Flags an error condition so the screen is re-displayed with a validation message rather than processing the invalid input."
+    },
+    {
+      "number": 129,
+      "code": "                           MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Populates the screen message area with a standard 'invalid key' notice informing the administrator that their key press is not supported."
+    },
+    {
+      "number": 130,
+      "code": "                           PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Re-displays the update screen with the error message so the administrator can choose a valid action."
+    },
+    {
+      "number": 131,
+      "code": "                   END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "           EXEC CICS RETURN",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": "Returns control to the CICS transaction manager, keeping this user update transaction active and preserving the full session context for the next administrator interaction."
+    },
+    {
+      "number": 136,
+      "code": "                     TRANSID (WS-TRANID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 137,
+      "code": "                     COMMAREA (CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 139,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "      *                      PROCESS-ENTER-KEY",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "MAIN-PARA",
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "       PROCESS-ENTER-KEY.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Entry point for processing the administrator's user lookup request triggered by pressing Enter."
+    },
+    {
+      "number": 144,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Begin evaluating the conditions around the User ID field entered by the administrator."
+    },
+    {
+      "number": 146,
+      "code": "               WHEN USRIDINI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Checks whether the administrator left the User ID field completely blank or empty."
+    },
+    {
+      "number": 147,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Marks the current operation as failed due to a validation error, halting further processing."
+    },
+    {
+      "number": 148,
+      "code": "                   MOVE 'User ID can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Sets the screen error message to inform the administrator that a User ID must be provided before a lookup can proceed."
+    },
+    {
+      "number": 149,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 150,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Positions the screen cursor back on the User ID field so the administrator can immediately correct the missing entry."
+    },
+    {
+      "number": 151,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Redraws the update screen showing the validation error message, prompting the administrator to supply a User ID."
+    },
+    {
+      "number": 152,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Handles the case where the administrator has entered a non-blank User ID."
+    },
+    {
+      "number": 153,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Positions the screen cursor on the User ID field as the default starting point for any subsequent interaction."
+    },
+    {
+      "number": 154,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Allows processing to continue normally since a User ID has been provided."
+    },
+    {
+      "number": 155,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ends the User ID presence check."
+    },
+    {
+      "number": 156,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 157,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceeds to the file lookup only if no validation error has been raised so far."
+    },
+    {
+      "number": 158,
+      "code": "               MOVE SPACES      TO FNAMEI   OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clears any previously displayed first name from the screen to ensure stale data is not shown before the fresh lookup."
+    },
+    {
+      "number": 159,
+      "code": "                                   LNAMEI   OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clears any previously displayed last name and password from the screen before retrieving the current record."
+    },
+    {
+      "number": 160,
+      "code": "                                   PASSWDI  OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clears any previously displayed password from the screen before retrieving the current record."
+    },
+    {
+      "number": 161,
+      "code": "                                   USRTYPEI OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Clears any previously displayed user role/type from the screen before retrieving the current record."
+    },
+    {
+      "number": 162,
+      "code": "               MOVE USRIDINI  OF COUSR2AI TO SEC-USR-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Passes the User ID entered by the administrator to the security file lookup routine as the search key."
+    },
+    {
+      "number": 163,
+      "code": "               PERFORM READ-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Reads the user's account record from the security file using the supplied User ID, applying an update lock to prevent concurrent edits."
+    },
+    {
+      "number": 164,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ends the block that performs the security file lookup."
+    },
+    {
+      "number": 165,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 166,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Proceeds to populate and display the user's details only if the file lookup completed without errors."
+    },
+    {
+      "number": 167,
+      "code": "               MOVE SEC-USR-FNAME      TO FNAMEI    OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copies the user's first name retrieved from the security file onto the update screen for the administrator to review or edit."
+    },
+    {
+      "number": 168,
+      "code": "               MOVE SEC-USR-LNAME      TO LNAMEI    OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copies the user's last name retrieved from the security file onto the update screen for the administrator to review or edit."
+    },
+    {
+      "number": 169,
+      "code": "               MOVE SEC-USR-PWD        TO PASSWDI   OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copies the user's current password retrieved from the security file onto the update screen for the administrator to review or edit."
+    },
+    {
+      "number": 170,
+      "code": "               MOVE SEC-USR-TYPE       TO USRTYPEI  OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Copies the user's role (Regular or Admin) retrieved from the security file onto the update screen for the administrator to review or edit."
+    },
+    {
+      "number": 171,
+      "code": "               PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Displays the fully populated user update screen so the administrator can review the existing account details and make changes."
+    },
+    {
+      "number": 172,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": "Ends the block that populates and displays the retrieved user profile."
+    },
+    {
+      "number": 173,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 175,
+      "code": "      *                      UPDATE-USER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "PROCESS-ENTER-KEY",
+      "explanation": ""
+    },
+    {
+      "number": 177,
+      "code": "       UPDATE-USER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Entry point for the user account update business logic."
+    },
+    {
+      "number": 178,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 179,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Begin sequential validation of all mandatory fields on the update screen."
+    },
+    {
+      "number": 180,
+      "code": "               WHEN USRIDINI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether the administrator left the User ID field blank or empty."
+    },
+    {
+      "number": 181,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Flag the current operation as invalid, halting any further update processing."
+    },
+    {
+      "number": 182,
+      "code": "                   MOVE 'User ID can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen error message to inform the administrator that a User ID must be provided."
+    },
+    {
+      "number": 183,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 184,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Position the screen cursor on the User ID field so the administrator can correct it immediately."
+    },
+    {
+      "number": 185,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the validation error message visible to the administrator."
+    },
+    {
+      "number": 186,
+      "code": "               WHEN FNAMEI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether the administrator left the First Name field blank or empty."
+    },
+    {
+      "number": 187,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Flag the current operation as invalid, halting any further update processing."
+    },
+    {
+      "number": 188,
+      "code": "                   MOVE 'First Name can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen error message to inform the administrator that a First Name must be provided."
+    },
+    {
+      "number": 189,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Position the screen cursor on the First Name field so the administrator can correct it immediately."
+    },
+    {
+      "number": 191,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the validation error message visible to the administrator."
+    },
+    {
+      "number": 192,
+      "code": "               WHEN LNAMEI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether the administrator left the Last Name field blank or empty."
+    },
+    {
+      "number": 193,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Flag the current operation as invalid, halting any further update processing."
+    },
+    {
+      "number": 194,
+      "code": "                   MOVE 'Last Name can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen error message to inform the administrator that a Last Name must be provided."
+    },
+    {
+      "number": 195,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "                   MOVE -1       TO LNAMEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Position the screen cursor on the Last Name field so the administrator can correct it immediately."
+    },
+    {
+      "number": 197,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the validation error message visible to the administrator."
+    },
+    {
+      "number": 198,
+      "code": "               WHEN PASSWDI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether the administrator left the Password field blank or empty."
+    },
+    {
+      "number": 199,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Flag the current operation as invalid, halting any further update processing."
+    },
+    {
+      "number": 200,
+      "code": "                   MOVE 'Password can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen error message to inform the administrator that a Password must be provided."
+    },
+    {
+      "number": 201,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 202,
+      "code": "                   MOVE -1       TO PASSWDL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Position the screen cursor on the Password field so the administrator can correct it immediately."
+    },
+    {
+      "number": 203,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the validation error message visible to the administrator."
+    },
+    {
+      "number": 204,
+      "code": "               WHEN USRTYPEI OF COUSR2AI = SPACES OR LOW-VALUES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether the administrator left the User Type (Regular or Admin role) field blank or empty."
+    },
+    {
+      "number": 205,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Flag the current operation as invalid, halting any further update processing."
+    },
+    {
+      "number": 206,
+      "code": "                   MOVE 'User Type can NOT be empty...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen error message to inform the administrator that a User Type must be provided."
+    },
+    {
+      "number": 207,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 208,
+      "code": "                   MOVE -1       TO USRTYPEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Position the screen cursor on the User Type field so the administrator can correct it immediately."
+    },
+    {
+      "number": 209,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the validation error message visible to the administrator."
+    },
+    {
+      "number": 210,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "All mandatory fields have passed the blank-check validation; proceed with the update logic."
+    },
+    {
+      "number": 211,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Default the screen cursor position to the First Name field in preparation for any subsequent edits."
+    },
+    {
+      "number": 212,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "No further action needed at this validation stage; continue to the update comparison logic."
+    },
+    {
+      "number": 213,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of the mandatory field validation block."
+    },
+    {
+      "number": 214,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 215,
+      "code": "           IF NOT ERR-FLG-ON",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Only proceed with the file update logic if all mandatory field validations passed without error."
+    },
+    {
+      "number": 216,
+      "code": "               MOVE USRIDINI  OF COUSR2AI TO SEC-USR-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Use the User ID entered by the administrator as the key to locate the correct account in the security file."
+    },
+    {
+      "number": 217,
+      "code": "               PERFORM READ-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Retrieve the existing user profile from the security file, locking the record to prevent concurrent edits."
+    },
+    {
+      "number": 218,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "               IF FNAMEI  OF COUSR2AI NOT = SEC-USR-FNAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Compare the First Name submitted by the administrator against the value currently stored in the security file."
+    },
+    {
+      "number": 220,
+      "code": "                   MOVE FNAMEI   OF COUSR2AI TO SEC-USR-FNAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Apply the administrator's new First Name to the user's profile record, overwriting the previous value."
+    },
+    {
+      "number": 221,
+      "code": "                   SET USR-MODIFIED-YES TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Record that at least one field has been changed, indicating the security file must be updated."
+    },
+    {
+      "number": 222,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of First Name change detection."
+    },
+    {
+      "number": 223,
+      "code": "               IF LNAMEI  OF COUSR2AI NOT = SEC-USR-LNAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Compare the Last Name submitted by the administrator against the value currently stored in the security file."
+    },
+    {
+      "number": 224,
+      "code": "                   MOVE LNAMEI   OF COUSR2AI TO SEC-USR-LNAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Apply the administrator's new Last Name to the user's profile record, overwriting the previous value."
+    },
+    {
+      "number": 225,
+      "code": "                   SET USR-MODIFIED-YES TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Record that at least one field has been changed, indicating the security file must be updated."
+    },
+    {
+      "number": 226,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of Last Name change detection."
+    },
+    {
+      "number": 227,
+      "code": "               IF PASSWDI  OF COUSR2AI NOT = SEC-USR-PWD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Compare the Password submitted by the administrator against the credential currently stored in the security file."
+    },
+    {
+      "number": 228,
+      "code": "                   MOVE PASSWDI  OF COUSR2AI TO SEC-USR-PWD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Apply the administrator's new Password to the user's profile record, overwriting the previous credential."
+    },
+    {
+      "number": 229,
+      "code": "                   SET USR-MODIFIED-YES TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Record that at least one field has been changed, indicating the security file must be updated."
+    },
+    {
+      "number": 230,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of Password change detection."
+    },
+    {
+      "number": 231,
+      "code": "               IF USRTYPEI  OF COUSR2AI NOT = SEC-USR-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Compare the User Type (role) submitted by the administrator against the role currently stored in the security file."
+    },
+    {
+      "number": 232,
+      "code": "                   MOVE USRTYPEI OF COUSR2AI TO SEC-USR-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Apply the administrator's new User Type to the user's profile record, overwriting the previous role assignment."
+    },
+    {
+      "number": 233,
+      "code": "                   SET USR-MODIFIED-YES TO TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Record that at least one field has been changed, indicating the security file must be updated."
+    },
+    {
+      "number": 234,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of User Type change detection."
+    },
+    {
+      "number": 235,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 236,
+      "code": "               IF USR-MODIFIED-YES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Check whether any of the four editable fields were actually changed by the administrator."
+    },
+    {
+      "number": 237,
+      "code": "                   PERFORM UPDATE-USER-SEC-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "At least one field was modified; commit all changes by writing the updated profile back to the security file."
+    },
+    {
+      "number": 238,
+      "code": "               ELSE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "No fields were changed; skip the file write and instead inform the administrator."
+    },
+    {
+      "number": 239,
+      "code": "                   MOVE 'Please modify to update ...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Set the screen message to prompt the administrator to make at least one change before saving."
+    },
+    {
+      "number": 240,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 241,
+      "code": "                   MOVE DFHRED       TO ERRMSGC  OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Highlight the informational message in red on the screen to draw the administrator's attention."
+    },
+    {
+      "number": 242,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "Redisplay the update screen with the 'no changes detected' message so the administrator can make edits."
+    },
+    {
+      "number": 243,
+      "code": "               END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of the modified-fields check."
+    },
+    {
+      "number": 244,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 245,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": "End of the overall update logic block, including the mandatory validation guard."
+    },
+    {
+      "number": 246,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 247,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 248,
+      "code": "      *                      RETURN-TO-PREV-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 249,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 250,
+      "code": "       RETURN-TO-PREV-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "This paragraph handles the navigation away from the user update screen, returning the administrator to the appropriate previous screen. It ensures the session context is correctly stamped with the originating transaction before handing control to the destination screen."
+    },
+    {
+      "number": 251,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 252,
+      "code": "           IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Checks whether a destination screen was recorded in the session; if none exists, the administrator has no valid navigation history."
+    },
+    {
+      "number": 253,
+      "code": "               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Defaults the destination to the system sign-on screen when no prior navigation context is available, preventing unauthorised access to orphaned sessions."
+    },
+    {
+      "number": 254,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 255,
+      "code": "           MOVE WS-TRANID    TO CDEMO-FROM-TRANID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the current user update transaction identifier into the session handoff area, so the destination screen knows which transaction is passing control."
+    },
+    {
+      "number": 256,
+      "code": "           MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Records the current program name into the session handoff area, so the destination screen knows which program is relinquishing control."
+    },
+    {
+      "number": 257,
+      "code": "           MOVE ZEROS        TO CDEMO-PGM-CONTEXT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Clears the screen context indicator in the session, signalling to the destination program that it should start fresh rather than resume a previous state."
+    },
+    {
+      "number": 258,
+      "code": "           EXEC CICS",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Begins the CICS command block that will transfer control away from the user update screen."
+    },
+    {
+      "number": 259,
+      "code": "               XCTL PROGRAM(CDEMO-TO-PROGRAM)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Transfers full control of the terminal session to the destination screen — either the Admin menu or the sign-on screen — ending this program's execution."
+    },
+    {
+      "number": 260,
+      "code": "               COMMAREA(CARDDEMO-COMMAREA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Passes the current session communication data (user identity, navigation history, and context flags) to the destination screen so it can operate with full session awareness."
+    },
+    {
+      "number": 261,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": "Closes the CICS command block, completing the screen transfer."
+    },
+    {
+      "number": 262,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 263,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 264,
+      "code": "      *                      SEND-USRUPD-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 265,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RETURN-TO-PREV-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 266,
+      "code": "       SEND-USRUPD-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Entry point for the routine that renders the User Update screen to the administrator's terminal."
+    },
+    {
+      "number": 267,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 268,
+      "code": "           PERFORM POPULATE-HEADER-INFO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Populates the screen's header area with standard information such as the current date, time, and transaction identifier before displaying the screen."
+    },
+    {
+      "number": 269,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 270,
+      "code": "           MOVE WS-MESSAGE TO ERRMSGO OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Places any pending validation error or status message (e.g. 'User ID NOT found' or 'mandatory field missing') into the screen's error message display area so the administrator is informed of the outcome."
+    },
+    {
+      "number": 271,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 272,
+      "code": "           EXEC CICS SEND",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Begins the instruction to send the completed screen to the administrator's terminal."
+    },
+    {
+      "number": 273,
+      "code": "                     MAP('COUSR2A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Specifies that the screen layout to be rendered is the User Update form."
+    },
+    {
+      "number": 274,
+      "code": "                     MAPSET('COUSR02')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Identifies the screen definition library that contains the User Update form layout."
+    },
+    {
+      "number": 275,
+      "code": "                     FROM(COUSR2AO)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Supplies the fully populated screen data — including user account fields and the error message — as the content to be displayed."
+    },
+    {
+      "number": 276,
+      "code": "                     ERASE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Clears any previously displayed content from the terminal before rendering the updated screen, ensuring a clean display."
+    },
+    {
+      "number": 277,
+      "code": "                     CURSOR",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Positions the terminal cursor automatically to assist the administrator in navigating to the appropriate input field."
+    },
+    {
+      "number": 278,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": "Closes the send-screen instruction, completing the display of the User Update screen to the administrator."
+    },
+    {
+      "number": 279,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 280,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 281,
+      "code": "      *                      RECEIVE-USRUPD-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 282,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "SEND-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 283,
+      "code": "       RECEIVE-USRUPD-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Entry point for the step that collects the administrator's submitted input from the user update screen."
+    },
+    {
+      "number": 284,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 285,
+      "code": "           EXEC CICS RECEIVE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Begins the CICS instruction that retrieves the data the administrator has just entered or modified on the screen."
+    },
+    {
+      "number": 286,
+      "code": "                     MAP('COUSR2A')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Specifies which screen layout (the user update form) is being read to capture the administrator's input."
+    },
+    {
+      "number": 287,
+      "code": "                     MAPSET('COUSR02')",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Identifies the screen map group that contains the user update form definition."
+    },
+    {
+      "number": 288,
+      "code": "                     INTO(COUSR2AI)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Directs the captured screen data into the program's working area so field values can be inspected and validated."
+    },
+    {
+      "number": 289,
+      "code": "                     RESP(WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Records whether the screen data was successfully received, allowing the program to detect and handle any technical errors."
+    },
+    {
+      "number": 290,
+      "code": "                     RESP2(WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Captures a secondary technical response code providing additional detail if the screen retrieval encountered a problem."
+    },
+    {
+      "number": 291,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Closes the screen-receive instruction."
+    },
+    {
+      "number": 292,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 293,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": "Section divider comment indicating that the next block of logic will populate the screen's header area with contextual information."
+    },
+    {
+      "number": 294,
+      "code": "      *                      POPULATE-HEADER-INFO",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 295,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "RECEIVE-USRUPD-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 296,
+      "code": "       POPULATE-HEADER-INFO.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Populates the standard header section of the User Update screen with current date, time, application titles, and transaction identifiers, ensuring the administrator always sees accurate context information at the top of the screen before any user data is displayed or edited."
+    },
+    {
+      "number": 297,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 298,
+      "code": "           MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Retrieves the current system date and time so the screen header reflects the exact moment the administrator is viewing or editing the record."
+    },
+    {
+      "number": 299,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 300,
+      "code": "           MOVE CCDA-TITLE01           TO TITLE01O OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the first line of the CardDemo application title onto the update screen header, identifying the system to the administrator."
+    },
+    {
+      "number": 301,
+      "code": "           MOVE CCDA-TITLE02           TO TITLE02O OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Places the second line of the CardDemo application title onto the update screen header, completing the application branding."
+    },
+    {
+      "number": 302,
+      "code": "           MOVE WS-TRANID              TO TRNNAMEO OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the transaction code for this User Update function in the screen header, allowing administrators and support staff to identify which CICS transaction is active."
+    },
+    {
+      "number": 303,
+      "code": "           MOVE WS-PGMNAME             TO PGMNAMEO OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the name of the currently running program in the screen header, supporting auditability and troubleshooting by showing which program is handling the session."
+    },
+    {
+      "number": 304,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 305,
+      "code": "           MOVE WS-CURDATE-MONTH       TO WS-CURDATE-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the month portion of the current date to format it for display in the screen header."
+    },
+    {
+      "number": 306,
+      "code": "           MOVE WS-CURDATE-DAY         TO WS-CURDATE-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the day portion of the current date to format it for display in the screen header."
+    },
+    {
+      "number": 307,
+      "code": "           MOVE WS-CURDATE-YEAR(3:2)   TO WS-CURDATE-YY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the two-digit year portion of the current date to format it for display in the screen header."
+    },
+    {
+      "number": 308,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 309,
+      "code": "           MOVE WS-CURDATE-MM-DD-YY    TO CURDATEO OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the fully formatted current date (MM/DD/YY) in the screen header so the administrator can see when the update session is taking place."
+    },
+    {
+      "number": 310,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 311,
+      "code": "           MOVE WS-CURTIME-HOURS       TO WS-CURTIME-HH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the hours portion of the current time to format it for display in the screen header."
+    },
+    {
+      "number": 312,
+      "code": "           MOVE WS-CURTIME-MINUTE      TO WS-CURTIME-MM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the minutes portion of the current time to format it for display in the screen header."
+    },
+    {
+      "number": 313,
+      "code": "           MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Extracts the seconds portion of the current time to format it for display in the screen header."
+    },
+    {
+      "number": 314,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 315,
+      "code": "           MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COUSR2AO.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": "Displays the fully formatted current time (HH:MM:SS) in the screen header, providing a precise timestamp visible to the administrator during the update session."
+    },
+    {
+      "number": 316,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 317,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 318,
+      "code": "      *                      READ-USER-SEC-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 319,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "POPULATE-HEADER-INFO",
+      "explanation": ""
+    },
+    {
+      "number": 320,
+      "code": "       READ-USER-SEC-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Entry point for the routine that looks up a user account in the security file."
+    },
+    {
+      "number": 321,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 322,
+      "code": "           EXEC CICS READ",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Initiates a request to retrieve a user account record from the security file."
+    },
+    {
+      "number": 323,
+      "code": "                DATASET   (WS-USRSEC-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Identifies the user security file as the source of the account data."
+    },
+    {
+      "number": 324,
+      "code": "                INTO      (SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Specifies that the retrieved user account details (name, password, role) will be loaded into the working record area for display and editing."
+    },
+    {
+      "number": 325,
+      "code": "                LENGTH    (LENGTH OF SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Ensures the full user account record is read, capturing all stored profile fields."
+    },
+    {
+      "number": 326,
+      "code": "                RIDFLD    (SEC-USR-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Uses the User ID entered by the administrator as the key to locate the correct account record."
+    },
+    {
+      "number": 327,
+      "code": "                KEYLENGTH (LENGTH OF SEC-USR-ID)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Confirms the exact length of the User ID key to ensure a precise match in the file lookup."
+    },
+    {
+      "number": 328,
+      "code": "                UPDATE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Places an exclusive lock on the retrieved record, preventing any concurrent modification by another process while the administrator is editing it."
+    },
+    {
+      "number": 329,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Captures the overall outcome code of the file read operation to determine whether it succeeded or failed."
+    },
+    {
+      "number": 330,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Captures a secondary diagnostic code providing additional detail if the file read operation did not complete successfully."
+    },
+    {
+      "number": 331,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 332,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 333,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Evaluates the outcome of the file lookup to determine the appropriate next business action."
+    },
+    {
+      "number": 334,
+      "code": "               WHEN DFHRESP(NORMAL)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles the successful case where the user account record was found and retrieved without errors."
+    },
+    {
+      "number": 335,
+      "code": "                   CONTINUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "No additional action needed on success; processing continues to display the record."
+    },
+    {
+      "number": 336,
+      "code": "                   MOVE 'Press PF5 key to save your updates ...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets an instructional message prompting the administrator to press PF5 when ready to save their changes to the user account."
+    },
+    {
+      "number": 337,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 338,
+      "code": "                   MOVE DFHNEUTR       TO ERRMSGC  OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Displays the instruction message in a neutral, non-alarming colour to indicate a normal informational status."
+    },
+    {
+      "number": 339,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Displays the user update screen populated with the retrieved account details, ready for the administrator to review and edit."
+    },
+    {
+      "number": 340,
+      "code": "               WHEN DFHRESP(NOTFND)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles the case where the entered User ID does not match any account in the security file."
+    },
+    {
+      "number": 341,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Marks the current operation as failed due to the user account not being found, halting any further save processing."
+    },
+    {
+      "number": 342,
+      "code": "                   MOVE 'User ID NOT found...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets an error message informing the administrator that the User ID they entered does not exist in the system."
+    },
+    {
+      "number": 343,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 344,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor back to the User ID entry field, prompting the administrator to correct their input."
+    },
+    {
+      "number": 345,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Redisplays the update screen with the 'User ID not found' error message so the administrator can try a different User ID."
+    },
+    {
+      "number": 346,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Handles any unexpected or system-level failure that prevented the security file from being read."
+    },
+    {
+      "number": 347,
+      "code": "                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Logs the technical error codes to the system console for diagnostic and support purposes."
+    },
+    {
+      "number": 348,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Marks the current operation as failed due to an unexpected system error, halting any further save processing."
+    },
+    {
+      "number": 349,
+      "code": "                   MOVE 'Unable to lookup User...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Sets a generic error message informing the administrator that the user account lookup could not be completed."
+    },
+    {
+      "number": 350,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 351,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor to the first name field as a default focus point when a system error occurs during lookup."
+    },
+    {
+      "number": 352,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": "Redisplays the update screen with the system error message so the administrator is aware the lookup failed."
+    },
+    {
+      "number": 353,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 354,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 355,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 356,
+      "code": "      *                      UPDATE-USER-SEC-FILE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 357,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "READ-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 358,
+      "code": "       UPDATE-USER-SEC-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Entry point for the paragraph that persists user account changes to the security file."
+    },
+    {
+      "number": 359,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 360,
+      "code": "           EXEC CICS REWRITE",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Initiates the permanent write of the updated user profile back to the security file, replacing the previously locked record."
+    },
+    {
+      "number": 361,
+      "code": "                DATASET   (WS-USRSEC-FILE)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Identifies the user security file as the target for the update operation."
+    },
+    {
+      "number": 362,
+      "code": "                FROM      (SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Specifies that the full updated user profile data (name, password, user type) is the content to be written."
+    },
+    {
+      "number": 363,
+      "code": "                LENGTH    (LENGTH OF SEC-USER-DATA)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Ensures the entire user profile record is written in full, with no truncation."
+    },
+    {
+      "number": 364,
+      "code": "                RESP      (WS-RESP-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Captures the overall outcome code returned by the system after the write attempt."
+    },
+    {
+      "number": 365,
+      "code": "                RESP2     (WS-REAS-CD)",
+      "type": "exec-cics",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Captures a secondary diagnostic code providing additional detail if the write operation fails."
+    },
+    {
+      "number": 366,
+      "code": "           END-EXEC.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Closes the file write instruction block."
+    },
+    {
+      "number": 367,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 368,
+      "code": "           EVALUATE WS-RESP-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Evaluates the outcome of the write operation to determine which response to present to the administrator."
+    },
+    {
+      "number": 369,
+      "code": "               WHEN DFHRESP(NORMAL)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Handles the successful scenario where the user record was updated without any errors."
+    },
+    {
+      "number": 370,
+      "code": "                   MOVE SPACES             TO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Clears any previous status or error message from the screen in preparation for the success notification."
+    },
+    {
+      "number": 371,
+      "code": "                   MOVE DFHGREEN           TO ERRMSGC  OF COUSR2AO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Sets the on-screen status message colour to green to visually indicate a successful update to the administrator."
+    },
+    {
+      "number": 372,
+      "code": "                   STRING 'User '     DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Begins constructing a confirmation message, starting with the word 'User'."
+    },
+    {
+      "number": 373,
+      "code": "                          SEC-USR-ID  DELIMITED BY SPACE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Appends the specific User ID that was successfully updated to the confirmation message."
+    },
+    {
+      "number": 374,
+      "code": "                          ' has been updated ...' DELIMITED BY SIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Appends the phrase confirming the update was completed to the message."
+    },
+    {
+      "number": 375,
+      "code": "                     INTO WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Places the fully assembled success confirmation message into the screen message area."
+    },
+    {
+      "number": 376,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Refreshes the update screen so the administrator can see the success confirmation message."
+    },
+    {
+      "number": 377,
+      "code": "               WHEN DFHRESP(NOTFND)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Handles the scenario where the system cannot find the specified user record in the security file during the write."
+    },
+    {
+      "number": 378,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Raises an error condition to halt further processing and force re-display of the screen with the error message."
+    },
+    {
+      "number": 379,
+      "code": "                   MOVE 'User ID NOT found...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the specified User ID does not exist in the security file."
+    },
+    {
+      "number": 380,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Continues the message assignment for the 'User ID not found' error notification."
+    },
+    {
+      "number": 381,
+      "code": "                   MOVE -1       TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor on the User ID input field, prompting the administrator to correct the entry."
+    },
+    {
+      "number": 382,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Refreshes the update screen displaying the 'User ID not found' error to the administrator."
+    },
+    {
+      "number": 383,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Handles any unexpected system-level failure during the write operation (e.g. file unavailable, I/O error)."
+    },
+    {
+      "number": 384,
+      "code": "                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Logs the technical error and diagnostic codes to the system console for support investigation."
+    },
+    {
+      "number": 385,
+      "code": "                   MOVE 'Y'     TO WS-ERR-FLG",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Raises an error condition to halt further processing and force re-display of the screen with the failure message."
+    },
+    {
+      "number": 386,
+      "code": "                   MOVE 'Unable to Update User...' TO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Sets the screen message to inform the administrator that the update could not be completed due to a system error."
+    },
+    {
+      "number": 387,
+      "code": "                                   WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Continues the message assignment for the general update failure notification."
+    },
+    {
+      "number": 388,
+      "code": "                   MOVE -1       TO FNAMEL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Positions the screen cursor on the first name field as a default focus point when a system error occurs."
+    },
+    {
+      "number": 389,
+      "code": "                   PERFORM SEND-USRUPD-SCREEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Refreshes the update screen displaying the system error message to the administrator."
+    },
+    {
+      "number": 390,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": "Closes the outcome evaluation block covering all possible results of the write operation."
+    },
+    {
+      "number": 391,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 392,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 393,
+      "code": "      *                      CLEAR-CURRENT-SCREEN",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 394,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "UPDATE-USER-SEC-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 395,
+      "code": "       CLEAR-CURRENT-SCREEN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Resets the user update screen to a blank state, discarding any data currently displayed without saving changes. This allows the administrator to start fresh when editing a user account, clearing all previously entered or retrieved field values from the screen."
+    },
+    {
+      "number": 396,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 397,
+      "code": "           PERFORM INITIALIZE-ALL-FIELDS.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Wipes all editable fields on the screen (User ID, first name, last name, password, user type) back to empty, discarding any unsaved input."
+    },
+    {
+      "number": 398,
+      "code": "           PERFORM SEND-USRUPD-SCREEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": "Redraws the now-empty user update screen so the administrator sees a clean form ready for a new user lookup or data entry."
+    },
+    {
+      "number": 399,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 400,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 401,
+      "code": "      *                      INITIALIZE-ALL-FIELDS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 402,
+      "code": "      *----------------------------------------------------------------*",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "CLEAR-CURRENT-SCREEN",
+      "explanation": ""
+    },
+    {
+      "number": 403,
+      "code": "       INITIALIZE-ALL-FIELDS.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Entry point for the screen initialisation routine."
+    },
+    {
+      "number": 404,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 405,
+      "code": "           MOVE -1              TO USRIDINL OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Positions the screen cursor inside the User ID input field, directing the administrator's attention to start there."
+    },
+    {
+      "number": 406,
+      "code": "           MOVE SPACES          TO USRIDINI OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the User ID input field on screen, removing any previously entered or displayed User ID."
+    },
+    {
+      "number": 407,
+      "code": "                                   FNAMEI   OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the first name field on screen, removing any previously displayed user first name."
+    },
+    {
+      "number": 408,
+      "code": "                                   LNAMEI   OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the last name field on screen, removing any previously displayed user last name."
+    },
+    {
+      "number": 409,
+      "code": "                                   PASSWDI  OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the password field on screen, removing any previously displayed password value."
+    },
+    {
+      "number": 410,
+      "code": "                                   USRTYPEI OF COUSR2AI",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears the user role/type field on screen, removing any previously displayed role (Regular or Admin)."
+    },
+    {
+      "number": 411,
+      "code": "                                   WS-MESSAGE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": "Clears any informational or error message currently shown to the administrator at the bottom of the screen."
+    },
+    {
+      "number": 412,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 413,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    },
+    {
+      "number": 414,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "INITIALIZE-ALL-FIELDS",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-VARIABLES",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Top-level working storage group holding all operational variables used by the User Update program (COUSR02C) during an administrator's session to look up and modify a user account."
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "COUSR02C",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The internal name of this program ('COUSR02C'), used when navigating between screens or logging activity, so the system knows which program is currently running the user update function."
+    },
+    {
+      "name": "WS-TRANID",
+      "level": "05",
+      "picture": "PIC X(04)",
+      "value": "CU02",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The CICS transaction identifier ('CU02') assigned to the User Update function. This is the four-character code an administrator would use to invoke or re-invoke the user update screen directly from a CICS terminal."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(80)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The feedback message displayed to the administrator on the user update screen — for example, confirmation that a user record was successfully updated, or an error such as 'User ID NOT found' or 'mandatory field missing'."
+    },
+    {
+      "name": "WS-USRSEC-FILE",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": "USRSEC  ",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The name of the User Security File ('USRSEC') that stores all system user accounts, including credentials and roles. This value is used when issuing CICS file commands to read or update a user's account record."
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "An error indicator that signals whether a validation problem has been detected during the update process. When set to 'Y', it stops the save operation and forces the screen to be redisplayed with an appropriate error message so the administrator can correct the input."
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name meaning a validation error has been detected (e.g., a mandatory field is blank or the User ID does not exist). When true, the update is halted and the administrator is shown an error message on screen."
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name meaning no validation errors have been detected. When true, the program may proceed normally with reading or saving the user account record."
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The response code returned by CICS after a file operation (such as reading or updating the User Security File). A non-zero value indicates a problem — for example, a record not found or a file I/O error — which the program uses to decide whether to show an error to the administrator."
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": "05",
+      "picture": "PIC S9(09) COMP",
+      "value": "ZEROS",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The reason code accompanying the CICS response code, providing additional detail about why a file operation failed (e.g., record locked by another user, or end of file). Used alongside WS-RESP-CD to diagnose and handle file access issues during user account updates."
+    },
+    {
+      "name": "WS-USR-MODIFIED",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag that tracks whether the administrator has actually changed at least one field on the user account (First Name, Last Name, Password, or User Type). If no changes were made, the file update is skipped entirely, preventing unnecessary writes to the User Security File."
+    },
+    {
+      "name": "USR-MODIFIED-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name indicating that the administrator has changed at least one field on the user account. When true, the program proceeds to write the updated record back to the User Security File."
+    },
+    {
+      "name": "USR-MODIFIED-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name indicating that the administrator has not changed any fields on the user account. When true, the file update is bypassed to avoid an unnecessary write to the User Security File."
+    },
+    {
+      "name": "CDEMO-CU02-INFO",
+      "level": "05",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "A group of fields that carry context information for the User Update function — specifically, which user was selected from the user list screen and pagination state. This data is passed between screens to maintain continuity during the administrator's session."
+    },
+    {
+      "name": "CDEMO-CU02-USRID-FIRST",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID of the first user account displayed on the current page of the user list. Used for pagination purposes so the system knows where the current page of results begins when the administrator navigates back to the user list."
+    },
+    {
+      "name": "CDEMO-CU02-USRID-LAST",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID of the last user account displayed on the current page of the user list. Used for pagination so the system knows where the current page of results ends when navigating forward or backward through the user list."
+    },
+    {
+      "name": "CDEMO-CU02-PAGE-NUM",
+      "level": "10",
+      "picture": "PIC 9(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The current page number within the user list that the administrator was viewing before selecting a user to edit. Retained so the administrator can be returned to the correct page of the user list after completing the update."
+    },
+    {
+      "name": "CDEMO-CU02-NEXT-PAGE-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether there are more user accounts available beyond the current page of the user list. Helps the user list screen determine whether to enable or disable the 'next page' navigation option."
+    },
+    {
+      "name": "NEXT-PAGE-YES",
+      "level": "88",
+      "picture": null,
+      "value": "Y",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name indicating that additional pages of user accounts exist beyond the current page. When true, the user list screen allows the administrator to navigate forward to see more users."
+    },
+    {
+      "name": "NEXT-PAGE-NO",
+      "level": "88",
+      "picture": null,
+      "value": "N",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition name indicating that the current page is the last page of user accounts — no further records exist. When true, the user list screen disables forward navigation."
+    },
+    {
+      "name": "CDEMO-CU02-USR-SEL-FLG",
+      "level": "10",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "A flag indicating whether the administrator has selected a specific user from the user list to edit. Used to determine whether the update screen should be pre-populated with an existing user's details."
+    },
+    {
+      "name": "CDEMO-CU02-USR-SELECTED",
+      "level": "10",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The User ID passed from the user list screen (COUSR00C) that identifies which specific user account the administrator wants to look up and edit. This is the key used to retrieve the user's record from the User Security File."
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "The CICS communication area passed between programs and transactions. It carries session context — such as which user is logged in, which program called this one, and which user account is being edited — allowing the User Update program to maintain state across screen interactions."
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "The raw communication area data passed into this program from the previous CICS transaction or program. Its length is checked at program entry: if it is empty (no prior context), the administrator is redirected to the sign-on screen to prevent unauthorised direct access to the user update function."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "line_start": 82,
+      "line_end": 142,
+      "description": "MAIN-PARA is the central orchestration paragraph that controls the entire user update session flow. It determines whether an administrator is starting a new session or continuing an existing one, then routes their key presses to the appropriate business actions such as saving changes, clearing the screen, or navigating away."
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "line_start": 143,
+      "line_end": 176,
+      "description": "This paragraph handles the administrator's request to look up a user account by User ID. It validates that a User ID has been entered, retrieves the matching user profile from the security file, and displays the editable account details on screen for the administrator to review and modify."
+    },
+    {
+      "name": "UPDATE-USER-INFO",
+      "line_start": 177,
+      "line_end": 249,
+      "description": "This paragraph validates all mandatory fields on the user update screen, then compares the administrator's submitted changes against the current stored profile to determine whether any fields were actually modified before committing the update to the security file. It enforces data integrity by rejecting blank fields and avoiding unnecessary file writes when nothing has changed."
+    },
+    {
+      "name": "RETURN-TO-PREV-SCREEN",
+      "line_start": 250,
+      "line_end": 265,
+      "description": "This paragraph handles the navigation away from the user update screen, returning the administrator to the appropriate previous screen. It ensures the session context is correctly stamped with the originating transaction before handing control to the destination screen."
+    },
+    {
+      "name": "SEND-USRUPD-SCREEN",
+      "line_start": 266,
+      "line_end": 282,
+      "description": "Prepares and displays the User Update screen to the administrator, showing current user account details along with any validation or status messages resulting from the most recent action."
+    },
+    {
+      "name": "RECEIVE-USRUPD-SCREEN",
+      "line_start": 283,
+      "line_end": 295,
+      "description": "Captures the administrator's input from the user update screen, reading all field values the administrator has entered or modified (such as first name, last name, password, and user type) so the program can proceed with validation and saving changes to the user account."
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "line_start": 296,
+      "line_end": 319,
+      "description": "Populates the standard header section of the User Update screen with current date, time, application titles, and transaction identifiers, ensuring the administrator always sees accurate context information at the top of the screen before any user data is displayed or edited."
+    },
+    {
+      "name": "READ-USER-SEC-FILE",
+      "line_start": 320,
+      "line_end": 357,
+      "description": "This paragraph retrieves an existing user's account record from the security file with an exclusive update lock, preventing other processes from modifying the same record simultaneously. Based on the outcome, it either displays the user's current details ready for editing, or presents the administrator with an appropriate error message if the user cannot be found or the file is unavailable."
+    },
+    {
+      "name": "UPDATE-USER-SEC-FILE",
+      "line_start": 358,
+      "line_end": 394,
+      "description": "This paragraph commits the administrator's changes to the user security file by permanently writing the updated user profile record. It then informs the administrator of the outcome — success, user not found, or a system error — and refreshes the update screen accordingly."
+    },
+    {
+      "name": "CLEAR-CURRENT-SCREEN",
+      "line_start": 395,
+      "line_end": 402,
+      "description": "Resets the user update screen to a blank state, discarding any data currently displayed without saving changes. This allows the administrator to start fresh when editing a user account, clearing all previously entered or retrieved field values from the screen."
+    },
+    {
+      "name": "INITIALIZE-ALL-FIELDS",
+      "line_start": 403,
+      "line_end": 414,
+      "description": "Resets the user update screen to a blank state, clearing all previously displayed user profile data and any status messages. This prepares a clean slate for the administrator to enter a new User ID lookup or begin a fresh update session."
+    }
+  ],
+  "copybooks": [
+    "COCOM01Y",
+    "COUSR02",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CSUSR01Y",
+    "DFHAID",
+    "DFHBMSCA"
+  ]
+}

@@ -1,0 +1,4930 @@
+{
+  "meta": {
+    "program_name": "CBIMPORT",
+    "file_path": "app/cbl/CBIMPORT.cbl",
+    "analyzed_at": "2026-05-03T11:29:30.242986",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Import and normalise customer, account, card, and transaction data from a branch migration export file into the CardDemo system's target data stores.",
+    "process_description": "CBIMPORT is the counterpart to CBEXPORT: it reads a structured, multi-record-type migration file produced by a source branch and splits it into five separate, normalised output files (Customer, Account, Card Cross-Reference, Card, and Transaction). Each record in the input file carries a type indicator ('C', 'A', 'X', 'D', 'T') that determines which target file it is routed to, with all relevant fields mapped and written accordingly. The program validates data integrity using checksums and tracks import statistics (records read and written per entity type) throughout the run. Any records with unrecognised record types are flagged and written to a dedicated error report file, ensuring a clean and auditable migration outcome.",
+    "type": "Batch",
+    "module": "Utility",
+    "files": {
+      "EXPFILE": "Source branch migration export file containing all customer, account, card, cross-reference, and transaction records in a unified multi-record-type layout",
+      "CUSTOUT": "Target customer master file receiving normalised customer profile records (personal details, address, SSN, FICO score, etc.)",
+      "ACCTOUT": "Target account master file receiving normalised credit card account records (balance, credit limit, dates, status, etc.)",
+      "XREFOUT": "Target card cross-reference file linking card numbers to customer and account identifiers",
+      "TRNXOUT": "Target transaction history file receiving individual credit card transaction records",
+      "CARDOUT": "Target card file receiving physical card records (card number, expiry, status, etc.)",
+      "ERROUT": "Error report file capturing records that failed validation or carried an unrecognised record type, with timestamp and diagnostic message"
+    },
+    "business_rules": [
+      "Each record in the migration file must carry a valid record type indicator ('C', 'A', 'X', 'T', or 'D'); records with any other type are rejected to the error file and counted separately to flag data quality issues.",
+      "All five output files (Customer, Account, Cross-Reference, Transaction, Card) must be successfully opened before processing begins; failure to open any file causes an immediate abnormal termination to prevent partial or corrupt imports.",
+      "Customer records must carry full personal identification data including SSN, government-issued ID, date of birth, FICO credit score, and primary card-holder indicator, preserving regulatory and credit risk information across the migration.",
+      "The card cross-reference record (type 'X') must link a card number to both a customer ID and an account ID, maintaining the three-way relationship that is essential for card authorisation and account servicing.",
+      "Data integrity is validated using checksums after processing to ensure the imported data matches the source export, supporting reconciliation and audit requirements for the branch migration.",
+      "Import statistics are tracked at the record-type level (customers, accounts, cross-references, transactions, cards, errors) to provide a full reconciliation count for sign-off by operations and the receiving branch.",
+      "Any write failure to any output file causes an immediate abnormal termination, preventing silent data loss or partial record sets that would compromise the integrity of the migrated portfolio.",
+      "The program records the date and time of the import run, providing an audit trail that ties the imported data to a specific migration event for regulatory and operational purposes."
+    ],
+    "index_context": {
+      "copybooks_resolved": [
+        "CVCUS01Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "CVTRA05Y",
+        "CVACT02Y",
+        "CVEXPORT"
+      ],
+      "programs_resolved": [],
+      "similar_programs": [
+        "CBEXPORT",
+        "CBSTM03A",
+        "CBSTM03B"
+      ]
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "       PROGRAM-ID.    CBIMPORT.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "       AUTHOR.        CARDDEMO TEAM.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * Program     : CBIMPORT.CBL",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      * Application : CardDemo",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Type        : BATCH COBOL Program",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * Function    : Import Customer Data from Branch Migration Export",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      *               Reads multi-record export file and splits it into",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      *               separate normalized target files (CUSTOMER, ACCOUNT,",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      *               CARD-XREF, TRANSACTION) with validation",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "      *",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "      * Business Use Case: Branch Migration Import",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "      * - Import complete customer profiles from export file",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "      * - Split multi-record layout into normalized target files",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "      * - Validate data integrity using checksums",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      * - Generate import statistics and error reports",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "       ENVIRONMENT DIVISION.",
+      "type": "division-header",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "       INPUT-OUTPUT SECTION.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "       FILE-CONTROL.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "           SELECT EXPORT-INPUT ASSIGN TO EXPFILE",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "               ORGANIZATION IS INDEXED",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "               RECORD KEY IS EXPORT-SEQUENCE-NUM",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "               FILE STATUS IS WS-EXPORT-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "           SELECT CUSTOMER-OUTPUT ASSIGN TO CUSTOUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "               FILE STATUS IS WS-CUSTOMER-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "           SELECT ACCOUNT-OUTPUT ASSIGN TO ACCTOUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "               FILE STATUS IS WS-ACCOUNT-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "           SELECT XREF-OUTPUT ASSIGN TO XREFOUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "               FILE STATUS IS WS-XREF-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "           SELECT TRANSACTION-OUTPUT ASSIGN TO TRNXOUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "               FILE STATUS IS WS-TRANSACTION-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "           SELECT CARD-OUTPUT ASSIGN TO CARDOUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "               FILE STATUS IS WS-CARD-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "           SELECT ERROR-OUTPUT ASSIGN TO ERROUT",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "               ORGANIZATION IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "               ACCESS MODE IS SEQUENTIAL",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "               FILE STATUS IS WS-ERROR-STATUS.",
+      "type": "code",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "",
+      "type": "empty",
+      "division": "ENVIRONMENT",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "       FILE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "       FD  EXPORT-INPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "           RECORD CONTAINS 500 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "       01  EXPORT-INPUT-RECORD                        PIC X(500).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "       FD  CUSTOMER-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "           RECORD CONTAINS 500 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "       COPY CVCUS01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "       FD  ACCOUNT-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "           RECORD CONTAINS 300 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "       COPY CVACT01Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "       FD  XREF-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "           RECORD CONTAINS 50 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "       COPY CVACT03Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "       FD  TRANSACTION-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "           RECORD CONTAINS 350 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "       COPY CVTRA05Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "       FD  CARD-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "           RECORD CONTAINS 150 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 104,
+      "code": "       COPY CVACT02Y.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 106,
+      "code": "       FD  ERROR-OUTPUT",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 107,
+      "code": "           RECORDING MODE IS F",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 108,
+      "code": "           RECORD CONTAINS 132 CHARACTERS.",
+      "type": "code",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 109,
+      "code": "       01  ERROR-OUTPUT-RECORD                        PIC X(132).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 110,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "FILE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 111,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 112,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 113,
+      "code": "       COPY CVEXPORT.",
+      "type": "copy-statement",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 114,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 115,
+      "code": "      * File Status Variables",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "       01  WS-FILE-STATUS-AREA.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 117,
+      "code": "           05  WS-EXPORT-STATUS                        PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 118,
+      "code": "               88  WS-EXPORT-EOF                       VALUE '10'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 119,
+      "code": "               88  WS-EXPORT-OK                        VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 120,
+      "code": "           05  WS-CUSTOMER-STATUS                      PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 121,
+      "code": "               88  WS-CUSTOMER-OK                      VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 122,
+      "code": "           05  WS-ACCOUNT-STATUS                       PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 123,
+      "code": "               88  WS-ACCOUNT-OK                       VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 124,
+      "code": "           05  WS-XREF-STATUS                          PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 125,
+      "code": "               88  WS-XREF-OK                          VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "           05  WS-TRANSACTION-STATUS                   PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 127,
+      "code": "               88  WS-TRANSACTION-OK                   VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 128,
+      "code": "           05  WS-CARD-STATUS                          PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 129,
+      "code": "               88  WS-CARD-OK                          VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 130,
+      "code": "           05  WS-ERROR-STATUS                         PIC X(02).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 131,
+      "code": "               88  WS-ERROR-OK                         VALUE '00'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 132,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 133,
+      "code": "      * Import Control Variables",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 134,
+      "code": "       01  WS-IMPORT-CONTROL.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 135,
+      "code": "           05  WS-IMPORT-DATE                          PIC X(10).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 136,
+      "code": "           05  WS-IMPORT-TIME                          PIC X(08).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 137,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 138,
+      "code": "      * Statistics Counters",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 139,
+      "code": "       01  WS-IMPORT-STATISTICS.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 140,
+      "code": "           05  WS-TOTAL-RECORDS-READ                  PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 141,
+      "code": "           05  WS-CUSTOMER-RECORDS-IMPORTED           PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 142,
+      "code": "           05  WS-ACCOUNT-RECORDS-IMPORTED            PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 143,
+      "code": "           05  WS-XREF-RECORDS-IMPORTED               PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 144,
+      "code": "           05  WS-TRAN-RECORDS-IMPORTED           PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 145,
+      "code": "           05  WS-CARD-RECORDS-IMPORTED               PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 146,
+      "code": "           05  WS-ERROR-RECORDS-WRITTEN               PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 147,
+      "code": "           05  WS-UNKNOWN-RECORD-TYPE-COUNT           PIC 9(09) VALUE 0.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 148,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 149,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 150,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "      * Error Record Layout",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 152,
+      "code": "       01  WS-ERROR-RECORD.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 153,
+      "code": "           05  ERR-TIMESTAMP                           PIC X(26).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 154,
+      "code": "           05  FILLER                              PIC X(01) VALUE '|'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 155,
+      "code": "           05  ERR-RECORD-TYPE                         PIC X(01).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 156,
+      "code": "           05  FILLER                              PIC X(01) VALUE '|'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 157,
+      "code": "           05  ERR-SEQUENCE                            PIC 9(07).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 158,
+      "code": "           05  FILLER                              PIC X(01) VALUE '|'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 159,
+      "code": "           05  ERR-MESSAGE                             PIC X(50).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 160,
+      "code": "           05  FILLER                          PIC X(43) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 161,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 162,
+      "code": "       PROCEDURE DIVISION.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 163,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 164,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 165,
+      "code": "       0000-MAIN-PROCESSING.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "This is the top-level orchestration paragraph that drives the entire branch migration import run from start to finish. It sequences the four major business phases — setup, data routing, integrity validation, and closedown — ensuring a controlled, auditable import of all customer, account, card, and transaction records."
+    },
+    {
+      "number": 166,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": ""
+    },
+    {
+      "number": 167,
+      "code": "           PERFORM 1000-INITIALIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "Initialises the import run: opens all output files, records the batch execution date and time, and zeroes all import counters before any data is processed."
+    },
+    {
+      "number": 168,
+      "code": "           PERFORM 2000-PROCESS-EXPORT-FILE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "Reads every record from the source branch migration file and routes each one to the correct target file (customer, account, card, cross-reference, or transaction) based on its record type, counting successes and rejections throughout."
+    },
+    {
+      "number": 169,
+      "code": "           PERFORM 3000-VALIDATE-IMPORT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "Performs post-processing data integrity checks using checksums to confirm that the volume and content of imported records matches what the source branch exported, supporting reconciliation sign-off."
+    },
+    {
+      "number": 170,
+      "code": "           PERFORM 4000-FINALIZE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "Closes all input and output files, writes the final import statistics summary, and completes the audit trail for the migration event."
+    },
+    {
+      "number": 171,
+      "code": "           GOBACK.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": "Returns control to the operating system, signalling that the import batch job has completed."
+    },
+    {
+      "number": 172,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": ""
+    },
+    {
+      "number": 173,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "0000-MAIN-PROCESSING",
+      "explanation": ""
+    },
+    {
+      "number": 174,
+      "code": "       1000-INITIALIZE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "This paragraph initialises the branch migration import job by capturing the exact date and time of execution for audit purposes, then opens all required input and output files before processing begins. It establishes the audit trail and ensures the system is fully ready to receive and route migrated customer, account, card, and transaction data."
+    },
+    {
+      "number": 175,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 176,
+      "code": "           DISPLAY 'CBIMPORT: Starting Customer Data Import'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Logs to the system console that the customer data import job has started, providing an operator-visible confirmation of job commencement."
+    },
+    {
+      "number": 177,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 178,
+      "code": "           MOVE FUNCTION CURRENT-DATE(1:4) TO WS-IMPORT-DATE(1:4)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the four-digit year of the import run into the audit timestamp, anchoring the migration event to a specific calendar year."
+    },
+    {
+      "number": 179,
+      "code": "           MOVE '-' TO WS-IMPORT-DATE(5:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Inserts a hyphen separator between the year and month portions of the formatted import date for readability and standard date formatting."
+    },
+    {
+      "number": 180,
+      "code": "           MOVE FUNCTION CURRENT-DATE(5:2) TO WS-IMPORT-DATE(6:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the two-digit month of the import run into the audit timestamp, identifying the calendar month of the migration event."
+    },
+    {
+      "number": 181,
+      "code": "           MOVE '-' TO WS-IMPORT-DATE(8:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Inserts a hyphen separator between the month and day portions of the formatted import date."
+    },
+    {
+      "number": 182,
+      "code": "           MOVE FUNCTION CURRENT-DATE(7:2) TO WS-IMPORT-DATE(9:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the two-digit day of the month of the import run into the audit timestamp, completing the full calendar date of the migration event."
+    },
+    {
+      "number": 183,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 184,
+      "code": "           MOVE FUNCTION CURRENT-DATE(9:2) TO WS-IMPORT-TIME(1:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the two-digit hour at which the import job started, establishing the precise time of the migration event for audit and reconciliation."
+    },
+    {
+      "number": 185,
+      "code": "           MOVE ':' TO WS-IMPORT-TIME(3:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Inserts a colon separator between the hour and minute portions of the formatted import time."
+    },
+    {
+      "number": 186,
+      "code": "           MOVE FUNCTION CURRENT-DATE(11:2) TO WS-IMPORT-TIME(4:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the two-digit minute at which the import job started, refining the audit timestamp to sub-hour precision."
+    },
+    {
+      "number": 187,
+      "code": "           MOVE ':' TO WS-IMPORT-TIME(6:1)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Inserts a colon separator between the minute and second portions of the formatted import time."
+    },
+    {
+      "number": 188,
+      "code": "           MOVE FUNCTION CURRENT-DATE(13:2) TO WS-IMPORT-TIME(7:2)",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Records the two-digit second at which the import job started, completing the full time-of-day audit stamp for the migration run."
+    },
+    {
+      "number": 189,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 190,
+      "code": "           PERFORM 1100-OPEN-FILES",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Opens all required input and output files (source export file, all five target data files, and the error report), ensuring the system is fully prepared before any records are processed."
+    },
+    {
+      "number": 191,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 192,
+      "code": "           DISPLAY 'CBIMPORT: Import Date: ' WS-IMPORT-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Writes the formatted import date to the system console log, providing operators and auditors with a permanent record of when this migration batch was executed."
+    },
+    {
+      "number": 193,
+      "code": "           DISPLAY 'CBIMPORT: Import Time: ' WS-IMPORT-TIME.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": "Writes the formatted import time to the system console log, completing the audit entry that ties all imported records to this specific migration event."
+    },
+    {
+      "number": 194,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 195,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1000-INITIALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 196,
+      "code": "       1100-OPEN-FILES.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Entry point for the file-opening phase of the import job."
+    },
+    {
+      "number": 197,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 198,
+      "code": "           OPEN INPUT EXPORT-INPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the source branch migration export file so the program can begin reading incoming customer, account, card, and transaction records."
+    },
+    {
+      "number": 199,
+      "code": "           IF NOT WS-EXPORT-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the source migration file was successfully made available for reading."
+    },
+    {
+      "number": 200,
+      "code": "               DISPLAY 'ERROR: Cannot open EXPORT-INPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message to the operator console indicating that the source migration file could not be accessed, along with the system-level failure code."
+    },
+    {
+      "number": 201,
+      "code": "                       WS-EXPORT-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code in the error message to help operations staff diagnose the root cause of the file access failure."
+    },
+    {
+      "number": 202,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Triggers an immediate abnormal termination of the job, preventing any processing from occurring without a readable source file."
+    },
+    {
+      "number": 203,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 204,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 205,
+      "code": "           OPEN OUTPUT CUSTOMER-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the target customer master file so that migrated customer profile records can be written to it during processing."
+    },
+    {
+      "number": 206,
+      "code": "           IF NOT WS-CUSTOMER-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the customer master output file was successfully prepared for writing."
+    },
+    {
+      "number": 207,
+      "code": "               DISPLAY 'ERROR: Cannot open CUSTOMER-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the customer master file could not be opened for writing, along with the system-level failure code."
+    },
+    {
+      "number": 208,
+      "code": "                       WS-CUSTOMER-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to assist operations in diagnosing why the customer output file is unavailable."
+    },
+    {
+      "number": 209,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately to prevent any records from being processed without a valid destination for customer data."
+    },
+    {
+      "number": 210,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 211,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 212,
+      "code": "           OPEN OUTPUT ACCOUNT-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the target account master file so that migrated credit card account records can be written during processing."
+    },
+    {
+      "number": 213,
+      "code": "           IF NOT WS-ACCOUNT-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the account master output file was successfully prepared for writing."
+    },
+    {
+      "number": 214,
+      "code": "               DISPLAY 'ERROR: Cannot open ACCOUNT-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the account master file could not be opened, along with the system-level failure code."
+    },
+    {
+      "number": 215,
+      "code": "                       WS-ACCOUNT-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to help operations identify why the account output file is inaccessible."
+    },
+    {
+      "number": 216,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately to prevent processing without a valid destination for account data."
+    },
+    {
+      "number": 217,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 218,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 219,
+      "code": "           OPEN OUTPUT XREF-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the target card cross-reference file so that records linking card numbers to customers and accounts can be written during processing."
+    },
+    {
+      "number": 220,
+      "code": "           IF NOT WS-XREF-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the card cross-reference output file was successfully prepared for writing."
+    },
+    {
+      "number": 221,
+      "code": "               DISPLAY 'ERROR: Cannot open XREF-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the card cross-reference file could not be opened, along with the system-level failure code."
+    },
+    {
+      "number": 222,
+      "code": "                       WS-XREF-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to assist in diagnosing the cross-reference file access failure."
+    },
+    {
+      "number": 223,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately, as the absence of the cross-reference file would break the three-way link between cards, customers, and accounts."
+    },
+    {
+      "number": 224,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 225,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 226,
+      "code": "           OPEN OUTPUT TRANSACTION-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the target transaction history file so that individual credit card transaction records can be written during processing."
+    },
+    {
+      "number": 227,
+      "code": "           IF NOT WS-TRANSACTION-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the transaction history output file was successfully prepared for writing."
+    },
+    {
+      "number": 228,
+      "code": "               DISPLAY 'ERROR: Cannot open TRANSACTION-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the transaction history file could not be opened, along with the system-level failure code."
+    },
+    {
+      "number": 229,
+      "code": "                       WS-TRANSACTION-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to help operations diagnose the transaction file access failure."
+    },
+    {
+      "number": 230,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately to prevent processing without a valid destination for transaction history data."
+    },
+    {
+      "number": 231,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 232,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 233,
+      "code": "           OPEN OUTPUT CARD-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the target physical card file so that card records containing card numbers, expiry dates, and statuses can be written during processing."
+    },
+    {
+      "number": 234,
+      "code": "           IF NOT WS-CARD-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the physical card output file was successfully prepared for writing."
+    },
+    {
+      "number": 235,
+      "code": "               DISPLAY 'ERROR: Cannot open CARD-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the card file could not be opened, along with the system-level failure code."
+    },
+    {
+      "number": 236,
+      "code": "                       WS-CARD-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to assist in diagnosing the card file access failure."
+    },
+    {
+      "number": 237,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately to prevent processing without a valid destination for physical card records."
+    },
+    {
+      "number": 238,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 239,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 240,
+      "code": "           OPEN OUTPUT ERROR-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Opens the error report file so that any rejected or unrecognised records can be captured and flagged for review."
+    },
+    {
+      "number": 241,
+      "code": "           IF NOT WS-ERROR-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Checks whether the error report file was successfully prepared for writing."
+    },
+    {
+      "number": 242,
+      "code": "               DISPLAY 'ERROR: Cannot open ERROR-OUTPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Logs a diagnostic message indicating that the error report file could not be opened, along with the system-level failure code."
+    },
+    {
+      "number": 243,
+      "code": "                       WS-ERROR-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Includes the operating system status code to help operations understand why the error report file is unavailable."
+    },
+    {
+      "number": 244,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": "Halts the job immediately, as the inability to write error records would prevent a clean and auditable migration outcome."
+    },
+    {
+      "number": 245,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 246,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 247,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "1100-OPEN-FILES",
+      "explanation": ""
+    },
+    {
+      "number": 248,
+      "code": "       2000-PROCESS-EXPORT-FILE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Entry point for the main file processing phase of the branch migration import job."
+    },
+    {
+      "number": 249,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 250,
+      "code": "           PERFORM 2100-READ-EXPORT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Reads the first record from the source branch migration export file to prime the processing loop."
+    },
+    {
+      "number": 251,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 252,
+      "code": "           PERFORM UNTIL WS-EXPORT-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Begins a loop that continues until every record in the source migration file has been read and processed — ensuring no data is skipped."
+    },
+    {
+      "number": 253,
+      "code": "               ADD 1 TO WS-TOTAL-RECORDS-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Increments the running total of records read from the source file, supporting end-of-run reconciliation and audit sign-off."
+    },
+    {
+      "number": 254,
+      "code": "               PERFORM 2200-PROCESS-RECORD-BY-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Routes the current record to the correct target output file (Customer, Account, Cross-Reference, Card, or Transaction) based on its record type indicator, or rejects it to the error report if the type is unrecognised."
+    },
+    {
+      "number": 255,
+      "code": "               PERFORM 2100-READ-EXPORT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Reads the next record from the source migration export file, advancing the loop to process the subsequent entry."
+    },
+    {
+      "number": 256,
+      "code": "           END-PERFORM.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": "Closes the processing loop once all records in the source migration file have been read, routed, and written to their respective target files."
+    },
+    {
+      "number": 257,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 258,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2000-PROCESS-EXPORT-FILE",
+      "explanation": ""
+    },
+    {
+      "number": 259,
+      "code": "       2100-READ-EXPORT-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Entry point for the paragraph that retrieves the next record from the source branch migration file."
+    },
+    {
+      "number": 260,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 261,
+      "code": "           READ EXPORT-INPUT INTO EXPORT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Reads the next migration record from the source export file, making its contents available for record-type routing and processing."
+    },
+    {
+      "number": 262,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 263,
+      "code": "           IF NOT WS-EXPORT-OK AND NOT WS-EXPORT-EOF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Checks whether the file read resulted in an unexpected error — distinguishing a genuine I/O failure from a normal end-of-file condition."
+    },
+    {
+      "number": 264,
+      "code": "               DISPLAY 'ERROR: Reading EXPORT-INPUT, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Displays a diagnostic message to the operator log indicating that the source migration file could not be read successfully, along with the file system error code."
+    },
+    {
+      "number": 265,
+      "code": "                       WS-EXPORT-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Includes the technical file status code in the error message to assist operations staff in diagnosing the root cause of the read failure."
+    },
+    {
+      "number": 266,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the entire import job, preventing any further processing that could result in partial or inconsistent data being written to the target files."
+    },
+    {
+      "number": 267,
+      "code": "           END-IF.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": "Closes the conditional block that handles unexpected read errors on the source migration file."
+    },
+    {
+      "number": 268,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 269,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2100-READ-EXPORT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 270,
+      "code": "       2200-PROCESS-RECORD-BY-TYPE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Entry point of the record-type routing logic, executed once for every record read from the source branch migration file."
+    },
+    {
+      "number": 271,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": ""
+    },
+    {
+      "number": 272,
+      "code": "           EVALUATE EXPORT-REC-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Reads the single-character entity type indicator on the current migration record to determine which type of banking data it contains."
+    },
+    {
+      "number": 273,
+      "code": "               WHEN 'C'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Identifies the current record as a customer profile entry (personal details, SSN, FICO score, address, etc.)."
+    },
+    {
+      "number": 274,
+      "code": "                   PERFORM 2300-PROCESS-CUSTOMER-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Routes the record to the customer processing routine, which maps and writes the personal profile data to the target customer master file."
+    },
+    {
+      "number": 275,
+      "code": "               WHEN 'A'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Identifies the current record as a credit card account entry (balances, credit limits, dates, status, etc.)."
+    },
+    {
+      "number": 276,
+      "code": "                   PERFORM 2400-PROCESS-ACCOUNT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Routes the record to the account processing routine, which maps and writes the account data to the target account master file."
+    },
+    {
+      "number": 277,
+      "code": "               WHEN 'X'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Identifies the current record as a card cross-reference entry linking a card number to both a customer and an account."
+    },
+    {
+      "number": 278,
+      "code": "                   PERFORM 2500-PROCESS-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Routes the record to the cross-reference processing routine, which writes the three-way card-to-customer-to-account linkage to the target cross-reference file."
+    },
+    {
+      "number": 279,
+      "code": "               WHEN 'T'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Identifies the current record as a credit card transaction history entry."
+    },
+    {
+      "number": 280,
+      "code": "                   PERFORM 2600-PROCESS-TRAN-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Routes the record to the transaction processing routine, which maps and writes the transaction details to the target transaction history file."
+    },
+    {
+      "number": 281,
+      "code": "               WHEN 'D'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Identifies the current record as a physical card entry (card number, expiry date, status, etc.)."
+    },
+    {
+      "number": 282,
+      "code": "                   PERFORM 2650-PROCESS-CARD-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Routes the record to the card processing routine, which maps and writes the physical card details to the target card file."
+    },
+    {
+      "number": 283,
+      "code": "               WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Catches any record whose type indicator does not match any of the five recognised entity types, signalling a data quality issue in the source file."
+    },
+    {
+      "number": 284,
+      "code": "                   PERFORM 2700-PROCESS-UNKNOWN-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Diverts the unrecognised record to the error handling routine, which logs it to the error report file and increments the data quality exception counter."
+    },
+    {
+      "number": 285,
+      "code": "           END-EVALUATE.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": "Closes the routing decision block, ensuring exactly one processing path is taken for every record regardless of its type."
+    },
+    {
+      "number": 286,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": ""
+    },
+    {
+      "number": 287,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2200-PROCESS-RECORD-BY-TYPE",
+      "explanation": ""
+    },
+    {
+      "number": 288,
+      "code": "       2300-PROCESS-CUSTOMER-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Entry point for processing a customer-type record read from the migration export file."
+    },
+    {
+      "number": 289,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 290,
+      "code": "           INITIALIZE CUSTOMER-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Clears the target customer profile structure to ensure no residual data from a previous record contaminates the new one."
+    },
+    {
+      "number": 291,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 292,
+      "code": "      *    Map export fields to customer record",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 293,
+      "code": "           MOVE EXP-CUST-ID TO CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the unique customer identifier from the source branch record into the normalised target profile."
+    },
+    {
+      "number": 294,
+      "code": "           MOVE EXP-CUST-FIRST-NAME TO CUST-FIRST-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's first (given) name into the target customer profile."
+    },
+    {
+      "number": 295,
+      "code": "           MOVE EXP-CUST-MIDDLE-NAME TO CUST-MIDDLE-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's middle name into the target customer profile."
+    },
+    {
+      "number": 296,
+      "code": "           MOVE EXP-CUST-LAST-NAME TO CUST-LAST-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's surname into the target customer profile."
+    },
+    {
+      "number": 297,
+      "code": "           MOVE EXP-CUST-ADDR-LINE(1) TO CUST-ADDR-LINE-1",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Maps the first line of the customer's residential or mailing address into the target profile."
+    },
+    {
+      "number": 298,
+      "code": "           MOVE EXP-CUST-ADDR-LINE(2) TO CUST-ADDR-LINE-2",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Maps the second line of the customer's address (e.g. apartment or suite) into the target profile."
+    },
+    {
+      "number": 299,
+      "code": "           MOVE EXP-CUST-ADDR-LINE(3) TO CUST-ADDR-LINE-3",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Maps the third line of the customer's address (e.g. city or district) into the target profile."
+    },
+    {
+      "number": 300,
+      "code": "           MOVE EXP-CUST-ADDR-STATE-CD TO CUST-ADDR-STATE-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the two-character US state code of the customer's address into the target profile."
+    },
+    {
+      "number": 301,
+      "code": "           MOVE EXP-CUST-ADDR-COUNTRY-CD TO CUST-ADDR-COUNTRY-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the country code of the customer's address into the target profile."
+    },
+    {
+      "number": 302,
+      "code": "           MOVE EXP-CUST-ADDR-ZIP TO CUST-ADDR-ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the postal ZIP code of the customer's address into the target profile."
+    },
+    {
+      "number": 303,
+      "code": "           MOVE EXP-CUST-PHONE-NUM(1) TO CUST-PHONE-NUM-1",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Maps the customer's primary contact telephone number into the target profile."
+    },
+    {
+      "number": 304,
+      "code": "           MOVE EXP-CUST-PHONE-NUM(2) TO CUST-PHONE-NUM-2",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Maps the customer's secondary contact telephone number into the target profile."
+    },
+    {
+      "number": 305,
+      "code": "           MOVE EXP-CUST-SSN TO CUST-SSN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the customer's Social Security Number, a mandatory regulatory identifier, into the target profile."
+    },
+    {
+      "number": 306,
+      "code": "           MOVE EXP-CUST-GOVT-ISSUED-ID TO CUST-GOVT-ISSUED-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's government-issued photo ID reference (e.g. passport or driver's licence number) into the target profile."
+    },
+    {
+      "number": 307,
+      "code": "           MOVE EXP-CUST-DOB-YYYY-MM-DD TO CUST-DOB-YYYY-MM-DD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the customer's date of birth in ISO format, required for identity verification and age-related compliance checks."
+    },
+    {
+      "number": 308,
+      "code": "           MOVE EXP-CUST-EFT-ACCOUNT-ID TO CUST-EFT-ACCOUNT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's linked electronic funds transfer bank account identifier, enabling direct debit or payment processing."
+    },
+    {
+      "number": 309,
+      "code": "           MOVE EXP-CUST-PRI-CARD-HOLDER-IND TO CUST-PRI-CARD-HOLDER-IND",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Transfers the flag indicating whether this customer is the primary card-holder on the account, which governs servicing and liability rules."
+    },
+    {
+      "number": 310,
+      "code": "           MOVE EXP-CUST-FICO-CREDIT-SCORE TO CUST-FICO-CREDIT-SCORE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Copies the customer's FICO credit score, a key credit risk metric used for account management and regulatory reporting."
+    },
+    {
+      "number": 311,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 312,
+      "code": "           WRITE CUSTOMER-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Writes the fully populated customer profile record to the target customer master file in the CardDemo system."
+    },
+    {
+      "number": 313,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 314,
+      "code": "           IF NOT WS-CUSTOMER-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Checks whether the write to the customer master file completed successfully."
+    },
+    {
+      "number": 315,
+      "code": "               DISPLAY 'ERROR: Writing customer record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Displays a diagnostic message identifying that a failure occurred while saving a customer record, along with the file system status code."
+    },
+    {
+      "number": 316,
+      "code": "                       WS-CUSTOMER-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 317,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the import job to prevent a partial or corrupt customer data set from being committed."
+    },
+    {
+      "number": 318,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Closes the conditional block that handles a customer write failure."
+    },
+    {
+      "number": 319,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 320,
+      "code": "           ADD 1 TO WS-CUSTOMER-RECORDS-IMPORTED.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": "Increments the running count of customer profiles successfully imported, used for end-of-job reconciliation and sign-off reporting."
+    },
+    {
+      "number": 321,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 322,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2300-PROCESS-CUSTOMER-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 323,
+      "code": "       2400-PROCESS-ACCOUNT-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Entry point for processing an account-type record identified in the migration file."
+    },
+    {
+      "number": 324,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 325,
+      "code": "           INITIALIZE ACCOUNT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Clears any residual data from the target account record structure to ensure no previous record's values contaminate the new one."
+    },
+    {
+      "number": 326,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 327,
+      "code": "      *    Map export fields to account record",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 328,
+      "code": "           MOVE EXP-ACCT-ID TO ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Maps the unique account identifier from the source branch export to the target account master record."
+    },
+    {
+      "number": 329,
+      "code": "           MOVE EXP-ACCT-ACTIVE-STATUS TO ACCT-ACTIVE-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Copies the account's active or inactive status flag from the source export to the target record, preserving the account's operational standing."
+    },
+    {
+      "number": 330,
+      "code": "           MOVE EXP-ACCT-CURR-BAL TO ACCT-CURR-BAL",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the current outstanding balance owed on the account from the source export to the target record."
+    },
+    {
+      "number": 331,
+      "code": "           MOVE EXP-ACCT-CREDIT-LIMIT TO ACCT-CREDIT-LIMIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Carries over the maximum credit limit approved for the account from the source branch to the target system."
+    },
+    {
+      "number": 332,
+      "code": "           MOVE EXP-ACCT-CASH-CREDIT-LIMIT TO ACCT-CASH-CREDIT-LIMIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the sub-limit governing how much of the credit line the cardholder may draw as cash advances."
+    },
+    {
+      "number": 333,
+      "code": "           MOVE EXP-ACCT-OPEN-DATE TO ACCT-OPEN-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Copies the date the account was originally opened, preserving the customer's tenure history in the target system."
+    },
+    {
+      "number": 334,
+      "code": "           MOVE EXP-ACCT-EXPIRAION-DATE TO ACCT-EXPIRAION-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the account expiry date from the source export, maintaining the scheduled end-of-life for the credit arrangement."
+    },
+    {
+      "number": 335,
+      "code": "           MOVE EXP-ACCT-REISSUE-DATE TO ACCT-REISSUE-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Copies the most recent card reissue date, retaining the history of when replacement cards were last issued to the cardholder."
+    },
+    {
+      "number": 336,
+      "code": "           MOVE EXP-ACCT-CURR-CYC-CREDIT TO ACCT-CURR-CYC-CREDIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the total credits posted to the account during the current billing cycle from the source export."
+    },
+    {
+      "number": 337,
+      "code": "           MOVE EXP-ACCT-CURR-CYC-DEBIT TO ACCT-CURR-CYC-DEBIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the total debits (purchases and fees) posted to the account during the current billing cycle from the source export."
+    },
+    {
+      "number": 338,
+      "code": "           MOVE EXP-ACCT-ADDR-ZIP TO ACCT-ADDR-ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Copies the postal ZIP code associated with the account's billing address, supporting address verification and fraud detection in the target system."
+    },
+    {
+      "number": 339,
+      "code": "           MOVE EXP-ACCT-GROUP-ID TO ACCT-GROUP-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Transfers the portfolio or product group classification of the account, preserving segmentation data used for reporting and pricing."
+    },
+    {
+      "number": 340,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 341,
+      "code": "           WRITE ACCOUNT-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Writes the fully populated account record to the target account master file, completing the migration of this account."
+    },
+    {
+      "number": 342,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 343,
+      "code": "           IF NOT WS-ACCOUNT-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Checks whether the write operation to the account master file completed successfully."
+    },
+    {
+      "number": 344,
+      "code": "               DISPLAY 'ERROR: Writing account record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Logs a diagnostic message to the operator console identifying that an account record could not be written, along with the file system status code."
+    },
+    {
+      "number": 345,
+      "code": "                       WS-ACCOUNT-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 346,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the import job to prevent silent data loss or a partial account portfolio being loaded into the target system."
+    },
+    {
+      "number": 347,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Closes the conditional block that handles account write failures."
+    },
+    {
+      "number": 348,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 349,
+      "code": "           ADD 1 TO WS-ACCOUNT-RECORDS-IMPORTED.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": "Increments the running count of account records successfully imported, supporting end-of-run reconciliation and sign-off by operations."
+    },
+    {
+      "number": 350,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 351,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2400-PROCESS-ACCOUNT-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 352,
+      "code": "       2500-PROCESS-XREF-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Entry point for processing a card cross-reference record from the migration export file."
+    },
+    {
+      "number": 353,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 354,
+      "code": "           INITIALIZE CARD-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Clears any residual data from the cross-reference output record to ensure no stale or corrupt linkage data is carried over from a previous record."
+    },
+    {
+      "number": 355,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 356,
+      "code": "      *    Map export fields to xref record",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 357,
+      "code": "           MOVE EXP-XREF-CARD-NUM TO XREF-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Copies the physical card number from the migration source into the cross-reference record, identifying which card this linkage applies to."
+    },
+    {
+      "number": 358,
+      "code": "           MOVE EXP-XREF-CUST-ID TO XREF-CUST-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Copies the unique customer identifier from the migration source into the cross-reference record, establishing which customer owns this card."
+    },
+    {
+      "number": 359,
+      "code": "           MOVE EXP-XREF-ACCT-ID TO XREF-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Copies the credit account identifier from the migration source into the cross-reference record, establishing which account this card is billed against."
+    },
+    {
+      "number": 360,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 361,
+      "code": "           WRITE CARD-XREF-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Writes the completed three-way card-to-customer-to-account linkage record to the cross-reference output file in the target system."
+    },
+    {
+      "number": 362,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 363,
+      "code": "           IF NOT WS-XREF-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Checks whether the write to the cross-reference file succeeded; if it did not, the linkage has not been recorded and data integrity is at risk."
+    },
+    {
+      "number": 364,
+      "code": "               DISPLAY 'ERROR: Writing xref record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Displays a diagnostic message to the operator log identifying that a cross-reference record could not be written, along with the file system status code for investigation."
+    },
+    {
+      "number": 365,
+      "code": "                       WS-XREF-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 366,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the entire import job to prevent the migration from continuing with a missing card-to-customer-to-account linkage, which would break card authorisation and account servicing."
+    },
+    {
+      "number": 367,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 368,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 369,
+      "code": "           ADD 1 TO WS-XREF-RECORDS-IMPORTED.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": "Increments the running count of successfully written cross-reference records, contributing to the reconciliation total used for migration sign-off."
+    },
+    {
+      "number": 370,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 371,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2500-PROCESS-XREF-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 372,
+      "code": "       2600-PROCESS-TRAN-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Entry point for processing a transaction record routed from the main record-type dispatcher."
+    },
+    {
+      "number": 373,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 374,
+      "code": "           INITIALIZE TRAN-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Clears any residual data from the transaction output record to ensure no previous record's values contaminate the new entry."
+    },
+    {
+      "number": 375,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 376,
+      "code": "      *    Map export fields to transaction record",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 377,
+      "code": "           MOVE EXP-TRAN-ID TO TRAN-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Carries the unique transaction identifier from the source export into the target transaction record, preserving traceability back to the originating branch system."
+    },
+    {
+      "number": 378,
+      "code": "           MOVE EXP-TRAN-TYPE-CD TO TRAN-TYPE-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Transfers the transaction type classification (e.g. purchase, refund, cash advance) from the source file to the target record."
+    },
+    {
+      "number": 379,
+      "code": "           MOVE EXP-TRAN-CAT-CD TO TRAN-CAT-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Copies the transaction category code, which identifies the spending category (e.g. groceries, travel), into the target record for reporting and analytics."
+    },
+    {
+      "number": 380,
+      "code": "           MOVE EXP-TRAN-SOURCE TO TRAN-SOURCE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Maps the originating channel or system through which the transaction was initiated (e.g. POS, online, ATM) to the target record."
+    },
+    {
+      "number": 381,
+      "code": "           MOVE EXP-TRAN-DESC TO TRAN-DESC",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Transfers the human-readable transaction description from the source export to the target record for customer statement and audit purposes."
+    },
+    {
+      "number": 382,
+      "code": "           MOVE EXP-TRAN-AMT TO TRAN-AMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Copies the monetary value of the transaction from the source export to the target record, preserving the exact amount for balance and reconciliation calculations."
+    },
+    {
+      "number": 383,
+      "code": "           MOVE EXP-TRAN-MERCHANT-ID TO TRAN-MERCHANT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Maps the unique identifier of the merchant where the transaction occurred, enabling merchant-level reporting and dispute resolution."
+    },
+    {
+      "number": 384,
+      "code": "           MOVE EXP-TRAN-MERCHANT-NAME TO TRAN-MERCHANT-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Transfers the merchant's trading name to the target record, supporting customer statement presentation and fraud investigation."
+    },
+    {
+      "number": 385,
+      "code": "           MOVE EXP-TRAN-MERCHANT-CITY TO TRAN-MERCHANT-CITY",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Copies the merchant's city location into the target record, providing geographic context for fraud detection and reporting."
+    },
+    {
+      "number": 386,
+      "code": "           MOVE EXP-TRAN-MERCHANT-ZIP TO TRAN-MERCHANT-ZIP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Maps the merchant's postal code to the target record, further supporting geographic analysis and fraud risk assessment."
+    },
+    {
+      "number": 387,
+      "code": "           MOVE EXP-TRAN-CARD-NUM TO TRAN-CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Links the transaction to the specific payment card used, maintaining the card-to-transaction relationship essential for account servicing and dispute handling."
+    },
+    {
+      "number": 388,
+      "code": "           MOVE EXP-TRAN-ORIG-TS TO TRAN-ORIG-TS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Transfers the original timestamp of when the transaction was initiated by the cardholder, preserving the authorisation timeline for audit and regulatory purposes."
+    },
+    {
+      "number": 389,
+      "code": "           MOVE EXP-TRAN-PROC-TS TO TRAN-PROC-TS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Copies the timestamp of when the transaction was processed and settled, supporting reconciliation between authorisation and clearing events."
+    },
+    {
+      "number": 390,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 391,
+      "code": "           WRITE TRAN-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Persists the fully populated transaction record to the target transaction history file, making it available for account servicing, statements, and reporting."
+    },
+    {
+      "number": 392,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 393,
+      "code": "           IF NOT WS-TRANSACTION-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Checks whether the write to the transaction history file completed successfully."
+    },
+    {
+      "number": 394,
+      "code": "               DISPLAY 'ERROR: Writing transaction record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Logs a diagnostic message to the operator console identifying that a transaction record could not be written, along with the file system status code."
+    },
+    {
+      "number": 395,
+      "code": "                       WS-TRANSACTION-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 396,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the import job to prevent silent data loss, ensuring the migrated transaction portfolio remains complete and auditable."
+    },
+    {
+      "number": 397,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 398,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 399,
+      "code": "           ADD 1 TO WS-TRAN-RECORDS-IMPORTED.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": "Increments the running count of successfully imported transaction records, contributing to the end-of-run reconciliation totals used for migration sign-off."
+    },
+    {
+      "number": 400,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 401,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2600-PROCESS-TRAN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 402,
+      "code": "       2650-PROCESS-CARD-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Entry point for processing a physical card record routed from the migration file."
+    },
+    {
+      "number": 403,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 404,
+      "code": "           INITIALIZE CARD-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Clears any residual data from the card output record to ensure no previous record's values contaminate the new card being processed."
+    },
+    {
+      "number": 405,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 406,
+      "code": "      *    Map export fields to card record",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 407,
+      "code": "           MOVE EXP-CARD-NUM TO CARD-NUM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Copies the card's unique 16-digit payment card number from the source export into the target card record."
+    },
+    {
+      "number": 408,
+      "code": "           MOVE EXP-CARD-ACCT-ID TO CARD-ACCT-ID",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Links the physical card to its associated credit account by transferring the account identifier from the source export."
+    },
+    {
+      "number": 409,
+      "code": "           MOVE EXP-CARD-CVV-CD TO CARD-CVV-CD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Transfers the card's security verification code (CVV) from the source export, preserving the fraud-prevention credential in the target system."
+    },
+    {
+      "number": 410,
+      "code": "           MOVE EXP-CARD-EMBOSSED-NAME TO CARD-EMBOSSED-NAME",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Copies the cardholder name as it is physically embossed on the card, ensuring the target system retains the exact name printed on the plastic."
+    },
+    {
+      "number": 411,
+      "code": "           MOVE EXP-CARD-EXPIRAION-DATE TO CARD-EXPIRAION-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Transfers the card's expiry date from the source export, which governs when the card ceases to be valid for transactions."
+    },
+    {
+      "number": 412,
+      "code": "           MOVE EXP-CARD-ACTIVE-STATUS TO CARD-ACTIVE-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Copies the card's active or inactive status flag, determining whether the card is currently authorised for use in the target system."
+    },
+    {
+      "number": 413,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 414,
+      "code": "           WRITE CARD-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Writes the fully populated card record to the target card master file, completing the migration of this card's data."
+    },
+    {
+      "number": 415,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 416,
+      "code": "           IF NOT WS-CARD-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Checks whether the write to the card master file completed successfully, guarding against silent data loss."
+    },
+    {
+      "number": 417,
+      "code": "               DISPLAY 'ERROR: Writing card record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Logs a diagnostic message to the operator console identifying that a card record could not be written, along with the file system status code for investigation."
+    },
+    {
+      "number": 418,
+      "code": "                       WS-CARD-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 419,
+      "code": "               PERFORM 9999-ABEND-PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Triggers an immediate abnormal termination of the entire import job to prevent a partial or corrupt card portfolio from being loaded into the target system."
+    },
+    {
+      "number": 420,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Closes the write-failure check block."
+    },
+    {
+      "number": 421,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 422,
+      "code": "           ADD 1 TO WS-CARD-RECORDS-IMPORTED.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": "Increments the running tally of physical card records successfully migrated, contributing to the final reconciliation count for operations sign-off."
+    },
+    {
+      "number": 423,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 424,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2650-PROCESS-CARD-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 425,
+      "code": "       2700-PROCESS-UNKNOWN-RECORD.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Entry point for the business logic that handles any record whose type cannot be matched to a known entity (Customer, Account, Cross-Reference, Transaction, or Card)."
+    },
+    {
+      "number": 426,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 427,
+      "code": "           ADD 1 TO WS-UNKNOWN-RECORD-TYPE-COUNT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Increments the running tally of unrecognised-type records encountered during this import run, which will be reported at the end for data quality review and migration sign-off."
+    },
+    {
+      "number": 428,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 429,
+      "code": "           MOVE FUNCTION CURRENT-DATE TO ERR-TIMESTAMP",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Stamps the error report entry with the exact date and time the anomaly was detected, providing a precise audit trail for the migration event."
+    },
+    {
+      "number": 430,
+      "code": "           MOVE EXPORT-REC-TYPE TO ERR-RECORD-TYPE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Records the actual unrecognised type indicator found on the offending source record, so operations staff can identify the nature of the data quality issue in the source file."
+    },
+    {
+      "number": 431,
+      "code": "           MOVE EXPORT-SEQUENCE-NUM TO ERR-SEQUENCE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Records the position of the offending record within the source migration file, allowing the receiving branch to locate and investigate the exact record that failed."
+    },
+    {
+      "number": 432,
+      "code": "           MOVE 'Unknown record type encountered' TO ERR-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Attaches a human-readable diagnostic message to the error report entry, clearly communicating to operations that the record was rejected because its type could not be identified."
+    },
+    {
+      "number": 433,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 434,
+      "code": "           PERFORM 2750-WRITE-ERROR.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": "Writes the fully populated error report entry — including timestamp, unrecognised type indicator, record position, and diagnostic message — to the dedicated error report file for audit and remediation."
+    },
+    {
+      "number": 435,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 436,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2700-PROCESS-UNKNOWN-RECORD",
+      "explanation": ""
+    },
+    {
+      "number": 437,
+      "code": "       2750-WRITE-ERROR.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Entry point for the error-writing routine, invoked whenever a record cannot be routed to a valid output file."
+    },
+    {
+      "number": 438,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": ""
+    },
+    {
+      "number": 439,
+      "code": "           WRITE ERROR-OUTPUT-RECORD FROM WS-ERROR-RECORD",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Writes the prepared error report entry — containing the offending record and its diagnostic details — to the error report file for audit and investigation."
+    },
+    {
+      "number": 440,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": ""
+    },
+    {
+      "number": 441,
+      "code": "           IF NOT WS-ERROR-OK",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Checks whether the write to the error report file completed successfully; a failure here means even the error itself could not be logged."
+    },
+    {
+      "number": 442,
+      "code": "               DISPLAY 'ERROR: Writing error record, Status: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Displays a console alert to the operator indicating that writing to the error report file has failed, signalling a critical logging breakdown."
+    },
+    {
+      "number": 443,
+      "code": "                       WS-ERROR-STATUS",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Includes the file system status code in the operator alert so support staff can diagnose the cause of the error report write failure."
+    },
+    {
+      "number": 444,
+      "code": "           END-IF",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Closes the conditional check on the error report write outcome."
+    },
+    {
+      "number": 445,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": ""
+    },
+    {
+      "number": 446,
+      "code": "           ADD 1 TO WS-ERROR-RECORDS-WRITTEN.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": "Increments the total count of records that could not be processed, ensuring the end-of-run reconciliation report accurately reflects the number of rejected records for operations sign-off."
+    },
+    {
+      "number": 447,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": ""
+    },
+    {
+      "number": 448,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "2750-WRITE-ERROR",
+      "explanation": ""
+    },
+    {
+      "number": 449,
+      "code": "       3000-VALIDATE-IMPORT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": "Entry point for the import validation phase, which verifies the integrity and completeness of all data written during the migration run."
+    },
+    {
+      "number": 450,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": ""
+    },
+    {
+      "number": 451,
+      "code": "           DISPLAY 'CBIMPORT: Import validation completed'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": "Writes a confirmation message to the job log indicating that the full import validation cycle has been executed and concluded."
+    },
+    {
+      "number": 452,
+      "code": "           DISPLAY 'CBIMPORT: No validation errors detected'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": "Writes a second confirmation message to the job log stating that no data integrity, checksum, or reconciliation errors were detected during validation, giving operations a clear audit signal that the migration is clean."
+    },
+    {
+      "number": 453,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": ""
+    },
+    {
+      "number": 454,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "3000-VALIDATE-IMPORT",
+      "explanation": ""
+    },
+    {
+      "number": 455,
+      "code": "       4000-FINALIZE.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Entry point for the finalisation phase of the import job, executed after all migration records have been processed."
+    },
+    {
+      "number": 456,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 457,
+      "code": "           CLOSE EXPORT-INPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the source branch migration export file, releasing it from the job and preventing any further reads."
+    },
+    {
+      "number": 458,
+      "code": "           CLOSE CUSTOMER-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the target customer master file, flushing and sealing all normalised customer profile records written during the run."
+    },
+    {
+      "number": 459,
+      "code": "           CLOSE ACCOUNT-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the target account master file, flushing and sealing all credit card account records written during the run."
+    },
+    {
+      "number": 460,
+      "code": "           CLOSE XREF-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the card cross-reference file, flushing and sealing all card-to-customer-to-account linkage records written during the run."
+    },
+    {
+      "number": 461,
+      "code": "           CLOSE TRANSACTION-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the target transaction history file, flushing and sealing all individual transaction records written during the run."
+    },
+    {
+      "number": 462,
+      "code": "           CLOSE CARD-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the target physical card file, flushing and sealing all card records written during the run."
+    },
+    {
+      "number": 463,
+      "code": "           CLOSE ERROR-OUTPUT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Closes the error report file, flushing and sealing all rejected or unrecognised records captured for data quality review."
+    },
+    {
+      "number": 464,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 465,
+      "code": "           DISPLAY 'CBIMPORT: Import completed'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Writes a completion marker to the job log confirming that the import batch run has finished successfully."
+    },
+    {
+      "number": 466,
+      "code": "           DISPLAY 'CBIMPORT: Total Records Read: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Begins printing the reconciliation summary to the job log; introduces the total count of all records read from the source migration file."
+    },
+    {
+      "number": 467,
+      "code": "           WS-TOTAL-RECORDS-READ",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the total number of records read from the source migration file, the top-level figure for reconciliation against the exporting branch."
+    },
+    {
+      "number": 468,
+      "code": "           DISPLAY 'CBIMPORT: Customers Imported: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Introduces the count of customer profile records successfully migrated to the customer master file."
+    },
+    {
+      "number": 469,
+      "code": "                   WS-CUSTOMER-RECORDS-IMPORTED",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of customer profiles successfully imported, used to verify completeness of personal and regulatory data migration."
+    },
+    {
+      "number": 470,
+      "code": "           DISPLAY 'CBIMPORT: Accounts Imported: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Introduces the count of credit card account records successfully migrated to the account master file."
+    },
+    {
+      "number": 471,
+      "code": "                   WS-ACCOUNT-RECORDS-IMPORTED",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of account records successfully imported, used to verify all account balances, limits, and statuses were transferred."
+    },
+    {
+      "number": 472,
+      "code": "           DISPLAY 'CBIMPORT: XRefs Imported: ' WS-XREF-RECORDS-IMPORTED",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of card cross-reference records successfully imported, confirming all card-to-customer-to-account linkages are in place for authorisation."
+    },
+    {
+      "number": 473,
+      "code": "           DISPLAY 'CBIMPORT: Transactions Imported: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Introduces the count of transaction history records successfully migrated to the transaction history file."
+    },
+    {
+      "number": 474,
+      "code": "                   WS-TRAN-RECORDS-IMPORTED",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of transaction records successfully imported, used to verify the completeness of the customer transaction history transfer."
+    },
+    {
+      "number": 475,
+      "code": "           DISPLAY 'CBIMPORT: Cards Imported: ' WS-CARD-RECORDS-IMPORTED",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of physical card records successfully imported, confirming all active and inactive card details have been migrated."
+    },
+    {
+      "number": 476,
+      "code": "           DISPLAY 'CBIMPORT: Errors Written: ' WS-ERROR-RECORDS-WRITTEN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the number of records that failed validation or carried an unrecognised type and were routed to the error report, flagging data quality issues for remediation."
+    },
+    {
+      "number": 477,
+      "code": "           DISPLAY 'CBIMPORT: Unknown Record Types: '",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Introduces the count of records whose record type indicator was not recognised by the import program."
+    },
+    {
+      "number": 478,
+      "code": "                   WS-UNKNOWN-RECORD-TYPE-COUNT.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": "Prints the count of unrecognised record types encountered, a key data quality metric that the receiving branch must investigate and resolve before sign-off."
+    },
+    {
+      "number": 479,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 480,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "4000-FINALIZE",
+      "explanation": ""
+    },
+    {
+      "number": 481,
+      "code": "       9999-ABEND-PROGRAM.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Entry point for the emergency shutdown routine, invoked whenever a fatal error makes it unsafe to continue the import run."
+    },
+    {
+      "number": 482,
+      "code": "      *****************************************************************",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 483,
+      "code": "           DISPLAY 'CBIMPORT: ABENDING PROGRAM'",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Writes a final diagnostic message to the system log, recording that the import job is being forcibly terminated so operators can identify the failure point during post-run review."
+    },
+    {
+      "number": 484,
+      "code": "           CALL 'CEE3ABD'.",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": "Triggers an abnormal termination of the import job at the operating system level, immediately halting all processing and preventing any further records from being read or written, ensuring no partial or corrupt data is silently committed to the target files."
+    },
+    {
+      "number": 485,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 486,
+      "code": "      * Ver: CardDemo_v2.0-44-gb6e9c27-254 Date: 2025-10-16 14:07:18 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    },
+    {
+      "number": 487,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "9999-ABEND-PROGRAM",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "EXPORT-INPUT-RECORD",
+      "level": "01",
+      "picture": "PIC X(500)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Raw 500-byte buffer that holds each record read from the branch migration export file before it is parsed and routed. Every customer, account, card, cross-reference, and transaction record arriving from the source branch passes through this buffer as the first step of the import process."
+    },
+    {
+      "name": "ERROR-OUTPUT-RECORD",
+      "level": "01",
+      "picture": "PIC X(132)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "132-byte output buffer used to write a formatted diagnostic line to the error report file (ERROUT) whenever a migration record fails validation or carries an unrecognised record type. The 132-character width matches a standard print line, making the error report directly readable by operations staff during reconciliation."
+    },
+    {
+      "name": "WS-FILE-STATUS-AREA",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Group record that consolidates the I/O status codes for every file involved in the migration import run. By grouping all file health indicators together, the program can quickly determine whether any input or output file has encountered an error and take immediate corrective action, such as aborting the run to prevent partial or corrupt data being written to the target system."
+    },
+    {
+      "name": "WS-EXPORT-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned by the operating system after each read operation on the branch migration export file (EXPFILE). The program inspects this code after every read to decide whether to continue processing, handle end-of-file, or abort due to a read error."
+    },
+    {
+      "name": "WS-EXPORT-EOF",
+      "level": "88",
+      "picture": null,
+      "value": "10",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that becomes true when the migration export file has been fully read (file status '10' = end-of-file). When this condition is true, the program stops reading and moves on to closing files and printing the final reconciliation statistics."
+    },
+    {
+      "name": "WS-EXPORT-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms the last read from the branch migration export file completed successfully (file status '00' = no error). The program uses this to verify that each record was retrieved cleanly before attempting to parse and route it to the appropriate target file."
+    },
+    {
+      "name": "WS-CUSTOMER-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write operation to the customer master output file (CUSTOUT). The program checks this after every customer record write to confirm the customer profile was stored successfully; a non-zero value triggers an immediate abnormal termination to prevent silent data loss."
+    },
+    {
+      "name": "WS-CUSTOMER-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a customer profile record was written successfully to the customer master file (file status '00'). Only when this condition is true does the program increment the customer import counter and continue processing the next record."
+    },
+    {
+      "name": "WS-ACCOUNT-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write operation to the account master output file (ACCTOUT). The program inspects this after every account record write to ensure credit card account data — including balances, credit limits, and dates — was persisted correctly."
+    },
+    {
+      "name": "WS-ACCOUNT-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a credit card account record was written successfully to the account master file (file status '00'). The program relies on this condition before counting the account as successfully imported and moving to the next record."
+    },
+    {
+      "name": "WS-XREF-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write to the card cross-reference output file (XREFOUT). The cross-reference links a card number to both a customer and an account, so any write failure here would break the three-way relationship essential for card authorisation and account servicing."
+    },
+    {
+      "name": "WS-XREF-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a card-to-customer-to-account cross-reference record was written successfully (file status '00'). Only when this condition is true is the cross-reference counted as imported, preserving the integrity of the card authorisation linkage."
+    },
+    {
+      "name": "WS-TRANSACTION-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write to the transaction history output file (TRNXOUT). The program checks this after every transaction write to ensure the customer's historical transaction data is being preserved accurately during the migration."
+    },
+    {
+      "name": "WS-TRANSACTION-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a transaction history record was written successfully to the transaction output file (file status '00'). The program uses this to validate each transaction write before incrementing the transaction import counter."
+    },
+    {
+      "name": "WS-CARD-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write to the physical card output file (CARDOUT). The program checks this to confirm that card details — including card number, expiry date, CVV, and active status — were stored correctly in the target system."
+    },
+    {
+      "name": "WS-CARD-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a physical card record was written successfully to the card output file (file status '00'). Only when this condition is true does the program count the card as successfully migrated."
+    },
+    {
+      "name": "WS-ERROR-STATUS",
+      "level": "05",
+      "picture": "PIC X(02)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Two-character I/O status code returned after each write to the error report file (ERROUT). The program checks this to confirm that rejected records and their diagnostic messages were successfully captured for operations review and reconciliation sign-off."
+    },
+    {
+      "name": "WS-ERROR-OK",
+      "level": "88",
+      "picture": null,
+      "value": "00",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Condition flag that confirms a rejected record's error entry was written successfully to the error report file (file status '00'). This ensures that every failed record is accounted for in the error log, supporting a complete and auditable reconciliation of the migration run."
+    },
+    {
+      "name": "WS-IMPORT-CONTROL",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Group record that captures the date and time stamp of the import batch run. This information forms the audit trail that ties all imported records to a specific, identifiable migration event, satisfying regulatory and operational traceability requirements."
+    },
+    {
+      "name": "WS-IMPORT-DATE",
+      "level": "05",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Calendar date on which the branch migration import job was executed (formatted as YYYY-MM-DD). This date is recorded as part of the audit trail so that operations, compliance, and the receiving branch can identify exactly which business day the portfolio data was migrated."
+    },
+    {
+      "name": "WS-IMPORT-TIME",
+      "level": "05",
+      "picture": "PIC X(08)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Wall-clock time at which the branch migration import job was executed (formatted as HH:MM:SS). Together with the import date, this provides a precise timestamp for the migration event, enabling operations to correlate the import run with system logs and reconciliation reports."
+    },
+    {
+      "name": "WS-IMPORT-STATISTICS",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Group record that accumulates the record-level counts for the entire migration import run. These counters are the primary reconciliation tool: operations and the receiving branch use them to verify that every record from the source export file was either successfully imported into a target file or explicitly rejected to the error report, with no records silently lost."
+    },
+    {
+      "name": "WS-TOTAL-RECORDS-READ",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Running total of all records read from the branch migration export file during the import run, regardless of record type or outcome. This is the control total against which all other counters (customers, accounts, cross-references, transactions, cards, and errors) must sum to confirm that no records were dropped during processing."
+    },
+    {
+      "name": "WS-CUSTOMER-RECORDS-IMPORTED",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of customer profile records successfully written to the customer master file during this migration run. Operations and the receiving branch compare this figure against the expected number of customers in the source export to confirm that all customer personal, address, and credit risk data was migrated completely."
+    },
+    {
+      "name": "WS-ACCOUNT-RECORDS-IMPORTED",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of credit card account records successfully written to the account master file during this migration run. This figure is used to verify that all account balances, credit limits, and status information from the source branch have been transferred to the receiving system without omission."
+    },
+    {
+      "name": "WS-XREF-RECORDS-IMPORTED",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of card-to-customer-to-account cross-reference records successfully written to the cross-reference file during this migration run. Because each cross-reference record is essential for card authorisation and account servicing, this count must match the expected number of active cards in the migrated portfolio."
+    },
+    {
+      "name": "WS-TRAN-RECORDS-IMPORTED",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of transaction history records successfully written to the transaction output file during this migration run. This figure allows operations to confirm that the full transaction history for all migrated accounts has been preserved, which is critical for customer statements, dispute resolution, and regulatory reporting."
+    },
+    {
+      "name": "WS-CARD-RECORDS-IMPORTED",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of physical card records successfully written to the card output file during this migration run. Operations use this count to verify that all card numbers, expiry dates, CVV codes, and active statuses from the source branch have been migrated, ensuring cardholders can continue to use their cards without interruption."
+    },
+    {
+      "name": "WS-ERROR-RECORDS-WRITTEN",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of records that failed validation and were written to the error report file during this migration run. This figure represents the volume of data that could not be automatically migrated and requires manual investigation and remediation by operations before the migration can be considered complete."
+    },
+    {
+      "name": "WS-UNKNOWN-RECORD-TYPE-COUNT",
+      "level": "05",
+      "picture": "PIC 9(09)",
+      "value": "0",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Count of records encountered in the migration export file that carried an unrecognised record type indicator (i.e., not 'C', 'A', 'X', 'T', or 'D'). A non-zero value signals a data quality problem in the source export — such as a corrupted file, a format mismatch, or an undocumented record type — that must be investigated before the migration can be signed off."
+    },
+    {
+      "name": "WS-ERROR-RECORD",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Formatted error report line written to the error output file (ERROUT) for every record that fails validation or carries an unrecognised type. The structured layout — with pipe-delimited fields for timestamp, record type, sequence number, and diagnostic message — makes the error report human-readable for operations staff and machine-parseable for automated reconciliation tools."
+    },
+    {
+      "name": "ERR-TIMESTAMP",
+      "level": "05",
+      "picture": "PIC X(26)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Date and time at which the rejected record was encountered during the import run, carried forward from the export file's own timestamp. This allows operations to pinpoint exactly when in the migration sequence a problem record appeared, aiding root-cause analysis and audit trail completeness."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "|",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Pipe character delimiter separating the timestamp from the record type in the error report line. This formatting character makes the error report easier for operations staff to read and allows automated tools to parse the fields reliably."
+    },
+    {
+      "name": "ERR-RECORD-TYPE",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Single-character record type indicator copied from the rejected source record (e.g., 'C', 'A', 'X', 'T', 'D', or an unrecognised value). Including this in the error report allows operations to quickly categorise the nature of the failure — for example, distinguishing between a bad customer record and a completely unrecognised record type — and prioritise remediation accordingly."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "|",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Pipe character delimiter separating the record type from the sequence number in the error report line, maintaining consistent column formatting for readability and automated parsing."
+    },
+    {
+      "name": "ERR-SEQUENCE",
+      "level": "05",
+      "picture": "PIC 9(07)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Sequential position number of the rejected record within the migration export file. This allows operations to locate the exact record in the source file for manual inspection and correction, which is essential when remediating data quality issues before re-running the migration."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(01)",
+      "value": "|",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Pipe character delimiter separating the sequence number from the diagnostic message in the error report line, ensuring consistent formatting across all error entries for both human review and automated reconciliation processing."
+    },
+    {
+      "name": "ERR-MESSAGE",
+      "level": "05",
+      "picture": "PIC X(50)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Plain-language diagnostic message describing why the record was rejected — for example, 'INVALID RECORD TYPE', 'MISSING SSN', or 'WRITE FAILURE ON CUSTOUT'. This message is the primary tool operations staff use to understand what went wrong with each rejected record and determine the corrective action needed before the migration can be completed."
+    },
+    {
+      "name": "FILLER",
+      "level": "05",
+      "picture": "PIC X(43)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "43-byte padding of spaces that fills the remainder of the 132-character error report line after the diagnostic message. This ensures each error line is exactly the standard print-line width, preventing formatting issues when the error report is printed or displayed by operations tooling."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "0000-MAIN-PROCESSING",
+      "line_start": 165,
+      "line_end": 173,
+      "description": "This is the top-level orchestration paragraph that drives the entire branch migration import run from start to finish. It sequences the four major business phases — setup, data routing, integrity validation, and closedown — ensuring a controlled, auditable import of all customer, account, card, and transaction records."
+    },
+    {
+      "name": "1000-INITIALIZE",
+      "line_start": 174,
+      "line_end": 195,
+      "description": "This paragraph initialises the branch migration import job by capturing the exact date and time of execution for audit purposes, then opens all required input and output files before processing begins. It establishes the audit trail and ensures the system is fully ready to receive and route migrated customer, account, card, and transaction data."
+    },
+    {
+      "name": "1100-OPEN-FILES",
+      "line_start": 196,
+      "line_end": 247,
+      "description": "This paragraph prepares the migration import job for processing by opening all required data channels — the source export file for reading and all five normalised target files plus the error report for writing. If any single file cannot be opened, the job halts immediately to prevent a partial or corrupt import."
+    },
+    {
+      "name": "2000-PROCESS-EXPORT-FILE",
+      "line_start": 248,
+      "line_end": 258,
+      "description": "This paragraph orchestrates the end-to-end processing of the branch migration export file, reading each incoming record in sequence and routing it to the appropriate target data store based on its record type. It acts as the central processing loop for the entire import run, ensuring every record in the source file is accounted for and handled."
+    },
+    {
+      "name": "2100-READ-EXPORT-RECORD",
+      "line_start": 259,
+      "line_end": 269,
+      "description": "Reads the next migration record from the source branch export file into the processing buffer. If the read fails for any reason other than reaching the end of the file, the program halts immediately to prevent corrupt or incomplete data from entering the target systems."
+    },
+    {
+      "name": "2200-PROCESS-RECORD-BY-TYPE",
+      "line_start": 270,
+      "line_end": 287,
+      "description": "This paragraph acts as the central routing hub of the import process, inspecting the record type indicator on each incoming migration record and directing it to the appropriate specialised processing routine. It ensures every record from the source branch export file is handled according to its entity type, with unrecognised records safely diverted to error handling."
+    },
+    {
+      "name": "2300-PROCESS-CUSTOMER-RECORD",
+      "line_start": 288,
+      "line_end": 322,
+      "description": "This paragraph normalises and writes a single customer profile record from the branch migration export into the CardDemo customer master file. It maps all personal, contact, identification, and credit risk fields from the source layout into the target structure, then persists the record and updates the running import count."
+    },
+    {
+      "name": "2400-PROCESS-ACCOUNT-RECORD",
+      "line_start": 323,
+      "line_end": 351,
+      "description": "This paragraph normalises and writes a single credit card account record from the branch migration export into the CardDemo target account master file. It maps all financial and administrative account attributes from the source layout to the target structure, then persists the record and updates the running import tally."
+    },
+    {
+      "name": "2500-PROCESS-XREF-RECORD",
+      "line_start": 352,
+      "line_end": 371,
+      "description": "This paragraph processes a card cross-reference record from the migration export file, establishing the critical three-way link between a physical card number, its owning customer, and the associated credit account in the target system. It writes this linkage to the cross-reference output file and terminates immediately if the write fails, ensuring no partial or missing card-to-customer-to-account relationships exist in the migrated portfolio."
+    },
+    {
+      "name": "2600-PROCESS-TRAN-RECORD",
+      "line_start": 372,
+      "line_end": 401,
+      "description": "This paragraph normalises and writes a single transaction history record from the branch migration export file into the CardDemo transaction data store. It maps all transaction details — including amount, merchant information, card linkage, and timestamps — to the target format, then persists the record and increments the running transaction import count."
+    },
+    {
+      "name": "2650-PROCESS-CARD-RECORD",
+      "line_start": 402,
+      "line_end": 424,
+      "description": "This paragraph transforms and persists a physical card record from the branch migration export into the CardDemo card master file. It maps all card-level attributes from the source data, writes the normalised record to the target file, and increments the running count of successfully migrated cards."
+    },
+    {
+      "name": "2700-PROCESS-UNKNOWN-RECORD",
+      "line_start": 425,
+      "line_end": 436,
+      "description": "This paragraph handles records from the migration export file that carry an unrecognised record type indicator, logging them as data quality exceptions and routing them to the error report to ensure the migration remains clean and fully auditable. It acts as a safety net, preventing corrupt or malformed source records from silently contaminating any of the five target data stores."
+    },
+    {
+      "name": "2750-WRITE-ERROR",
+      "line_start": 437,
+      "line_end": 448,
+      "description": "This paragraph writes a rejected or unrecognised record to the dedicated error report file, ensuring every data quality issue is captured and auditable. It also increments the running count of failed records to support end-of-run reconciliation and sign-off by operations."
+    },
+    {
+      "name": "3000-VALIDATE-IMPORT",
+      "line_start": 449,
+      "line_end": 454,
+      "description": "This paragraph represents the post-import data integrity validation checkpoint, confirming that all migrated records passed checksum and reconciliation checks. It signals to the operations team that the imported portfolio data is clean and ready for use in the CardDemo system."
+    },
+    {
+      "name": "4000-FINALIZE",
+      "line_start": 455,
+      "line_end": 480,
+      "description": "This paragraph concludes the branch migration import run by safely closing all data files and printing a full reconciliation summary to the job log, giving operations and the receiving branch a complete, auditable count of every record processed by entity type."
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "line_start": 481,
+      "line_end": 487,
+      "description": "This paragraph performs an immediate, unrecoverable termination of the import job when a critical failure is detected, such as a file open error or a write failure to any output file. It ensures the migration is halted cleanly rather than continuing in a corrupted or partial state, protecting the integrity of the migrated portfolio."
+    }
+  ],
+  "copybooks": [
+    "CVCUS01Y",
+    "CVACT01Y",
+    "CVACT03Y",
+    "CVTRA05Y",
+    "CVACT02Y",
+    "CVEXPORT"
+  ]
+}

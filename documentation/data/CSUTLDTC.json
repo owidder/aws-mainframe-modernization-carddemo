@@ -1,0 +1,1939 @@
+{
+  "meta": {
+    "program_name": "CSUTLDTC",
+    "file_path": "app/cbl/CSUTLDTC.cbl",
+    "analyzed_at": "2026-05-03T14:02:56.109124",
+    "model": "gcp/claude-sonnet-4-6",
+    "description": "Validate whether a given date string is a legitimate calendar date according to a specified date format, returning a validation result to the calling program.",
+    "process_description": "This program acts as a reusable date validation utility within the CardDemo credit card management system. It accepts a date value and its expected format mask from a calling program, then invokes the IBM Language Environment CEEDAYS API to attempt conversion of the date into a Lillian day number (an internal numeric representation of a calendar date). If the conversion succeeds, the date is confirmed as valid; if it fails, the specific reason for invalidity (e.g., bad value, invalid month, non-numeric data, unsupported range) is identified and returned to the caller. The validation result, along with severity and message codes, is passed back so the calling program can take appropriate business action such as rejecting a transaction, flagging an account record, or prompting a user to correct an entry.",
+    "type": "Utility",
+    "module": "Utility",
+    "files": {},
+    "business_rules": [
+      "A date is only considered valid if the CEEDAYS API successfully converts it to a Lillian day number with a zero feedback condition (FC-INVALID-DATE condition name, which paradoxically signals success).",
+      "The date format mask must be explicitly provided by the caller, meaning the system enforces strict format-aware validation rather than accepting ambiguous date strings.",
+      "Nine distinct categories of date invalidity are recognised and individually reported, enabling calling programs to provide precise error feedback to users or downstream processes.",
+      "The validation result severity is propagated back as the program RETURN-CODE, allowing calling programs and job control to detect and react to date validation failures programmatically.",
+      "The program is a shared utility (called via CALL), meaning all date validation across the CardDemo system is centralised here, ensuring consistent date integrity rules are applied to transactions, accounts, and card records system-wide.",
+      "Dates must be numeric where required by the format mask; alphanumeric or corrupted date fields are explicitly rejected with a 'Non-numeric data' result.",
+      "Dates must fall within the supported range of the IBM CEEDAYS API; historically extreme or future dates beyond system limits are rejected as unsupported."
+    ],
+    "index_context": {
+      "copybooks_resolved": [],
+      "programs_resolved": [],
+      "similar_programs": []
+    }
+  },
+  "lines": [
+    {
+      "number": 1,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 2,
+      "code": "      *****       CALL TO CEEDAYS                                *******",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 3,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 4,
+      "code": "      * Copyright Amazon.com, Inc. or its affiliates.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 5,
+      "code": "      * All Rights Reserved.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 6,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 7,
+      "code": "      * Licensed under the Apache License, Version 2.0 (the \"License\").",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 8,
+      "code": "      * You may not use this file except in compliance with the License.",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 9,
+      "code": "      * You may obtain a copy of the License at",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 10,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 11,
+      "code": "      *    http://www.apache.org/licenses/LICENSE-2.0",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 12,
+      "code": "      *",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 13,
+      "code": "      * Unless required by applicable law or agreed to in writing,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 14,
+      "code": "      * software distributed under the License is distributed on an",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 15,
+      "code": "      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 16,
+      "code": "      * either express or implied. See the License for the specific",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 17,
+      "code": "      * language governing permissions and limitations under the License",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 18,
+      "code": "      ******************************************************************",
+      "type": "comment",
+      "division": null,
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 19,
+      "code": "       IDENTIFICATION DIVISION.",
+      "type": "division-header",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 20,
+      "code": "       PROGRAM-ID. CSUTLDTC.",
+      "type": "code",
+      "division": "IDENTIFICATION",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 21,
+      "code": "       DATA DIVISION.",
+      "type": "division-header",
+      "division": "DATA",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 22,
+      "code": "       WORKING-STORAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 23,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 24,
+      "code": "      ****  Date passed to CEEDAYS API",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 25,
+      "code": "         01 WS-DATE-TO-TEST.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 26,
+      "code": "              02  Vstring-length      PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 27,
+      "code": "              02  Vstring-text.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 28,
+      "code": "                  03  Vstring-char    PIC X",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 29,
+      "code": "                              OCCURS 0 TO 256 TIMES",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 30,
+      "code": "                              DEPENDING ON Vstring-length",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 31,
+      "code": "                                 of WS-DATE-TO-TEST.",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 32,
+      "code": "      ****  DATE FORMAT PASSED TO CEEDAYS API",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 33,
+      "code": "         01 WS-DATE-FORMAT.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 34,
+      "code": "              02  Vstring-length      PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 35,
+      "code": "              02  Vstring-text.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 36,
+      "code": "                  03  Vstring-char    PIC X",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 37,
+      "code": "                              OCCURS 0 TO 256 TIMES",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 38,
+      "code": "                              DEPENDING ON Vstring-length",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 39,
+      "code": "                                 of WS-DATE-FORMAT.",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 40,
+      "code": "      ****  OUTPUT from CEEDAYS - LILLIAN DATE FORMAT",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 41,
+      "code": "         01 OUTPUT-LILLIAN    PIC S9(9) USAGE IS BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 42,
+      "code": "         01 WS-MESSAGE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 43,
+      "code": "              02 WS-SEVERITY  PIC X(04).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 44,
+      "code": "              02 WS-SEVERITY-N REDEFINES WS-SEVERITY PIC 9(4).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 45,
+      "code": "              02 FILLER       PIC X(11) VALUE 'Mesg Code:'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 46,
+      "code": "              02 WS-MSG-NO    PIC X(04).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 47,
+      "code": "              02 WS-MSG-NO-N  REDEFINES WS-MSG-NO PIC 9(4).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 48,
+      "code": "              02 FILLER       PIC X(01) VALUE SPACE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 49,
+      "code": "              02 WS-RESULT    PIC X(15).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 50,
+      "code": "              02 FILLER       PIC X(01) VALUE SPACE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 51,
+      "code": "              02 FILLER       PIC X(09) VALUE 'TstDate:'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 52,
+      "code": "              02 WS-DATE      PIC X(10) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 53,
+      "code": "              02 FILLER       PIC X(01) VALUE SPACE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 54,
+      "code": "              02 FILLER       PIC X(10) VALUE 'Mask used:'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 55,
+      "code": "              02 WS-DATE-FMT  PIC X(10).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 56,
+      "code": "              02 FILLER       PIC X(01) VALUE SPACE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 57,
+      "code": "              02 FILLER       PIC X(03) VALUE SPACES.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 58,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 59,
+      "code": "      * CEEDAYS API FEEDBACK CODE",
+      "type": "comment",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 60,
+      "code": "          01 FEEDBACK-CODE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 61,
+      "code": "           02  FEEDBACK-TOKEN-VALUE.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 62,
+      "code": "             88  FC-INVALID-DATE       VALUE X'0000000000000000'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 63,
+      "code": "             88  FC-INSUFFICIENT-DATA  VALUE X'000309CB59C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 64,
+      "code": "             88  FC-BAD-DATE-VALUE     VALUE X'000309CC59C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 65,
+      "code": "             88  FC-INVALID-ERA        VALUE X'000309CD59C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 66,
+      "code": "             88  FC-UNSUPP-RANGE       VALUE X'000309D159C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 67,
+      "code": "             88  FC-INVALID-MONTH      VALUE X'000309D559C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 68,
+      "code": "             88  FC-BAD-PIC-STRING     VALUE X'000309D659C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 69,
+      "code": "             88  FC-NON-NUMERIC-DATA   VALUE X'000309D859C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 70,
+      "code": "             88  FC-YEAR-IN-ERA-ZERO   VALUE X'000309D959C3C5C5'.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 71,
+      "code": "               03  CASE-1-CONDITION-ID.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 72,
+      "code": "                   04  SEVERITY        PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 73,
+      "code": "                   04  MSG-NO          PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 74,
+      "code": "               03  CASE-2-CONDITION-ID",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 75,
+      "code": "                         REDEFINES CASE-1-CONDITION-ID.",
+      "type": "code",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 76,
+      "code": "                   04  CLASS-CODE      PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 77,
+      "code": "                   04  CAUSE-CODE      PIC S9(4) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 78,
+      "code": "               03  CASE-SEV-CTL    PIC X.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 79,
+      "code": "               03  FACILITY-ID     PIC XXX.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 80,
+      "code": "           02  I-S-INFO        PIC S9(9) BINARY.",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 81,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 82,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "WORKING-STORAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 83,
+      "code": "       LINKAGE SECTION.",
+      "type": "section-header",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 84,
+      "code": "          01 LS-DATE         PIC X(10).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 85,
+      "code": "          01 LS-DATE-FORMAT  PIC X(10).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 86,
+      "code": "          01 LS-RESULT       PIC X(80).",
+      "type": "variable-declaration",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 87,
+      "code": "",
+      "type": "empty",
+      "division": "DATA",
+      "section": "LINKAGE SECTION",
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 88,
+      "code": "       PROCEDURE DIVISION USING LS-DATE, LS-DATE-FORMAT, LS-RESULT.",
+      "type": "division-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 89,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 90,
+      "code": "           INITIALIZE WS-MESSAGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 91,
+      "code": "           MOVE SPACES TO WS-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 92,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 93,
+      "code": "           PERFORM A000-MAIN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 94,
+      "code": "              THRU A000-MAIN-EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 95,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 96,
+      "code": "      *    DISPLAY WS-MESSAGE",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 97,
+      "code": "           MOVE WS-MESSAGE                 TO LS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 98,
+      "code": "           MOVE WS-SEVERITY-N              TO RETURN-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 99,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 100,
+      "code": "           EXIT PROGRAM",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 101,
+      "code": "      *    GOBACK",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 102,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": null,
+      "explanation": ""
+    },
+    {
+      "number": 103,
+      "code": "       A000-MAIN.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Entry point of the main validation routine that orchestrates the entire date validation process."
+    },
+    {
+      "number": 104,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 105,
+      "code": "           MOVE LENGTH OF LS-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Measures the length of the date value submitted by the calling program, so the calendar conversion service knows exactly how many characters to process."
+    },
+    {
+      "number": 106,
+      "code": "                        TO VSTRING-LENGTH  OF WS-DATE-TO-TEST",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Packages that length into the structured date input prepared for submission to the calendar conversion service."
+    },
+    {
+      "number": 107,
+      "code": "           MOVE LS-DATE TO VSTRING-TEXT    OF WS-DATE-TO-TEST",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Loads the actual date value submitted by the calling program (e.g., a transaction date or card expiry date) into the structured input for the calendar conversion service."
+    },
+    {
+      "number": 108,
+      "code": "                           WS-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Also retains a working copy of the submitted date value for internal reference during processing."
+    },
+    {
+      "number": 109,
+      "code": "           MOVE LENGTH OF LS-DATE-FORMAT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Measures the length of the format mask provided by the calling program (e.g., YYYY-MM-DD), so the conversion service knows how to interpret the date string."
+    },
+    {
+      "number": 110,
+      "code": "                         TO VSTRING-LENGTH OF WS-DATE-FORMAT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Packages that format mask length into the structured format input prepared for the calendar conversion service."
+    },
+    {
+      "number": 111,
+      "code": "           MOVE LS-DATE-FORMAT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Loads the format mask itself into the structured input, telling the conversion service the exact pattern it should use to parse the submitted date."
+    },
+    {
+      "number": 112,
+      "code": "                         TO VSTRING-TEXT   OF WS-DATE-FORMAT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Also retains a working copy of the format mask for internal reference."
+    },
+    {
+      "number": 113,
+      "code": "                            WS-DATE-FMT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Stores an additional working copy of the format mask for use elsewhere in the program if needed."
+    },
+    {
+      "number": 114,
+      "code": "           MOVE 0        TO OUTPUT-LILLIAN",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Resets the internal calendar day number to zero before validation begins, ensuring no residual value from a previous call is mistakenly treated as a successful conversion."
+    },
+    {
+      "number": 115,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 116,
+      "code": "           CALL \"CEEDAYS\" USING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Invokes IBM's Language Environment calendar conversion service to attempt to convert the submitted date into an internal numeric day number, which is the definitive test of whether the date is a real calendar date."
+    },
+    {
+      "number": 117,
+      "code": "                  WS-DATE-TO-TEST,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Passes the submitted date value (with its length) to the calendar conversion service for processing."
+    },
+    {
+      "number": 118,
+      "code": "                  WS-DATE-FORMAT,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Passes the format mask (with its length) to the calendar conversion service so it can correctly interpret the structure of the date string."
+    },
+    {
+      "number": 119,
+      "code": "                  OUTPUT-LILLIAN,",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Receives the resulting internal calendar day number from the conversion service; a non-zero value confirms the date maps to a real calendar day."
+    },
+    {
+      "number": 120,
+      "code": "                  FEEDBACK-CODE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Receives the full feedback token from the conversion service, which contains the severity level and specific condition code needed to classify the validation outcome."
+    },
+    {
+      "number": 121,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 122,
+      "code": "           MOVE WS-DATE-TO-TEST            TO WS-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Refreshes the working copy of the submitted date with the version processed by the conversion service, ensuring consistency in any subsequent handling."
+    },
+    {
+      "number": 123,
+      "code": "           MOVE SEVERITY OF FEEDBACK-CODE  TO WS-SEVERITY-N",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Extracts the severity level from the conversion service's feedback, indicating how serious the outcome is (e.g., success, warning, or error), to be returned to the calling program as the overall result code."
+    },
+    {
+      "number": 124,
+      "code": "           MOVE MSG-NO OF FEEDBACK-CODE    TO WS-MSG-NO-N",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Extracts the specific condition number from the conversion service's feedback, identifying the precise nature of any date problem for detailed classification."
+    },
+    {
+      "number": 125,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 126,
+      "code": "      *    WS-RESULT IS 15 CHARACTERS",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 127,
+      "code": "      *                123456789012345'",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 128,
+      "code": "           EVALUATE TRUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Begins evaluating the specific outcome code returned by the calendar conversion service to determine which business result message to produce."
+    },
+    {
+      "number": 129,
+      "code": "              WHEN FC-INVALID-DATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service confirmed the date as a legitimate calendar date (this condition code, despite its name, signals successful validation)."
+    },
+    {
+      "number": 130,
+      "code": "                 MOVE 'Date is valid'      TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date is a valid calendar date, to be returned to the calling program as a positive confirmation."
+    },
+    {
+      "number": 131,
+      "code": "              WHEN FC-INSUFFICIENT-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found the date string did not contain enough information to fully identify a calendar date."
+    },
+    {
+      "number": 132,
+      "code": "                 MOVE 'Insufficient'       TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date lacked sufficient data to be resolved into a complete calendar date."
+    },
+    {
+      "number": 133,
+      "code": "              WHEN FC-BAD-DATE-VALUE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found a date component (such as day 32) that falls outside acceptable calendar value ranges."
+    },
+    {
+      "number": 134,
+      "code": "                 MOVE 'Datevalue error'    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date contained a value outside the permitted range for a calendar component."
+    },
+    {
+      "number": 135,
+      "code": "              WHEN FC-INVALID-ERA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found an era designation in the date that does not correspond to a recognised historical era."
+    },
+    {
+      "number": 136,
+      "code": "                 MOVE 'Invalid Era    '    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date referenced an unrecognised or invalid historical era."
+    },
+    {
+      "number": 137,
+      "code": "              WHEN FC-UNSUPP-RANGE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found the date falls outside the range of dates it is capable of processing."
+    },
+    {
+      "number": 138,
+      "code": "                 MOVE 'Unsupp. Range  '    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date is outside the supported date range of the system, making validation impossible."
+    },
+    {
+      "number": 139,
+      "code": "              WHEN FC-INVALID-MONTH",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found the month component of the date does not correspond to a valid calendar month (e.g., month 13)."
+    },
+    {
+      "number": 140,
+      "code": "                 MOVE 'Invalid month  '    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date contained an invalid month value."
+    },
+    {
+      "number": 141,
+      "code": "              WHEN FC-BAD-PIC-STRING",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found the format mask itself was malformed or unrecognisable, meaning the date could not even be parsed."
+    },
+    {
+      "number": 142,
+      "code": "                 MOVE 'Bad Pic String '    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the format mask provided by the calling program was invalid, preventing any date interpretation."
+    },
+    {
+      "number": 143,
+      "code": "              WHEN FC-NON-NUMERIC-DATA",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found non-numeric characters in a part of the date string where only digits are permitted."
+    },
+    {
+      "number": 144,
+      "code": "                 MOVE 'Nonnumeric data'    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date contained non-numeric data where numeric digits were required, indicating a corrupted or incorrectly formatted date field."
+    },
+    {
+      "number": 145,
+      "code": "              WHEN FC-YEAR-IN-ERA-ZERO",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Checks whether the conversion service found the year-within-era component of the date was set to zero, which is not a valid calendar year in era-based date systems."
+    },
+    {
+      "number": 146,
+      "code": "                 MOVE 'YearInEra is 0 '    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records that the submitted date had a year-within-era value of zero, which does not represent a valid calendar year."
+    },
+    {
+      "number": 147,
+      "code": "              WHEN OTHER",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Handles any other unexpected condition code returned by the conversion service that does not match any of the recognised categories."
+    },
+    {
+      "number": 148,
+      "code": "                 MOVE 'Date is invalid'    TO WS-RESULT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Records a general date invalidity result for any unrecognised failure condition, ensuring the calling program always receives a definitive outcome."
+    },
+    {
+      "number": 149,
+      "code": "           END-EVALUATE",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Closes the outcome evaluation block."
+    },
+    {
+      "number": 150,
+      "code": "",
+      "type": "empty",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": ""
+    },
+    {
+      "number": 151,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN",
+      "explanation": "Marks the end of the main validation routine, returning control to the calling program with the validation result, severity, and condition details populated."
+    },
+    {
+      "number": 152,
+      "code": "       A000-MAIN-EXIT.",
+      "type": "paragraph-header",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": "Marks the end of the main date validation process, signalling that all validation checks and result preparation are complete."
+    },
+    {
+      "number": 153,
+      "code": "           EXIT",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": "Returns control to the calling program, which can now act on the validation outcome — such as accepting or rejecting a transaction date, card expiry, or account date."
+    },
+    {
+      "number": 154,
+      "code": "           .",
+      "type": "statement",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 155,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": ""
+    },
+    {
+      "number": 156,
+      "code": "      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:35 CDT",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": "Version control metadata identifying the CardDemo release, build reference, and timestamp when this validation utility was last modified — used for audit and change tracking purposes."
+    },
+    {
+      "number": 157,
+      "code": "      *",
+      "type": "comment",
+      "division": "PROCEDURE",
+      "section": null,
+      "paragraph": "A000-MAIN-EXIT",
+      "explanation": ""
+    }
+  ],
+  "variables": [
+    {
+      "name": "WS-DATE-TO-TEST",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The internal working-storage representation of the date submitted for validation, structured as a variable-length string compatible with the IBM CEEDAYS API. This holds the actual date value (e.g., a transaction date, card expiry date, or account date) that the calling program wants to verify as a legitimate calendar date."
+    },
+    {
+      "name": "Vstring-length",
+      "level": "02",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The declared length of the date string being validated. This tells the CEEDAYS API exactly how many characters make up the date value (e.g., 10 for 'YYYY-MM-DD'), ensuring the API does not misread or truncate the date during validation."
+    },
+    {
+      "name": "Vstring-text",
+      "level": "02",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The container for the actual date string characters (e.g., '2024-03-15') that will be passed to the CEEDAYS API for calendar validation. This is the raw date text submitted by the calling program."
+    },
+    {
+      "name": "Vstring-char",
+      "level": "03",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single character position within the date string being validated. Together these characters form the complete date value (e.g., a transaction date or card expiry date) that the system checks against the calendar."
+    },
+    {
+      "name": "WS-DATE-FORMAT",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The internal working-storage representation of the date format mask, structured as a variable-length string for the CEEDAYS API. This defines how the date string should be interpreted (e.g., 'YYYY-MM-DD'), enforcing strict format-aware validation so that ambiguous date strings are never accepted by the CardDemo system."
+    },
+    {
+      "name": "Vstring-length",
+      "level": "02",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The declared length of the format mask string (e.g., 10 for 'YYYY-MM-DD'). This ensures the CEEDAYS API reads exactly the right number of format characters, preventing misinterpretation of the date structure."
+    },
+    {
+      "name": "Vstring-text",
+      "level": "02",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The container for the actual format mask characters (e.g., 'YYYY-MM-DD') that instruct the CEEDAYS API how to parse the date being validated. The calling program must supply this, enforcing the CardDemo business rule that all date validation is format-aware."
+    },
+    {
+      "name": "Vstring-char",
+      "level": "03",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single character position within the format mask string. Together these characters define the expected date pattern (e.g., 'Y', 'M', 'D', '-') that the system uses to correctly interpret and validate the submitted date."
+    },
+    {
+      "name": "OUTPUT-LILLIAN",
+      "level": "01",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The Lillian day number produced by the CEEDAYS API when a date is successfully validated. A non-zero value here confirms that the submitted date (e.g., a transaction date or card expiry date) maps to a real, legitimate calendar day. If the date is invalid, this value is meaningless and the feedback code is used instead."
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: A formatted diagnostic message record that captures the full context of a date validation attempt, including the severity of the outcome, the specific error code, the validation result description, the date that was tested, and the format mask used. This is used for logging, debugging, and tracing date validation activity across the CardDemo system."
+    },
+    {
+      "name": "WS-SEVERITY",
+      "level": "02",
+      "picture": "PIC X(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The alphanumeric representation of the severity code returned by the CEEDAYS API after attempting to validate a date. This indicates how serious the validation outcome is (e.g., success, warning, or error), used in the diagnostic message for tracing purposes."
+    },
+    {
+      "name": "WS-SEVERITY-N",
+      "level": "02",
+      "picture": "PIC 9(4)",
+      "value": null,
+      "redefines": "WS-SEVERITY",
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The numeric form of the CEEDAYS severity code, overlaying the same storage as WS-SEVERITY. This numeric value is returned as the program RETURN-CODE to the calling program and job control, allowing automated processes to detect and react to date validation failures programmatically (e.g., rejecting a transaction with an invalid date)."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(11)",
+      "value": "Mesg Code:",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A static label 'Mesg Code:' embedded in the diagnostic message to identify the message code field that follows. This makes the validation log entry human-readable for operations staff reviewing date validation failures."
+    },
+    {
+      "name": "WS-MSG-NO",
+      "level": "02",
+      "picture": "PIC X(04)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The alphanumeric representation of the specific message number returned by the CEEDAYS API, identifying the precise nature of any date validation error (e.g., invalid month, non-numeric data). Used in the diagnostic message for tracing."
+    },
+    {
+      "name": "WS-MSG-NO-N",
+      "level": "02",
+      "picture": "PIC 9(4)",
+      "value": null,
+      "redefines": "WS-MSG-NO",
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The numeric form of the CEEDAYS message number, overlaying the same storage as WS-MSG-NO. This numeric code precisely identifies the category of date error (e.g., invalid month, bad date value) so that the program can map it to a human-readable result message for the calling program."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(01)",
+      "value": "SPACE",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff."
+    },
+    {
+      "name": "WS-RESULT",
+      "level": "02",
+      "picture": "PIC X(15)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A short human-readable description of the date validation outcome (e.g., 'Date is valid', 'Invalid month', 'Non-numeric data') included in the internal diagnostic message. This summarises why a date was accepted or rejected during the validation process."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(01)",
+      "value": "SPACE",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(09)",
+      "value": "TstDate:",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A static label 'TstDate:' embedded in the diagnostic message to identify the date-under-test field that follows. This makes it easy for operations staff to see which date value triggered a validation result in the log."
+    },
+    {
+      "name": "WS-DATE",
+      "level": "02",
+      "picture": "PIC X(10)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The date value being validated (e.g., '2024-03-15'), captured within the diagnostic message for tracing purposes. This records which specific transaction date, card expiry date, or account date was submitted for validation, aiding in audit and error investigation."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(01)",
+      "value": "SPACE",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(10)",
+      "value": "Mask used:",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A static label 'Mask used:' embedded in the diagnostic message to identify the format mask field that follows. This allows operations staff to see exactly which date format was applied during validation, which is critical for diagnosing format mismatch errors."
+    },
+    {
+      "name": "WS-DATE-FMT",
+      "level": "02",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The format mask (e.g., 'YYYY-MM-DD') used during the validation attempt, captured within the diagnostic message. This records which date format was applied, enabling operations staff and developers to diagnose cases where a date was rejected due to a format mismatch."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(01)",
+      "value": "SPACE",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A single space separator in the diagnostic message, improving readability of the validation log entry for operations staff."
+    },
+    {
+      "name": "FILLER",
+      "level": "02",
+      "picture": "PIC X(03)",
+      "value": "SPACES",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Trailing padding spaces at the end of the diagnostic message, ensuring the message record is fully padded to its defined length for consistent formatting in logs and displays."
+    },
+    {
+      "name": "FEEDBACK-CODE",
+      "level": "01",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The full feedback token returned by the IBM CEEDAYS API after a date validation attempt. This is the primary mechanism by which the system determines whether a submitted date (e.g., a transaction date or card expiry date) is valid or invalid, and if invalid, precisely why it failed. The entire CardDemo date validation logic is driven by interpreting this feedback token."
+    },
+    {
+      "name": "FEEDBACK-TOKEN-VALUE",
+      "level": "02",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The raw binary value of the CEEDAYS feedback token, against which named condition codes are tested to classify the date validation outcome. The specific bit pattern in this field determines whether the date is valid or which specific error category applies."
+    },
+    {
+      "name": "FC-INVALID-DATE",
+      "level": "88",
+      "picture": null,
+      "value": "X'0000000000000000'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Despite its misleading name, this condition signals that the date is VALID — the CEEDAYS API returned a zero feedback code, meaning the submitted date (e.g., a transaction date or card expiry date) successfully maps to a legitimate calendar day. This is the success condition for date validation across the entire CardDemo system."
+    },
+    {
+      "name": "FC-INSUFFICIENT-DATA",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309CB59C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the date string does not contain enough information to fully resolve a calendar date — for example, a date field that is too short or missing required components. The validation result 'Insufficient data' is returned to the calling program, indicating the date cannot be accepted."
+    },
+    {
+      "name": "FC-BAD-DATE-VALUE",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309CC59C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the date contains a value outside acceptable calendar ranges — for example, a day value of 32 or a month value of 13. The validation result 'Bad date value' is returned, indicating the date is arithmetically impossible and must be rejected."
+    },
+    {
+      "name": "FC-INVALID-ERA",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309CD59C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the era component of the date (e.g., BC/AD in certain calendar systems) is not valid. While uncommon in standard credit card processing, this condition ensures that any date with an unrecognisable era designation is explicitly rejected."
+    },
+    {
+      "name": "FC-UNSUPP-RANGE",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309D159C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the date falls outside the range supported by the IBM CEEDAYS API — for example, historically extreme past dates or far-future dates beyond system limits. Such dates are rejected as unsupported, protecting the CardDemo system from processing dates it cannot reliably handle."
+    },
+    {
+      "name": "FC-INVALID-MONTH",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309D559C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the month component of the submitted date does not correspond to a valid calendar month (e.g., month 00 or month 13). The validation result 'Invalid month' is returned to the calling program, enabling precise error feedback to users or downstream processes."
+    },
+    {
+      "name": "FC-BAD-PIC-STRING",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309D659C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the format mask (picture string) provided by the calling program is itself invalid or unrecognisable by the CEEDAYS API. This protects the system from attempting to validate a date against a malformed or unsupported format specification."
+    },
+    {
+      "name": "FC-NON-NUMERIC-DATA",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309D859C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the date string contains non-numeric characters where digits are required by the format mask — for example, letters or special characters in a date field. The validation result 'Non-numeric data' is returned, explicitly rejecting corrupted or alphanumeric date fields in line with CardDemo business rules."
+    },
+    {
+      "name": "FC-YEAR-IN-ERA-ZERO",
+      "level": "88",
+      "picture": null,
+      "value": "X'000309D959C3C5C5'",
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: This condition signals that the year within the era is zero, which is not a valid calendar year in most calendar systems. This edge-case validation ensures that year-zero dates are explicitly rejected rather than silently accepted or misinterpreted."
+    },
+    {
+      "name": "CASE-1-CONDITION-ID",
+      "level": "03",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: The primary condition identifier within the CEEDAYS feedback token, containing the severity and message number that classify the date validation outcome. This is the main structure used to determine whether a date is valid or which specific error category applies."
+    },
+    {
+      "name": "SEVERITY",
+      "level": "04",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The numeric severity level from the CEEDAYS feedback token indicating how serious the date validation outcome is (e.g., 0 for success, higher values for errors). This drives the RETURN-CODE returned to the calling program, allowing job control and calling programs to react appropriately to date validation failures."
+    },
+    {
+      "name": "MSG-NO",
+      "level": "04",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The specific message number from the CEEDAYS feedback token that precisely identifies the nature of any date validation error (e.g., invalid month, non-numeric data, bad date value). This is used to select the appropriate human-readable result message returned to the calling program."
+    },
+    {
+      "name": "CASE-2-CONDITION-ID",
+      "level": "03",
+      "picture": null,
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": true,
+      "description": "Business meaning: An alternative interpretation of the same feedback token bytes, providing class and cause codes for more detailed error classification. This supports advanced diagnostic scenarios where the primary condition identifier alone is insufficient to fully characterise the date validation failure."
+    },
+    {
+      "name": "CLASS-CODE",
+      "level": "04",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The class code from the CEEDAYS feedback token, categorising the broad type of condition encountered during date validation (e.g., a system error class versus a data error class). Used for advanced diagnostic interpretation of date validation failures."
+    },
+    {
+      "name": "CAUSE-CODE",
+      "level": "04",
+      "picture": "PIC S9(4) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The cause code from the CEEDAYS feedback token, providing a more specific reason within the class for the date validation condition. Used alongside the class code for detailed diagnostic analysis of date validation failures."
+    },
+    {
+      "name": "CASE-SEV-CTL",
+      "level": "03",
+      "picture": "PIC X",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A control byte within the CEEDAYS feedback token that governs how the severity of the condition is to be interpreted. This is part of the IBM Language Environment feedback token structure and supports correct classification of the date validation outcome."
+    },
+    {
+      "name": "FACILITY-ID",
+      "level": "03",
+      "picture": "PIC XXX",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: A three-character identifier within the CEEDAYS feedback token indicating which IBM facility or component generated the condition (e.g., 'CEE' for the IBM Language Environment). This helps operations staff and developers identify the source of a date validation error during incident investigation."
+    },
+    {
+      "name": "I-S-INFO",
+      "level": "02",
+      "picture": "PIC S9(9) BINARY",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: Additional instance-specific information within the CEEDAYS feedback token, providing supplementary detail about the date validation condition. This field supports advanced diagnostic analysis but is not directly used in the primary validation logic."
+    },
+    {
+      "name": "LS-DATE",
+      "level": "01",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The date value submitted by the calling program for validation — for example, a transaction date, card expiry date, or account date. This is the primary input to the date validation utility and represents the actual business date that needs to be confirmed as a legitimate calendar date before being accepted by the CardDemo system."
+    },
+    {
+      "name": "LS-DATE-FORMAT",
+      "level": "01",
+      "picture": "PIC X(10)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The expected format mask for the date submitted by the calling program (e.g., 'YYYY-MM-DD'). The calling program must always supply this, enforcing the CardDemo business rule that all date validation is strictly format-aware. Without a valid format mask, the date cannot be validated regardless of its content."
+    },
+    {
+      "name": "LS-RESULT",
+      "level": "01",
+      "picture": "PIC X(80)",
+      "value": null,
+      "redefines": null,
+      "occurs": null,
+      "is_group": false,
+      "description": "Business meaning: The human-readable validation outcome message returned to the calling program after the date validation attempt (e.g., 'Date is valid', 'Invalid month', 'Non-numeric data'). This is the primary output of the date validation utility, enabling calling programs to provide precise, meaningful feedback to users or downstream processes about why a date was accepted or rejected."
+    }
+  ],
+  "paragraphs": [
+    {
+      "name": "A000-MAIN",
+      "line_start": 103,
+      "line_end": 151,
+      "description": "This paragraph is the core validation routine that submits a date and its expected format to IBM's calendar conversion service, then interprets the outcome into a human-readable business result. It acts as the central decision point that determines whether a submitted date is a legitimate calendar date and classifies any invalidity into one of nine specific business-meaningful error categories."
+    },
+    {
+      "name": "A000-MAIN-EXIT",
+      "line_start": 152,
+      "line_end": 157,
+      "description": "This paragraph serves as the formal exit point of the main date validation routine, cleanly returning control to the calling program after all validation logic has been completed and results have been prepared."
+    }
+  ],
+  "copybooks": []
+}
