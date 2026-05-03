@@ -179,7 +179,7 @@ Examples:
             failed.append(cbl.name)
             print(f'  [ERROR] {cbl.name}')
 
-    # Regenerate full index
+    # Regenerate full index + status page
     if not args.no_html and (ok > 0 or skipped > 0):
         print(f'\nGenerating index...')
         subprocess.run([
@@ -187,6 +187,9 @@ Examples:
             '--input-dir', str(args.data_dir),
             '--output-dir', str(args.html_dir),
         ])
+        status_script = SCRIPTS_DIR / 'generate_status.py'
+        if status_script.exists():
+            subprocess.run([python, str(status_script)])
 
     print(f'\n======================================')
     print(f'Done   : {ok} processed, {skipped} skipped, {len(failed)} errors')

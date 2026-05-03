@@ -236,6 +236,7 @@ aws-mainframe-modernization-carddemo/
 │       ├── analyze_cobol.py          Core analysis script (calls Claude API)
 │       ├── process_all.py            Batch orchestration script
 │       ├── generate_html.py          HTML generation from JSON data
+│       ├── generate_status.py        Generates the documentation status page
 │       ├── translate_json.py         Translate German text in legacy JSONs
 │       ├── requirements.txt          Python dependencies
 │       └── templates/                Jinja2 HTML templates
@@ -264,7 +265,24 @@ The JSON tracks whether prelude annotation has been done (`meta.prelude_annotate
 
 ## Status Check
 
-To see which programs are fully annotated vs. still pending:
+### HTML Status Page
+
+The clearest way to check status is the dedicated status page.
+Generate (or refresh) it with:
+
+```bash
+.venv/bin/python3 documentation/scripts/generate_status.py
+open documentation/html/status/index.html
+```
+
+The page lists every program in `app/cbl/` with:
+- Current status (complete / needs patch / not started)
+- Percentage of lines annotated
+- The exact command to complete each program
+
+It is also linked from `documentation/html/index.html` ("Documentation Status →").
+
+### Command-Line Summary
 
 ```bash
 .venv/bin/python3 documentation/scripts/process_all.py --no-html 2>&1 | head -10

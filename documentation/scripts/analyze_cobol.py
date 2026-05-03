@@ -22,6 +22,7 @@ Usage:
 
 import json
 import re
+import subprocess
 import sys
 import argparse
 from datetime import datetime
@@ -902,3 +903,19 @@ Modes:
         patch_prelude(args.cobol_file, args.output_dir, model=args.model)
     else:
         analyze_file(args.cobol_file, args.output_dir, model=args.model, force=args.force)
+
+    # Regenerate HTML for this program and refresh the status page
+    scripts_dir  = Path(__file__).parent
+    html_dir     = args.output_dir.parent / 'html'
+    program_name = args.cobol_file.stem.upper()
+
+    subprocess.run([
+        sys.executable, str(scripts_dir / 'generate_html.py'),
+        '--program', program_name,
+        '--input-dir', str(args.output_dir),
+        '--output-dir', str(html_dir),
+    ], capture_output=True)
+
+    status_script = scripts_dir / 'generate_status.py'
+    if status_script.exists():
+        subprocess.run([sys.executable, str(status_script)], capture_output=True)

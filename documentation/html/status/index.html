@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation Status – CardDemo app/cbl/</title>
+  <style>
+    :root {
+      --bg:      #1e1e2e; --bg2: #181825; --bg3: #313244;
+      --border:  #45475a; --text: #cdd6f4; --sub:  #a6adc8;
+      --comment: #6c7086; --gold: #f9e2af; --cyan: #89dceb;
+      --green:   #a6e3a1; --red:  #f38ba8; --yellow: #f9e2af;
+      --keyword: #cba6f7;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            font-size: .9rem; padding: 2rem; }
+
+    h1 { font-size: 1.6rem; color: var(--gold); margin-bottom: .3rem; }
+    .subtitle { color: var(--sub); font-size: .85rem; margin-bottom: 2rem; }
+
+    /* Summary cards */
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .5rem; padding: 1rem 1.5rem; min-width: 140px;
+    }
+    .stat-card .num  { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-card .lbl  { color: var(--sub); font-size: .78rem; margin-top: .3rem; }
+    .num-ok     { color: var(--green);  }
+    .num-patch  { color: var(--yellow); }
+    .num-miss   { color: var(--red);    }
+    .num-total  { color: var(--cyan);   }
+
+    /* Section title */
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: var(--gold);
+      margin: 2rem 0 .75rem;
+      padding-bottom: .35rem; border-bottom: 1px solid var(--border);
+    }
+
+    /* Command blocks */
+    .cmd-block {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .5rem; padding: 1rem 1.25rem; margin-bottom: .75rem;
+    }
+    .cmd-done { color: var(--green); font-weight: 600; }
+    .cmd-title { font-weight: 600; color: var(--cyan); margin-bottom: .5rem; }
+    .cmd-est   { font-size: .75rem; color: var(--sub); font-weight: 400;
+                  margin-left: .75rem; }
+    .cmd-pre   {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: .3rem; padding: .6rem 1rem;
+      font-family: "Cascadia Code", "Fira Code", monospace; font-size: .8rem;
+      color: var(--green); overflow-x: auto; white-space: pre;
+      margin-bottom: .5rem;
+    }
+    .cmd-sub   { font-size: .78rem; color: var(--sub); line-height: 1.5; }
+    .cmd-sub code { background: var(--bg3); border-radius: .2rem;
+                     padding: .05rem .3rem; font-size: .75rem; color: var(--keyword); }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th {
+      background: var(--bg3); color: var(--sub); text-align: left;
+      padding: .45rem .7rem; font-size: .73rem; text-transform: uppercase;
+      letter-spacing: .05em; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 1;
+    }
+    td { padding: .4rem .7rem; border-bottom: 1px solid #31324433; vertical-align: middle; }
+    tr.prog-row:hover td { background: #31324422; }
+
+    tr.module-sep td {
+      background: var(--bg2); color: var(--keyword);
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+      padding: .5rem .7rem .2rem; border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    .td-name   { white-space: nowrap; }
+    .td-type   { white-space: nowrap; color: var(--sub); font-size: .78rem; }
+    .td-stats  { white-space: nowrap; color: var(--sub); font-size: .78rem; }
+    .td-desc   { color: var(--sub); font-size: .78rem; line-height: 1.4; max-width: 30ch; }
+    .td-action { min-width: 32ch; }
+    .td-bar    { min-width: 90px; }
+
+    .prog-link { color: var(--cyan); text-decoration: none; font-family: monospace;
+                  font-weight: 600; font-size: .85rem; }
+    .prog-link:hover { text-decoration: underline; }
+
+    /* Badges */
+    .badge {
+      display: inline-block; padding: .15rem .55rem; border-radius: 1rem;
+      font-size: .7rem; font-weight: 700; white-space: nowrap;
+    }
+    .badge-ok      { background: #1a3324; color: var(--green);  border: 1px solid #a6e3a144; }
+    .badge-patch   { background: #2d2a18; color: var(--yellow); border: 1px solid #f9e2af44; }
+    .badge-missing { background: #2d1b1b; color: var(--red);    border: 1px solid #f38ba844; }
+
+    /* Progress bar */
+    .bar-wrap  { position: relative; background: var(--bg3); border-radius: .2rem;
+                  height: .9rem; width: 80px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: .2rem; transition: width .3s; }
+    .bar-label { position: absolute; right: 3px; top: 0; font-size: .62rem;
+                  line-height: .9rem; color: var(--bg); font-weight: 700; mix-blend-mode: difference; }
+
+    .action-done { color: var(--green); font-size: .78rem; }
+    .cmd { font-family: "Cascadia Code", "Fira Code", monospace; font-size: .72rem;
+            color: var(--green); background: var(--bg3); border-radius: .2rem;
+            padding: .15rem .4rem; word-break: break-all; }
+
+    footer { margin-top: 3rem; color: var(--comment); font-size: .73rem; }
+  </style>
+</head>
+<body>
+
+<h1>Documentation Status</h1>
+<div class="subtitle">
+  COBOL programs in <code>app/cbl/</code> — CardDemo Mainframe Modernisation &middot;
+  Generated 2026-05-03 16:46
+</div>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="stat-card"><div class="num num-total">31</div><div class="lbl">Total programs</div></div>
+  <div class="stat-card"><div class="num num-ok">3</div><div class="lbl">Fully documented</div></div>
+  <div class="stat-card"><div class="num num-patch">28</div><div class="lbl">Need prelude patch</div></div>
+  <div class="stat-card"><div class="num num-miss">0</div><div class="lbl">Not yet analysed</div></div>
+</div>
+
+<!-- What to do -->
+<div class="section-title">What to do</div>
+
+        <div class="cmd-block">
+          <div class="cmd-title">Add prelude annotations to all 28 programs at once
+            <span class="cmd-est">~42 – 56 min</span>
+          </div>
+          <pre class="cmd-pre">.venv/bin/python3 documentation/scripts/process_all.py --patch-prelude --app-dir app/cbl</pre>
+          <div class="cmd-sub">This adds IDENTIFICATION / ENVIRONMENT / DATA DIVISION line annotations
+          to existing JSON files without running a full re-analysis.</div>
+        </div>
+
+<!-- Program table -->
+<div class="section-title" style="margin-top:2rem;">All Programs</div>
+<table>
+  <thead>
+    <tr>
+      <th>Program</th>
+      <th>Type</th>
+      <th>Status</th>
+      <th>Size</th>
+      <th>Lines annotated</th>
+      <th>Description</th>
+      <th>Command to complete</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="module-sep"><td colspan="7">Authentication</td></tr>
+        <tr class="prog-row status-complete">
+          <td class="td-name"><a href="../COSGN00C.html" class="prog-link">COSGN00C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-ok">Complete</span></td>
+          <td class="td-stats">6&nbsp;para / 14&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="56% of lines annotated"><div class="bar-fill" style="width:56%;background:#f9e2af"></div><span class="bar-label">56%</span></div></td>
+          <td class="td-desc">Authenticates users logging into the CardDemo credit card management system and routes them to the appropriate menu based on their user type.</td>
+          <td class="td-action"><span class="action-done">Nothing to do</span></td>
+        </tr><tr class="module-sep"><td colspan="7">Customer</td></tr>
+        <tr class="prog-row status-complete">
+          <td class="td-name"><a href="../CBCUS01C.html" class="prog-link">CBCUS01C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-ok">Complete</span></td>
+          <td class="td-stats">5&nbsp;para / 22&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="59% of lines annotated"><div class="bar-fill" style="width:59%;background:#f9e2af"></div><span class="bar-label">59%</span></div></td>
+          <td class="td-desc">Batch program that sequentially reads and prints all customer records from the customer master file for reporting or audit purposes.</td>
+          <td class="td-action"><span class="action-done">Nothing to do</span></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COMEN01C.html" class="prog-link">COMEN01C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">7&nbsp;para / 16&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="56% of lines annotated"><div class="bar-fill" style="width:56%;background:#f9e2af"></div><span class="bar-label">56%</span></div></td>
+          <td class="td-desc">Presents and manages the main navigation menu for regular (non-admin) users of the CardDemo credit card management system, allowing them to select and launch available functional modules.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COMEN01C.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Account</td></tr>
+        <tr class="prog-row status-complete">
+          <td class="td-name"><a href="../CBACT01C.html" class="prog-link">CBACT01C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-ok">Complete</span></td>
+          <td class="td-stats">16&nbsp;para / 66&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="71% of lines annotated"><div class="bar-fill" style="width:71%;background:#a6e3a1"></div><span class="bar-label">71%</span></div></td>
+          <td class="td-desc">Batch program that reads all credit card account records sequentially and distributes account data into multiple output files in different formats for downstream processing and reporting.</td>
+          <td class="td-action"><span class="action-done">Nothing to do</span></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBACT04C.html" class="prog-link">CBACT04C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">22&nbsp;para / 90&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="51% of lines annotated"><div class="bar-fill" style="width:51%;background:#f9e2af"></div><span class="bar-label">51%</span></div></td>
+          <td class="td-desc">Batch interest calculation program that computes and posts monthly interest charges and fees to credit card accounts based on transaction category balances and account-specific interest rates.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBACT04C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COACTUPC.html" class="prog-link">COACTUPC</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">85&nbsp;para / 579&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="48% of lines annotated"><div class="bar-fill" style="width:48%;background:#f9e2af"></div><span class="bar-label">48%</span></div></td>
+          <td class="td-desc">This program accepts and processes updates to credit card account and customer information entered by bank staff through an online screen.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COACTUPC.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COACTVWC.html" class="prog-link">COACTVWC</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">35&nbsp;para / 96&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="46% of lines annotated"><div class="bar-fill" style="width:46%;background:#f9e2af"></div><span class="bar-label">46%</span></div></td>
+          <td class="td-desc">This program allows bank staff to view the full details of a credit card account by entering an account number, retrieving and displaying associated account and customer information on screen.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COACTVWC.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Card</td></tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBACT02C.html" class="prog-link">CBACT02C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">5&nbsp;para / 30&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="40% of lines annotated"><div class="bar-fill" style="width:40%;background:#f9e2af"></div><span class="bar-label">40%</span></div></td>
+          <td class="td-desc">Batch program that reads and prints all credit card records from the card master file for reporting or audit purposes.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBACT02C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBACT03C.html" class="prog-link">CBACT03C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">5&nbsp;para / 22&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="44% of lines annotated"><div class="bar-fill" style="width:44%;background:#f9e2af"></div><span class="bar-label">44%</span></div></td>
+          <td class="td-desc">Read and print all card-to-account cross-reference records from the cross-reference file as a batch reporting/audit utility.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBACT03C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COCRDLIC.html" class="prog-link">COCRDLIC</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">39&nbsp;para / 129&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="50% of lines annotated"><div class="bar-fill" style="width:50%;background:#f9e2af"></div><span class="bar-label">50%</span></div></td>
+          <td class="td-desc">This program displays a paginated list of credit cards to bank staff, filtered by account or showing all cards depending on the user's administrative privileges.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COCRDLIC.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COCRDSLC.html" class="prog-link">COCRDSLC</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">34&nbsp;para / 94&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="44% of lines annotated"><div class="bar-fill" style="width:44%;background:#f9e2af"></div><span class="bar-label">44%</span></div></td>
+          <td class="td-desc">This program allows bank staff to search for and display the details of a specific credit card by entering an account number and/or card number as search criteria.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COCRDSLC.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COCRDUPC.html" class="prog-link">COCRDUPC</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">45&nbsp;para / 179&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="49% of lines annotated"><div class="bar-fill" style="width:49%;background:#f9e2af"></div><span class="bar-label">49%</span></div></td>
+          <td class="td-desc">This program allows bank staff to update credit card details (cardholder name, expiry date, and active status) for an existing credit card through a validated, confirmation-based online screen workflow.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COCRDUPC.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Transaction</td></tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBTRN01C.html" class="prog-link">CBTRN01C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">18&nbsp;para / 55&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="52% of lines annotated"><div class="bar-fill" style="width:52%;background:#f9e2af"></div><span class="bar-label">52%</span></div></td>
+          <td class="td-desc">Batch program that reads daily credit card transactions and validates each transaction by verifying the card number and resolving it to a customer account, as a precursor to posting.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBTRN01C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBTRN02C.html" class="prog-link">CBTRN02C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">26&nbsp;para / 92&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="50% of lines annotated"><div class="bar-fill" style="width:50%;background:#f9e2af"></div><span class="bar-label">50%</span></div></td>
+          <td class="td-desc">Batch program that validates and posts daily credit card transactions to the permanent transaction ledger, updating account balances and transaction category balances, while routing invalid transactions to a rejection file.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBTRN02C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COBIL00C.html" class="prog-link">COBIL00C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">16&nbsp;para / 36&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="59% of lines annotated"><div class="bar-fill" style="width:59%;background:#f9e2af"></div><span class="bar-label">59%</span></div></td>
+          <td class="td-desc">Enables cardholders to pay their credit card account balance in full through an online bill payment transaction.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COBIL00C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COTRN00C.html" class="prog-link">COTRN00C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">16&nbsp;para / 32&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="61% of lines annotated"><div class="bar-fill" style="width:61%;background:#a6e3a1"></div><span class="bar-label">61%</span></div></td>
+          <td class="td-desc">Display a paginated list of credit card transactions from the TRANSACT file, allowing users to browse and select individual transactions for detailed viewing.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COTRN00C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COTRN01C.html" class="prog-link">COTRN01C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">9&nbsp;para / 26&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="54% of lines annotated"><div class="bar-fill" style="width:54%;background:#f9e2af"></div><span class="bar-label">54%</span></div></td>
+          <td class="td-desc">Display the full details of a single credit card transaction retrieved from the TRANSACT file by Transaction ID.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COTRN01C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COTRN02C.html" class="prog-link">COTRN02C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">18&nbsp;para / 43&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="61% of lines annotated"><div class="bar-fill" style="width:61%;background:#a6e3a1"></div><span class="bar-label">61%</span></div></td>
+          <td class="td-desc">Allow authorised users to manually add a new credit card transaction record to the CardDemo transaction ledger.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COTRN02C.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Reporting</td></tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBSTM03A.html" class="prog-link">CBSTM03A</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">25&nbsp;para / 167&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="56% of lines annotated"><div class="bar-fill" style="width:56%;background:#f9e2af"></div><span class="bar-label">56%</span></div></td>
+          <td class="td-desc">Batch program that generates periodic credit card account statements from transaction data, producing output in both plain text and HTML formats.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBSTM03A.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBSTM03B.html" class="prog-link">CBSTM03B</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">14&nbsp;para / 39&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="33% of lines annotated"><div class="bar-fill" style="width:33%;background:#f38ba8"></div><span class="bar-label">33%</span></div></td>
+          <td class="td-desc">A reusable batch file-access subroutine that provides controlled read access to transaction, card cross-reference, customer, and account data files on behalf of the Transaction Report generation process.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBSTM03B.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBTRN03C.html" class="prog-link">CBTRN03C</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">26&nbsp;para / 64&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="51% of lines annotated"><div class="bar-fill" style="width:51%;background:#f9e2af"></div><span class="bar-label">51%</span></div></td>
+          <td class="td-desc">Batch program that generates a formatted transaction detail report for credit card transactions within a specified date range, with subtotals by card account and grand totals.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBTRN03C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CORPT00C.html" class="prog-link">CORPT00C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">10&nbsp;para / 72&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="50% of lines annotated"><div class="bar-fill" style="width:50%;background:#f9e2af"></div><span class="bar-label">50%</span></div></td>
+          <td class="td-desc">Allows bank operations staff to request and submit transaction reports (monthly, yearly, or custom date range) for the credit card portfolio by launching a batch reporting job directly from an online CICS screen.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CORPT00C.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Admin</td></tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COADM01C.html" class="prog-link">COADM01C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">8&nbsp;para / 16&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="51% of lines annotated"><div class="bar-fill" style="width:51%;background:#f9e2af"></div><span class="bar-label">51%</span></div></td>
+          <td class="td-desc">Presents and manages the administrative navigation menu for authorised admin users in the CardDemo credit card management system.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COADM01C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COUSR00C.html" class="prog-link">COUSR00C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">16&nbsp;para / 39&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="61% of lines annotated"><div class="bar-fill" style="width:61%;background:#a6e3a1"></div><span class="bar-label">61%</span></div></td>
+          <td class="td-desc">Provide administrators with a paginated list of all system users, allowing them to select a user for update or deletion.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COUSR00C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COUSR01C.html" class="prog-link">COUSR01C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">9&nbsp;para / 12&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="54% of lines annotated"><div class="bar-fill" style="width:54%;background:#f9e2af"></div><span class="bar-label">54%</span></div></td>
+          <td class="td-desc">Add a new Regular or Admin user account to the CardDemo system's user security file.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COUSR01C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COUSR02C.html" class="prog-link">COUSR02C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">11&nbsp;para / 24&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="57% of lines annotated"><div class="bar-fill" style="width:57%;background:#f9e2af"></div><span class="bar-label">57%</span></div></td>
+          <td class="td-desc">Allow administrators to look up and update an existing user account's details in the CardDemo system's user security file.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COUSR02C.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COUSR03C.html" class="prog-link">COUSR03C</a></td>
+          <td class="td-type">CICS Online</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">11&nbsp;para / 24&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="51% of lines annotated"><div class="bar-fill" style="width:51%;background:#f9e2af"></div><span class="bar-label">51%</span></div></td>
+          <td class="td-desc">Allow administrators to look up and permanently delete an existing user account from the CardDemo system's user security file.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COUSR03C.cbl --patch-prelude</code></td>
+        </tr><tr class="module-sep"><td colspan="7">Utility</td></tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBEXPORT.html" class="prog-link">CBEXPORT</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">21&nbsp;para / 41&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="47% of lines annotated"><div class="bar-fill" style="width:47%;background:#f9e2af"></div><span class="bar-label">47%</span></div></td>
+          <td class="td-desc">Export complete customer, account, card, cross-reference, and transaction data from the CardDemo system into a structured migration file to support branch migration initiatives.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBEXPORT.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CBIMPORT.html" class="prog-link">CBIMPORT</a></td>
+          <td class="td-type">Batch</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">16&nbsp;para / 39&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="45% of lines annotated"><div class="bar-fill" style="width:45%;background:#f9e2af"></div><span class="bar-label">45%</span></div></td>
+          <td class="td-desc">Import and normalise customer, account, card, and transaction data from a branch migration export file into the CardDemo system's target data stores.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CBIMPORT.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../COBSWAIT.html" class="prog-link">COBSWAIT</a></td>
+          <td class="td-type">Utility</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">0&nbsp;para / 2&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="0% of lines annotated"><div class="bar-fill" style="width:0%;background:#f38ba8"></div><span class="bar-label">0%</span></div></td>
+          <td class="td-desc">A utility program that introduces a controlled pause (wait/delay) into batch processing workflows for a specified duration expressed in centiseconds.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/COBSWAIT.cbl --patch-prelude</code></td>
+        </tr>
+        <tr class="prog-row status-needs-patch">
+          <td class="td-name"><a href="../CSUTLDTC.html" class="prog-link">CSUTLDTC</a></td>
+          <td class="td-type">Utility</td>
+          <td><span class="badge badge-patch">Needs patch</span></td>
+          <td class="td-stats">2&nbsp;para / 48&nbsp;var</td>
+          <td class="td-bar"><div class="bar-wrap" title="29% of lines annotated"><div class="bar-fill" style="width:29%;background:#f38ba8"></div><span class="bar-label">29%</span></div></td>
+          <td class="td-desc">Validate whether a given date string is a legitimate calendar date according to a specified date format, returning a validation result to the calling program.</td>
+          <td class="td-action"><code class="cmd">.venv/bin/python3 documentation/scripts/analyze_cobol.py app/cbl/CSUTLDTC.cbl --patch-prelude</code></td>
+        </tr>
+  </tbody>
+</table>
+
+<footer>
+  Generated by <code>generate_status.py</code> &middot;
+  Source: <code>app/cbl/</code> &middot;
+  Data: <code>documentation/data/</code>
+  &middot; <a href="../index.html" style="color:var(--sub)">← Program overview</a>
+</footer>
+
+</body>
+</html>
