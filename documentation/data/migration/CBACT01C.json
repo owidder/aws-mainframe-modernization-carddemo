@@ -1,0 +1,448 @@
+{
+  "program": "CBACT01C",
+  "source_file": "app/cbl/CBACT01C.cbl",
+  "type": "Batch",
+  "module": "Account",
+  "target_stack": "Spring Boot · Spring Batch · JPA/Hibernate · PostgreSQL",
+  "summary": "CBACT01C reads every record from the master credit card account file (VSAM KSDS, sequential access) and distributes each account into three output files in parallel.",
+  "io_files": [
+    { "ddname": "ACCTFILE", "format": "VSAM KSDS, sequential read", "content": "Input — master account file, 300 bytes/record", "role": "input" },
+    { "ddname": "OUTFILE",  "format": "Sequential flat",            "content": "Full account details (11 fields, reformatted reissue date)", "role": "output" },
+    { "ddname": "ARRYFILE", "format": "Sequential structured",      "content": "Account ID + 3 hardcoded balance/debit scenarios per account", "role": "output" },
+    { "ddname": "VBRCFILE", "format": "Variable-length (12 or 39 bytes)", "content": "Two record types: short (ID + status) and long (ID + bal + limit + year)", "role": "output" }
+  ],
+  "sections": [
+    {
+      "id": "architecture-decisions",
+      "title": "Architecture decisions",
+      "subtitle": "Resolve before writing any code",
+      "tasks": [
+        {
+          "id": "AD-1", "done": false,
+          "title": "Account input source",
+          "content": [
+            { "type": "text", "text": "ACCTFILE is a VSAM KSDS on the mainframe. For the Java batch job, decide:" },
+            { "type": "options", "items": [
+                { "label": "Option A — DB (recommended)", "text": "Accounts are already in PostgreSQL (populated by another migration step). Use JpaCursorItemReader<Account>." },
+                { "label": "Option B — File", "text": "Export VSAM to a fixed-length flat file (300 bytes/record). Use FlatFileItemReader with a custom FixedLengthTokenizer." }
+            ]},
+            { "type": "note", "text": "Recommendation: Option A if the Account entity exists in the target DB, otherwise Option B." }
+          ]
+        },
+        {
+          "id": "AD-2", "done": false,
+          "title": "Output file format",
+          "content": [
+            { "type": "text", "text": "The three output files are flat binary/fixed-length. For Java:" },
+            { "type": "list", "items": [
+                "Keep as flat files (FlatFileItemWriter) — drop-in replacement for downstream consumers",
+                "Write to PostgreSQL tables — cleaner for modern downstream systems"
+            ]},
+            { "type": "note", "text": "Document the choice; it affects all three ItemWriter implementations." }
+          ]
+        },
+        {
+          "id": "AD-3", "done": false,
+          "title": "ARRYFILE purpose",
+          "content": [
+            { "type": "text", "text": "The array file always writes hardcoded scenario values (1005.00, 1525.00, -1025.00, -2500.00). This looks like test data generation, not production logic." },
+            { "type": "note", "text": "Clarify with business: is this file still needed in Java, or was it a mainframe test artefact? (See also BR-4)" }
+          ]
+        },
+        {
+          "id": "AD-4", "done": false,
+          "title": "VBRCFILE consumers",
+          "content": [
+            { "type": "text", "text": "The variable-length record file (2 record types per account) is unusual. Identify the downstream system(s) that read it." },
+            { "type": "note", "text": "If the consumer is also being migrated, the interface can be redesigned (e.g., two separate files or a DB view)." }
+          ]
+        },
+        {
+          "id": "AD-5", "done": false,
+          "title": "COBDATFT replacement",
+          "content": [
+            { "type": "text", "text": "The assembler date-conversion utility is called once per account. Replace with Java DateTimeFormatter — no external call needed. See DEV-6." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data-model",
+      "title": "Data model",
+      "tasks": [
+        {
+          "id": "DM-1", "done": false,
+          "title": "Account entity / DTO",
+          "content": [
+            { "type": "text", "text": "Map ACCOUNT-RECORD from copybook CVACT01Y.cpy (300 bytes, app/cpy/CVACT01Y.cpy):" },
+            { "type": "table",
+              "headers": ["COBOL field", "PIC", "Java field", "Java type"],
+              "rows": [
+                ["ACCT-ID",               "9(11)",       "accountId",          "Long"],
+                ["ACCT-ACTIVE-STATUS",    "X(01)",       "activeStatus",       "String  (or enum Active/Inactive)"],
+                ["ACCT-CURR-BAL",         "S9(10)V99",   "currentBalance",     "BigDecimal"],
+                ["ACCT-CREDIT-LIMIT",     "S9(10)V99",   "creditLimit",        "BigDecimal"],
+                ["ACCT-CASH-CREDIT-LIMIT","S9(10)V99",   "cashCreditLimit",    "BigDecimal"],
+                ["ACCT-OPEN-DATE",        "X(10)",       "openDate",           "LocalDate"],
+                ["ACCT-EXPIRAION-DATE",   "X(10)",       "expirationDate",     "LocalDate  (typo retained from source)"],
+                ["ACCT-REISSUE-DATE",     "X(10)",       "reissueDate",        "LocalDate"],
+                ["ACCT-CURR-CYC-CREDIT",  "S9(10)V99",   "currentCycleCredit", "BigDecimal"],
+                ["ACCT-CURR-CYC-DEBIT",   "S9(10)V99",   "currentCycleDebit",  "BigDecimal"],
+                ["ACCT-ADDR-ZIP",         "X(10)",       "addressZip",         "String"],
+                ["ACCT-GROUP-ID",         "X(10)",       "groupId",            "String"],
+                ["(FILLER 178 bytes)",    "—",           "—",                  "skip"]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DM-2", "done": false,
+          "title": "AccountFlatRecord output DTO (for OUTFILE)",
+          "content": [
+            { "type": "text", "text": "Maps OUT-ACCT-REC (11 fields). Note: OUT-ACCT-CURR-CYC-DEBIT defaults to 2525.00 when source value is zero (business rule BR-2)." }
+          ]
+        },
+        {
+          "id": "DM-3", "done": false,
+          "title": "AccountArrayRecord output DTO (for ARRYFILE)",
+          "content": [
+            { "type": "text", "text": "Maps ARR-ARRAY-REC: account ID + 3 occurrences of (currentBalance, cycleDebit). Only 3 of the 5 array slots are populated — see business rule BR-4." }
+          ]
+        },
+        {
+          "id": "DM-4", "done": false,
+          "title": "AccountVbShortRecord + AccountVbLongRecord (for VBRCFILE)",
+          "content": [
+            { "type": "list", "items": [
+                "Short (12 bytes): VB1-ACCT-ID (11) + VB1-ACCT-ACTIVE-STATUS (1)",
+                "Long (39 bytes): VB2-ACCT-ID (11) + VB2-ACCT-CURR-BAL (12) + VB2-ACCT-CREDIT-LIMIT (12) + VB2-ACCT-REISSUE-YYYY (4)"
+            ]}
+          ]
+        },
+        {
+          "id": "DM-5", "done": false,
+          "title": "COMP-3 (packed decimal) handling",
+          "content": [
+            { "type": "text", "text": "OUT-ACCT-CURR-CYC-DEBIT and ARR-ACCT-CURR-CYC-DEBIT use USAGE IS COMP-3." },
+            { "type": "list", "items": [
+                "If reading/writing raw binary files: use BigDecimal with explicit packed-decimal encoding/decoding (e.g. Apache Commons PackedDecimal or a custom codec)",
+                "If using DB or text format: BigDecimal with standard scale suffices"
+            ]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-setup",
+      "title": "Project setup",
+      "tasks": [
+        {
+          "id": "PS-1", "done": false,
+          "title": "Spring Boot project / module",
+          "content": [
+            { "type": "text", "text": "Create Maven/Gradle module carddemo-batch-account (or add to existing multi-module project). Dependencies:" },
+            { "type": "code", "language": "xml", "code": "spring-boot-starter-batch\nspring-boot-starter-data-jpa      <!-- if DB input/output -->\npostgresql\nspring-boot-starter-logging\nlombok" }
+          ]
+        },
+        {
+          "id": "PS-2", "done": false,
+          "title": "Application properties",
+          "content": [
+            { "type": "code", "language": "yaml", "code": "carddemo:\n  batch:\n    account-export:\n      input-file: ${ACCTFILE_PATH}         # or spring.datasource if DB\n      output-flat-file: ${OUTFILE_PATH}\n      output-array-file: ${ARRYFILE_PATH}\n      output-vbr-file: ${VBRCFILE_PATH}" }
+          ]
+        },
+        {
+          "id": "PS-3", "done": false,
+          "title": "Package structure",
+          "content": [
+            { "type": "code", "language": "text", "code": "com.carddemo.batch.accountexport/\n  AccountExportJobConfig.java       # Spring Batch Job bean\n  reader/\n    AccountFileReader.java          # or AccountJpaReader.java\n  processor/\n    AccountExportProcessor.java\n  writer/\n    AccountFlatFileWriter.java\n    AccountArrayFileWriter.java\n    AccountVbrFileWriter.java\n  model/\n    Account.java\n    AccountFlatRecord.java\n    AccountArrayRecord.java\n    AccountVbShortRecord.java\n    AccountVbLongRecord.java\n  service/\n    DateConversionService.java      # replaces COBDATFT" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spring-batch-job",
+      "title": "Spring Batch job",
+      "tasks": [
+        {
+          "id": "DEV-1", "done": false,
+          "title": "AccountExportJobConfig — Job and Step",
+          "content": [
+            { "type": "code", "language": "java", "code": "@Bean\npublic Job accountExportJob(Step accountExportStep) {\n    return jobBuilderFactory.get(\"accountExportJob\")\n        .start(accountExportStep)\n        .build();\n}\n\n@Bean\npublic Step accountExportStep(ItemReader<Account> reader,\n                               ItemProcessor<Account, AccountExportResult> processor,\n                               ItemWriter<AccountExportResult> compositeWriter) {\n    return stepBuilderFactory.get(\"accountExportStep\")\n        .<Account, AccountExportResult>chunk(100)\n        .reader(reader)\n        .processor(processor)\n        .writer(compositeWriter)\n        .faultTolerant()\n        .noSkip(Exception.class)   // any error = job failure, matching ABEND behaviour\n        .build();\n}" },
+            { "type": "note", "text": "COBOL abends on any I/O error — set noSkip / noRetry to replicate strict fail-fast semantics. Do NOT use skip policies unless the business explicitly allows partial output." }
+          ]
+        },
+        {
+          "id": "DEV-2", "done": false,
+          "title": "AccountItemReader",
+          "content": [
+            { "type": "list", "items": [
+                "DB path: JpaCursorItemReader<Account> with SELECT a FROM Account a ORDER BY a.accountId",
+                "File path: FlatFileItemReader<Account> with FixedLengthTokenizer, field widths from CVACT01Y (total 300 bytes). Map COMP-3 fields via custom FieldSetMapper."
+            ]}
+          ]
+        },
+        {
+          "id": "DEV-3", "done": false,
+          "title": "AccountExportProcessor — core business logic",
+          "content": [
+            { "type": "text", "text": "Input: Account. Output: AccountExportResult (holds all output records). Steps per account:" },
+            { "type": "list", "ordered": true, "items": [
+                "Log all fields to SLF4J INFO (replaces 1100-DISPLAY-ACCT-RECORD DISPLAY statements)",
+                "Populate flat record (replaces 1300-POPUL-ACCT-RECORD) — see DEV-6 for date conversion",
+                "Apply default debit rule (replaces IF ACCT-CURR-CYC-DEBIT = ZERO MOVE 2525.00)",
+                "Populate array record (replaces 1400-POPUL-ARRAY-RECORD) — see BR-4",
+                "Populate short + long VBR records (replaces 1500-POPUL-VBRC-RECORD)"
+            ]}
+          ]
+        },
+        {
+          "id": "DEV-4", "done": false,
+          "title": "CompositeItemWriter",
+          "content": [
+            { "type": "code", "language": "java", "code": "@Bean\npublic CompositeItemWriter<AccountExportResult> compositeWriter(...) {\n    return new CompositeItemWriterBuilder<AccountExportResult>()\n        .delegates(flatFileWriter, arrayFileWriter, vbrFileWriter)\n        .build();\n}" }
+          ]
+        },
+        {
+          "id": "DEV-5", "done": false,
+          "title": "Three ItemWriter implementations",
+          "content": [
+            { "type": "list", "items": [
+                "AccountFlatFileWriter — writes AccountFlatRecord to OUTFILE. Use FlatFileItemWriter with FormattedLineAggregator. Field widths must match OUT-ACCT-REC layout exactly if binary-compatible output is required.",
+                "AccountArrayFileWriter — writes AccountArrayRecord to ARRYFILE. Each record: account ID (11) + 3 × (balance 12 + debit 12) + filler 4 = 75 bytes. Only implement if AD-3 confirms this file is still needed.",
+                "AccountVbrFileWriter — writes two records per account to VBRCFILE. Must prepend a 4-byte RDW (Record Descriptor Word) per record if the downstream consumer expects standard mainframe variable-length format. Short: 12 + 4 = 16 bytes on disk. Long: 39 + 4 = 43 bytes on disk."
+            ]}
+          ]
+        },
+        {
+          "id": "DEV-6", "done": false,
+          "title": "DateConversionService — replace COBDATFT",
+          "content": [
+            { "type": "text", "text": "The assembler call CALL 'COBDATFT' USING CODATECN-REC (app/cbl/CBACT01C.cbl:231) converts the reissue date. Input type 2 = YYYY-MM-DD, output type 2 = YYYYMMDD (no separators)." },
+            { "type": "code", "language": "java", "code": "@Service\npublic class DateConversionService {\n    private static final DateTimeFormatter IN  = DateTimeFormatter.ofPattern(\"yyyy-MM-dd\");\n    private static final DateTimeFormatter OUT = DateTimeFormatter.ofPattern(\"yyyyMMdd\");\n\n    public String reformatReissueDate(String yyyyMmDd) {\n        if (yyyyMmDd == null || yyyyMmDd.isBlank()) return \"        \";\n        return LocalDate.parse(yyyyMmDd.strip(), IN).format(OUT);\n    }\n}" },
+            { "type": "note", "text": "Handle blank/null input gracefully — mainframe FILLER fields may produce spaces." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "business-rules",
+      "title": "Business rules to implement",
+      "tasks": [
+        {
+          "id": "BR-1", "done": false,
+          "title": "Full-file extract, no filtering",
+          "content": [
+            { "type": "text", "text": "Every account in the source must be processed. No WHERE clause filter, no status check." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "147", "note": "PERFORM UNTIL END-OF-FILE = 'Y'" }
+          ]
+        },
+        {
+          "id": "BR-2", "done": false,
+          "title": "Default cycle-debit substitution",
+          "content": [
+            { "type": "text", "text": "If ACCT-CURR-CYC-DEBIT is zero, write 2525.00 to the flat output file." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "236–238" },
+            { "type": "code", "language": "java", "code": "BigDecimal debit = account.getCurrentCycleDebit();\nflatRecord.setCurrentCycleDebit(\n    debit.compareTo(BigDecimal.ZERO) == 0\n        ? new BigDecimal(\"2525.00\")\n        : debit\n);" }
+          ]
+        },
+        {
+          "id": "BR-3", "done": false,
+          "title": "Date reformatting (COBDATFT)",
+          "content": [
+            { "type": "text", "text": "Card reissue date (ACCT-REISSUE-DATE, format YYYY-MM-DD) must be written to OUTFILE in YYYYMMDD format via DateConversionService (see DEV-6). Only the 4-digit year (YYYY) is written to the long VBR record." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "223–233, 282" }
+          ]
+        },
+        {
+          "id": "BR-4", "done": false,
+          "title": "Array file: 3 hardcoded scenario occurrences",
+          "content": [
+            { "type": "text", "text": "The ARRYFILE logic always writes exactly 3 of the 5 possible occurrences with partially hardcoded values:" },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "253–261" },
+            { "type": "table",
+              "headers": ["Occurrence", "Balance", "Cycle Debit"],
+              "rows": [
+                ["1", "ACCT-CURR-BAL (actual)", "1005.00 (hardcoded)"],
+                ["2", "ACCT-CURR-BAL (actual)", "1525.00 (hardcoded)"],
+                ["3", "-1025.00 (hardcoded)",   "-2500.00 (hardcoded)"],
+                ["4, 5", "not set (zeroed by INITIALIZE)", "not set"]
+              ]
+            },
+            { "type": "note", "text": "This is almost certainly test/demo data generation, not business logic. Confirm with business before implementing (see AD-3)." }
+          ]
+        },
+        {
+          "id": "BR-5", "done": false,
+          "title": "VBR record lengths and layout",
+          "content": [
+            { "type": "list", "items": [
+                "Short record (12 bytes): account ID (11 bytes) + active status (1 byte)",
+                "Long record (39 bytes): account ID (11) + current balance (12) + credit limit (12) + reissue year (4)"
+            ]},
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "288, 303" }
+          ]
+        },
+        {
+          "id": "BR-6", "done": false,
+          "title": "Console audit log per account",
+          "content": [
+            { "type": "text", "text": "All 11 account fields must be logged for every processed account. Use SLF4J at INFO level. Include account ID in every log line for traceability." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "200–213", "note": "1100-DISPLAY-ACCT-RECORD" },
+            { "type": "note", "text": "Consider DEBUG level in production if account volumes are high — millions of accounts = millions of log lines." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "error-handling",
+      "title": "Error handling",
+      "tasks": [
+        {
+          "id": "EH-1", "done": false,
+          "title": "Replace ABEND pattern",
+          "content": [
+            { "type": "text", "text": "COBOL calls 9999-ABEND-PROGRAM on any I/O failure, which calls CEE3ABD with abend code 999." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "406–411" },
+            { "type": "list", "items": [
+                "Throw an unchecked AccountExportException (or RuntimeException) from any writer",
+                "Configure the Step with .noSkip(Exception.class) → job stops immediately with FAILED exit status",
+                "The CEE3ABD call has no Java equivalent — JVM exit code and Spring Batch job status are sufficient for operators"
+            ]}
+          ]
+        },
+        {
+          "id": "EH-2", "done": false,
+          "title": "File open/close errors",
+          "content": [
+            { "type": "text", "text": "COBOL explicitly checks open/close status for all four files." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "317–404", "note": "Paragraphs 0000-ACCTFILE-OPEN through 4000-VBRFILE-OPEN and 9000-ACCTFILE-CLOSE" },
+            { "type": "list", "items": [
+                "In Spring Batch, resource open/close is handled by the framework",
+                "Verify input file exists / DB is reachable before starting the step",
+                "Wrap output resource creation in try-with-resources or Spring resource lifecycle"
+            ]}
+          ]
+        },
+        {
+          "id": "EH-3", "done": false,
+          "title": "I/O status display → structured exception log",
+          "content": [
+            { "type": "text", "text": "9910-DISPLAY-IO-STATUS decodes the 2-byte COBOL file status into a readable 4-digit code." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "413–426" },
+            { "type": "code", "language": "java", "code": "log.error(\"I/O failure on {}: {} — {}\",\n    fileName, e.getClass().getSimpleName(), e.getMessage());" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "logging",
+      "title": "Logging",
+      "tasks": [
+        {
+          "id": "LOG-1", "done": false,
+          "title": "Job start/end markers (JobExecutionListener)",
+          "content": [
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "141, 158", "note": "DISPLAY 'START OF EXECUTION...' / 'END OF EXECUTION...'" },
+            { "type": "code", "language": "java", "code": "@Override public void beforeJob(JobExecution e) {\n    log.info(\"AccountExport job started\");\n}\n@Override public void afterJob(JobExecution e) {\n    log.info(\"AccountExport job finished — status: {}\", e.getStatus());\n}" }
+          ]
+        },
+        {
+          "id": "LOG-2", "done": false,
+          "title": "Per-account field dump",
+          "content": [
+            { "type": "text", "text": "Replace the 11 DISPLAY statements in 1100-DISPLAY-ACCT-RECORD with one structured log call in AccountExportProcessor. Use a single INFO log line per account with all fields, or DEBUG-level multi-line format." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "200–213" }
+          ]
+        },
+        {
+          "id": "LOG-3", "done": false,
+          "title": "VBR record dumps",
+          "content": [
+            { "type": "text", "text": "COBOL displays VBRC-REC1 and VBRC-REC2 before writing. Implement at DEBUG level in AccountVbrFileWriter." },
+            { "type": "source_ref", "file": "app/cbl/CBACT01C.cbl", "line": "283–284" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "title": "Testing",
+      "tasks": [
+        {
+          "id": "TEST-1", "done": false,
+          "title": "Unit: DateConversionService",
+          "content": [
+            { "type": "list", "items": [
+                "Normal date: \"2024-06-15\" → \"20240615\"",
+                "Blank/spaces input → returns 8-space string (not null, not exception)",
+                "Invalid format → exception with clear message"
+            ]}
+          ]
+        },
+        {
+          "id": "TEST-2", "done": false,
+          "title": "Unit: AccountExportProcessor",
+          "content": [
+            { "type": "text", "text": "Use a fixed Account object. Verify:" },
+            { "type": "list", "items": [
+                "BR-2: zero debit → 2525.00 in flat record",
+                "BR-2: non-zero debit → original value preserved",
+                "BR-3: date reformatted correctly in flat record",
+                "BR-3: reissue year extracted correctly in long VBR record",
+                "BR-4: array record occurrences populated with expected values",
+                "BR-5: VBR record byte lengths are 12 and 39"
+            ]}
+          ]
+        },
+        {
+          "id": "TEST-3", "done": false,
+          "title": "Unit: file writers",
+          "content": [
+            { "type": "text", "text": "Write a single AccountExportResult and assert:" },
+            { "type": "list", "items": [
+                "Flat record: field positions and values match OUT-ACCT-REC layout",
+                "Array record: structure and byte size match ARR-ARRAY-REC layout",
+                "VBR short record = exactly 12 bytes, correct field content",
+                "VBR long record = exactly 39 bytes, correct field content"
+            ]}
+          ]
+        },
+        {
+          "id": "TEST-4", "done": false,
+          "title": "Integration: full job with test data",
+          "content": [
+            { "type": "text", "text": "Use @SpringBatchTest + in-memory H2 (or Testcontainers PostgreSQL). Input: 3–5 sample accounts including one with zero cycle debit and one with blank reissue date." },
+            { "type": "list", "items": [
+                "Job completes with COMPLETED status",
+                "All 3 output files contain correct record counts",
+                "Spot-check field values in each output format",
+                "Zero-debit account → 2525.00 in flat output"
+            ]}
+          ]
+        },
+        {
+          "id": "TEST-5", "done": false,
+          "title": "Regression: output byte-comparison with COBOL",
+          "content": [
+            { "type": "text", "text": "If sample COBOL output files are available (from a test VSAM run):" },
+            { "type": "list", "items": [
+                "Run the Java job against the same input data",
+                "Byte-compare each output file against the COBOL reference output",
+                "Document any intentional differences (encoding, line endings, RDW format)"
+            ]}
+          ]
+        }
+      ]
+    }
+  ],
+  "open_questions": [
+    { "id": "OQ-1", "question": "Is the ARRYFILE still required downstream?",                          "impact": "May eliminate an entire writer (BR-4)" },
+    { "id": "OQ-2", "question": "Who consumes VBRCFILE? Are they also being migrated?",               "impact": "May allow redesigning the variable-record interface" },
+    { "id": "OQ-3", "question": "What is the expected record volume (accounts per run)?",             "impact": "Determines chunk size, parallelism, and memory settings" },
+    { "id": "OQ-4", "question": "Does OUTFILE need to be byte-for-byte compatible with COBOL output (EBCDIC, packed decimal)?", "impact": "Determines whether ASCII/EBCDIC conversion is needed" },
+    { "id": "OQ-5", "question": "Is COBDATFT used by other programs being migrated?",                "impact": "If yes, create a shared DateConversionService in a common module" },
+    { "id": "OQ-6", "question": "Are there job restart requirements (partial re-runs after failure)?","impact": "Spring Batch restart from last checkpoint vs. full re-run" },
+    { "id": "OQ-7", "question": "What replaces the CEE3ABD abend monitoring in the operations team's tooling?", "impact": "May need a specific exit code or alerting hook" }
+  ]
+}

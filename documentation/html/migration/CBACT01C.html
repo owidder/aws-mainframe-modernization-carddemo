@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBACT01C — Migration TODOs</title>
+  <style>
+    :root {
+      --bg:      #1e1e2e; --bg2: #181825; --bg3: #313244;
+      --border:  #45475a; --text: #cdd6f4; --sub:  #a6adc8;
+      --comment: #6c7086; --gold: #f9e2af; --cyan: #89dceb;
+      --green:   #a6e3a1; --red:  #f38ba8; --yellow: #f9e2af;
+      --keyword: #cba6f7; --string: #a6e3a1; --number: #fab387;
+      --sidebar-w: 270px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: .9rem; line-height: 1.6;
+      display: flex; min-height: 100vh;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--bg2); border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 1rem 0; flex-shrink: 0;
+    }
+    #sidebar .logo {
+      font-size: .95rem; font-weight: 700; color: var(--gold);
+      padding: .5rem 1rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .7rem; color: var(--sub); font-weight: 400; margin-top: .2rem; }
+    #sidebar h2 {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--sub); padding: .6rem 1rem .2rem; margin-top: .6rem;
+    }
+    #sidebar a {
+      display: block; padding: .22rem 1rem; color: var(--text); text-decoration: none;
+      font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar a.back { color: var(--sub); margin-bottom: .25rem; }
+
+    /* Main */
+    #main { flex: 1; padding: 2rem 2.5rem; max-width: 100%; overflow-x: auto; }
+
+    /* Header */
+    .page-header {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .6rem; padding: 1.5rem 2rem; margin-bottom: 2rem;
+    }
+    .page-header h1 { font-family: monospace; font-size: 1.6rem; color: var(--gold); }
+    .page-header .meta { margin-top: .75rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .badge {
+      display: inline-block; padding: .2rem .65rem; border-radius: 1rem;
+      font-size: .72rem; font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-stack  { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+
+    /* Summary box */
+    .summary-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan); border-radius: .4rem;
+      padding: 1rem 1.25rem; margin-bottom: 1.5rem; line-height: 1.7;
+    }
+
+    /* Section titles */
+    .section-title {
+      font-size: 1.05rem; font-weight: 700; color: var(--gold);
+      margin: 2.5rem 0 1rem; padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-subtitle {
+      font-size: .8rem; color: var(--sub); margin-top: -.6rem; margin-bottom: 1rem;
+    }
+
+    /* Task items */
+    .task-item {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .4rem; padding: .75rem 1rem; margin-bottom: .5rem;
+    }
+    .task-header { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .task-checkbox {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 1.5px solid var(--border); border-radius: .2rem;
+      background: var(--bg3); flex-shrink: 0;
+    }
+    .task-id {
+      font-family: monospace; font-size: .72rem; font-weight: 700;
+      padding: .1rem .45rem; border-radius: .3rem;
+    }
+    .task-id-AD   { background: #1e3a5f55; color: #89b4fa;        border: 1px solid #89b4fa44; }
+    .task-id-DM   { background: #2d1b4e55; color: var(--keyword); border: 1px solid #cba6f744; }
+    .task-id-PS   { background: #1a3a2a55; color: var(--string);  border: 1px solid #a6e3a144; }
+    .task-id-DEV  { background: #2a1a0055; color: var(--number);  border: 1px solid #fab38744; }
+    .task-id-BR   { background: #2a0a0a55; color: var(--red);     border: 1px solid #f38ba844; }
+    .task-id-EH   { background: #1a1a3a55; color: #89b4fa;        border: 1px solid #89b4fa33; }
+    .task-id-LOG  { background: #2a2a1055; color: var(--yellow);  border: 1px solid #f9e2af44; }
+    .task-id-TEST { background: #1a2a1a55; color: var(--green);   border: 1px solid #a6e3a144; }
+    .task-title { font-weight: 600; color: var(--text); }
+    .task-body  { margin-top: .55rem; color: var(--sub); font-size: .85rem; line-height: 1.6; }
+
+    /* Content block types */
+    .block-text { margin: .35rem 0 .5rem; color: var(--sub); }
+    .block-note {
+      margin: .5rem 0; padding: .4rem .75rem;
+      background: #f9e2af11; border-left: 2px solid var(--gold);
+      border-radius: .2rem; font-size: .82rem; color: var(--yellow);
+    }
+    .block-options { list-style: none; margin: .4rem 0 .5rem; }
+    .block-options li {
+      padding: .3rem .6rem; margin-bottom: .3rem;
+      background: var(--bg3); border-radius: .3rem; font-size: .83rem;
+    }
+    .block-options li strong { color: var(--cyan); }
+    .block-list { margin: .4rem 0 .5rem 1.4rem; }
+    .block-list li { margin-bottom: .2rem; }
+    .source-ref {
+      display: inline-flex; align-items: center; gap: .5rem;
+      margin: .4rem 0; padding: .3rem .65rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: .3rem; font-size: .78rem;
+    }
+    .source-ref a { color: var(--cyan); text-decoration: none; font-family: monospace; }
+    .source-ref a:hover { text-decoration: underline; }
+    .source-ref .src-note { color: var(--comment); }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: .75rem 0 1rem; font-size: .83rem; }
+    th {
+      background: var(--bg3); color: var(--sub); text-align: left;
+      padding: .4rem .75rem; font-size: .73rem; text-transform: uppercase;
+      letter-spacing: .05em; border-bottom: 1px solid var(--border);
+    }
+    td { padding: .4rem .75rem; border-bottom: 1px solid #31324433; vertical-align: top; }
+    tr:hover td { background: #31324422; }
+    .tbl-io td:first-child { color: var(--cyan); font-family: monospace; font-weight: 700; }
+    .tbl-io .role-input  td:last-child { color: var(--green); }
+    .tbl-io .role-output td:last-child { color: var(--number); }
+    .oq-table td:first-child  { font-family: monospace; font-weight: 700; color: var(--yellow); white-space: nowrap; }
+    .oq-table td:nth-child(2) { color: var(--text); }
+    .oq-table td:nth-child(3) { color: var(--sub); font-size: .82rem; }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: .4rem;
+      padding: .85rem 1rem; overflow-x: auto; margin: .6rem 0 .8rem;
+      font-family: "Cascadia Code", "Fira Code", "Courier New", monospace;
+      font-size: .78rem; line-height: 1.55;
+    }
+    pre.lang-java   { border-left: 3px solid var(--number); }
+    pre.lang-xml    { border-left: 3px solid var(--string); }
+    pre.lang-yaml   { border-left: 3px solid var(--keyword); }
+    pre.lang-text   { border-left: 3px solid var(--border); color: var(--sub); }
+    pre.lang-cobol  { border-left: 3px solid var(--cyan); }
+    code {
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      background: var(--bg3); border-radius: .2rem;
+      padding: .05rem .35rem; font-size: .82em; color: var(--cyan);
+    }
+    pre code { background: none; padding: 0; font-size: 1em; color: var(--text); border-radius: 0; }
+
+    /* Checklist summary */
+    .checklist-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: .75rem; margin-top: .75rem;
+    }
+    .checklist-group {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .4rem; padding: .75rem 1rem;
+    }
+    .checklist-group h4 {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--sub); margin-bottom: .5rem; padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .checklist-item {
+      display: flex; align-items: flex-start; gap: .4rem;
+      font-size: .78rem; padding: .15rem 0; color: var(--text);
+    }
+    .checklist-item .cb { flex-shrink: 0; margin-top: .15rem; }
+    .checklist-item .cid { font-family: monospace; color: var(--sub); min-width: 3.8rem; }
+
+    footer {
+      margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+      color: var(--comment); font-size: .73rem;
+    }
+  </style>
+</head>
+<body>
+
+
+
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo Migration
+    <span>COBOL → Java</span>
+  </div>
+  <a class="back" href="index.html">← Migration TODOs</a>
+  <a class="back" href="../../html/index.html">← Program overview</a>
+  <a class="back" href="../CBACT01C.html">📄 CBACT01C.html</a>
+
+  <h2>Sections</h2>
+  <a href="#io-files">I/O Files</a>  <a href="#architecture-decisions">Architecture decisions</a>  <a href="#data-model">Data model</a>  <a href="#project-setup">Project setup</a>  <a href="#spring-batch-job">Spring Batch job</a>  <a href="#business-rules">Business rules to implement</a>  <a href="#error-handling">Error handling</a>  <a href="#logging">Logging</a>  <a href="#testing">Testing</a>  <a href="#open-questions">Open questions</a>
+  <a href="#checklist">Checklist</a>
+
+  <h2>Tasks</h2>  <a href="#AD-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-AD" style="padding:.05rem .3rem;font-size:.67rem;">AD-1</span>
+    Account input source
+  </a>  <a href="#AD-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-AD" style="padding:.05rem .3rem;font-size:.67rem;">AD-2</span>
+    Output file format
+  </a>  <a href="#AD-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-AD" style="padding:.05rem .3rem;font-size:.67rem;">AD-3</span>
+    ARRYFILE purpose
+  </a>  <a href="#AD-4" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-AD" style="padding:.05rem .3rem;font-size:.67rem;">AD-4</span>
+    VBRCFILE consumers
+  </a>  <a href="#AD-5" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-AD" style="padding:.05rem .3rem;font-size:.67rem;">AD-5</span>
+    COBDATFT replacement
+  </a>  <a href="#DM-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DM" style="padding:.05rem .3rem;font-size:.67rem;">DM-1</span>
+    Account entity / DTO
+  </a>  <a href="#DM-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DM" style="padding:.05rem .3rem;font-size:.67rem;">DM-2</span>
+    AccountFlatRecord output DTO…
+  </a>  <a href="#DM-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DM" style="padding:.05rem .3rem;font-size:.67rem;">DM-3</span>
+    AccountArrayRecord output DT…
+  </a>  <a href="#DM-4" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DM" style="padding:.05rem .3rem;font-size:.67rem;">DM-4</span>
+    AccountVbShortRecord + Accou…
+  </a>  <a href="#DM-5" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DM" style="padding:.05rem .3rem;font-size:.67rem;">DM-5</span>
+    COMP-3 (packed decimal) hand…
+  </a>  <a href="#PS-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-PS" style="padding:.05rem .3rem;font-size:.67rem;">PS-1</span>
+    Spring Boot project / module
+  </a>  <a href="#PS-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-PS" style="padding:.05rem .3rem;font-size:.67rem;">PS-2</span>
+    Application properties
+  </a>  <a href="#PS-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-PS" style="padding:.05rem .3rem;font-size:.67rem;">PS-3</span>
+    Package structure
+  </a>  <a href="#DEV-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-1</span>
+    AccountExportJobConfig — Job…
+  </a>  <a href="#DEV-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-2</span>
+    AccountItemReader
+  </a>  <a href="#DEV-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-3</span>
+    AccountExportProcessor — cor…
+  </a>  <a href="#DEV-4" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-4</span>
+    CompositeItemWriter
+  </a>  <a href="#DEV-5" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-5</span>
+    Three ItemWriter implementat…
+  </a>  <a href="#DEV-6" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-DEV" style="padding:.05rem .3rem;font-size:.67rem;">DEV-6</span>
+    DateConversionService — repl…
+  </a>  <a href="#BR-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-1</span>
+    Full-file extract, no filter…
+  </a>  <a href="#BR-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-2</span>
+    Default cycle-debit substitu…
+  </a>  <a href="#BR-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-3</span>
+    Date reformatting (COBDATFT)
+  </a>  <a href="#BR-4" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-4</span>
+    Array file: 3 hardcoded scen…
+  </a>  <a href="#BR-5" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-5</span>
+    VBR record lengths and layou…
+  </a>  <a href="#BR-6" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-BR" style="padding:.05rem .3rem;font-size:.67rem;">BR-6</span>
+    Console audit log per accoun…
+  </a>  <a href="#EH-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-EH" style="padding:.05rem .3rem;font-size:.67rem;">EH-1</span>
+    Replace ABEND pattern
+  </a>  <a href="#EH-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-EH" style="padding:.05rem .3rem;font-size:.67rem;">EH-2</span>
+    File open/close errors
+  </a>  <a href="#EH-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-EH" style="padding:.05rem .3rem;font-size:.67rem;">EH-3</span>
+    I/O status display → structu…
+  </a>  <a href="#LOG-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-LOG" style="padding:.05rem .3rem;font-size:.67rem;">LOG-1</span>
+    Job start/end markers (JobEx…
+  </a>  <a href="#LOG-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-LOG" style="padding:.05rem .3rem;font-size:.67rem;">LOG-2</span>
+    Per-account field dump
+  </a>  <a href="#LOG-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-LOG" style="padding:.05rem .3rem;font-size:.67rem;">LOG-3</span>
+    VBR record dumps
+  </a>  <a href="#TEST-1" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-TEST" style="padding:.05rem .3rem;font-size:.67rem;">TEST-1</span>
+    Unit: DateConversionService
+  </a>  <a href="#TEST-2" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-TEST" style="padding:.05rem .3rem;font-size:.67rem;">TEST-2</span>
+    Unit: AccountExportProcessor
+  </a>  <a href="#TEST-3" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-TEST" style="padding:.05rem .3rem;font-size:.67rem;">TEST-3</span>
+    Unit: file writers
+  </a>  <a href="#TEST-4" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-TEST" style="padding:.05rem .3rem;font-size:.67rem;">TEST-4</span>
+    Integration: full job with t…
+  </a>  <a href="#TEST-5" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-TEST" style="padding:.05rem .3rem;font-size:.67rem;">TEST-5</span>
+    Regression: output byte-comp…
+  </a></nav>
+
+<main id="main">
+
+  <div class="page-header">
+    <h1>CBACT01C — Migration TODOs</h1>
+    <div class="meta">
+      <span class="badge badge-type">Batch</span>
+      <span class="badge badge-module">Account</span>
+      <span class="badge badge-stack">Spring Boot · Spring Batch · JPA/Hibernate · PostgreSQL</span>
+    </div>
+    <div style="margin-top:.75rem;font-size:.8rem;color:var(--sub);">
+      Source: <a href="../../../app/cbl/CBACT01C.cbl" style="color:var(--cyan);font-family:monospace;">app/cbl/CBACT01C.cbl</a>
+    </div>
+  </div>  <div class="summary-box">CBACT01C reads every record from the master credit card account file (VSAM KSDS, sequential access) and distributes each account into three output files in parallel.</div>
+  <div class="section-title" id="io-files">I/O Files</div>
+  <table class="tbl-io">
+    <thead>
+      <tr><th>DDName</th><th>Format</th><th>Content</th><th>Role</th></tr>
+    </thead>
+    <tbody>      <tr class="role-input">
+        <td>ACCTFILE</td>
+        <td>VSAM KSDS, sequential read</td>
+        <td>Input — master account file, 300 bytes/record</td>
+        <td>input</td>
+      </tr>      <tr class="role-output">
+        <td>OUTFILE</td>
+        <td>Sequential flat</td>
+        <td>Full account details (11 fields, reformatted reissue date)</td>
+        <td>output</td>
+      </tr>      <tr class="role-output">
+        <td>ARRYFILE</td>
+        <td>Sequential structured</td>
+        <td>Account ID + 3 hardcoded balance/debit scenarios per account</td>
+        <td>output</td>
+      </tr>      <tr class="role-output">
+        <td>VBRCFILE</td>
+        <td>Variable-length (12 or 39 bytes)</td>
+        <td>Two record types: short (ID + status) and long (ID + bal + limit + year)</td>
+        <td>output</td>
+      </tr>    </tbody>
+  </table>
+  <div class="section-title" id="architecture-decisions">Architecture decisions</div>  <div class="section-subtitle">Resolve before writing any code</div>  <div class="task-item" id="AD-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-AD">AD-1</span>
+    <span class="task-title">Account input source</span>
+  </div>  <div class="task-body">        <p class="block-text">ACCTFILE is a VSAM KSDS on the mainframe. For the Java batch job, decide:</p>        <ul class="block-options">      <li><strong>Option A — DB (recommended)</strong> — Accounts are already in PostgreSQL (populated by another migration step). Use JpaCursorItemReader<Account>.</li>      <li><strong>Option B — File</strong> — Export VSAM to a fixed-length flat file (300 bytes/record). Use FlatFileItemReader with a custom FixedLengthTokenizer.</li>    </ul>        <div class="block-note">Recommendation: Option A if the Account entity exists in the target DB, otherwise Option B.</div>  </div></div>  <div class="task-item" id="AD-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-AD">AD-2</span>
+    <span class="task-title">Output file format</span>
+  </div>  <div class="task-body">        <p class="block-text">The three output files are flat binary/fixed-length. For Java:</p>        <ul class="block-list"><li>Keep as flat files (FlatFileItemWriter) — drop-in replacement for downstream consumers</li><li>Write to PostgreSQL tables — cleaner for modern downstream systems</li>    </ul>        <div class="block-note">Document the choice; it affects all three ItemWriter implementations.</div>  </div></div>  <div class="task-item" id="AD-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-AD">AD-3</span>
+    <span class="task-title">ARRYFILE purpose</span>
+  </div>  <div class="task-body">        <p class="block-text">The array file always writes hardcoded scenario values (1005.00, 1525.00, -1025.00, -2500.00). This looks like test data generation, not production logic.</p>        <div class="block-note">Clarify with business: is this file still needed in Java, or was it a mainframe test artefact? (See also BR-4)</div>  </div></div>  <div class="task-item" id="AD-4">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-AD">AD-4</span>
+    <span class="task-title">VBRCFILE consumers</span>
+  </div>  <div class="task-body">        <p class="block-text">The variable-length record file (2 record types per account) is unusual. Identify the downstream system(s) that read it.</p>        <div class="block-note">If the consumer is also being migrated, the interface can be redesigned (e.g., two separate files or a DB view).</div>  </div></div>  <div class="task-item" id="AD-5">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-AD">AD-5</span>
+    <span class="task-title">COBDATFT replacement</span>
+  </div>  <div class="task-body">        <p class="block-text">The assembler date-conversion utility is called once per account. Replace with Java DateTimeFormatter — no external call needed. See DEV-6.</p>  </div></div>  <div class="section-title" id="data-model">Data model</div>  <div class="task-item" id="DM-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DM">DM-1</span>
+    <span class="task-title">Account entity / DTO</span>
+  </div>  <div class="task-body">        <p class="block-text">Map ACCOUNT-RECORD from copybook CVACT01Y.cpy (300 bytes, app/cpy/CVACT01Y.cpy):</p>        <table>
+      <thead><tr><th>COBOL field</th><th>PIC</th><th>Java field</th><th>Java type</th></tr></thead>
+      <tbody>        <tr><td>ACCT-ID</td><td>9(11)</td><td>accountId</td><td>Long</td></tr>        <tr><td>ACCT-ACTIVE-STATUS</td><td>X(01)</td><td>activeStatus</td><td>String  (or enum Active/Inactive)</td></tr>        <tr><td>ACCT-CURR-BAL</td><td>S9(10)V99</td><td>currentBalance</td><td>BigDecimal</td></tr>        <tr><td>ACCT-CREDIT-LIMIT</td><td>S9(10)V99</td><td>creditLimit</td><td>BigDecimal</td></tr>        <tr><td>ACCT-CASH-CREDIT-LIMIT</td><td>S9(10)V99</td><td>cashCreditLimit</td><td>BigDecimal</td></tr>        <tr><td>ACCT-OPEN-DATE</td><td>X(10)</td><td>openDate</td><td>LocalDate</td></tr>        <tr><td>ACCT-EXPIRAION-DATE</td><td>X(10)</td><td>expirationDate</td><td>LocalDate  (typo retained from source)</td></tr>        <tr><td>ACCT-REISSUE-DATE</td><td>X(10)</td><td>reissueDate</td><td>LocalDate</td></tr>        <tr><td>ACCT-CURR-CYC-CREDIT</td><td>S9(10)V99</td><td>currentCycleCredit</td><td>BigDecimal</td></tr>        <tr><td>ACCT-CURR-CYC-DEBIT</td><td>S9(10)V99</td><td>currentCycleDebit</td><td>BigDecimal</td></tr>        <tr><td>ACCT-ADDR-ZIP</td><td>X(10)</td><td>addressZip</td><td>String</td></tr>        <tr><td>ACCT-GROUP-ID</td><td>X(10)</td><td>groupId</td><td>String</td></tr>        <tr><td>(FILLER 178 bytes)</td><td>—</td><td>—</td><td>skip</td></tr>      </tbody>
+    </table>  </div></div>  <div class="task-item" id="DM-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DM">DM-2</span>
+    <span class="task-title">AccountFlatRecord output DTO (for OUTFILE)</span>
+  </div>  <div class="task-body">        <p class="block-text">Maps OUT-ACCT-REC (11 fields). Note: OUT-ACCT-CURR-CYC-DEBIT defaults to 2525.00 when source value is zero (business rule BR-2).</p>  </div></div>  <div class="task-item" id="DM-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DM">DM-3</span>
+    <span class="task-title">AccountArrayRecord output DTO (for ARRYFILE)</span>
+  </div>  <div class="task-body">        <p class="block-text">Maps ARR-ARRAY-REC: account ID + 3 occurrences of (currentBalance, cycleDebit). Only 3 of the 5 array slots are populated — see business rule BR-4.</p>  </div></div>  <div class="task-item" id="DM-4">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DM">DM-4</span>
+    <span class="task-title">AccountVbShortRecord + AccountVbLongRecord (for VBRCFILE)</span>
+  </div>  <div class="task-body">        <ul class="block-list"><li>Short (12 bytes): VB1-ACCT-ID (11) + VB1-ACCT-ACTIVE-STATUS (1)</li><li>Long (39 bytes): VB2-ACCT-ID (11) + VB2-ACCT-CURR-BAL (12) + VB2-ACCT-CREDIT-LIMIT (12) + VB2-ACCT-REISSUE-YYYY (4)</li>    </ul>  </div></div>  <div class="task-item" id="DM-5">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DM">DM-5</span>
+    <span class="task-title">COMP-3 (packed decimal) handling</span>
+  </div>  <div class="task-body">        <p class="block-text">OUT-ACCT-CURR-CYC-DEBIT and ARR-ACCT-CURR-CYC-DEBIT use USAGE IS COMP-3.</p>        <ul class="block-list"><li>If reading/writing raw binary files: use BigDecimal with explicit packed-decimal encoding/decoding (e.g. Apache Commons PackedDecimal or a custom codec)</li><li>If using DB or text format: BigDecimal with standard scale suffices</li>    </ul>  </div></div>  <div class="section-title" id="project-setup">Project setup</div>  <div class="task-item" id="PS-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-PS">PS-1</span>
+    <span class="task-title">Spring Boot project / module</span>
+  </div>  <div class="task-body">        <p class="block-text">Create Maven/Gradle module carddemo-batch-account (or add to existing multi-module project). Dependencies:</p>        <pre class="lang-xml"><code>spring-boot-starter-batch
+spring-boot-starter-data-jpa      &lt;!-- if DB input/output --&gt;
+postgresql
+spring-boot-starter-logging
+lombok</code></pre>  </div></div>  <div class="task-item" id="PS-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-PS">PS-2</span>
+    <span class="task-title">Application properties</span>
+  </div>  <div class="task-body">        <pre class="lang-yaml"><code>carddemo:
+  batch:
+    account-export:
+      input-file: ${ACCTFILE_PATH}         # or spring.datasource if DB
+      output-flat-file: ${OUTFILE_PATH}
+      output-array-file: ${ARRYFILE_PATH}
+      output-vbr-file: ${VBRCFILE_PATH}</code></pre>  </div></div>  <div class="task-item" id="PS-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-PS">PS-3</span>
+    <span class="task-title">Package structure</span>
+  </div>  <div class="task-body">        <pre class="lang-text"><code>com.carddemo.batch.accountexport/
+  AccountExportJobConfig.java       # Spring Batch Job bean
+  reader/
+    AccountFileReader.java          # or AccountJpaReader.java
+  processor/
+    AccountExportProcessor.java
+  writer/
+    AccountFlatFileWriter.java
+    AccountArrayFileWriter.java
+    AccountVbrFileWriter.java
+  model/
+    Account.java
+    AccountFlatRecord.java
+    AccountArrayRecord.java
+    AccountVbShortRecord.java
+    AccountVbLongRecord.java
+  service/
+    DateConversionService.java      # replaces COBDATFT</code></pre>  </div></div>  <div class="section-title" id="spring-batch-job">Spring Batch job</div>  <div class="task-item" id="DEV-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-1</span>
+    <span class="task-title">AccountExportJobConfig — Job and Step</span>
+  </div>  <div class="task-body">        <pre class="lang-java"><code>@Bean
+public Job accountExportJob(Step accountExportStep) {
+    return jobBuilderFactory.get(&#34;accountExportJob&#34;)
+        .start(accountExportStep)
+        .build();
+}
+
+@Bean
+public Step accountExportStep(ItemReader&lt;Account&gt; reader,
+                               ItemProcessor&lt;Account, AccountExportResult&gt; processor,
+                               ItemWriter&lt;AccountExportResult&gt; compositeWriter) {
+    return stepBuilderFactory.get(&#34;accountExportStep&#34;)
+        .&lt;Account, AccountExportResult&gt;chunk(100)
+        .reader(reader)
+        .processor(processor)
+        .writer(compositeWriter)
+        .faultTolerant()
+        .noSkip(Exception.class)   // any error = job failure, matching ABEND behaviour
+        .build();
+}</code></pre>        <div class="block-note">COBOL abends on any I/O error — set noSkip / noRetry to replicate strict fail-fast semantics. Do NOT use skip policies unless the business explicitly allows partial output.</div>  </div></div>  <div class="task-item" id="DEV-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-2</span>
+    <span class="task-title">AccountItemReader</span>
+  </div>  <div class="task-body">        <ul class="block-list"><li>DB path: JpaCursorItemReader<Account> with SELECT a FROM Account a ORDER BY a.accountId</li><li>File path: FlatFileItemReader<Account> with FixedLengthTokenizer, field widths from CVACT01Y (total 300 bytes). Map COMP-3 fields via custom FieldSetMapper.</li>    </ul>  </div></div>  <div class="task-item" id="DEV-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-3</span>
+    <span class="task-title">AccountExportProcessor — core business logic</span>
+  </div>  <div class="task-body">        <p class="block-text">Input: Account. Output: AccountExportResult (holds all output records). Steps per account:</p>        <ol class="block-list"><li>Log all fields to SLF4J INFO (replaces 1100-DISPLAY-ACCT-RECORD DISPLAY statements)</li><li>Populate flat record (replaces 1300-POPUL-ACCT-RECORD) — see DEV-6 for date conversion</li><li>Apply default debit rule (replaces IF ACCT-CURR-CYC-DEBIT = ZERO MOVE 2525.00)</li><li>Populate array record (replaces 1400-POPUL-ARRAY-RECORD) — see BR-4</li><li>Populate short + long VBR records (replaces 1500-POPUL-VBRC-RECORD)</li>    </ol>  </div></div>  <div class="task-item" id="DEV-4">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-4</span>
+    <span class="task-title">CompositeItemWriter</span>
+  </div>  <div class="task-body">        <pre class="lang-java"><code>@Bean
+public CompositeItemWriter&lt;AccountExportResult&gt; compositeWriter(...) {
+    return new CompositeItemWriterBuilder&lt;AccountExportResult&gt;()
+        .delegates(flatFileWriter, arrayFileWriter, vbrFileWriter)
+        .build();
+}</code></pre>  </div></div>  <div class="task-item" id="DEV-5">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-5</span>
+    <span class="task-title">Three ItemWriter implementations</span>
+  </div>  <div class="task-body">        <ul class="block-list"><li>AccountFlatFileWriter — writes AccountFlatRecord to OUTFILE. Use FlatFileItemWriter with FormattedLineAggregator. Field widths must match OUT-ACCT-REC layout exactly if binary-compatible output is required.</li><li>AccountArrayFileWriter — writes AccountArrayRecord to ARRYFILE. Each record: account ID (11) + 3 × (balance 12 + debit 12) + filler 4 = 75 bytes. Only implement if AD-3 confirms this file is still needed.</li><li>AccountVbrFileWriter — writes two records per account to VBRCFILE. Must prepend a 4-byte RDW (Record Descriptor Word) per record if the downstream consumer expects standard mainframe variable-length format. Short: 12 + 4 = 16 bytes on disk. Long: 39 + 4 = 43 bytes on disk.</li>    </ul>  </div></div>  <div class="task-item" id="DEV-6">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-DEV">DEV-6</span>
+    <span class="task-title">DateConversionService — replace COBDATFT</span>
+  </div>  <div class="task-body">        <p class="block-text">The assembler call CALL 'COBDATFT' USING CODATECN-REC (app/cbl/CBACT01C.cbl:231) converts the reissue date. Input type 2 = YYYY-MM-DD, output type 2 = YYYYMMDD (no separators).</p>        <pre class="lang-java"><code>@Service
+public class DateConversionService {
+    private static final DateTimeFormatter IN  = DateTimeFormatter.ofPattern(&#34;yyyy-MM-dd&#34;);
+    private static final DateTimeFormatter OUT = DateTimeFormatter.ofPattern(&#34;yyyyMMdd&#34;);
+
+    public String reformatReissueDate(String yyyyMmDd) {
+        if (yyyyMmDd == null || yyyyMmDd.isBlank()) return &#34;        &#34;;
+        return LocalDate.parse(yyyyMmDd.strip(), IN).format(OUT);
+    }
+}</code></pre>        <div class="block-note">Handle blank/null input gracefully — mainframe FILLER fields may produce spaces.</div>  </div></div>  <div class="section-title" id="business-rules">Business rules to implement</div>  <div class="task-item" id="BR-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-1</span>
+    <span class="task-title">Full-file extract, no filtering</span>
+  </div>  <div class="task-body">        <p class="block-text">Every account in the source must be processed. No WHERE clause filter, no status check.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:147</a><span class="src-note"> — PERFORM UNTIL END-OF-FILE = 'Y'</span>    </div>  </div></div>  <div class="task-item" id="BR-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-2</span>
+    <span class="task-title">Default cycle-debit substitution</span>
+  </div>  <div class="task-body">        <p class="block-text">If ACCT-CURR-CYC-DEBIT is zero, write 2525.00 to the flat output file.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:236–238</a>    </div>        <pre class="lang-java"><code>BigDecimal debit = account.getCurrentCycleDebit();
+flatRecord.setCurrentCycleDebit(
+    debit.compareTo(BigDecimal.ZERO) == 0
+        ? new BigDecimal(&#34;2525.00&#34;)
+        : debit
+);</code></pre>  </div></div>  <div class="task-item" id="BR-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-3</span>
+    <span class="task-title">Date reformatting (COBDATFT)</span>
+  </div>  <div class="task-body">        <p class="block-text">Card reissue date (ACCT-REISSUE-DATE, format YYYY-MM-DD) must be written to OUTFILE in YYYYMMDD format via DateConversionService (see DEV-6). Only the 4-digit year (YYYY) is written to the long VBR record.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:223–233, 282</a>    </div>  </div></div>  <div class="task-item" id="BR-4">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-4</span>
+    <span class="task-title">Array file: 3 hardcoded scenario occurrences</span>
+  </div>  <div class="task-body">        <p class="block-text">The ARRYFILE logic always writes exactly 3 of the 5 possible occurrences with partially hardcoded values:</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:253–261</a>    </div>        <table>
+      <thead><tr><th>Occurrence</th><th>Balance</th><th>Cycle Debit</th></tr></thead>
+      <tbody>        <tr><td>1</td><td>ACCT-CURR-BAL (actual)</td><td>1005.00 (hardcoded)</td></tr>        <tr><td>2</td><td>ACCT-CURR-BAL (actual)</td><td>1525.00 (hardcoded)</td></tr>        <tr><td>3</td><td>-1025.00 (hardcoded)</td><td>-2500.00 (hardcoded)</td></tr>        <tr><td>4, 5</td><td>not set (zeroed by INITIALIZE)</td><td>not set</td></tr>      </tbody>
+    </table>        <div class="block-note">This is almost certainly test/demo data generation, not business logic. Confirm with business before implementing (see AD-3).</div>  </div></div>  <div class="task-item" id="BR-5">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-5</span>
+    <span class="task-title">VBR record lengths and layout</span>
+  </div>  <div class="task-body">        <ul class="block-list"><li>Short record (12 bytes): account ID (11 bytes) + active status (1 byte)</li><li>Long record (39 bytes): account ID (11) + current balance (12) + credit limit (12) + reissue year (4)</li>    </ul>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:288, 303</a>    </div>  </div></div>  <div class="task-item" id="BR-6">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-BR">BR-6</span>
+    <span class="task-title">Console audit log per account</span>
+  </div>  <div class="task-body">        <p class="block-text">All 11 account fields must be logged for every processed account. Use SLF4J at INFO level. Include account ID in every log line for traceability.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:200–213</a><span class="src-note"> — 1100-DISPLAY-ACCT-RECORD</span>    </div>        <div class="block-note">Consider DEBUG level in production if account volumes are high — millions of accounts = millions of log lines.</div>  </div></div>  <div class="section-title" id="error-handling">Error handling</div>  <div class="task-item" id="EH-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-EH">EH-1</span>
+    <span class="task-title">Replace ABEND pattern</span>
+  </div>  <div class="task-body">        <p class="block-text">COBOL calls 9999-ABEND-PROGRAM on any I/O failure, which calls CEE3ABD with abend code 999.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:406–411</a>    </div>        <ul class="block-list"><li>Throw an unchecked AccountExportException (or RuntimeException) from any writer</li><li>Configure the Step with .noSkip(Exception.class) → job stops immediately with FAILED exit status</li><li>The CEE3ABD call has no Java equivalent — JVM exit code and Spring Batch job status are sufficient for operators</li>    </ul>  </div></div>  <div class="task-item" id="EH-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-EH">EH-2</span>
+    <span class="task-title">File open/close errors</span>
+  </div>  <div class="task-body">        <p class="block-text">COBOL explicitly checks open/close status for all four files.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:317–404</a><span class="src-note"> — Paragraphs 0000-ACCTFILE-OPEN through 4000-VBRFILE-OPEN and 9000-ACCTFILE-CLOSE</span>    </div>        <ul class="block-list"><li>In Spring Batch, resource open/close is handled by the framework</li><li>Verify input file exists / DB is reachable before starting the step</li><li>Wrap output resource creation in try-with-resources or Spring resource lifecycle</li>    </ul>  </div></div>  <div class="task-item" id="EH-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-EH">EH-3</span>
+    <span class="task-title">I/O status display → structured exception log</span>
+  </div>  <div class="task-body">        <p class="block-text">9910-DISPLAY-IO-STATUS decodes the 2-byte COBOL file status into a readable 4-digit code.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:413–426</a>    </div>        <pre class="lang-java"><code>log.error(&#34;I/O failure on {}: {} — {}&#34;,
+    fileName, e.getClass().getSimpleName(), e.getMessage());</code></pre>  </div></div>  <div class="section-title" id="logging">Logging</div>  <div class="task-item" id="LOG-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-LOG">LOG-1</span>
+    <span class="task-title">Job start/end markers (JobExecutionListener)</span>
+  </div>  <div class="task-body">        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:141, 158</a><span class="src-note"> — DISPLAY 'START OF EXECUTION...' / 'END OF EXECUTION...'</span>    </div>        <pre class="lang-java"><code>@Override public void beforeJob(JobExecution e) {
+    log.info(&#34;AccountExport job started&#34;);
+}
+@Override public void afterJob(JobExecution e) {
+    log.info(&#34;AccountExport job finished — status: {}&#34;, e.getStatus());
+}</code></pre>  </div></div>  <div class="task-item" id="LOG-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-LOG">LOG-2</span>
+    <span class="task-title">Per-account field dump</span>
+  </div>  <div class="task-body">        <p class="block-text">Replace the 11 DISPLAY statements in 1100-DISPLAY-ACCT-RECORD with one structured log call in AccountExportProcessor. Use a single INFO log line per account with all fields, or DEBUG-level multi-line format.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:200–213</a>    </div>  </div></div>  <div class="task-item" id="LOG-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-LOG">LOG-3</span>
+    <span class="task-title">VBR record dumps</span>
+  </div>  <div class="task-body">        <p class="block-text">COBOL displays VBRC-REC1 and VBRC-REC2 before writing. Implement at DEBUG level in AccountVbrFileWriter.</p>        <div class="source-ref">
+      <a href="../../../app/cbl/CBACT01C.cbl">app/cbl/CBACT01C.cbl:283–284</a>    </div>  </div></div>  <div class="section-title" id="testing">Testing</div>  <div class="task-item" id="TEST-1">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-TEST">TEST-1</span>
+    <span class="task-title">Unit: DateConversionService</span>
+  </div>  <div class="task-body">        <ul class="block-list"><li>Normal date: "2024-06-15" → "20240615"</li><li>Blank/spaces input → returns 8-space string (not null, not exception)</li><li>Invalid format → exception with clear message</li>    </ul>  </div></div>  <div class="task-item" id="TEST-2">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-TEST">TEST-2</span>
+    <span class="task-title">Unit: AccountExportProcessor</span>
+  </div>  <div class="task-body">        <p class="block-text">Use a fixed Account object. Verify:</p>        <ul class="block-list"><li>BR-2: zero debit → 2525.00 in flat record</li><li>BR-2: non-zero debit → original value preserved</li><li>BR-3: date reformatted correctly in flat record</li><li>BR-3: reissue year extracted correctly in long VBR record</li><li>BR-4: array record occurrences populated with expected values</li><li>BR-5: VBR record byte lengths are 12 and 39</li>    </ul>  </div></div>  <div class="task-item" id="TEST-3">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-TEST">TEST-3</span>
+    <span class="task-title">Unit: file writers</span>
+  </div>  <div class="task-body">        <p class="block-text">Write a single AccountExportResult and assert:</p>        <ul class="block-list"><li>Flat record: field positions and values match OUT-ACCT-REC layout</li><li>Array record: structure and byte size match ARR-ARRAY-REC layout</li><li>VBR short record = exactly 12 bytes, correct field content</li><li>VBR long record = exactly 39 bytes, correct field content</li>    </ul>  </div></div>  <div class="task-item" id="TEST-4">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-TEST">TEST-4</span>
+    <span class="task-title">Integration: full job with test data</span>
+  </div>  <div class="task-body">        <p class="block-text">Use @SpringBatchTest + in-memory H2 (or Testcontainers PostgreSQL). Input: 3–5 sample accounts including one with zero cycle debit and one with blank reissue date.</p>        <ul class="block-list"><li>Job completes with COMPLETED status</li><li>All 3 output files contain correct record counts</li><li>Spot-check field values in each output format</li><li>Zero-debit account → 2525.00 in flat output</li>    </ul>  </div></div>  <div class="task-item" id="TEST-5">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-TEST">TEST-5</span>
+    <span class="task-title">Regression: output byte-comparison with COBOL</span>
+  </div>  <div class="task-body">        <p class="block-text">If sample COBOL output files are available (from a test VSAM run):</p>        <ul class="block-list"><li>Run the Java job against the same input data</li><li>Byte-compare each output file against the COBOL reference output</li><li>Document any intentional differences (encoding, line endings, RDW format)</li>    </ul>  </div></div>
+  <div class="section-title" id="open-questions">Open questions</div>
+  <table class="oq-table">
+    <thead>
+      <tr><th>ID</th><th>Question</th><th>Impact</th></tr>
+    </thead>
+    <tbody>      <tr>
+        <td>OQ-1</td>
+        <td>Is the ARRYFILE still required downstream?</td>
+        <td>May eliminate an entire writer (BR-4)</td>
+      </tr>      <tr>
+        <td>OQ-2</td>
+        <td>Who consumes VBRCFILE? Are they also being migrated?</td>
+        <td>May allow redesigning the variable-record interface</td>
+      </tr>      <tr>
+        <td>OQ-3</td>
+        <td>What is the expected record volume (accounts per run)?</td>
+        <td>Determines chunk size, parallelism, and memory settings</td>
+      </tr>      <tr>
+        <td>OQ-4</td>
+        <td>Does OUTFILE need to be byte-for-byte compatible with COBOL output (EBCDIC, packed decimal)?</td>
+        <td>Determines whether ASCII/EBCDIC conversion is needed</td>
+      </tr>      <tr>
+        <td>OQ-5</td>
+        <td>Is COBDATFT used by other programs being migrated?</td>
+        <td>If yes, create a shared DateConversionService in a common module</td>
+      </tr>      <tr>
+        <td>OQ-6</td>
+        <td>Are there job restart requirements (partial re-runs after failure)?</td>
+        <td>Spring Batch restart from last checkpoint vs. full re-run</td>
+      </tr>      <tr>
+        <td>OQ-7</td>
+        <td>What replaces the CEE3ABD abend monitoring in the operations team's tooling?</td>
+        <td>May need a specific exit code or alerting hook</td>
+      </tr>    </tbody>
+  </table>
+  <div class="section-title" id="checklist">Checklist summary</div>
+  <div class="checklist-grid">    <div class="checklist-group">
+      <h4>Architecture decisions</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#AD-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">AD-1</a>
+        <span>Account input source</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#AD-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">AD-2</a>
+        <span>Output file format</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#AD-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">AD-3</a>
+        <span>ARRYFILE purpose</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#AD-4" class="cid"
+           style="text-decoration:none;color:var(--sub);">AD-4</a>
+        <span>VBRCFILE consumers</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#AD-5" class="cid"
+           style="text-decoration:none;color:var(--sub);">AD-5</a>
+        <span>COBDATFT replacement</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Data model</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DM-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">DM-1</a>
+        <span>Account entity / DTO</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DM-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">DM-2</a>
+        <span>AccountFlatRecord output DTO (for OUTFILE)</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DM-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">DM-3</a>
+        <span>AccountArrayRecord output DTO (for ARRYFILE)</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DM-4" class="cid"
+           style="text-decoration:none;color:var(--sub);">DM-4</a>
+        <span>AccountVbShortRecord + AccountVbLongRecord (f…</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DM-5" class="cid"
+           style="text-decoration:none;color:var(--sub);">DM-5</a>
+        <span>COMP-3 (packed decimal) handling</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Project setup</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#PS-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">PS-1</a>
+        <span>Spring Boot project / module</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#PS-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">PS-2</a>
+        <span>Application properties</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#PS-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">PS-3</a>
+        <span>Package structure</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Spring Batch job</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-1</a>
+        <span>AccountExportJobConfig — Job and Step</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-2</a>
+        <span>AccountItemReader</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-3</a>
+        <span>AccountExportProcessor — core business logic</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-4" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-4</a>
+        <span>CompositeItemWriter</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-5" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-5</a>
+        <span>Three ItemWriter implementations</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#DEV-6" class="cid"
+           style="text-decoration:none;color:var(--sub);">DEV-6</a>
+        <span>DateConversionService — replace COBDATFT</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Business rules to implement</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-1</a>
+        <span>Full-file extract, no filtering</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-2</a>
+        <span>Default cycle-debit substitution</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-3</a>
+        <span>Date reformatting (COBDATFT)</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-4" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-4</a>
+        <span>Array file: 3 hardcoded scenario occurrences</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-5" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-5</a>
+        <span>VBR record lengths and layout</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#BR-6" class="cid"
+           style="text-decoration:none;color:var(--sub);">BR-6</a>
+        <span>Console audit log per account</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Error handling</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#EH-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">EH-1</a>
+        <span>Replace ABEND pattern</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#EH-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">EH-2</a>
+        <span>File open/close errors</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#EH-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">EH-3</a>
+        <span>I/O status display → structured exception log</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Logging</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#LOG-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">LOG-1</a>
+        <span>Job start/end markers (JobExecutionListener)</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#LOG-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">LOG-2</a>
+        <span>Per-account field dump</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#LOG-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">LOG-3</a>
+        <span>VBR record dumps</span>
+      </div>    </div>    <div class="checklist-group">
+      <h4>Testing</h4>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#TEST-1" class="cid"
+           style="text-decoration:none;color:var(--sub);">TEST-1</a>
+        <span>Unit: DateConversionService</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#TEST-2" class="cid"
+           style="text-decoration:none;color:var(--sub);">TEST-2</a>
+        <span>Unit: AccountExportProcessor</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#TEST-3" class="cid"
+           style="text-decoration:none;color:var(--sub);">TEST-3</a>
+        <span>Unit: file writers</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#TEST-4" class="cid"
+           style="text-decoration:none;color:var(--sub);">TEST-4</a>
+        <span>Integration: full job with test data</span>
+      </div>      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#TEST-5" class="cid"
+           style="text-decoration:none;color:var(--sub);">TEST-5</a>
+        <span>Regression: output byte-comparison with COBOL</span>
+      </div>    </div>  </div>
+
+  <footer>
+    Generated from <code>data/migration/CBACT01C.json</code> &middot;
+    CardDemo Mainframe Modernisation
+  </footer>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ program }} — Migration TODOs</title>
+  <style>
+    :root {
+      --bg:      #1e1e2e; --bg2: #181825; --bg3: #313244;
+      --border:  #45475a; --text: #cdd6f4; --sub:  #a6adc8;
+      --comment: #6c7086; --gold: #f9e2af; --cyan: #89dceb;
+      --green:   #a6e3a1; --red:  #f38ba8; --yellow: #f9e2af;
+      --keyword: #cba6f7; --string: #a6e3a1; --number: #fab387;
+      --sidebar-w: 270px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: .9rem; line-height: 1.6;
+      display: flex; min-height: 100vh;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--bg2); border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 1rem 0; flex-shrink: 0;
+    }
+    #sidebar .logo {
+      font-size: .95rem; font-weight: 700; color: var(--gold);
+      padding: .5rem 1rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    #sidebar .logo span { display: block; font-size: .7rem; color: var(--sub); font-weight: 400; margin-top: .2rem; }
+    #sidebar h2 {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--sub); padding: .6rem 1rem .2rem; margin-top: .6rem;
+    }
+    #sidebar a {
+      display: block; padding: .22rem 1rem; color: var(--text); text-decoration: none;
+      font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #sidebar a:hover { background: var(--bg3); color: var(--cyan); }
+    #sidebar a.back { color: var(--sub); margin-bottom: .25rem; }
+
+    /* Main */
+    #main { flex: 1; padding: 2rem 2.5rem; max-width: 100%; overflow-x: auto; }
+
+    /* Header */
+    .page-header {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .6rem; padding: 1.5rem 2rem; margin-bottom: 2rem;
+    }
+    .page-header h1 { font-family: monospace; font-size: 1.6rem; color: var(--gold); }
+    .page-header .meta { margin-top: .75rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .badge {
+      display: inline-block; padding: .2rem .65rem; border-radius: 1rem;
+      font-size: .72rem; font-weight: 600;
+    }
+    .badge-type   { background: #1e3a5f; color: #89b4fa; border: 1px solid #89b4fa44; }
+    .badge-module { background: #2d1b4e; color: var(--keyword); border: 1px solid #cba6f744; }
+    .badge-stack  { background: #1a3324; color: var(--string); border: 1px solid #a6e3a144; }
+
+    /* Summary box */
+    .summary-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan); border-radius: .4rem;
+      padding: 1rem 1.25rem; margin-bottom: 1.5rem; line-height: 1.7;
+    }
+
+    /* Section titles */
+    .section-title {
+      font-size: 1.05rem; font-weight: 700; color: var(--gold);
+      margin: 2.5rem 0 1rem; padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-subtitle {
+      font-size: .8rem; color: var(--sub); margin-top: -.6rem; margin-bottom: 1rem;
+    }
+
+    /* Task items */
+    .task-item {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .4rem; padding: .75rem 1rem; margin-bottom: .5rem;
+    }
+    .task-header { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .task-checkbox {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 1.5px solid var(--border); border-radius: .2rem;
+      background: var(--bg3); flex-shrink: 0;
+    }
+    .task-id {
+      font-family: monospace; font-size: .72rem; font-weight: 700;
+      padding: .1rem .45rem; border-radius: .3rem;
+    }
+    .task-id-AD   { background: #1e3a5f55; color: #89b4fa;        border: 1px solid #89b4fa44; }
+    .task-id-DM   { background: #2d1b4e55; color: var(--keyword); border: 1px solid #cba6f744; }
+    .task-id-PS   { background: #1a3a2a55; color: var(--string);  border: 1px solid #a6e3a144; }
+    .task-id-DEV  { background: #2a1a0055; color: var(--number);  border: 1px solid #fab38744; }
+    .task-id-BR   { background: #2a0a0a55; color: var(--red);     border: 1px solid #f38ba844; }
+    .task-id-EH   { background: #1a1a3a55; color: #89b4fa;        border: 1px solid #89b4fa33; }
+    .task-id-LOG  { background: #2a2a1055; color: var(--yellow);  border: 1px solid #f9e2af44; }
+    .task-id-TEST { background: #1a2a1a55; color: var(--green);   border: 1px solid #a6e3a144; }
+    .task-title { font-weight: 600; color: var(--text); }
+    .task-body  { margin-top: .55rem; color: var(--sub); font-size: .85rem; line-height: 1.6; }
+
+    /* Content block types */
+    .block-text { margin: .35rem 0 .5rem; color: var(--sub); }
+    .block-note {
+      margin: .5rem 0; padding: .4rem .75rem;
+      background: #f9e2af11; border-left: 2px solid var(--gold);
+      border-radius: .2rem; font-size: .82rem; color: var(--yellow);
+    }
+    .block-options { list-style: none; margin: .4rem 0 .5rem; }
+    .block-options li {
+      padding: .3rem .6rem; margin-bottom: .3rem;
+      background: var(--bg3); border-radius: .3rem; font-size: .83rem;
+    }
+    .block-options li strong { color: var(--cyan); }
+    .block-list { margin: .4rem 0 .5rem 1.4rem; }
+    .block-list li { margin-bottom: .2rem; }
+    .source-ref {
+      display: inline-flex; align-items: center; gap: .5rem;
+      margin: .4rem 0; padding: .3rem .65rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: .3rem; font-size: .78rem;
+    }
+    .source-ref a { color: var(--cyan); text-decoration: none; font-family: monospace; }
+    .source-ref a:hover { text-decoration: underline; }
+    .source-ref .src-note { color: var(--comment); }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: .75rem 0 1rem; font-size: .83rem; }
+    th {
+      background: var(--bg3); color: var(--sub); text-align: left;
+      padding: .4rem .75rem; font-size: .73rem; text-transform: uppercase;
+      letter-spacing: .05em; border-bottom: 1px solid var(--border);
+    }
+    td { padding: .4rem .75rem; border-bottom: 1px solid #31324433; vertical-align: top; }
+    tr:hover td { background: #31324422; }
+    .tbl-io td:first-child { color: var(--cyan); font-family: monospace; font-weight: 700; }
+    .tbl-io .role-input  td:last-child { color: var(--green); }
+    .tbl-io .role-output td:last-child { color: var(--number); }
+    .oq-table td:first-child  { font-family: monospace; font-weight: 700; color: var(--yellow); white-space: nowrap; }
+    .oq-table td:nth-child(2) { color: var(--text); }
+    .oq-table td:nth-child(3) { color: var(--sub); font-size: .82rem; }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: .4rem;
+      padding: .85rem 1rem; overflow-x: auto; margin: .6rem 0 .8rem;
+      font-family: "Cascadia Code", "Fira Code", "Courier New", monospace;
+      font-size: .78rem; line-height: 1.55;
+    }
+    pre.lang-java   { border-left: 3px solid var(--number); }
+    pre.lang-xml    { border-left: 3px solid var(--string); }
+    pre.lang-yaml   { border-left: 3px solid var(--keyword); }
+    pre.lang-text   { border-left: 3px solid var(--border); color: var(--sub); }
+    pre.lang-cobol  { border-left: 3px solid var(--cyan); }
+    code {
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      background: var(--bg3); border-radius: .2rem;
+      padding: .05rem .35rem; font-size: .82em; color: var(--cyan);
+    }
+    pre code { background: none; padding: 0; font-size: 1em; color: var(--text); border-radius: 0; }
+
+    /* Checklist summary */
+    .checklist-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: .75rem; margin-top: .75rem;
+    }
+    .checklist-group {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .4rem; padding: .75rem 1rem;
+    }
+    .checklist-group h4 {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--sub); margin-bottom: .5rem; padding-bottom: .3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .checklist-item {
+      display: flex; align-items: flex-start; gap: .4rem;
+      font-size: .78rem; padding: .15rem 0; color: var(--text);
+    }
+    .checklist-item .cb { flex-shrink: 0; margin-top: .15rem; }
+    .checklist-item .cid { font-family: monospace; color: var(--sub); min-width: 3.8rem; }
+
+    footer {
+      margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+      color: var(--comment); font-size: .73rem;
+    }
+  </style>
+</head>
+<body>
+
+{# ------------------------------------------------------------------ #}
+{# Macro: render a single content block                                #}
+{# ------------------------------------------------------------------ #}
+{% macro render_block(block) %}
+  {%- if block.type == 'text' %}
+    <p class="block-text">{{ block.text }}</p>
+  {%- elif block.type == 'code' %}
+    <pre class="lang-{{ block.language | default('text') }}"><code>{{ block.code | e }}</code></pre>
+  {%- elif block.type == 'list' %}
+    {%- if block.ordered | default(false) %}
+    <ol class="block-list">
+      {%- for item in block['items'] %}<li>{{ item }}</li>{% endfor %}
+    </ol>
+    {%- else %}
+    <ul class="block-list">
+      {%- for item in block['items'] %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+    {%- endif %}
+  {%- elif block.type == 'table' %}
+    <table>
+      <thead><tr>{% for h in block.headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {%- for row in block.rows %}
+        <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  {%- elif block.type == 'note' %}
+    <div class="block-note">{{ block.text }}</div>
+  {%- elif block.type == 'options' %}
+    <ul class="block-options">
+      {%- for opt in block['items'] %}
+      <li><strong>{{ opt.label }}</strong> — {{ opt.text }}</li>
+      {%- endfor %}
+    </ul>
+  {%- elif block.type == 'source_ref' %}
+    <div class="source-ref">
+      <a href="../../../{{ block.file }}">{{ block.file }}:{{ block.line }}</a>
+      {%- if block.note %}<span class="src-note"> — {{ block.note }}</span>{% endif %}
+    </div>
+  {%- endif %}
+{%- endmacro %}
+
+{# ------------------------------------------------------------------ #}
+{# Macro: render a task item                                           #}
+{# ------------------------------------------------------------------ #}
+{% macro render_task(task) %}
+{%- set prefix = task.id | id_prefix %}
+<div class="task-item" id="{{ task.id }}">
+  <div class="task-header">
+    <span class="task-checkbox"></span>
+    <span class="task-id task-id-{{ prefix }}">{{ task.id }}</span>
+    <span class="task-title">{{ task.title }}</span>
+  </div>
+  {%- if task.content %}
+  <div class="task-body">
+    {%- for block in task.content %}
+    {{ render_block(block) }}
+    {%- endfor %}
+  </div>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{# ------------------------------------------------------------------ #}
+{# Sidebar                                                             #}
+{# ------------------------------------------------------------------ #}
+<nav id="sidebar">
+  <div class="logo">
+    CardDemo Migration
+    <span>COBOL → Java</span>
+  </div>
+  <a class="back" href="index.html">← Migration TODOs</a>
+  <a class="back" href="../../html/index.html">← Program overview</a>
+  <a class="back" href="../{{ program }}.html">📄 {{ program }}.html</a>
+
+  <h2>Sections</h2>
+  <a href="#io-files">I/O Files</a>
+  {%- for section in sections %}
+  <a href="#{{ section.id }}">{{ section.title }}</a>
+  {%- endfor %}
+  <a href="#open-questions">Open questions</a>
+  <a href="#checklist">Checklist</a>
+
+  <h2>Tasks</h2>
+  {%- for section in sections %}
+  {%- for task in section.tasks %}
+  <a href="#{{ task.id }}" style="padding-left:1.5rem;font-size:.73rem;color:var(--comment);">
+    <span class="task-id task-id-{{ task.id | id_prefix }}" style="padding:.05rem .3rem;font-size:.67rem;">{{ task.id }}</span>
+    {{ task.title | truncate(28, true, '…') }}
+  </a>
+  {%- endfor %}
+  {%- endfor %}
+</nav>
+
+{# ------------------------------------------------------------------ #}
+{# Main content                                                        #}
+{# ------------------------------------------------------------------ #}
+<main id="main">
+
+  <div class="page-header">
+    <h1>{{ program }} — Migration TODOs</h1>
+    <div class="meta">
+      <span class="badge badge-type">{{ type }}</span>
+      <span class="badge badge-module">{{ module }}</span>
+      <span class="badge badge-stack">{{ target_stack }}</span>
+    </div>
+    <div style="margin-top:.75rem;font-size:.8rem;color:var(--sub);">
+      Source: <a href="../../../{{ source_file }}" style="color:var(--cyan);font-family:monospace;">{{ source_file }}</a>
+    </div>
+  </div>
+
+  {%- if summary %}
+  <div class="summary-box">{{ summary }}</div>
+  {%- endif %}
+
+  {# I/O Files #}
+  {%- if io_files %}
+  <div class="section-title" id="io-files">I/O Files</div>
+  <table class="tbl-io">
+    <thead>
+      <tr><th>DDName</th><th>Format</th><th>Content</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      {%- for f in io_files %}
+      <tr class="role-{{ f.role }}">
+        <td>{{ f.ddname }}</td>
+        <td>{{ f.format }}</td>
+        <td>{{ f.content }}</td>
+        <td>{{ f.role }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+
+  {# Sections #}
+  {%- for section in sections %}
+  <div class="section-title" id="{{ section.id }}">{{ section.title }}</div>
+  {%- if section.subtitle %}
+  <div class="section-subtitle">{{ section.subtitle }}</div>
+  {%- endif %}
+  {%- for task in section.tasks %}
+  {{ render_task(task) }}
+  {%- endfor %}
+  {%- endfor %}
+
+  {# Open questions #}
+  {%- if open_questions %}
+  <div class="section-title" id="open-questions">Open questions</div>
+  <table class="oq-table">
+    <thead>
+      <tr><th>ID</th><th>Question</th><th>Impact</th></tr>
+    </thead>
+    <tbody>
+      {%- for oq in open_questions %}
+      <tr>
+        <td>{{ oq.id }}</td>
+        <td>{{ oq.question }}</td>
+        <td>{{ oq.impact }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+
+  {# Checklist summary #}
+  <div class="section-title" id="checklist">Checklist summary</div>
+  <div class="checklist-grid">
+    {%- for section in sections %}
+    {%- if section.tasks %}
+    {%- set prefix = section.tasks[0].id | id_prefix %}
+    <div class="checklist-group">
+      <h4>{{ section.title }}</h4>
+      {%- for task in section.tasks %}
+      <div class="checklist-item">
+        <span class="cb">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <rect x="1" y="1" width="11" height="11" rx="2"
+                  fill="none" stroke="var(--border)" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <a href="#{{ task.id }}" class="cid"
+           style="text-decoration:none;color:var(--sub);">{{ task.id }}</a>
+        <span>{{ task.title | truncate(45, true, '…') }}</span>
+      </div>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    {%- endfor %}
+  </div>
+
+  <footer>
+    Generated from <code>data/migration/{{ program }}.json</code> &middot;
+    CardDemo Mainframe Modernisation
+  </footer>
+
+</main>
+</body>
+</html>
