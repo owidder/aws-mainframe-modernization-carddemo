@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CBACT02C — COBOL ↔ Java</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/catppuccin-mocha.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cobol.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<style>
+:root{--bg:#1e1e2e;--bg2:#181825;--bg3:#313244;--border:#45475a;--text:#cdd6f4;--sub:#a6adc8;
+      --cyan:#89dceb;--gold:#f9e2af;--green:#a6e3a1;--blue:#89b4fa;--peach:#fab387;--mauve:#cba6f7}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:.4rem 1.2rem;
+    display:flex;gap:.7rem;align-items:center;flex-shrink:0;flex-wrap:wrap}
+nav a{color:var(--cyan);text-decoration:none;font-size:.8rem}
+nav a:hover{text-decoration:underline}
+nav .sep{color:var(--border)}
+.badge-nav{margin-left:auto;background:var(--bg3);color:var(--gold);
+           padding:.1rem .5rem;border-radius:4px;font-size:.7rem;font-weight:700}
+header{padding:.5rem 1.2rem .35rem;border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:1.1rem;color:var(--cyan)}
+.meta{color:var(--sub);font-size:.74rem;margin-top:.15rem}
+.meta code{font-family:monospace}.mc{color:var(--peach)}.mj{color:var(--green)}
+.badges{display:flex;gap:.35rem;margin-top:.28rem;flex-wrap:wrap}
+.badge{padding:.08rem .45rem;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.04em}
+.b-batch{background:#1a2f4a;color:var(--blue);border:1px solid var(--blue)}
+.b-spring{background:#1a3a1a;color:var(--green);border:1px solid var(--green)}
+.b-cobol{background:#3a1a1a;color:var(--peach);border:1px solid var(--peach)}
+.map-wrap{padding:.4rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0;
+          max-height:220px;overflow-y:auto;scrollbar-width:thin;
+          scrollbar-color:var(--border) var(--bg2);background:var(--bg2)}
+.map-wrap h2{font-size:.8rem;color:var(--gold);margin-bottom:.28rem}
+.nav-hint{color:var(--border);font-size:.65rem}
+.mt{width:100%;border-collapse:collapse;font-size:.7rem}
+.mt th{color:var(--sub);text-align:left;padding:.24rem .5rem;border-bottom:1px solid var(--border);
+       font-weight:600;position:sticky;top:0;background:var(--bg2);z-index:1}
+.mt td{padding:.24rem .5rem;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.35}
+.mt td:nth-child(3){color:var(--sub)}.mt small{color:var(--sub);font-size:.65rem}
+.mt code{background:var(--bg3);padding:.02rem .22rem;border-radius:3px;
+         font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--cyan)}
+.nav-row{cursor:pointer;transition:background .1s}
+.nav-row:hover td{background:rgba(255,255,255,.04)}
+.nav-row.row-active td{background:rgba(137,220,235,.08);border-left:2px solid var(--cyan)}
+.split{display:flex;flex:1;overflow:hidden}
+.pane{display:flex;flex-direction:column;overflow:hidden}
+.pane-cobol{flex:1 1 50%;min-width:0;border-right:2px solid var(--border)}
+.pane-java{flex:1 1 50%;min-width:0}
+.pane-hdr{background:var(--bg2);padding:.28rem .7rem;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.lang-tag{font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+          padding:.07rem .35rem;border-radius:3px}
+.lc{background:#3a1a1a;color:var(--peach)}.lj{background:#1a3a1a;color:var(--green)}
+.pane-fn{font-size:.75rem;color:var(--sub);font-family:monospace}
+.pane-ln{margin-left:auto;font-size:.65rem;color:var(--border)}
+.tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;background:var(--bg2);
+      border-bottom:1px solid var(--border);flex-shrink:0;
+      scrollbar-width:thin;scrollbar-color:var(--border) var(--bg2)}
+.tabs button{flex-shrink:0;background:none;border:none;border-bottom:2px solid transparent;
+             color:var(--sub);padding:.28rem .55rem;font-size:.67rem;cursor:pointer;
+             font-family:'JetBrains Mono',monospace;transition:color .12s,border-color .12s;
+             white-space:nowrap}
+.tabs button:hover{color:var(--text)}.tabs button.active{color:var(--green);border-bottom-color:var(--green)}
+.cs{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) var(--bg)}
+.panel{display:none}.panel.visible{display:block}
+.cs pre{margin:0}
+.cs pre code{display:block;padding:.5rem 0 .5rem .3rem !important;
+             font-size:.72rem !important;line-height:1.6 !important;
+             font-family:'JetBrains Mono','Cascadia Code','Fira Code',monospace !important}
+.hljs{background:var(--bg) !important}
+.cl{display:block;padding-right:.4rem}
+.ln{display:inline-block;min-width:3em;color:var(--border);user-select:none;
+    text-align:right;padding-right:.6em;border-right:1px solid var(--border);
+    margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
+.cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
+.cl.hl .ln{color:var(--cyan)}
+.cl[data-tip]{cursor:pointer;border-left:3px solid rgba(137,220,235,.4);background:rgba(137,220,235,.04)}
+.cl[data-tip] .ln{color:#89dceb;font-weight:700}
+.cl[data-tip] .ln::after{content:'';display:inline-block;width:5px;height:5px;
+  background:rgba(137,220,235,.7);border-radius:50%;margin-left:.35em;
+  vertical-align:middle;transition:all .15s}
+.cl[data-tip]:hover{background:rgba(137,220,235,.13);border-left-color:#89dceb}
+.cl[data-tip]:hover .ln{color:#89dceb}
+.cl[data-tip]:hover .ln::after{content:'→';width:auto;height:auto;background:none;
+  border-radius:0;font-weight:400;font-size:.8em;letter-spacing:0}
+#ctip{position:fixed;display:none;max-width:380px;padding:.5rem .65rem;
+      background:#24273a;border:1px solid #45475a;border-radius:6px;
+      font-size:.72rem;line-height:1.5;color:#cdd6f4;
+      pointer-events:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+#ctip .tc{color:#f9e2af;font-weight:700;margin-bottom:.2rem}
+#ctip .tj{color:#a6e3a1;font-weight:700;font-size:.68rem;margin-top:.28rem;margin-bottom:.18rem}
+#ctip .tn{color:#a6adc8;font-size:.69rem;margin-top:.28rem;border-top:1px solid #45475a;padding-top:.25rem}
+.vt{background:rgba(249,226,175,.12);border-bottom:1px solid rgba(249,226,175,.55);
+    color:#f9e2af;border-radius:2px;cursor:help;
+    transition:background .12s,border-color .12s,color .12s;padding:0 1px}
+.vt:hover{background:rgba(249,226,175,.25);border-bottom-color:#f9e2af;color:#fff}
+.vt-link{cursor:pointer}
+.vt-link:hover{border-bottom-width:2px}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../index.html">Home</a><span class="sep">/</span>
+  <a href="../java-transformation.html">Java Transformation</a><span class="sep">/</span>
+  <span>CBACT02C</span>
+  <span class="badge-nav">COBOL ↔ Java</span>
+</nav>
+<header>
+  <h1>CBACT02C &mdash; COBOL ↔ Java Comparison</h1>
+  <div class="meta">
+    <span class="mc"><code>app/cbl/CBACT02C.cbl</code></span>
+    &nbsp;→&nbsp;
+    <span class="mj"><code>java/cbact02c/</code></span>
+    &nbsp;&nbsp;178 COBOL lines &nbsp;|&nbsp; 370 Java lines across 6 files
+  </div>
+  <div class="badges">
+    <span class="badge b-cobol">COBOL Batch</span>
+    <span class="badge b-batch">Spring Batch</span>
+    <span class="badge b-spring">Spring Boot 3</span>
+  </div>
+</header>
+<div class="map-wrap">
+  <h2>Paragraph mapping &nbsp;<span class="nav-hint">(click any row or a highlighted COBOL line to navigate both panes)</span></h2>
+  <table class="mt">
+    <thead><tr><th>COBOL paragraph / construct</th><th>Java equivalent</th><th>Transformation notes</th></tr></thead>
+    <tbody>
+<tr class="nav-row" data-cl="29" data-jt="4" data-jl="23" onclick="navigate(this)" title="Jump to COBOL L29 / CardRepository.java L23">
+  <td><code>SELECT CARDFILE-FILE</code><br><small>L29&ndash;33</small></td><td><code>CardRepository</code> &mdash; <code>extends JpaRepository&lt;CardRecord,String&gt;</code></td><td>VSAM KSDS SELECT clause replaces with Spring Data JPA repository; sequential key traversal becomes findAll() sorted by cardNum ASC</td>
+</tr>
+<tr class="nav-row" data-cl="37" data-jt="3" data-jl="28" onclick="navigate(this)" title="Jump to COBOL L37 / CardRecord.java L28">
+  <td><code>FD CARDFILE-FILE &amp; COPY CVACT02Y</code><br><small>L37&ndash;45</small></td><td><code>CardRecord</code> &mdash; <code>@Entity @Table(name=&quot;card_records&quot;)</code></td><td>FD record layout + CVACT02Y copybook (150 bytes) map to 6 persisted JPA columns; FILLER PIC X(59) discarded</td>
+</tr>
+<tr class="nav-row" data-cl="70" data-jt="1" data-jl="26" onclick="navigate(this)" title="Jump to COBOL L70 / Cbact02cApplication.java L26">
+  <td><code>PROCEDURE DIVISION mainline</code><br><small>L70&ndash;87</small></td><td><code>Cbact02cApplication</code> &mdash; <code>main()</code></td><td>COBOL mainline (DISPLAY start, PERFORM open/loop/close, DISPLAY end, GOBACK) maps to Spring Boot startup; job runs automatically via spring.batch.job.enabled=true</td>
+</tr>
+<tr class="nav-row" data-cl="74" data-jt="0" data-jl="66" onclick="navigate(this)" title="Jump to COBOL L74 / CardPrintJobConfig.java L66">
+  <td><code>PERFORM UNTIL END-OF-FILE = 'Y'</code><br><small>L74&ndash;82</small></td><td><code>CardPrintJobConfig</code> &mdash; <code>cardPrintStep()</code></td><td>COBOL PERFORM UNTIL loop replaced by Spring Batch chunk-oriented step; ItemReader returning null signals EOF (equivalent to CARDFILE-STATUS '10')</td>
+</tr>
+<tr class="nav-row" data-cl="78" data-jt="2" data-jl="52" onclick="navigate(this)" title="Jump to COBOL L78 / CardDisplayProcessor.java L52">
+  <td><code>DISPLAY CARD-RECORD</code><br><small>L78</small></td><td><code>CardDisplayProcessor</code> &mdash; <code>process()</code></td><td>COBOL DISPLAY of 150-byte record group reproduced as String.format() with PIC-width padding; output emitted via log.info() in cardDisplayWriter</td>
+</tr>
+<tr class="nav-row" data-cl="92" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L92 / CardPrintJobConfig.java L95">
+  <td><code>1000-CARDFILE-GET-NEXT</code><br><small>L92</small></td><td><code>CardPrintJobConfig</code> &mdash; <code>cardReader()</code></td><td>READ CARDFILE-FILE INTO CARD-RECORD replaced by RepositoryItemReader.read(); status '00' → non-null item; status '10' (EOF) → read() returns null; status other → CardFileException</td>
+</tr>
+<tr class="nav-row" data-cl="118" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L118 / CardPrintJobConfig.java L95">
+  <td><code>0000-CARDFILE-OPEN</code><br><small>L118</small></td><td><code>CardPrintJobConfig</code> &mdash; <code>cardReader()</code></td><td>OPEN INPUT CARDFILE-FILE + file-status check replaced by Spring Batch calling ItemStream.open() before the step; JPA connection pool replaces VSAM open</td>
+</tr>
+<tr class="nav-row" data-cl="136" data-jt="0" data-jl="66" onclick="navigate(this)" title="Jump to COBOL L136 / CardPrintJobConfig.java L66">
+  <td><code>9000-CARDFILE-CLOSE</code><br><small>L136</small></td><td><code>CardPrintJobConfig</code> &mdash; <code>cardPrintStep()</code></td><td>CLOSE CARDFILE-FILE replaced by Spring Batch calling ItemStream.close() automatically after step completion or failure; no explicit close code required</td>
+</tr>
+<tr class="nav-row" data-cl="154" data-jt="5" data-jl="18" onclick="navigate(this)" title="Jump to COBOL L154 / CardFileException.java L18">
+  <td><code>9999-ABEND-PROGRAM</code><br><small>L154</small></td><td><code>CardFileException</code> &mdash; <code>extends RuntimeException</code></td><td>CALL 'CEE3ABD' (LE runtime abend, code 999) replaced by throwing CardFileException; Spring Batch catches it, marks step FAILED, and persists failure in job repository</td>
+</tr>
+<tr class="nav-row" data-cl="161" data-jt="0" data-jl="41" onclick="navigate(this)" title="Jump to COBOL L161 / CardPrintJobConfig.java L41">
+  <td><code>9910-DISPLAY-IO-STATUS</code><br><small>L161</small></td><td><code>CardPrintJobConfig</code> &mdash; <code>log</code> (SLF4J logger)</td><td>NNNN-format binary status decoding has no Java equivalent; Spring Batch logs exception class, message, and stack trace via SLF4J automatically</td>
+</tr>
+    </tbody>
+  </table>
+</div>
+<div class="split">
+  <div class="pane pane-cobol">
+    <div class="pane-hdr">
+      <span class="lang-tag lc">COBOL</span>
+      <span class="pane-fn">app/cbl/CBACT02C.cbl</span>
+      <span class="pane-ln">178 lines</span>
+    </div>
+    <div class="cs" id="cscroll">
+      <pre><code class="language-cobol" id="cc">      ******************************************************************
+      * Program     : CBACT02C.CBL                                      
+      * Application : CardDemo                                          
+      * Type        : BATCH COBOL Program                               
+      * Function    : Read and print card data file.                    
+      ******************************************************************
+      * Copyright Amazon.com, Inc. or its affiliates.                   
+      * All Rights Reserved.                                            
+      *                                                                 
+      * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;). 
+      * You may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at                         
+      *                                                                 
+      *    http://www.apache.org/licenses/LICENSE-2.0                   
+      *                                                                 
+      * Unless required by applicable law or agreed to in writing,      
+      * software distributed under the License is distributed on an     
+      * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    
+      * either express or implied. See the License for the specific     
+      * language governing permissions and limitations under the License
+      ******************************************************************
+       IDENTIFICATION DIVISION.                                                 
+       PROGRAM-ID.    CBACT02C.                                                 
+       AUTHOR.        AWS.                                                      
+                                                                                
+       ENVIRONMENT DIVISION.                                                    
+       INPUT-OUTPUT SECTION.                                                    
+       FILE-CONTROL.                                                            
+           SELECT CARDFILE-FILE ASSIGN TO   CARDFILE                            
+                  ORGANIZATION IS INDEXED                                       
+                  ACCESS MODE  IS SEQUENTIAL                                    
+                  RECORD KEY   IS FD-CARD-NUM                                   
+                  FILE STATUS  IS CARDFILE-STATUS.                              
+      *                                                                         
+       DATA DIVISION.                                                           
+       FILE SECTION.                                                            
+       FD  CARDFILE-FILE.                                                       
+       01  FD-CARDFILE-REC.                                                     
+           05 FD-CARD-NUM                       PIC X(16).                      
+           05 FD-CARD-DATA                      PIC X(134).                     
+                                                                                
+       WORKING-STORAGE SECTION.                                                 
+                                                                                
+      *****************************************************************         
+       COPY CVACT02Y.                                                           
+       01  CARDFILE-STATUS.                                                     
+           05  CARDFILE-STAT1      PIC X.                                       
+           05  CARDFILE-STAT2      PIC X.                                       
+                                                                                
+       01  IO-STATUS.                                                           
+           05  IO-STAT1            PIC X.                                       
+           05  IO-STAT2            PIC X.                                       
+       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.                             
+       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.                  
+           05  TWO-BYTES-LEFT      PIC X.                                       
+           05  TWO-BYTES-RIGHT     PIC X.                                       
+       01  IO-STATUS-04.                                                        
+           05  IO-STATUS-0401      PIC 9   VALUE 0.                             
+           05  IO-STATUS-0403      PIC 999 VALUE 0.                             
+                                                                                
+       01  APPL-RESULT             PIC S9(9)   COMP.                            
+           88  APPL-AOK            VALUE 0.                                     
+           88  APPL-EOF            VALUE 16.                                    
+                                                                                
+       01  END-OF-FILE             PIC X(01)    VALUE &#x27;N&#x27;.                      
+       01  ABCODE                  PIC S9(9) BINARY.                            
+       01  TIMING                  PIC S9(9) BINARY.                            
+                                                                                
+      *****************************************************************         
+       PROCEDURE DIVISION.                                                      
+           DISPLAY &#x27;START OF EXECUTION OF PROGRAM CBACT02C&#x27;.                    
+           PERFORM 0000-CARDFILE-OPEN.                                          
+                                                                                
+           PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;                                      
+               IF  END-OF-FILE = &#x27;N&#x27;                                            
+                   PERFORM 1000-CARDFILE-GET-NEXT                               
+                   IF  END-OF-FILE = &#x27;N&#x27;                                        
+                       DISPLAY CARD-RECORD                                      
+                   END-IF                                                       
+               END-IF                                                           
+           END-PERFORM.                                                         
+                                                                                
+           PERFORM 9000-CARDFILE-CLOSE.                                         
+                                                                                
+           DISPLAY &#x27;END OF EXECUTION OF PROGRAM CBACT02C&#x27;.                      
+                                                                                
+           GOBACK.                                                              
+                                                                                
+      *****************************************************************         
+      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *         
+      *****************************************************************         
+       1000-CARDFILE-GET-NEXT.                                                  
+           READ CARDFILE-FILE INTO CARD-RECORD.                                 
+           IF  CARDFILE-STATUS = &#x27;00&#x27;                                           
+               MOVE 0 TO APPL-RESULT                                            
+      *        DISPLAY CARD-RECORD                                              
+           ELSE                                                                 
+               IF  CARDFILE-STATUS = &#x27;10&#x27;                                       
+                   MOVE 16 TO APPL-RESULT                                       
+               ELSE                                                             
+                   MOVE 12 TO APPL-RESULT                                       
+               END-IF                                                           
+           END-IF                                                               
+           IF  APPL-AOK                                                         
+               CONTINUE                                                         
+           ELSE                                                                 
+               IF  APPL-EOF                                                     
+                   MOVE &#x27;Y&#x27; TO END-OF-FILE                                      
+               ELSE                                                             
+                   DISPLAY &#x27;ERROR READING CARDFILE&#x27;                             
+                   MOVE CARDFILE-STATUS TO IO-STATUS                            
+                   PERFORM 9910-DISPLAY-IO-STATUS                               
+                   PERFORM 9999-ABEND-PROGRAM                                   
+               END-IF                                                           
+           END-IF                                                               
+           EXIT.                                                                
+      *---------------------------------------------------------------*         
+       0000-CARDFILE-OPEN.                                                      
+           MOVE 8 TO APPL-RESULT.                                               
+           OPEN INPUT CARDFILE-FILE                                             
+           IF  CARDFILE-STATUS = &#x27;00&#x27;                                           
+               MOVE 0 TO APPL-RESULT                                            
+           ELSE                                                                 
+               MOVE 12 TO APPL-RESULT                                           
+           END-IF                                                               
+           IF  APPL-AOK                                                         
+               CONTINUE                                                         
+           ELSE                                                                 
+               DISPLAY &#x27;ERROR OPENING CARDFILE&#x27;                                 
+               MOVE CARDFILE-STATUS TO IO-STATUS                                
+               PERFORM 9910-DISPLAY-IO-STATUS                                   
+               PERFORM 9999-ABEND-PROGRAM                                       
+           END-IF                                                               
+           EXIT.                                                                
+      *---------------------------------------------------------------*         
+       9000-CARDFILE-CLOSE.                                                     
+           ADD 8 TO ZERO GIVING APPL-RESULT.                                    
+           CLOSE CARDFILE-FILE                                                  
+           IF  CARDFILE-STATUS = &#x27;00&#x27;                                           
+               SUBTRACT APPL-RESULT FROM APPL-RESULT                            
+           ELSE                                                                 
+               ADD 12 TO ZERO GIVING APPL-RESULT                                
+           END-IF                                                               
+           IF  APPL-AOK                                                         
+               CONTINUE                                                         
+           ELSE                                                                 
+               DISPLAY &#x27;ERROR CLOSING CARDFILE&#x27;                                 
+               MOVE CARDFILE-STATUS TO IO-STATUS                                
+               PERFORM 9910-DISPLAY-IO-STATUS                                   
+               PERFORM 9999-ABEND-PROGRAM                                       
+           END-IF                                                               
+           EXIT.                                                                
+                                                                                
+       9999-ABEND-PROGRAM.                                                      
+           DISPLAY &#x27;ABENDING PROGRAM&#x27;                                           
+           MOVE 0 TO TIMING                                                     
+           MOVE 999 TO ABCODE                                                   
+           CALL &#x27;CEE3ABD&#x27; USING ABCODE, TIMING.                                 
+                                                                                
+      *****************************************************************         
+       9910-DISPLAY-IO-STATUS.                                                  
+           IF  IO-STATUS NOT NUMERIC                                            
+           OR  IO-STAT1 = &#x27;9&#x27;                                                   
+               MOVE IO-STAT1 TO IO-STATUS-04(1:1)                               
+               MOVE 0        TO TWO-BYTES-BINARY                                
+               MOVE IO-STAT2 TO TWO-BYTES-RIGHT                                 
+               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403                          
+               DISPLAY &#x27;FILE STATUS IS: NNNN&#x27; IO-STATUS-04                      
+           ELSE                                                                 
+               MOVE &#x27;0000&#x27; TO IO-STATUS-04                                      
+               MOVE IO-STATUS TO IO-STATUS-04(3:2)                              
+               DISPLAY &#x27;FILE STATUS IS: NNNN&#x27; IO-STATUS-04                      
+           END-IF                                                               
+           EXIT.                                                                
+                                                                                
+      *
+      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT
+      *
+</code></pre>
+    </div>
+  </div>
+  <div class="pane pane-java">
+    <div class="pane-hdr">
+      <span class="lang-tag lj">Java</span>
+      <span class="pane-fn" id="jfn">CardPrintJobConfig.java</span>
+      <span class="pane-ln" id="jln"></span>
+    </div>
+    <div class="tabs">
+      <button class="active" onclick="switchTab(0)">CardPrintJobConfig.java</button>
+      <button onclick="switchTab(1)">Cbact02cApplication.java</button>
+      <button onclick="switchTab(2)">CardDisplayProcessor.java</button>
+      <button onclick="switchTab(3)">CardRecord.java</button>
+      <button onclick="switchTab(4)">CardRepository.java</button>
+      <button onclick="switchTab(5)">CardFileException.java</button>
+    </div>
+    <div class="cs" id="jscroll">
+      <div class="panel visible" data-tab="0"><pre><code class="language-java" id="jc0">package com.carddemo.cbact02c.batch;
+
+import com.carddemo.cbact02c.domain.CardRecord;
+import com.carddemo.cbact02c.repository.CardRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.data.RepositoryItemReader;
+import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.Map;
+
+/**
+ * Spring Batch configuration for the CBACT02C card-file print job.
+ *
+ * &lt;p&gt;Translates the COBOL PROCEDURE DIVISION of CBACT02C.cbl:
+ * &lt;pre&gt;
+ * L0000-CARDFILE-OPEN   → accountReader (ItemStream.open called by framework)
+ * PERFORM UNTIL EOF     → chunk-oriented step (reader → processor → writer loop)
+ *   1000-CARDFILE-GET-NEXT → cardReader.read()
+ *   DISPLAY CARD-RECORD    → CardDisplayProcessor + cardDisplayWriter
+ * 9000-CARDFILE-CLOSE   → cardReader (ItemStream.close called by framework)
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;The VSAM KSDS sequential scan (ACCESS MODE IS SEQUENTIAL, RECORD KEY IS
+ * FD-CARD-NUM) maps to {@code RepositoryItemReader} ordered ascending by
+ * {@code cardNum}, which preserves the same key-ordered traversal order.
+ */
+@Configuration
+public class CardPrintJobConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(CardPrintJobConfig.class);
+
+    // ── Job ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Top-level job bean — equivalent to the CBACT02C PROCEDURE DIVISION mainline.
+     *
+     * &lt;p&gt;COBOL: CBACT02C.cbl — DISPLAY &#x27;START/END OF EXECUTION&#x27; wrap the single step.
+     */
+    @Bean
+    public Job cardPrintJob(JobRepository jobRepository, Step cardPrintStep) {
+        return new JobBuilder(&quot;cardPrintJob&quot;, jobRepository)
+                .start(cardPrintStep)
+                .build();
+    }
+
+    // ── Step ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Single chunk-oriented step: read cards in pages of 20, format each, write to log.
+     *
+     * &lt;p&gt;Chunk size 20 gives restart granularity suitable for the ~50-row test dataset
+     * and scales to production card volumes.
+     */
+    @Bean
+    public Step cardPrintStep(
+            JobRepository jobRepository,
+            PlatformTransactionManager txManager,
+            RepositoryItemReader&lt;CardRecord&gt; cardReader,
+            CardDisplayProcessor processor,
+            ItemWriter&lt;String&gt; cardDisplayWriter) {
+        return new StepBuilder(&quot;cardPrintStep&quot;, jobRepository)
+                .&lt;CardRecord, String&gt;chunk(20, txManager)
+                .reader(cardReader)
+                .processor(processor)
+                .writer(cardDisplayWriter)
+                .build();
+    }
+
+    // ── Reader ───────────────────────────────────────────────────────────────
+
+    /**
+     * Reads card records ordered by card_num ASC, mirroring the COBOL KSDS sequential scan.
+     *
+     * &lt;p&gt;COBOL: CBACT02C.cbl:28-33
+     * &lt;pre&gt;
+     * SELECT CARDFILE-FILE ASSIGN TO CARDFILE
+     *        ORGANIZATION IS INDEXED
+     *        ACCESS MODE  IS SEQUENTIAL
+     *        RECORD KEY   IS FD-CARD-NUM
+     * &lt;/pre&gt;
+     * COBOL: CBACT02C.cbl:79-97 — 1000-CARDFILE-GET-NEXT → READ CARDFILE-FILE INTO CARD-RECORD
+     */
+    @Bean
+    public RepositoryItemReader&lt;CardRecord&gt; cardReader(CardRepository cardRepository) {
+        return new RepositoryItemReaderBuilder&lt;CardRecord&gt;()
+                .name(&quot;cardReader&quot;)
+                .repository(cardRepository)
+                .methodName(&quot;findAll&quot;)
+                .sorts(Map.of(&quot;cardNum&quot;, Sort.Direction.ASC))
+                .pageSize(20)
+                .build();
+    }
+
+    // ── Writer ───────────────────────────────────────────────────────────────
+
+    /**
+     * Writes each formatted card line to the application log at INFO level.
+     *
+     * &lt;p&gt;Mirrors COBOL {@code DISPLAY CARD-RECORD} (CBACT02C.cbl — main loop body),
+     * which writes the raw 150-byte record to SYSOUT.  Using SLF4J INFO preserves
+     * the same observable output while integrating with Spring&#x27;s logging infrastructure.
+     *
+     * &lt;p&gt;COBOL: 9999-ABEND-PROGRAM (CBACT02C.cbl) maps to an unchecked exception
+     * propagated out of the step; Spring Batch marks the step as FAILED and
+     * the {@code GlobalExceptionHandler} converts it to a structured error response.
+     */
+    @Bean
+    public ItemWriter&lt;String&gt; cardDisplayWriter() {
+        return chunk -&gt; {
+            // COBOL: DISPLAY &#x27;START OF EXECUTION OF PROGRAM CBACT02C&#x27; — logged at job start
+            for (String line : chunk.getItems()) {
+                // COBOL: DISPLAY CARD-RECORD
+                log.info(&quot;CARD-RECORD: {}&quot;, line);
+            }
+        };
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="1"><pre><code class="language-java" id="jc1">package com.carddemo.cbact02c;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * Spring Boot entry point for the CBACT02C batch job.
+ *
+ * &lt;p&gt;COBOL equivalent: PROCEDURE DIVISION main flow in CBACT02C.cbl.
+ * &lt;pre&gt;
+ * DISPLAY &#x27;START OF EXECUTION OF PROGRAM CBACT02C&#x27;
+ * PERFORM 0000-CARDFILE-OPEN
+ * PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;
+ *     PERFORM 1000-CARDFILE-GET-NEXT
+ *     DISPLAY CARD-RECORD
+ * END-PERFORM
+ * PERFORM 9000-CARDFILE-CLOSE
+ * DISPLAY &#x27;END OF EXECUTION OF PROGRAM CBACT02C&#x27;
+ * GOBACK.
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;The job runs automatically on startup ({@code spring.batch.job.enabled=true})
+ * and the application exits when the job completes (standard batch lifecycle).
+ */
+@SpringBootApplication
+public class Cbact02cApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Cbact02cApplication.class, args);
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="2"><pre><code class="language-java" id="jc2">package com.carddemo.cbact02c.batch;
+
+import com.carddemo.cbact02c.domain.CardRecord;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.stereotype.Component;
+
+/**
+ * Formats a {@link CardRecord} as a fixed-width display string.
+ *
+ * &lt;p&gt;Mirrors the COBOL {@code DISPLAY CARD-RECORD} statement in CBACT02C.cbl.
+ * In COBOL, {@code DISPLAY} writes the raw bytes of the record group to SYSOUT,
+ * concatenating all sub-fields in declaration order.  This processor reproduces
+ * that layout so the batch writer can log or write an equivalent line.
+ *
+ * &lt;p&gt;COBOL source reference: CBACT02C.cbl — main PERFORM loop:
+ * &lt;pre&gt;
+ * PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;
+ *     IF END-OF-FILE = &#x27;N&#x27;
+ *         PERFORM 1000-CARDFILE-GET-NEXT
+ *         IF END-OF-FILE = &#x27;N&#x27;
+ *             DISPLAY CARD-RECORD        ← this processor
+ *         END-IF
+ *     END-IF
+ * END-PERFORM.
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;Record layout (CVACT02Y.cpy, total 150 bytes):
+ * &lt;pre&gt;
+ * Pos  0-15  : CARD-NUM            PIC X(16)
+ * Pos 16-26  : CARD-ACCT-ID        PIC 9(11)
+ * Pos 27-29  : CARD-CVV-CD         PIC 9(03)
+ * Pos 30-79  : CARD-EMBOSSED-NAME  PIC X(50)
+ * Pos 80-89  : CARD-EXPIRAION-DATE PIC X(10)
+ * Pos 90     : CARD-ACTIVE-STATUS  PIC X(01)
+ * Pos 91-149 : FILLER              PIC X(59)
+ * &lt;/pre&gt;
+ */
+@Component
+public class CardDisplayProcessor implements ItemProcessor&lt;CardRecord, String&gt; {
+
+    /**
+     * Converts a {@link CardRecord} entity to its COBOL DISPLAY representation.
+     *
+     * &lt;p&gt;Numeric sub-fields (CARD-ACCT-ID, CARD-CVV-CD) are zero-padded to their
+     * declared PIC widths, exactly as COBOL stores them in the record buffer.
+     * Alphanumeric sub-fields are left-justified and space-padded to their declared widths.
+     *
+     * @param card the card record read from the database
+     * @return the 150-character display line (matching COBOL DISPLAY CARD-RECORD output)
+     */
+    @Override
+    public String process(CardRecord card) {
+        // COBOL: DISPLAY CARD-RECORD — outputs all sub-fields concatenated
+        return String.format(&quot;%-16s%011d%03d%-50s%-10s%-1s%-59s&quot;,
+                nullToEmpty(card.getCardNum()),
+                card.getCardAcctId(),
+                parseCvv(card.getCardCvvCd()),
+                nullToEmpty(card.getCardEmbossedName()),
+                nullToEmpty(card.getExpirationDate()),
+                nullToEmpty(card.getActiveStatus()),
+                &quot;&quot;);  // FILLER PIC X(59) — always spaces
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? &quot;&quot; : s;
+    }
+
+    private int parseCvv(String cvv) {
+        if (cvv == null || cvv.isBlank()) return 0;
+        try {
+            return Integer.parseInt(cvv.strip());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="3"><pre><code class="language-java" id="jc3">package com.carddemo.cbact02c.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+/**
+ * JPA entity representing one card data record.
+ *
+ * &lt;p&gt;Maps the COBOL copybook {@code CVACT02Y.cpy} (CARD-RECORD, 150 bytes):
+ * &lt;pre&gt;
+ * 01  CARD-RECORD.
+ *     05  CARD-NUM               PIC X(16)    → card_num       CHAR(16)   PK
+ *     05  CARD-ACCT-ID           PIC 9(11)    → card_acct_id   BIGINT
+ *     05  CARD-CVV-CD            PIC 9(03)    → card_cvv_cd    CHAR(3)    (sensitive)
+ *     05  CARD-EMBOSSED-NAME     PIC X(50)    → card_embossed_name VARCHAR(50)
+ *     05  CARD-EXPIRAION-DATE    PIC X(10)    → expiration_date CHAR(10)  (typo from source)
+ *     05  CARD-ACTIVE-STATUS     PIC X(01)    → active_status  CHAR(1)
+ *     05  FILLER                 PIC X(59)    → not stored
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;COBOL FD: CBACT02C.cbl:37-40 — FD CARDFILE-FILE / 01 FD-CARDFILE-REC.
+ * COBOL SELECT: CBACT02C.cbl:28-33 — ORGANIZATION IS INDEXED, RECORD KEY IS FD-CARD-NUM.
+ */
+@Entity
+@Table(name = &quot;card_records&quot;)
+public class CardRecord {
+
+    /** COBOL: CARD-NUM PIC X(16) — primary KSDS record key. */
+    @Id
+    @Column(name = &quot;card_num&quot;, length = 16, nullable = false)
+    private String cardNum;
+
+    /** COBOL: CARD-ACCT-ID PIC 9(11) — associated account identifier. */
+    @Column(name = &quot;card_acct_id&quot;, nullable = false)
+    private Long cardAcctId;
+
+    /**
+     * COBOL: CARD-CVV-CD PIC 9(03) — card verification value.
+     * Stored as CHAR(3) to preserve leading zeros (e.g. &quot;007&quot;).
+     * NOTE: in a production system this field should not be persisted.
+     */
+    @Column(name = &quot;card_cvv_cd&quot;, length = 3, nullable = false)
+    private String cardCvvCd;
+
+    /** COBOL: CARD-EMBOSSED-NAME PIC X(50) — name printed on the card face. */
+    @Column(name = &quot;card_embossed_name&quot;, length = 50, nullable = false)
+    private String cardEmbossedName;
+
+    /**
+     * COBOL: CARD-EXPIRAION-DATE PIC X(10) — card expiry date.
+     * Field name preserves the original COBOL typo (&quot;EXPIRAION&quot;) from CVACT02Y.
+     */
+    @Column(name = &quot;expiration_date&quot;, length = 10)
+    private String expirationDate;
+
+    /** COBOL: CARD-ACTIVE-STATUS PIC X(01) — &#x27;Y&#x27; = active, &#x27;N&#x27; = inactive. */
+    @Column(name = &quot;active_status&quot;, length = 1, nullable = false)
+    private String activeStatus;
+
+    // ── Constructors ──────────────────────────────────────────────────────
+
+    protected CardRecord() {}
+
+    public CardRecord(String cardNum, Long cardAcctId, String cardCvvCd,
+                      String cardEmbossedName, String expirationDate, String activeStatus) {
+        this.cardNum = cardNum;
+        this.cardAcctId = cardAcctId;
+        this.cardCvvCd = cardCvvCd;
+        this.cardEmbossedName = cardEmbossedName;
+        this.expirationDate = expirationDate;
+        this.activeStatus = activeStatus;
+    }
+
+    // ── Accessors ─────────────────────────────────────────────────────────
+
+    public String getCardNum()          { return cardNum; }
+    public Long   getCardAcctId()       { return cardAcctId; }
+    public String getCardCvvCd()        { return cardCvvCd; }
+    public String getCardEmbossedName() { return cardEmbossedName; }
+    public String getExpirationDate()   { return expirationDate; }
+    public String getActiveStatus()     { return activeStatus; }
+}
+</code></pre></div>
+      <div class="panel" data-tab="4"><pre><code class="language-java" id="jc4">package com.carddemo.cbact02c.repository;
+
+import com.carddemo.cbact02c.domain.CardRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Spring Data JPA repository for {@link CardRecord}.
+ *
+ * &lt;p&gt;Replaces the VSAM KSDS CARDFILE-FILE accessed in CBACT02C:
+ * &lt;pre&gt;
+ * COBOL: CBACT02C.cbl:28-33
+ *   SELECT CARDFILE-FILE ASSIGN TO CARDFILE
+ *          ORGANIZATION IS INDEXED
+ *          ACCESS MODE  IS SEQUENTIAL
+ *          RECORD KEY   IS FD-CARD-NUM
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;{@code findAll(Sort.by(&quot;cardNum&quot;))} replaces sequential READ CARDFILE-FILE
+ * that advances through records ordered by the KSDS primary key (FD-CARD-NUM).
+ */
+@Repository
+public interface CardRepository extends JpaRepository&lt;CardRecord, String&gt; {
+}
+</code></pre></div>
+      <div class="panel" data-tab="5"><pre><code class="language-java" id="jc5">package com.carddemo.cbact02c.exception;
+
+/**
+ * Thrown when an unrecoverable error occurs reading the card file.
+ *
+ * &lt;p&gt;Maps the COBOL 9999-ABEND-PROGRAM paragraph in CBACT02C.cbl:
+ * &lt;pre&gt;
+ * 9999-ABEND-PROGRAM.
+ *     DISPLAY &#x27;ABENDING PROGRAM&#x27;
+ *     MOVE 999 TO ABCODE
+ *     CALL &#x27;CEE3ABD&#x27; USING ABCODE, TIMING.
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;Spring Batch catches this unchecked exception, marks the step as FAILED,
+ * and records the failure in the batch job repository — equivalent to a non-zero
+ * return code on the COBOL GOBACK.
+ */
+public class CardFileException extends RuntimeException {
+
+    public CardFileException(String message) {
+        super(message);
+    }
+
+    public CardFileException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+</code></pre></div>
+    </div>
+  </div>
+</div>
+<script>
+hljs.configure({tabReplace: '    '});
+document.querySelectorAll('pre code').forEach(function(el){hljs.highlightElement(el);});
+
+function wrapLines(codeEl, idPfx) {
+  var lines = codeEl.innerHTML.split('\n');
+  if (lines.length && lines[lines.length-1]==='') lines.pop();
+  codeEl.innerHTML = lines.map(function(line,i){
+    var n=i+1, s=String(n);
+    while(s.length<4) s='\u00a0'+s;
+    return '<span class="cl" id="'+idPfx+'-L'+n+'">'
+           +'<span class="ln">'+s+'</span>'+(line||'\u200b')+'</span>';
+  }).join('\n');
+}
+wrapLines(document.getElementById('cc'), 'cobol');
+for(var i=0;i<6;i++){var el=document.getElementById('jc'+i);if(el)wrapLines(el,'jc'+i);}
+
+var panels=document.querySelectorAll('.panel'),tabBtns=document.querySelectorAll('.tabs button');
+var fname=document.getElementById('jfn'),flines=document.getElementById('jln'),jscroll=document.getElementById('jscroll');
+function cntLines(i){var e=document.getElementById('jc'+i);return e?e.querySelectorAll('.cl').length:0;}
+function switchTab(idx,noReset){
+  panels.forEach(function(p){p.classList.remove('visible');});
+  tabBtns.forEach(function(b){b.classList.remove('active');});
+  panels[idx].classList.add('visible');tabBtns[idx].classList.add('active');
+  fname.textContent=tabBtns[idx].textContent;
+  flines.textContent=cntLines(idx)+' lines';
+  if(!noReset)jscroll.scrollTop=0;
+}
+window.addEventListener('load',function(){flines.textContent=cntLines(0)+' lines';});
+
+var actC=null,actJ=null,actRow=null;
+function navigate(row){
+  var cl=parseInt(row.dataset.cl),jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+  if(actC)actC.classList.remove('hl');if(actJ)actJ.classList.remove('hl');if(actRow)actRow.classList.remove('row-active');
+  row.classList.add('row-active');actRow=row;
+  var ce=document.getElementById('cobol-L'+cl);
+  if(ce){ce.scrollIntoView({behavior:'smooth',block:'center'});ce.classList.add('hl');actC=ce;}
+  switchTab(jt,true);
+  setTimeout(function(){var je=document.getElementById('jc'+jt+'-L'+jl);
+    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}},60);
+}
+
+var CT={
+  29:{c:'SELECT CARDFILE-FILE — VSAM KSDS file control entry, lines 29-33',j:'CardRepository extends JpaRepository<CardRecord, String>',n:'VSAM KSDS SELECT clause replaces with Spring Data JPA repository; sequential key traversal becomes findAll() sorted by cardNum ASC'},
+  37:{c:'FD CARDFILE-FILE / COPY CVACT02Y — record layout and copybook, lines 37-45',j:'CardRecord @Entity — JPA entity with 6 fields from CVACT02Y copybook',n:'FD record layout + CVACT02Y copybook (150 bytes) map to 6 persisted JPA columns; FILLER PIC X(59) discarded'},
+  70:{c:'PROCEDURE DIVISION — main flow: open, loop, close, GOBACK (lines 70-87)',j:'Cbact02cApplication.main() — SpringApplication.run() triggers job on startup',n:'COBOL mainline (DISPLAY start, PERFORM open/loop/close, DISPLAY end, GOBACK) maps to Spring Boot startup; job runs automatically via spring.batch.job.enabled=true'},
+  74:{c:'PERFORM UNTIL END-OF-FILE = \'Y\' — main processing loop (lines 74-82)',j:'CardPrintJobConfig.cardPrintStep() — chunk-oriented step (reader→processor→writer)',n:'COBOL PERFORM UNTIL loop replaced by Spring Batch chunk-oriented step; ItemReader returning null signals EOF (equivalent to CARDFILE-STATUS \'10\')'},
+  78:{c:'DISPLAY CARD-RECORD — print full 150-byte card record to SYSOUT (line 78)',j:'CardDisplayProcessor.process() — formats CardRecord as 150-char fixed-width string',n:'COBOL DISPLAY of 150-byte record group reproduced as String.format() with PIC-width padding; output emitted via log.info() in cardDisplayWriter'},
+  92:{c:'1000-CARDFILE-GET-NEXT — READ CARDFILE-FILE, check status 00/10/other (lines 92-116)',j:'CardPrintJobConfig.cardReader() — RepositoryItemReader<CardRecord> ordered by cardNum ASC',n:'READ CARDFILE-FILE INTO CARD-RECORD replaced by RepositoryItemReader.read(); status \'00\' → non-null item; status \'10\' (EOF) → read() returns null; status other → CardFileException'},
+  118:{c:'0000-CARDFILE-OPEN — OPEN INPUT CARDFILE-FILE and verify status 00 (lines 118-133)',j:'CardPrintJobConfig.cardReader() — RepositoryItemReader opened by framework before step',n:'OPEN INPUT CARDFILE-FILE + file-status check replaced by Spring Batch calling ItemStream.open() before the step; JPA connection pool replaces VSAM open'},
+  136:{c:'9000-CARDFILE-CLOSE — CLOSE CARDFILE-FILE and verify status 00 (lines 136-152)',j:'CardPrintJobConfig.cardPrintStep() — Spring Batch calls ItemStream.close() on teardown',n:'CLOSE CARDFILE-FILE replaced by Spring Batch calling ItemStream.close() automatically after step completion or failure; no explicit close code required'},
+  154:{c:'9999-ABEND-PROGRAM — CALL CEE3ABD abend with code 999 (lines 154-159)',j:'CardFileException extends RuntimeException — uncaught → step FAILED in job repository',n:'CALL \'CEE3ABD\' (LE runtime abend, code 999) replaced by throwing CardFileException; Spring Batch catches it, marks step FAILED, and persists failure in job repository'},
+  161:{c:'9910-DISPLAY-IO-STATUS — decode and DISPLAY file status in NNNN format (lines 161-178)',j:'CardPrintJobConfig.log — SLF4J Logger (Spring Batch logs exceptions automatically)',n:'NNNN-format binary status decoding has no Java equivalent; Spring Batch logs exception class, message, and stack trace via SLF4J automatically'}
+};
+
+var TABS=(function(){
+  return Array.from(document.querySelectorAll('.tabs button')).map(function(b){return b.textContent.trim();});
+}());
+
+var ctip=(function(){
+  var d=document.createElement('div');
+  d.id='ctip';
+  document.body.appendChild(d);
+  return d;
+}());
+
+function showCTip(e,ln){
+  var d=CT[ln];if(!d)return;
+  var ref='';
+  var row=document.querySelector('.nav-row[data-cl="'+ln+'"');
+  if(row){
+    var jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+    var cls=TABS[jt]||('Tab '+jt);
+    ref='<div class=tj style="font-size:.72rem;margin-bottom:.1rem;opacity:.85">→ '+cls+':'+jl+'</div>';
+  }
+  ctip.innerHTML='<div class=tc>COBOL: '+d.c+'</div>'
+                +ref
+                +'<div class=tj>Java: '+d.j+'</div>'
+                +'<div class=tn>'+d.n+'</div>';
+  ctip.style.display='block';
+  posCTip(e);
+}
+function posCTip(e){
+  var x=e.clientX+14,y=e.clientY+14;
+  if(x+370>window.innerWidth)x=e.clientX-374;
+  if(y+160>window.innerHeight)y=e.clientY-164;
+  ctip.style.left=x+'px';ctip.style.top=y+'px';
+}
+function hideCTip(){ctip.style.display='none';}
+
+(function attachTips(){
+  Object.keys(CT).forEach(function(ln){
+    var el=document.getElementById('cobol-L'+ln);
+    if(!el)return;
+    el.dataset.tip='1';
+    el.addEventListener('mouseenter',function(e){showCTip(e,+ln);});
+    el.addEventListener('mousemove',posCTip);
+    el.addEventListener('mouseleave',hideCTip);
+    var row=document.querySelector('.nav-row[data-cl="'+ln+'"');
+    if(row){
+      el.addEventListener('click',function(){hideCTip();navigate(row);});
+    }
+  });
+}());
+
+var VARS={
+  'CARDFILE-FILE':{b:'VSAM KSDS card master file, accessed sequentially ordered by CARD-NUM primary key',j:'CardRepository extends JpaRepository<CardRecord, String> — table card_records',jt:4,jl:23},
+  'FD-CARDFILE-REC':{b:'FD record buffer for CARDFILE-FILE: 150-byte working area populated by each READ',j:'CardRecord entity — @Entity @Table(name="card_records"); all sub-fields are mapped columns',jt:3,jl:28},
+  'FD-CARD-NUM':{b:'Primary KSDS record key: 16-character card number in the raw FD buffer',j:'CardRecord.cardNum (String) — @Id @Column(name="card_num", length=16)',jt:3,jl:33},
+  'FD-CARD-DATA':{b:'Remaining 134 bytes of the raw FD record buffer (all data after FD-CARD-NUM)',j:'No direct Java field — CardRecord uses the structured CVACT02Y copybook fields instead'},
+  'CARD-RECORD':{b:'01-level copybook group (CVACT02Y): all card sub-fields concatenated; 150 bytes total',j:'CardRecord @Entity — JPA entity with 6 persisted fields from CVACT02Y layout',jt:3,jl:28},
+  'CARD-NUM':{b:'16-character card number — primary KSDS key and globally unique card identifier',j:'CardRecord.cardNum (String) — @Id @Column(name="card_num") CHAR(16)',jt:3,jl:33},
+  'CARD-ACCT-ID':{b:'11-digit account ID that links this card record to an account in ACCTFILE',j:'CardRecord.cardAcctId (Long) — @Column(name="card_acct_id") BIGINT',jt:3,jl:37},
+  'CARD-CVV-CD':{b:'3-digit card verification value (CVV/CVC) — PIC 9(03) stored zero-padded',j:'CardRecord.cardCvvCd (String) — CHAR(3) preserving leading zeros; not for production persistence',jt:3,jl:45},
+  'CARD-EMBOSSED-NAME':{b:'Cardholder name as printed on the card face — left-justified, space-padded to 50 chars',j:'CardRecord.cardEmbossedName (String) — @Column(name="card_embossed_name") VARCHAR(50)',jt:3,jl:49},
+  'CARD-EXPIRAION-DATE':{b:'Card expiration date in 10-char string format (typo "EXPIRAION" preserved from CVACT02Y)',j:'CardRecord.expirationDate (String) — @Column(name="expiration_date") CHAR(10)',jt:3,jl:56},
+  'CARD-ACTIVE-STATUS':{b:'Single-char card lifecycle status: Y=active/valid, N=inactive/cancelled',j:'CardRecord.activeStatus (String) — @Column(name="active_status") CHAR(1)',jt:3,jl:60},
+  'CARDFILE-STATUS':{b:'2-char VSAM file status code returned by the OS after each READ/OPEN/CLOSE operation',j:'No Java field — Spring Batch propagates I/O failures as exceptions with JDBC error codes'},
+  'CARDFILE-STAT1':{b:'Left status byte: 0=normal, 1=EOF, 2=invalid key, 4=permanent error, 9=implementation-defined',j:'No Java equivalent — exception type encodes the error category'},
+  'CARDFILE-STAT2':{b:'Right status byte: additional VSAM/QSAM detail sub-code qualifying CARDFILE-STAT1',j:'No Java equivalent — exception cause and message encode detail'},
+  'IO-STATUS':{b:'Working copy of CARDFILE-STATUS used for display formatting in 9910-DISPLAY-IO-STATUS',j:'No Java equivalent — exception.toString() provides equivalent diagnostic text'},
+  'IO-STAT1':{b:'Left byte of IO-STATUS (copy of CARDFILE-STAT1) used for NNNN format display',j:'No Java equivalent'},
+  'IO-STAT2':{b:'Right byte of IO-STATUS (copy of CARDFILE-STAT2) — moved to TWO-BYTES-RIGHT for int decode',j:'No Java equivalent'},
+  'TWO-BYTES-BINARY':{b:'PIC 9(4) BINARY overlay — receives TWO-BYTES-RIGHT byte to convert non-numeric status byte to integer',j:'No Java equivalent — standard COBOL BINARY byte-to-int conversion pattern (ANS-85)'},
+  'TWO-BYTES-ALPHA':{b:'REDEFINES TWO-BYTES-BINARY — provides byte-addressable alphanumeric view for status byte extraction',j:'No Java equivalent — COBOL REDEFINES overlay has no Java parallel'},
+  'TWO-BYTES-LEFT':{b:'High byte of TWO-BYTES-ALPHA (not used in this program — placeholder in the layout)',j:'No Java equivalent'},
+  'TWO-BYTES-RIGHT':{b:'Low byte of TWO-BYTES-ALPHA — receives IO-STAT2 to allow binary integer conversion for DISPLAY',j:'No Java equivalent'},
+  'IO-STATUS-04':{b:'4-character display buffer: formatted file status in NNNN layout for 9910-DISPLAY-IO-STATUS output',j:'No Java equivalent — Spring Batch logs exception class, message and stack trace automatically'},
+  'IO-STATUS-0401':{b:'First digit of the IO-STATUS-04 composite display field (PIC 9)',j:'No Java equivalent'},
+  'IO-STATUS-0403':{b:'Remaining 3 digits of the IO-STATUS-04 display field (PIC 999) holding the numeric detail code',j:'No Java equivalent'},
+  'APPL-RESULT':{b:'Application-level result code: 0=successful I/O (APPL-AOK), 16=EOF (APPL-EOF), 12=I/O error',j:'No Java field — ItemReader.read() returns null for EOF; throws on error'},
+  'APPL-AOK':{b:'88-level condition: APPL-RESULT = 0, meaning the last READ completed successfully',j:'No Java equivalent — maps to non-null return value from RepositoryItemReader.read()'},
+  'APPL-EOF':{b:'88-level condition: APPL-RESULT = 16, meaning CARDFILE-STATUS = "10" (end of file)',j:'No Java equivalent — maps to RepositoryItemReader.read() returning null'},
+  'END-OF-FILE':{b:'Loop-termination flag PIC X(01): initialised "N"; SET to "Y" when APPL-EOF fires to exit PERFORM UNTIL',j:'No Java field — Spring Batch chunk loop terminates when ItemReader.read() returns null'},
+  'ABCODE':{b:'Abend code passed to CEE3ABD on fatal error; always 999 in this program',j:'No Java field — CardFileException message string encodes the error context'},
+  'TIMING':{b:'CEE3ABD timing parameter: 0 = take immediate abend dump',j:'No Java equivalent — RuntimeException propagation is inherently synchronous'}
+};
+
+function navigateVar(jt,jl){
+  if(actJ)actJ.classList.remove('hl');
+  switchTab(jt,true);
+  setTimeout(function(){
+    var je=document.getElementById('jc'+jt+'-L'+jl);
+    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}
+  },60);
+}
+
+function showVTip(e,vn){
+  var d=VARS[vn];if(!d)return;
+  var ref='';
+  if(d.jt!==undefined){
+    var cls=TABS[d.jt]||('Tab '+d.jt);
+    ref='<div class=tj style="font-size:.72rem;margin-bottom:.1rem;opacity:.85">→ '+cls+':'+d.jl+'</div>';
+  }
+  ctip.innerHTML=
+    '<div class=tc style="font-family:\'JetBrains Mono\',monospace;letter-spacing:.02em">'+vn+'</div>'
+    +'<div class=tj>\u25b6 '+d.b+'</div>'
+    +ref
+    +'<div class=tn>'+d.j+(d.jt!==undefined?' \u2014 click to navigate':'')+'</div>';
+  ctip.style.display='block';
+  posCTip(e);
+}
+
+function wrapVars(codeEl){
+  var varList=Object.keys(VARS).sort(function(a,b){return b.length-a.length;});
+  var esc=varList.map(function(v){return v.replace(/-/g,'\\-');}).join('|');
+  var re=new RegExp('(?<![A-Za-z0-9-])('+esc+')(?![A-Za-z0-9-])','gi');
+  var walker=document.createTreeWalker(
+    codeEl,NodeFilter.SHOW_TEXT,
+    {acceptNode:function(n){
+      var p=n.parentNode;
+      while(p&&p!==codeEl){
+        if(p.className&&(p.className==='ln'||p.className.indexOf('ln ')===0)) return NodeFilter.FILTER_REJECT;
+        p=p.parentNode;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }},false
+  );
+  var nodes=[],nd;
+  while((nd=walker.nextNode()))nodes.push(nd);
+  nodes.forEach(function(nd){
+    var txt=nd.textContent; re.lastIndex=0;
+    if(!re.test(txt))return;
+    re.lastIndex=0;
+    var frag=document.createDocumentFragment(),last=0,m;
+    while((m=re.exec(txt))!==null){
+      if(m.index>last)frag.appendChild(document.createTextNode(txt.slice(last,m.index)));
+      var sp=document.createElement('span');
+      var vn=m[1].toUpperCase();
+      var hasLink=VARS[vn]&&VARS[vn].jt!==undefined;
+      sp.className='vt'+(hasLink?' vt-link':'');
+      sp.dataset.vn=vn; sp.textContent=m[1];
+      (function(sp,vn,hasLink){
+        sp.addEventListener('mouseenter',function(e){showVTip(e,vn);});
+        sp.addEventListener('mousemove',posCTip);
+        sp.addEventListener('mouseleave',function(e){
+          var cl=sp.closest&&sp.closest('.cl[data-tip]');
+          if(cl&&cl.contains(e.relatedTarget)){
+            showCTip(e,parseInt(cl.id.replace('cobol-L','')));
+          } else hideCTip();
+        });
+        if(hasLink){
+          sp.addEventListener('click',function(e){
+            e.stopPropagation();hideCTip();navigateVar(VARS[vn].jt,VARS[vn].jl);
+          });
+        }
+      }(sp,vn,hasLink));
+      frag.appendChild(sp); last=m.index+m[0].length;
+    }
+    if(last<txt.length)frag.appendChild(document.createTextNode(txt.slice(last)));
+    nd.parentNode.replaceChild(frag,nd);
+  });
+}
+wrapVars(document.getElementById('cc'));
+</script>
+
+</body>
+</html>
