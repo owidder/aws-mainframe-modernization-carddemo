@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CBACT01C — COBOL ↔ Java</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/catppuccin-mocha.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cobol.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<style>
+:root{--bg:#1e1e2e;--bg2:#181825;--bg3:#313244;--border:#45475a;--text:#cdd6f4;--sub:#a6adc8;
+      --cyan:#89dceb;--gold:#f9e2af;--green:#a6e3a1;--blue:#89b4fa;--peach:#fab387}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+/* ── nav ── */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:.4rem 1.2rem;
+    display:flex;gap:.7rem;align-items:center;flex-shrink:0;flex-wrap:wrap}
+nav a{color:var(--cyan);text-decoration:none;font-size:.8rem}
+nav a:hover{text-decoration:underline}
+nav .sep{color:var(--border)}
+.badge-nav{margin-left:auto;background:var(--bg3);color:var(--gold);
+           padding:.1rem .5rem;border-radius:4px;font-size:.7rem;font-weight:700}
+/* ── header ── */
+header{padding:.5rem 1.2rem .35rem;border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:1.1rem;color:var(--cyan)}
+.meta{color:var(--sub);font-size:.74rem;margin-top:.15rem}
+.meta code{font-family:monospace}
+.mc{color:var(--peach)} .mj{color:var(--green)}
+.badges{display:flex;gap:.35rem;margin-top:.28rem;flex-wrap:wrap}
+.badge{padding:.08rem .45rem;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.04em}
+.b-batch{background:#1a2f4a;color:var(--blue);border:1px solid var(--blue)}
+.b-spring{background:#1a3a1a;color:var(--green);border:1px solid var(--green)}
+.b-cobol{background:#3a1a1a;color:var(--peach);border:1px solid var(--peach)}
+/* ── mapping table ── */
+.map-wrap{padding:.4rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0;
+          max-height:200px;overflow-y:auto;scrollbar-width:thin;
+          scrollbar-color:var(--border) var(--bg2);background:var(--bg2)}
+.map-wrap h2{font-size:.8rem;color:var(--gold);margin-bottom:.28rem}
+.nav-hint{color:var(--border);font-size:.65rem}
+.mt{width:100%;border-collapse:collapse;font-size:.7rem}
+.mt th{color:var(--sub);text-align:left;padding:.24rem .5rem;border-bottom:1px solid var(--border);
+       font-weight:600;position:sticky;top:0;background:var(--bg2);z-index:1}
+.mt td{padding:.24rem .5rem;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.35}
+.mt td:nth-child(3){color:var(--sub)}
+.mt small{color:var(--sub);font-size:.65rem}
+.mt code{background:var(--bg3);padding:.02rem .22rem;border-radius:3px;
+         font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--cyan)}
+.nav-row{cursor:pointer;transition:background .1s}
+.nav-row:hover td{background:rgba(255,255,255,.04)}
+.nav-row.row-active td{background:rgba(137,220,235,.08);border-left:2px solid var(--cyan)}
+/* ── split view ── */
+.split{display:flex;flex:1;overflow:hidden}
+.pane{display:flex;flex-direction:column;overflow:hidden}
+.pane-cobol{flex:1 1 50%;min-width:0;border-right:2px solid var(--border)}
+.pane-java{flex:1 1 50%;min-width:0}
+.pane-hdr{background:var(--bg2);padding:.28rem .7rem;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.lang-tag{font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+          padding:.07rem .35rem;border-radius:3px}
+.lc{background:#3a1a1a;color:var(--peach)} .lj{background:#1a3a1a;color:var(--green)}
+.pane-fn{font-size:.75rem;color:var(--sub);font-family:monospace}
+.pane-ln{margin-left:auto;font-size:.65rem;color:var(--border)}
+/* ── tabs ── */
+.tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;background:var(--bg2);
+      border-bottom:1px solid var(--border);flex-shrink:0;
+      scrollbar-width:thin;scrollbar-color:var(--border) var(--bg2)}
+.tabs button{flex-shrink:0;background:none;border:none;border-bottom:2px solid transparent;
+             color:var(--sub);padding:.28rem .55rem;font-size:.67rem;cursor:pointer;
+             font-family:'JetBrains Mono',monospace;transition:color .12s,border-color .12s;
+             white-space:nowrap}
+.tabs button:hover{color:var(--text)}
+.tabs button.active{color:var(--green);border-bottom-color:var(--green)}
+/* ── code scroll ── */
+.cs{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) var(--bg)}
+.panel{display:none}.panel.visible{display:block}
+.cs pre{margin:0}
+.cs pre code{display:block;padding:.5rem 0 .5rem .3rem !important;
+             font-size:.72rem !important;line-height:1.6 !important;
+             font-family:'JetBrains Mono','Cascadia Code','Fira Code',monospace !important}
+.hljs{background:var(--bg) !important}
+/* ── line numbers ── */
+.cl{display:block;padding-right:.4rem}
+.ln{display:inline-block;min-width:3em;color:var(--border);user-select:none;
+    text-align:right;padding-right:.6em;border-right:1px solid var(--border);
+    margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
+.cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
+.cl.hl .ln{color:var(--cyan)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">CardDemo Docs</a>
+  <span class="sep">›</span>
+  <a href="../java-transformation.html">Java Transformation</a>
+  <span class="sep">›</span>
+  <span style="color:var(--text)">CBACT01C</span>
+  <span class="badge-nav">COBOL ↔ Java</span>
+</nav>
+
+<header>
+  <h1>CBACT01C — COBOL ↔ Java Side-by-Side</h1>
+  <div class="meta">
+    COBOL: <code class="mc">app/cbl/CBACT01C.cbl</code> (430 lines)&nbsp;·&nbsp;
+    Java: <code class="mj">java/cbact01c/</code> (714 lines, 13 files)
+  </div>
+  <div class="badges">
+    <span class="badge b-cobol">COBOL Batch</span>
+    <span class="badge b-spring">Spring Batch 5</span>
+    <span class="badge b-batch">Chunk-oriented Step</span>
+  </div>
+</header>
+
+<div class="map-wrap">
+  <h2>COBOL Paragraph → Java Mapping &nbsp;<span class="nav-hint">&#9654; click a row to jump to code</span></h2>
+  <table class="mt">
+    <thead><tr>
+      <th style="width:25%">COBOL Paragraph</th>
+      <th style="width:38%">Java Class / Method</th>
+      <th>Notes</th>
+    </tr></thead>
+    <tbody>
+<tr class="nav-row" data-cl="140" data-jt="0" data-jl="57" onclick="navigate(this)" title="Jump to COBOL L140 / AccountExportJobConfig.java L57">
+  <td><code>PROCEDURE DIVISION</code> main<br><small>L140–160</small></td><td><code>AccountExportJobConfig</code> — <code>accountExportJob()</code> / <code>accountExportStep()</code></td><td>Chunk-oriented step replaces PERFORM UNTIL END-OF-FILE loop</td>
+</tr>
+<tr class="nav-row" data-cl="317" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L317 / AccountExportJobConfig.java L95">
+  <td><code>0000-ACCTFILE-OPEN</code><br><small>L317–333</small></td><td><code>AccountExportJobConfig</code> — <code>accountReader()</code></td><td>Spring Batch ItemStream.open() replaces OPEN INPUT ACCTFILE-FILE</td>
+</tr>
+<tr class="nav-row" data-cl="334" data-jt="2" data-jl="92" onclick="navigate(this)" title="Jump to COBOL L334 / MultiFileItemWriter.java L92">
+  <td><code>2000/3000/4000-*-OPEN</code><br><small>L334–386</small></td><td><code>MultiFileItemWriter.open()</code></td><td>Three FlatFileItemWriter instances opened via ItemStream lifecycle</td>
+</tr>
+<tr class="nav-row" data-cl="165" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L165 / AccountExportJobConfig.java L95">
+  <td><code>1000-ACCTFILE-GET-NEXT</code><br><small>L165–198</small></td><td><code>AccountRepository</code> → <code>RepositoryItemReader.read()</code></td><td>JPA findAll(Pageable) pages of 10 replace sequential READ</td>
+</tr>
+<tr class="nav-row" data-cl="200" data-jt="1" data-jl="47" onclick="navigate(this)" title="Jump to COBOL L200 / AccountExportProcessor.java L47">
+  <td><code>1100-DISPLAY-ACCT-RECORD</code><br><small>L200–213</small></td><td><code>AccountExportProcessor</code> — <code>log.debug()</code></td><td>DISPLAY statements mapped to SLF4J debug logging</td>
+</tr>
+<tr class="nav-row" data-cl="215" data-jt="1" data-jl="64" onclick="navigate(this)" title="Jump to COBOL L215 / AccountExportProcessor.java L64">
+  <td><code>1300-POPUL-ACCT-RECORD</code><br><small>L215–240</small></td><td><code>AccountExportProcessor</code> — <code>new OutRecord(…)</code></td><td>Field-by-field MOVE statements become record constructor arguments</td>
+</tr>
+<tr class="nav-row" data-cl="231" data-jt="3" data-jl="46" onclick="navigate(this)" title="Jump to COBOL L231 / DateConversionService.java L46">
+  <td><code>CALL &#39;COBDATFT&#39;</code><br><small>L231</small></td><td><code>DateConversionService.convertYyyyMmDdToYyyymmdd()</code></td><td>Assembler date formatter replaced with java.time (ISO_LOCAL_DATE → BASIC_ISO_DATE)</td>
+</tr>
+<tr class="nav-row" data-cl="236" data-jt="1" data-jl="60" onclick="navigate(this)" title="Jump to COBOL L236 / AccountExportProcessor.java L60">
+  <td><code>IF CYC-DEBIT = ZERO MOVE 2525.00</code><br><small>L236–238</small></td><td><code>AccountExportProcessor</code> — <code>DEFAULT_CYC_DEBIT</code></td><td>BigDecimal.ZERO.compareTo() guard; same constant value 2525.00</td>
+</tr>
+<tr class="nav-row" data-cl="242" data-jt="2" data-jl="65" onclick="navigate(this)" title="Jump to COBOL L242 / MultiFileItemWriter.java L65">
+  <td><code>1350-WRITE-ACCT-RECORD</code><br><small>L242–251</small></td><td><code>MultiFileItemWriter</code> → <code>outWriter.write()</code></td><td>FlatFileItemWriter produces OUTFILE.txt (pipe-delimited)</td>
+</tr>
+<tr class="nav-row" data-cl="253" data-jt="1" data-jl="80" onclick="navigate(this)" title="Jump to COBOL L253 / AccountExportProcessor.java L80">
+  <td><code>1400-POPUL-ARRAY-RECORD</code><br><small>L253–261</small></td><td><code>AccountExportProcessor</code> — <code>List.of(…)</code> 5 entries</td><td>OCCURS 5 TIMES → List with 5 elements; entries 4–5 always zero (INITIALIZE)</td>
+</tr>
+<tr class="nav-row" data-cl="263" data-jt="2" data-jl="67" onclick="navigate(this)" title="Jump to COBOL L263 / MultiFileItemWriter.java L67">
+  <td><code>1450-WRITE-ARRY-RECORD</code><br><small>L263–274</small></td><td><code>MultiFileItemWriter</code> → <code>arryWriter.write()</code></td><td>FlatFileItemWriter produces ARRYFILE.txt</td>
+</tr>
+<tr class="nav-row" data-cl="276" data-jt="1" data-jl="91" onclick="navigate(this)" title="Jump to COBOL L276 / AccountExportProcessor.java L91">
+  <td><code>1500-POPUL-VBRC-RECORD</code><br><small>L276–285</small></td><td><code>AccountExportProcessor</code> — <code>VbrRecord1</code> + <code>VbrRecord2</code></td><td>Two record layouts per account; reissue year via substring(0,4)</td>
+</tr>
+<tr class="nav-row" data-cl="287" data-jt="2" data-jl="76" onclick="navigate(this)" title="Jump to COBOL L287 / MultiFileItemWriter.java L76">
+  <td><code>1550/1575-WRITE-VB*</code><br><small>L287–315</small></td><td><code>MultiFileItemWriter</code> — <code>formatVbr1()</code> / <code>formatVbr2()</code></td><td>Variable-length VBR-REC → prefixed text lines (VBR1|… / VBR2|…)</td>
+</tr>
+<tr class="nav-row" data-cl="388" data-jt="2" data-jl="107" onclick="navigate(this)" title="Jump to COBOL L388 / MultiFileItemWriter.java L107">
+  <td><code>9000-ACCTFILE-CLOSE</code><br><small>L388–404</small></td><td><code>MultiFileItemWriter.close()</code></td><td>Step teardown closes all three FlatFileItemWriter instances</td>
+</tr>
+<tr class="nav-row" data-cl="406" data-jt="1" data-jl="45" onclick="navigate(this)" title="Jump to COBOL L406 / AccountExportProcessor.java L45">
+  <td><code>9999-ABEND-PROGRAM</code><br><small>L406–410</small></td><td>Uncaught exception → Spring Batch step FAILED</td><td>CALL &#39;CEE3ABD&#39; replaced by exception propagation from process()</td>
+</tr>
+<tr class="nav-row" data-cl="413" data-jt="0" data-jl="77" onclick="navigate(this)" title="Jump to COBOL L413 / AccountExportJobConfig.java L77">
+  <td><code>9910-DISPLAY-IO-STATUS</code><br><small>L413–426</small></td><td>Spring Batch StepExecution failure cause (step builder at L77)</td><td>File status display replaced by exception in JobExecution metadata</td>
+</tr>
+
+    </tbody>
+  </table>
+</div>
+
+<div class="split">
+  <div class="pane pane-cobol">
+    <div class="pane-hdr">
+      <span class="lang-tag lc">COBOL</span>
+      <span class="pane-fn">app/cbl/CBACT01C.cbl</span>
+      <span class="pane-ln">430 lines</span>
+    </div>
+    <div class="cs" id="cscroll">
+      <pre><code class="language-cobol" id="cc">000100******************************************************************
+000200* PROGRAM     : CBACT01C.CBL
+000300* Application : CardDemo
+000400* Type        : BATCH COBOL Program
+000500* FUNCTION    : READ THE ACCOUNT FILE AND WRITE INTO FILES.
+000600******************************************************************
+000700* Copyright Amazon.com, Inc. or its affiliates.
+000800* All Rights Reserved.
+000900*
+001000* Licensed under the Apache License, Version 2.0 (the &quot;License&quot;).
+001100* You may not use this file except in compliance with the License.
+001200* You may obtain a copy of the License at
+001300*
+001400*    http://www.apache.org/licenses/LICENSE-2.0
+001500*
+001600* Unless required by applicable law or agreed to in writing,
+001700* software distributed under the License is distributed on an
+001800* &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+001900* either express or implied. See the License for the specific
+002000* language governing permissions and limitations under the License
+002100******************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    CBACT01C.
+       AUTHOR.        AWS.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ACCTFILE-FILE ASSIGN TO ACCTFILE
+                  ORGANIZATION IS INDEXED
+                  ACCESS MODE  IS SEQUENTIAL
+                  RECORD KEY   IS FD-ACCT-ID
+                  FILE STATUS  IS ACCTFILE-STATUS.
+      *
+           SELECT OUT-FILE ASSIGN TO OUTFILE
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS MODE IS SEQUENTIAL
+                  FILE STATUS IS OUTFILE-STATUS.
+      *
+           SELECT ARRY-FILE ASSIGN TO ARRYFILE
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS MODE IS SEQUENTIAL
+                  FILE STATUS IS ARRYFILE-STATUS.
+      *
+           SELECT VBRC-FILE ASSIGN TO VBRCFILE
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS MODE IS SEQUENTIAL
+                  FILE STATUS IS VBRCFILE-STATUS.
+      *
+       DATA DIVISION.
+       FILE SECTION.
+       FD  ACCTFILE-FILE.
+       01  FD-ACCTFILE-REC.
+           05 FD-ACCT-ID                        PIC 9(11).
+           05 FD-ACCT-DATA                      PIC X(289).
+       FD OUT-FILE.
+       01 OUT-ACCT-REC.
+          05  OUT-ACCT-ID                PIC 9(11).
+          05  OUT-ACCT-ACTIVE-STATUS     PIC X(01).
+          05  OUT-ACCT-CURR-BAL          PIC S9(10)V99.
+          05  OUT-ACCT-CREDIT-LIMIT      PIC S9(10)V99.
+          05  OUT-ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99.
+          05  OUT-ACCT-OPEN-DATE         PIC X(10).
+          05  OUT-ACCT-EXPIRAION-DATE    PIC X(10).
+          05  OUT-ACCT-REISSUE-DATE      PIC X(10).
+          05  OUT-ACCT-CURR-CYC-CREDIT   PIC S9(10)V99.
+          05  OUT-ACCT-CURR-CYC-DEBIT    PIC S9(10)V99
+                                         USAGE IS COMP-3.
+          05  OUT-ACCT-GROUP-ID          PIC X(10).
+      *
+       FD ARRY-FILE.
+       01 ARR-ARRAY-REC.
+          05  ARR-ACCT-ID                PIC 9(11).
+          05  ARR-ACCT-BAL OCCURS 5  TIMES.
+            10  ARR-ACCT-CURR-BAL        PIC S9(10)V99.
+            10  ARR-ACCT-CURR-CYC-DEBIT  PIC S9(10)V99
+                                         USAGE IS COMP-3.
+          05  ARR-FILLER                 PIC X(04).
+      *
+       FD VBRC-FILE
+                  RECORDING MODE IS V
+                  RECORD IS VARYING IN SIZE
+                  FROM 10 TO 80 DEPENDING
+                  ON WS-RECD-LEN.
+       01 VBR-REC                        PIC X(80).
+       WORKING-STORAGE SECTION.
+
+      ****0************************************************************
+       COPY CVACT01Y.
+       COPY CODATECN.
+       01  ACCTFILE-STATUS.
+           05  ACCTFILE-STAT1      PIC X.
+           05  ACCTFILE-STAT2      PIC X.
+       01  OUTFILE-STATUS.
+           05  OUTFILE-STAT1       PIC X.
+           05  OUTFILE-STAT2       PIC X.
+       01  ARRYFILE-STATUS.
+           05  ARRYFILE-STAT1      PIC X.
+           05  ARRYFILE-STAT2      PIC X.
+       01  VBRCFILE-STATUS.
+           05  VBRCFILE-STAT1      PIC X.
+           05  VBRCFILE-STAT2      PIC X.
+
+       01  IO-STATUS.
+           05  IO-STAT1            PIC X.
+           05  IO-STAT2            PIC X.
+       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.
+       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.
+           05  TWO-BYTES-LEFT      PIC X.
+           05  TWO-BYTES-RIGHT     PIC X.
+       01  IO-STATUS-04.
+           05  IO-STATUS-0401      PIC 9   VALUE 0.
+           05  IO-STATUS-0403      PIC 999 VALUE 0.
+
+       01  APPL-RESULT             PIC S9(9)   COMP.
+           88  APPL-AOK            VALUE 0.
+           88  APPL-EOF            VALUE 16.
+
+       01  END-OF-FILE             PIC X(01)    VALUE &#x27;N&#x27;.
+       01  ABCODE                  PIC S9(9) BINARY.
+       01  TIMING                  PIC S9(9) BINARY.
+       01  WS-RECD-LEN             PIC  9(04).
+       01 VBRC-REC1.
+          05  VB1-ACCT-ID                PIC 9(11).
+          05  VB1-ACCT-ACTIVE-STATUS     PIC X(01).
+       01 VBRC-REC2.
+          05  VB2-ACCT-ID                PIC 9(11).
+          05  VB2-ACCT-CURR-BAL          PIC S9(10)V99.
+          05  VB2-ACCT-CREDIT-LIMIT      PIC S9(10)V99.
+          05  VB2-ACCT-REISSUE-YYYY      PIC X(04).
+       01 WS-ACCT-REISSUE-DATE.
+          05  WS-ACCT-REISSUE-YYYY       PIC X(04).
+          05  WS-FILLER-1                PIC X(01).
+          05  WS-ACCT-REISSUE-MM         PIC X(02).
+          05  WS-FILLER-2                PIC X(01).
+          05  WS-ACCT-REISSUE-DD         PIC X(02).
+       01 WS-REISSUE-DATE REDEFINES WS-ACCT-REISSUE-DATE  PIC X(10).
+
+      *****************************************************************
+       PROCEDURE DIVISION.
+           DISPLAY &#x27;START OF EXECUTION OF PROGRAM CBACT01C&#x27;.
+           PERFORM 0000-ACCTFILE-OPEN.
+           PERFORM 2000-OUTFILE-OPEN.
+           PERFORM 3000-ARRFILE-OPEN.
+           PERFORM 4000-VBRFILE-OPEN.
+
+           PERFORM UNTIL END-OF-FILE = &#x27;Y&#x27;
+               IF  END-OF-FILE = &#x27;N&#x27;
+                   PERFORM 1000-ACCTFILE-GET-NEXT
+                   IF  END-OF-FILE = &#x27;N&#x27;
+                       DISPLAY ACCOUNT-RECORD
+                   END-IF
+               END-IF
+           END-PERFORM.
+
+           PERFORM 9000-ACCTFILE-CLOSE.
+
+           DISPLAY &#x27;END OF EXECUTION OF PROGRAM CBACT01C&#x27;.
+
+           GOBACK.
+
+      *****************************************************************
+      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *
+      *****************************************************************
+       1000-ACCTFILE-GET-NEXT.
+           READ ACCTFILE-FILE INTO ACCOUNT-RECORD.
+           IF  ACCTFILE-STATUS = &#x27;00&#x27;
+               MOVE 0 TO APPL-RESULT
+               INITIALIZE ARR-ARRAY-REC
+               PERFORM 1100-DISPLAY-ACCT-RECORD
+               PERFORM 1300-POPUL-ACCT-RECORD
+               PERFORM 1350-WRITE-ACCT-RECORD
+               PERFORM 1400-POPUL-ARRAY-RECORD
+               PERFORM 1450-WRITE-ARRY-RECORD
+               INITIALIZE VBRC-REC1
+               PERFORM 1500-POPUL-VBRC-RECORD
+               PERFORM 1550-WRITE-VB1-RECORD
+               PERFORM 1575-WRITE-VB2-RECORD
+           ELSE
+               IF  ACCTFILE-STATUS = &#x27;10&#x27;
+                   MOVE 16 TO APPL-RESULT
+               ELSE
+                   MOVE 12 TO APPL-RESULT
+               END-IF
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               IF  APPL-EOF
+                   MOVE &#x27;Y&#x27; TO END-OF-FILE
+               ELSE
+                   DISPLAY &#x27;ERROR READING ACCOUNT FILE&#x27;
+                   MOVE ACCTFILE-STATUS TO IO-STATUS
+                   PERFORM 9910-DISPLAY-IO-STATUS
+                   PERFORM 9999-ABEND-PROGRAM
+               END-IF
+           END-IF
+           EXIT.
+      *---------------------------------------------------------------*
+       1100-DISPLAY-ACCT-RECORD.
+           DISPLAY &#x27;ACCT-ID                 :&#x27;   ACCT-ID
+           DISPLAY &#x27;ACCT-ACTIVE-STATUS      :&#x27;   ACCT-ACTIVE-STATUS
+           DISPLAY &#x27;ACCT-CURR-BAL           :&#x27;   ACCT-CURR-BAL
+           DISPLAY &#x27;ACCT-CREDIT-LIMIT       :&#x27;   ACCT-CREDIT-LIMIT
+           DISPLAY &#x27;ACCT-CASH-CREDIT-LIMIT  :&#x27;   ACCT-CASH-CREDIT-LIMIT
+           DISPLAY &#x27;ACCT-OPEN-DATE          :&#x27;   ACCT-OPEN-DATE
+           DISPLAY &#x27;ACCT-EXPIRAION-DATE     :&#x27;   ACCT-EXPIRAION-DATE
+           DISPLAY &#x27;ACCT-REISSUE-DATE       :&#x27;   ACCT-REISSUE-DATE
+           DISPLAY &#x27;ACCT-CURR-CYC-CREDIT    :&#x27;   ACCT-CURR-CYC-CREDIT
+           DISPLAY &#x27;ACCT-CURR-CYC-DEBIT     :&#x27;   ACCT-CURR-CYC-DEBIT
+           DISPLAY &#x27;ACCT-GROUP-ID           :&#x27;   ACCT-GROUP-ID
+           DISPLAY &#x27;-------------------------------------------------&#x27;
+           EXIT.
+      *---------------------------------------------------------------*
+       1300-POPUL-ACCT-RECORD.
+           MOVE   ACCT-ID                 TO   OUT-ACCT-ID.
+           MOVE   ACCT-ACTIVE-STATUS      TO   OUT-ACCT-ACTIVE-STATUS.
+           MOVE   ACCT-CURR-BAL           TO   OUT-ACCT-CURR-BAL.
+           MOVE   ACCT-CREDIT-LIMIT       TO   OUT-ACCT-CREDIT-LIMIT.
+           MOVE   ACCT-CASH-CREDIT-LIMIT  TO OUT-ACCT-CASH-CREDIT-LIMIT.
+           MOVE   ACCT-OPEN-DATE          TO   OUT-ACCT-OPEN-DATE.
+           MOVE   ACCT-EXPIRAION-DATE     TO   OUT-ACCT-EXPIRAION-DATE.
+           MOVE   ACCT-REISSUE-DATE       TO   CODATECN-INP-DATE
+                                               WS-REISSUE-DATE.
+           MOVE   &#x27;2&#x27;                     TO   CODATECN-TYPE.
+           MOVE   &#x27;2&#x27;                     TO   CODATECN-OUTTYPE.
+
+      *---------------------------------------------------------------*
+      *CALL ASSEMBLER PROGRAM FOR DATE FORMATTING                     *
+      *---------------------------------------------------------------*
+           CALL &#x27;COBDATFT&#x27;       USING CODATECN-REC.
+
+           MOVE   CODATECN-0UT-DATE       TO   OUT-ACCT-REISSUE-DATE.
+
+           MOVE   ACCT-CURR-CYC-CREDIT    TO   OUT-ACCT-CURR-CYC-CREDIT.
+           IF  ACCT-CURR-CYC-DEBIT EQUAL TO ZERO
+               MOVE 2525.00         TO   OUT-ACCT-CURR-CYC-DEBIT
+           END-IF.
+           MOVE   ACCT-GROUP-ID           TO   OUT-ACCT-GROUP-ID.
+           EXIT.
+      *---------------------------------------------------------------*
+       1350-WRITE-ACCT-RECORD.
+           WRITE OUT-ACCT-REC.
+
+           IF OUTFILE-STATUS NOT = &#x27;00&#x27; AND OUTFILE-STATUS NOT = &#x27;10&#x27;
+              DISPLAY &#x27;ACCOUNT FILE WRITE STATUS IS:&#x27;  OUTFILE-STATUS
+              MOVE OUTFILE-STATUS  TO IO-STATUS
+              PERFORM 9910-DISPLAY-IO-STATUS
+              PERFORM 9999-ABEND-PROGRAM
+           END-IF.
+           EXIT.
+      *---------------------------------------------------------------*
+       1400-POPUL-ARRAY-RECORD.
+           MOVE   ACCT-ID         TO   ARR-ACCT-ID.
+           MOVE   ACCT-CURR-BAL   TO   ARR-ACCT-CURR-BAL(1).
+           MOVE   1005.00         TO   ARR-ACCT-CURR-CYC-DEBIT(1).
+           MOVE   ACCT-CURR-BAL   TO   ARR-ACCT-CURR-BAL(2).
+           MOVE   1525.00         TO   ARR-ACCT-CURR-CYC-DEBIT(2).
+           MOVE   -1025.00        TO   ARR-ACCT-CURR-BAL(3).
+           MOVE   -2500.00        TO   ARR-ACCT-CURR-CYC-DEBIT(3).
+           EXIT.
+      *---------------------------------------------------------------*
+       1450-WRITE-ARRY-RECORD.
+           WRITE ARR-ARRAY-REC.
+
+           IF ARRYFILE-STATUS NOT = &#x27;00&#x27;
+                        AND ARRYFILE-STATUS NOT = &#x27;10&#x27;
+              DISPLAY &#x27;ACCOUNT FILE WRITE STATUS IS:&#x27;
+                                        ARRYFILE-STATUS
+              MOVE ARRYFILE-STATUS TO IO-STATUS
+              PERFORM 9910-DISPLAY-IO-STATUS
+              PERFORM 9999-ABEND-PROGRAM
+           END-IF.
+           EXIT.
+      *---------------------------------------------------------------*
+       1500-POPUL-VBRC-RECORD.
+           MOVE   ACCT-ID            TO VB1-ACCT-ID
+                                        VB2-ACCT-ID.
+           MOVE   ACCT-ACTIVE-STATUS TO VB1-ACCT-ACTIVE-STATUS.
+           MOVE   ACCT-CURR-BAL           TO  VB2-ACCT-CURR-BAL.
+           MOVE   ACCT-CREDIT-LIMIT       TO  VB2-ACCT-CREDIT-LIMIT.
+           MOVE   WS-ACCT-REISSUE-YYYY    TO  VB2-ACCT-REISSUE-YYYY.
+           DISPLAY &#x27;VBRC-REC1:&#x27; VBRC-REC1.
+           DISPLAY &#x27;VBRC-REC2:&#x27; VBRC-REC2.
+           EXIT.
+      *---------------------------------------------------------------*
+       1550-WRITE-VB1-RECORD.
+           MOVE 12 TO WS-RECD-LEN.
+           MOVE VBRC-REC1 TO VBR-REC(1:WS-RECD-LEN).
+           WRITE VBR-REC.
+
+           IF VBRCFILE-STATUS NOT = &#x27;00&#x27;
+                        AND VBRCFILE-STATUS NOT = &#x27;10&#x27;
+              DISPLAY &#x27;ACCOUNT FILE WRITE STATUS IS:&#x27;
+                                        VBRCFILE-STATUS
+              MOVE VBRCFILE-STATUS TO IO-STATUS
+              PERFORM 9910-DISPLAY-IO-STATUS
+              PERFORM 9999-ABEND-PROGRAM
+           END-IF.
+           EXIT.
+      *---------------------------------------------------------------*
+       1575-WRITE-VB2-RECORD.
+           MOVE 39 TO WS-RECD-LEN.
+           MOVE VBRC-REC2 TO VBR-REC(1:WS-RECD-LEN).
+           WRITE VBR-REC.
+
+           IF VBRCFILE-STATUS NOT = &#x27;00&#x27;
+                        AND VBRCFILE-STATUS NOT = &#x27;10&#x27;
+              DISPLAY &#x27;ACCOUNT FILE WRITE STATUS IS:&#x27;
+                                        VBRCFILE-STATUS
+              MOVE VBRCFILE-STATUS TO IO-STATUS
+              PERFORM 9910-DISPLAY-IO-STATUS
+              PERFORM 9999-ABEND-PROGRAM
+           END-IF.
+           EXIT.
+      *---------------------------------------------------------------*
+       0000-ACCTFILE-OPEN.
+           MOVE 8 TO APPL-RESULT.
+           OPEN INPUT ACCTFILE-FILE
+           IF  ACCTFILE-STATUS = &#x27;00&#x27;
+               MOVE 0 TO APPL-RESULT
+           ELSE
+               MOVE 12 TO APPL-RESULT
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               DISPLAY &#x27;ERROR OPENING ACCTFILE&#x27;
+               MOVE ACCTFILE-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+       2000-OUTFILE-OPEN.
+           MOVE 8 TO APPL-RESULT.
+           OPEN OUTPUT OUT-FILE
+           IF   OUTFILE-STATUS = &#x27;00&#x27;
+               MOVE 0 TO APPL-RESULT
+           ELSE
+               MOVE 12 TO APPL-RESULT
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               DISPLAY &#x27;ERROR OPENING OUTFILE&#x27;  OUTFILE-STATUS
+               MOVE  OUTFILE-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+      *---------------------------------------------------------------*
+       3000-ARRFILE-OPEN.
+           MOVE 8 TO APPL-RESULT.
+           OPEN OUTPUT ARRY-FILE
+           IF   ARRYFILE-STATUS = &#x27;00&#x27;
+               MOVE 0 TO APPL-RESULT
+           ELSE
+               MOVE 12 TO APPL-RESULT
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               DISPLAY &#x27;ERROR OPENING ARRAYFILE&#x27;  ARRYFILE-STATUS
+               MOVE  ARRYFILE-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+      *---------------------------------------------------------------*
+       4000-VBRFILE-OPEN.
+           MOVE 8 TO APPL-RESULT.
+           OPEN OUTPUT VBRC-FILE
+           IF   VBRCFILE-STATUS = &#x27;00&#x27;
+               MOVE 0 TO APPL-RESULT
+           ELSE
+               MOVE 12 TO APPL-RESULT
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               DISPLAY &#x27;ERROR OPENING VBRC FILE&#x27;  VBRCFILE-STATUS
+               MOVE  VBRCFILE-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+      *---------------------------------------------------------------*
+       9000-ACCTFILE-CLOSE.
+           ADD 8 TO ZERO GIVING APPL-RESULT.
+           CLOSE ACCTFILE-FILE
+           IF  ACCTFILE-STATUS = &#x27;00&#x27;
+               SUBTRACT APPL-RESULT FROM APPL-RESULT
+           ELSE
+               ADD 12 TO ZERO GIVING APPL-RESULT
+           END-IF
+           IF  APPL-AOK
+               CONTINUE
+           ELSE
+               DISPLAY &#x27;ERROR CLOSING ACCOUNT FILE&#x27;
+               MOVE ACCTFILE-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+
+       9999-ABEND-PROGRAM.
+           DISPLAY &#x27;ABENDING PROGRAM&#x27;
+           MOVE 0 TO TIMING
+           MOVE 999 TO ABCODE
+           CALL &#x27;CEE3ABD&#x27; USING ABCODE, TIMING.
+
+      *****************************************************************
+       9910-DISPLAY-IO-STATUS.
+           IF  IO-STATUS NOT NUMERIC
+           OR  IO-STAT1 = &#x27;9&#x27;
+               MOVE IO-STAT1 TO IO-STATUS-04(1:1)
+               MOVE 0        TO TWO-BYTES-BINARY
+               MOVE IO-STAT2 TO TWO-BYTES-RIGHT
+               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403
+               DISPLAY &#x27;FILE STATUS IS: NNNN&#x27; IO-STATUS-04
+           ELSE
+               MOVE &#x27;0000&#x27; TO IO-STATUS-04
+               MOVE IO-STATUS TO IO-STATUS-04(3:2)
+               DISPLAY &#x27;FILE STATUS IS: NNNN&#x27; IO-STATUS-04
+           END-IF
+           EXIT.
+
+      *
+      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT
+      *
+</code></pre>
+    </div>
+  </div>
+  <div class="pane pane-java">
+    <div class="pane-hdr">
+      <span class="lang-tag lj">Java</span>
+      <span class="pane-fn" id="jfn">AccountExportJobConfig.java</span>
+      <span class="pane-ln" id="jln"></span>
+    </div>
+    <div class="tabs">
+      <button class="active" onclick="switchTab(0)">AccountExportJobConfig.java</button>
+      <button onclick="switchTab(1)">AccountExportProcessor.java</button>
+      <button onclick="switchTab(2)">MultiFileItemWriter.java</button>
+      <button onclick="switchTab(3)">DateConversionService.java</button>
+      <button onclick="switchTab(4)">Account.java</button>
+      <button onclick="switchTab(5)">AccountRepository.java</button>
+      <button onclick="switchTab(6)">OutRecord.java</button>
+      <button onclick="switchTab(7)">ArrayRecord.java</button>
+      <button onclick="switchTab(8)">ArrayBalanceEntry.java</button>
+      <button onclick="switchTab(9)">VbrRecord1.java</button>
+      <button onclick="switchTab(10)">VbrRecord2.java</button>
+      <button onclick="switchTab(11)">AccountExportBundle.java</button>
+      <button onclick="switchTab(12)">Cbact01cApplication.java</button>
+    </div>
+    <div class="cs" id="jscroll">
+      <div class="panel visible" data-tab="0"><pre><code class="language-java" id="jc0">package com.carddemo.cbact01c.batch;
+
+import com.carddemo.cbact01c.domain.Account;
+import com.carddemo.cbact01c.repository.AccountRepository;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.data.RepositoryItemReader;
+import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.File;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Spring Batch configuration for the CBACT01C account file export job.
+ *
+ * &lt;p&gt;Maps the COBOL PROCEDURE DIVISION main flow (CBACT01C.cbl:140-160):
+ * &lt;pre&gt;
+ * L141  DISPLAY &#x27;START OF EXECUTION&#x27;          → Spring Boot startup log
+ * L142  PERFORM 0000-ACCTFILE-OPEN            → accountReader (ItemStream.open)
+ * L143  PERFORM 2000-OUTFILE-OPEN             → outFileWriter (ItemStream.open via MultiFileItemWriter)
+ * L144  PERFORM 3000-ARRFILE-OPEN             → arryFileWriter (ItemStream.open)
+ * L145  PERFORM 4000-VBRFILE-OPEN             → vbrcFileWriter (ItemStream.open)
+ * L147-154  PERFORM UNTIL END-OF-FILE         → chunk-oriented step (reader→processor→writer)
+ * L156  PERFORM 9000-ACCTFILE-CLOSE           → step teardown (ItemStream.close)
+ * L158  DISPLAY &#x27;END OF EXECUTION&#x27;            → Spring Batch job completion log
+ * &lt;/pre&gt;
+ */
+@Configuration
+public class AccountExportJobConfig {
+
+    /** Output directory; override with {@code app.output-dir} property. */
+    @Value(&quot;${app.output-dir:target/output}&quot;)
+    private String outputDir;
+
+    // ── Job ──────────────────────────────────────────────────────────────
+
+    /**
+     * Mirrors the CBACT01C top-level PROCEDURE DIVISION flow.
+     * The {@link JobExecutionListener} ensures the output directory exists before
+     * the step tries to open any {@link FlatFileItemWriter}.
+     */
+    @Bean
+    public Job accountExportJob(JobRepository jobRepository, Step accountExportStep) {
+        return new JobBuilder(&quot;accountExportJob&quot;, jobRepository)
+                .listener(outputDirListener())
+                .start(accountExportStep)
+                .build();
+    }
+
+    // ── Step ─────────────────────────────────────────────────────────────
+
+    /**
+     * Chunk-oriented step: reads accounts in pages of 10, processes each, writes to 3 files.
+     * Chunk size 10 gives restart granularity without excessive I/O overhead.
+     */
+    @Bean
+    public Step accountExportStep(
+            JobRepository jobRepository,
+            PlatformTransactionManager txManager,
+            RepositoryItemReader&lt;Account&gt; accountReader,
+            AccountExportProcessor processor,
+            MultiFileItemWriter multiFileItemWriter) {
+        return new StepBuilder(&quot;accountExportStep&quot;, jobRepository)
+                .&lt;Account, AccountExportBundle&gt;chunk(10, txManager)
+                .reader(accountReader)
+                .processor(processor)
+                .writer(multiFileItemWriter)
+                .build();
+    }
+
+    // ── Reader ───────────────────────────────────────────────────────────
+
+    /**
+     * Reads accounts sequentially ordered by ACCT-ID, mirroring the COBOL
+     * {@code ACCESS MODE IS SEQUENTIAL} on the KSDS ACCTFILE.
+     *
+     * &lt;p&gt;COBOL: CBACT01C.cbl:29-33 — SELECT ACCTFILE-FILE with SEQUENTIAL access.
+     * COBOL: CBACT01C.cbl:165-198 — 1000-ACCTFILE-GET-NEXT → READ ACCTFILE-FILE
+     */
+    @Bean
+    public RepositoryItemReader&lt;Account&gt; accountReader(AccountRepository accountRepository) {
+        return new RepositoryItemReaderBuilder&lt;Account&gt;()
+                .name(&quot;accountReader&quot;)
+                .repository(accountRepository)
+                .methodName(&quot;findAll&quot;)
+                .sorts(Map.of(&quot;acctId&quot;, Sort.Direction.ASC))
+                .pageSize(10)
+                .build();
+    }
+
+    // ── Writer ───────────────────────────────────────────────────────────
+
+    /**
+     * Composite writer for all three output files. Spring Batch auto-registers it
+     * as an {@link org.springframework.batch.item.ItemStream} via the step builder.
+     */
+    @Bean
+    public MultiFileItemWriter multiFileItemWriter() {
+        return new MultiFileItemWriter(outFileWriter(), arryFileWriter(), vbrcFileWriter());
+    }
+
+    /**
+     * OUTFILE: one flat record per account.
+     * COBOL: CBACT01C.cbl:56-69 — FD OUT-FILE / 1350-WRITE-ACCT-RECORD
+     *
+     * &lt;p&gt;Format: ACCT-ID|ACTIVE|CURR-BAL|CREDIT-LIMIT|CASH-CREDIT-LIMIT|
+     * OPEN-DATE|EXPIRATION-DATE|REISSUE-DATE(YYYYMMDD)|CYC-CREDIT|CYC-DEBIT|GROUP-ID
+     */
+    private FlatFileItemWriter&lt;OutRecord&gt; outFileWriter() {
+        new File(outputDir).mkdirs();
+        return new FlatFileItemWriterBuilder&lt;OutRecord&gt;()
+                .name(&quot;outFileWriter&quot;)
+                .resource(new FileSystemResource(outputDir + &quot;/OUTFILE.txt&quot;))
+                .lineAggregator(r -&gt; String.format(Locale.US, &quot;%011d|%s|%14.2f|%14.2f|%14.2f|%s|%s|%s|%14.2f|%14.2f|%s&quot;,
+                        r.acctId(),
+                        r.activeStatus(),
+                        r.currBal(),
+                        r.creditLimit(),
+                        r.cashCreditLimit(),
+                        r.openDate(),
+                        r.expirationDate(),
+                        r.reissueDate(),
+                        r.currCycCredit(),
+                        r.currCycDebit(),
+                        r.groupId() != null ? r.groupId() : &quot;&quot;))
+                .build();
+    }
+
+    /**
+     * ARRYFILE: one record per account with 5 balance/debit pairs.
+     * COBOL: CBACT01C.cbl:71-78 — FD ARRY-FILE / 1450-WRITE-ARRY-RECORD
+     *
+     * &lt;p&gt;Format: ACCT-ID|BAL1|DEBIT1|BAL2|DEBIT2|BAL3|DEBIT3|BAL4|DEBIT4|BAL5|DEBIT5
+     */
+    private FlatFileItemWriter&lt;ArrayRecord&gt; arryFileWriter() {
+        return new FlatFileItemWriterBuilder&lt;ArrayRecord&gt;()
+                .name(&quot;arryFileWriter&quot;)
+                .resource(new FileSystemResource(outputDir + &quot;/ARRYFILE.txt&quot;))
+                .lineAggregator(r -&gt; {
+                    StringBuilder sb = new StringBuilder(String.format(Locale.US, &quot;%011d&quot;, r.acctId()));
+                    for (ArrayBalanceEntry e : r.balances()) {
+                        sb.append(String.format(Locale.US, &quot;|%14.2f|%14.2f&quot;, e.currBal(), e.currCycDebit()));
+                    }
+                    return sb.toString();
+                })
+                .build();
+    }
+
+    /**
+     * VBRCFILE: two variable-length records per account (VBR1 then VBR2).
+     * COBOL: CBACT01C.cbl:80-85 — FD VBRC-FILE (RECORDING MODE IS V)
+     * / 1550-WRITE-VB1-RECORD + 1575-WRITE-VB2-RECORD
+     */
+    private FlatFileItemWriter&lt;String&gt; vbrcFileWriter() {
+        return new FlatFileItemWriterBuilder&lt;String&gt;()
+                .name(&quot;vbrcFileWriter&quot;)
+                .resource(new FileSystemResource(outputDir + &quot;/VBRCFILE.txt&quot;))
+                .lineAggregator(line -&gt; line)
+                .build();
+    }
+
+    // ── Listener ─────────────────────────────────────────────────────────
+
+    /** Ensures output directory exists before any writer opens its file. */
+    private JobExecutionListener outputDirListener() {
+        return new JobExecutionListener() {
+            @Override
+            public void beforeJob(JobExecution jobExecution) {
+                new File(outputDir).mkdirs();
+            }
+        };
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="1"><pre><code class="language-java" id="jc1">package com.carddemo.cbact01c.batch;
+
+import com.carddemo.cbact01c.domain.Account;
+import com.carddemo.cbact01c.service.DateConversionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * Maps one {@link Account} (from ACCTFILE) into an {@link AccountExportBundle}
+ * containing records for all three output files.
+ *
+ * &lt;p&gt;Mirrors the CBACT01C main loop processing:
+ * &lt;pre&gt;
+ * L170-213  1100-DISPLAY-ACCT-RECORD  → log.debug(account fields)
+ * L215-240  1300-POPUL-ACCT-RECORD    → populate OutRecord
+ *             L223-233  CALL &#x27;COBDATFT&#x27; → dateConversionService.convertYyyyMmDdToYyyymmdd
+ *             L236-238  IF ACCT-CURR-CYC-DEBIT = ZERO → MOVE 2525.00
+ * L253-261  1400-POPUL-ARRAY-RECORD   → populate ArrayRecord (5 balance slots, entries 4-5 zero)
+ * L276-285  1500-POPUL-VBRC-RECORD    → populate VbrRecord1 + VbrRecord2
+ * &lt;/pre&gt;
+ */
+@Component
+public class AccountExportProcessor implements ItemProcessor&lt;Account, AccountExportBundle&gt; {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountExportProcessor.class);
+
+    /**
+     * Default substituted when ACCT-CURR-CYC-DEBIT = ZERO.
+     * COBOL: CBACT01C.cbl:237 — MOVE 2525.00 TO OUT-ACCT-CURR-CYC-DEBIT
+     */
+    static final BigDecimal DEFAULT_CYC_DEBIT = new BigDecimal(&quot;2525.00&quot;);
+
+    private final DateConversionService dateConversionService;
+
+    public AccountExportProcessor(DateConversionService dateConversionService) {
+        this.dateConversionService = dateConversionService;
+    }
+
+    @Override
+    public AccountExportBundle process(Account account) {
+        // COBOL: CBACT01C.cbl:200-213 — 1100-DISPLAY-ACCT-RECORD
+        log.debug(&quot;ACCT-ID: {} ACCT-ACTIVE-STATUS: {} ACCT-CURR-BAL: {} ACCT-CREDIT-LIMIT: {} &quot;
+                + &quot;ACCT-CASH-CREDIT-LIMIT: {} ACCT-OPEN-DATE: {} ACCT-EXPIRAION-DATE: {} &quot;
+                + &quot;ACCT-REISSUE-DATE: {} ACCT-CURR-CYC-CREDIT: {} ACCT-CURR-CYC-DEBIT: {} ACCT-GROUP-ID: {}&quot;,
+                account.getAcctId(), account.getActiveStatus(), account.getCurrBal(),
+                account.getCreditLimit(), account.getCashCreditLimit(),
+                account.getOpenDate(), account.getExpirationDate(), account.getReissueDate(),
+                account.getCurrCycCredit(), account.getCurrCycDebit(), account.getGroupId());
+
+        // COBOL: CBACT01C.cbl:215-240 — 1300-POPUL-ACCT-RECORD
+        // CALL &#x27;COBDATFT&#x27;: CODATECN-TYPE=&#x27;2&#x27; (YYYY-MM-DD in), CODATECN-OUTTYPE=&#x27;2&#x27; (YYYYMMDD out)
+        String formattedReissueDate = dateConversionService.convertYyyyMmDdToYyyymmdd(account.getReissueDate());
+
+        // COBOL: CBACT01C.cbl:236-238 — IF ACCT-CURR-CYC-DEBIT EQUAL TO ZERO MOVE 2525.00
+        BigDecimal outCycDebit = BigDecimal.ZERO.compareTo(account.getCurrCycDebit()) == 0
+                ? DEFAULT_CYC_DEBIT
+                : account.getCurrCycDebit();
+
+        OutRecord outRecord = new OutRecord(
+                account.getAcctId(),
+                account.getActiveStatus(),
+                account.getCurrBal(),
+                account.getCreditLimit(),
+                account.getCashCreditLimit(),
+                account.getOpenDate(),
+                account.getExpirationDate(),
+                formattedReissueDate,
+                account.getCurrCycCredit(),
+                outCycDebit,
+                account.getGroupId()
+        );
+
+        // COBOL: CBACT01C.cbl:253-261 — 1400-POPUL-ARRAY-RECORD
+        // INITIALIZE ARR-ARRAY-REC sets all 5 slots to zero before populating entries 1-3
+        List&lt;ArrayBalanceEntry&gt; entries = List.of(
+                new ArrayBalanceEntry(account.getCurrBal(), new BigDecimal(&quot;1005.00&quot;)),         // entry 1
+                new ArrayBalanceEntry(account.getCurrBal(), new BigDecimal(&quot;1525.00&quot;)),         // entry 2
+                new ArrayBalanceEntry(new BigDecimal(&quot;-1025.00&quot;), new BigDecimal(&quot;-2500.00&quot;)),  // entry 3
+                new ArrayBalanceEntry(BigDecimal.ZERO, BigDecimal.ZERO),                        // entry 4 (INITIALIZE)
+                new ArrayBalanceEntry(BigDecimal.ZERO, BigDecimal.ZERO)                         // entry 5 (INITIALIZE)
+        );
+        ArrayRecord arrayRecord = new ArrayRecord(account.getAcctId(), entries);
+
+        // COBOL: CBACT01C.cbl:276-285 — 1500-POPUL-VBRC-RECORD
+        // WS-ACCT-REISSUE-YYYY = first 4 chars of ACCT-REISSUE-DATE (YYYY-MM-DD → &quot;YYYY&quot;)
+        VbrRecord1 vbr1 = new VbrRecord1(account.getAcctId(), account.getActiveStatus());
+        VbrRecord2 vbr2 = new VbrRecord2(
+                account.getAcctId(),
+                account.getCurrBal(),
+                account.getCreditLimit(),
+                extractYear(account.getReissueDate())
+        );
+
+        return new AccountExportBundle(outRecord, arrayRecord, vbr1, vbr2);
+    }
+
+    /**
+     * Extracts the YYYY portion from a YYYY-MM-DD date string.
+     * Mirrors WS-ACCT-REISSUE-YYYY PIC X(04) which is the first 4 chars of
+     * the WS-ACCT-REISSUE-DATE group item (CBACT01C.cbl:131-136).
+     */
+    private String extractYear(String date) {
+        if (date != null &amp;&amp; date.length() &gt;= 4) {
+            return date.substring(0, 4);
+        }
+        return &quot;    &quot;;
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="2"><pre><code class="language-java" id="jc2">package com.carddemo.cbact01c.batch;
+
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemStream;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+
+import java.util.Locale;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Writes an {@link AccountExportBundle} to three output files simultaneously,
+ * mirroring the four WRITE statements in the CBACT01C main loop.
+ *
+ * &lt;p&gt;Per account the COBOL executes:
+ * &lt;pre&gt;
+ * L172  PERFORM 1350-WRITE-ACCT-RECORD → outFileWriter  (OUTFILE)
+ * L174  PERFORM 1450-WRITE-ARRY-RECORD → arryFileWriter (ARRYFILE)
+ * L177  PERFORM 1550-WRITE-VB1-RECORD  → vbrcFileWriter (VBRCFILE, VBR1 record, 12 bytes)
+ * L178  PERFORM 1575-WRITE-VB2-RECORD  → vbrcFileWriter (VBRCFILE, VBR2 record, 39 bytes)
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;Implements {@link ItemStream} so Spring Batch manages open/close of all
+ * three {@link FlatFileItemWriter} instances through the standard step lifecycle
+ * (replaces OPEN OUTPUT / CLOSE for OUT-FILE, ARRY-FILE, VBRC-FILE).
+ */
+public class MultiFileItemWriter implements ItemWriter&lt;AccountExportBundle&gt;, ItemStream {
+
+    private final FlatFileItemWriter&lt;OutRecord&gt;   outWriter;
+    private final FlatFileItemWriter&lt;ArrayRecord&gt; arryWriter;
+    private final FlatFileItemWriter&lt;String&gt;      vbrcWriter;
+
+    public MultiFileItemWriter(
+            FlatFileItemWriter&lt;OutRecord&gt;   outWriter,
+            FlatFileItemWriter&lt;ArrayRecord&gt; arryWriter,
+            FlatFileItemWriter&lt;String&gt;      vbrcWriter) {
+        this.outWriter  = outWriter;
+        this.arryWriter = arryWriter;
+        this.vbrcWriter = vbrcWriter;
+    }
+
+    /**
+     * Distributes one chunk of bundles across all three output files.
+     * VBR records are interleaved: VBR1 then VBR2 per account, matching
+     * the COBOL write order in CBACT01C.cbl:177-178.
+     */
+    @Override
+    public void write(Chunk&lt;? extends AccountExportBundle&gt; chunk) throws Exception {
+        List&lt;OutRecord&gt;   outRecords  = new ArrayList&lt;&gt;();
+        List&lt;ArrayRecord&gt; arryRecords = new ArrayList&lt;&gt;();
+        List&lt;String&gt;      vbrcLines   = new ArrayList&lt;&gt;();
+
+        for (AccountExportBundle bundle : chunk.getItems()) {
+            outRecords.add(bundle.outRecord());
+            arryRecords.add(bundle.arrayRecord());
+            // COBOL: 1550-WRITE-VB1-RECORD then 1575-WRITE-VB2-RECORD per account
+            vbrcLines.add(formatVbr1(bundle.vbrRecord1()));
+            vbrcLines.add(formatVbr2(bundle.vbrRecord2()));
+        }
+
+        // COBOL: CBACT01C.cbl:242-251 — 1350-WRITE-ACCT-RECORD → WRITE OUT-ACCT-REC
+        outWriter.write(new Chunk&lt;&gt;(outRecords));
+        // COBOL: CBACT01C.cbl:263-274 — 1450-WRITE-ARRY-RECORD → WRITE ARR-ARRAY-REC
+        arryWriter.write(new Chunk&lt;&gt;(arryRecords));
+        // COBOL: CBACT01C.cbl:287-315 — 1550+1575-WRITE-VB*-RECORD → WRITE VBR-REC
+        vbrcWriter.write(new Chunk&lt;&gt;(vbrcLines));
+    }
+
+    /**
+     * Formats VBR1: type tag + ACCT-ID (11) + ACTIVE-STATUS (1) = 12 payload bytes.
+     * COBOL: CBACT01C.cbl:287-300 — 1550-WRITE-VB1-RECORD (WS-RECD-LEN=12)
+     */
+    private String formatVbr1(VbrRecord1 r) {
+        return String.format(Locale.US, &quot;VBR1|%011d|%s&quot;, r.acctId(), r.activeStatus());
+    }
+
+    /**
+     * Formats VBR2: type tag + ACCT-ID (11) + CURR-BAL + CREDIT-LIMIT + REISSUE-YYYY (4) = 39 payload bytes.
+     * COBOL: CBACT01C.cbl:302-315 — 1575-WRITE-VB2-RECORD (WS-RECD-LEN=39)
+     */
+    private String formatVbr2(VbrRecord2 r) {
+        return String.format(Locale.US, &quot;VBR2|%011d|%14.2f|%14.2f|%4s&quot;,
+                r.acctId(), r.currBal(), r.creditLimit(), r.reissueYear());
+    }
+
+    // ── ItemStream — delegates lifecycle to inner writers ────────────────
+
+    /** Replaces OPEN OUTPUT OUT-FILE / ARRY-FILE / VBRC-FILE (CBACT01C.cbl:142-145) */
+    @Override
+    public void open(ExecutionContext executionContext) {
+        outWriter.open(executionContext);
+        arryWriter.open(executionContext);
+        vbrcWriter.open(executionContext);
+    }
+
+    @Override
+    public void update(ExecutionContext executionContext) {
+        outWriter.update(executionContext);
+        arryWriter.update(executionContext);
+        vbrcWriter.update(executionContext);
+    }
+
+    /** Replaces CLOSE ACCTFILE (and implicit close of output files) in CBACT01C.cbl:156-160 */
+    @Override
+    public void close() {
+        outWriter.close();
+        arryWriter.close();
+        vbrcWriter.close();
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="3"><pre><code class="language-java" id="jc3">package com.carddemo.cbact01c.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
+/**
+ * Java equivalent of the Assembler call {@code CALL &#x27;COBDATFT&#x27; USING CODATECN-REC}.
+ *
+ * &lt;p&gt;In CBACT01C the call is made with (see CODATECN.cpy):
+ * &lt;ul&gt;
+ *   &lt;li&gt;CODATECN-TYPE = &#x27;2&#x27;    → input format YYYY-MM-DD (YYYY-MM-DD-IN value)&lt;/li&gt;
+ *   &lt;li&gt;CODATECN-OUTTYPE = &#x27;2&#x27; → output format YYYYMMDD  (YYYYMMDD-OP value)&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:223-233 — 1300-POPUL-ACCT-RECORD
+ * &lt;pre&gt;
+ * L223   MOVE   ACCT-REISSUE-DATE  TO  CODATECN-INP-DATE
+ * L225   MOVE   &#x27;2&#x27;                TO  CODATECN-TYPE
+ * L226   MOVE   &#x27;2&#x27;                TO  CODATECN-OUTTYPE
+ * L231   CALL &#x27;COBDATFT&#x27;       USING CODATECN-REC
+ * L233   MOVE   CODATECN-0UT-DATE  TO  OUT-ACCT-REISSUE-DATE
+ * &lt;/pre&gt;
+ */
+@Service
+public class DateConversionService {
+
+    private static final Logger log = LoggerFactory.getLogger(DateConversionService.class);
+
+    private static final DateTimeFormatter INPUT_FMT  = DateTimeFormatter.ISO_LOCAL_DATE; // YYYY-MM-DD
+    private static final DateTimeFormatter OUTPUT_FMT = DateTimeFormatter.BASIC_ISO_DATE; // YYYYMMDD
+    private static final String            BLANK_DATE = &quot;        &quot;;                        // 8 spaces (CODATECN-0UT-DATE PIC X(20) portion)
+
+    /**
+     * Converts a YYYY-MM-DD date string to YYYYMMDD format.
+     *
+     * &lt;p&gt;Maps CODATECN-TYPE=&#x27;2&#x27; (YYYY-MM-DD input) + CODATECN-OUTTYPE=&#x27;2&#x27; (YYYYMMDD output).
+     *
+     * @param date input date in YYYY-MM-DD format; null or blank returns 8 spaces
+     * @return date in YYYYMMDD format, or 8 spaces if input is invalid
+     */
+    public String convertYyyyMmDdToYyyymmdd(String date) {
+        if (date == null || date.isBlank()) {
+            return BLANK_DATE;
+        }
+        try {
+            return LocalDate.parse(date, INPUT_FMT).format(OUTPUT_FMT);
+        } catch (DateTimeParseException e) {
+            log.warn(&quot;COBDATFT equivalent: invalid date &#x27;{}&#x27;, returning blank&quot;, date);
+            return BLANK_DATE;
+        }
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="4"><pre><code class="language-java" id="jc4">package com.carddemo.cbact01c.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
+
+/**
+ * JPA entity that replaces the VSAM ACCTDAT file (ACCTFILE-FILE in CBACT01C).
+ *
+ * &lt;p&gt;Field layout follows copybook {@code app/cpy/CVACT01Y.cpy}
+ * (ACCOUNT-RECORD, 300 bytes, keyed on ACCT-ID PIC 9(11)).
+ * All financial fields use {@link BigDecimal} with scale 2.
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:29-33 (SELECT ACCTFILE-FILE) / CBACT01C.cbl:52-55 (FD ACCTFILE-FILE)
+ */
+@Entity
+@Table(name = &quot;accounts&quot;)
+public class Account {
+
+    /** ACCT-ID PIC 9(11) — primary key */
+    @Id
+    @Column(name = &quot;acct_id&quot;)
+    private Long acctId;
+
+    /** ACCT-ACTIVE-STATUS PIC X(01) — &#x27;Y&#x27; or &#x27;N&#x27; */
+    @Column(name = &quot;active_status&quot;, length = 1, nullable = false)
+    private String activeStatus;
+
+    /** ACCT-CURR-BAL PIC S9(10)V99 */
+    @Column(name = &quot;curr_bal&quot;, precision = 12, scale = 2, nullable = false)
+    private BigDecimal currBal;
+
+    /** ACCT-CREDIT-LIMIT PIC S9(10)V99 */
+    @Column(name = &quot;credit_limit&quot;, precision = 12, scale = 2, nullable = false)
+    private BigDecimal creditLimit;
+
+    /** ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99 */
+    @Column(name = &quot;cash_credit_limit&quot;, precision = 12, scale = 2, nullable = false)
+    private BigDecimal cashCreditLimit;
+
+    /** ACCT-OPEN-DATE PIC X(10) format YYYY-MM-DD */
+    @Column(name = &quot;open_date&quot;, length = 10)
+    private String openDate;
+
+    /**
+     * ACCT-EXPIRAION-DATE PIC X(10) format YYYY-MM-DD
+     * &lt;p&gt;Spelling &quot;EXPIRAION&quot; (missing &#x27;T&#x27;) is retained from COBOL source.
+     */
+    @Column(name = &quot;expiration_date&quot;, length = 10)
+    private String expirationDate;
+
+    /** ACCT-REISSUE-DATE PIC X(10) format YYYY-MM-DD */
+    @Column(name = &quot;reissue_date&quot;, length = 10)
+    private String reissueDate;
+
+    /** ACCT-CURR-CYC-CREDIT PIC S9(10)V99 */
+    @Column(name = &quot;curr_cyc_credit&quot;, precision = 12, scale = 2, nullable = false)
+    private BigDecimal currCycCredit;
+
+    /** ACCT-CURR-CYC-DEBIT PIC S9(10)V99 COMP-3 */
+    @Column(name = &quot;curr_cyc_debit&quot;, precision = 12, scale = 2, nullable = false)
+    private BigDecimal currCycDebit;
+
+    /** ACCT-ADDR-ZIP PIC X(10) */
+    @Column(name = &quot;addr_zip&quot;, length = 10)
+    private String addrZip;
+
+    /** ACCT-GROUP-ID PIC X(10) */
+    @Column(name = &quot;group_id&quot;, length = 10)
+    private String groupId;
+
+    public Long getAcctId()                { return acctId; }
+    public String getActiveStatus()        { return activeStatus; }
+    public BigDecimal getCurrBal()         { return currBal; }
+    public BigDecimal getCreditLimit()     { return creditLimit; }
+    public BigDecimal getCashCreditLimit() { return cashCreditLimit; }
+    public String getOpenDate()            { return openDate; }
+    public String getExpirationDate()      { return expirationDate; }
+    public String getReissueDate()         { return reissueDate; }
+    public BigDecimal getCurrCycCredit()   { return currCycCredit; }
+    public BigDecimal getCurrCycDebit()    { return currCycDebit; }
+    public String getAddrZip()             { return addrZip; }
+    public String getGroupId()             { return groupId; }
+
+    public void setAcctId(Long acctId)                           { this.acctId = acctId; }
+    public void setActiveStatus(String activeStatus)             { this.activeStatus = activeStatus; }
+    public void setCurrBal(BigDecimal currBal)                   { this.currBal = currBal; }
+    public void setCreditLimit(BigDecimal creditLimit)           { this.creditLimit = creditLimit; }
+    public void setCashCreditLimit(BigDecimal cashCreditLimit)   { this.cashCreditLimit = cashCreditLimit; }
+    public void setOpenDate(String openDate)                     { this.openDate = openDate; }
+    public void setExpirationDate(String expirationDate)         { this.expirationDate = expirationDate; }
+    public void setReissueDate(String reissueDate)               { this.reissueDate = reissueDate; }
+    public void setCurrCycCredit(BigDecimal currCycCredit)       { this.currCycCredit = currCycCredit; }
+    public void setCurrCycDebit(BigDecimal currCycDebit)         { this.currCycDebit = currCycDebit; }
+    public void setAddrZip(String addrZip)                       { this.addrZip = addrZip; }
+    public void setGroupId(String groupId)                       { this.groupId = groupId; }
+}
+</code></pre></div>
+      <div class="panel" data-tab="5"><pre><code class="language-java" id="jc5">package com.carddemo.cbact01c.repository;
+
+import com.carddemo.cbact01c.domain.Account;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+/**
+ * Spring Data JPA repository for the accounts table.
+ *
+ * &lt;p&gt;Replaces sequential READ of ACCTFILE-FILE (VSAM KSDS) in CBACT01C.
+ * The batch reader uses the inherited {@code findAll(Pageable)} method.
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:165-198 — 1000-ACCTFILE-GET-NEXT
+ */
+public interface AccountRepository extends JpaRepository&lt;Account, Long&gt; {}
+</code></pre></div>
+      <div class="panel" data-tab="6"><pre><code class="language-java" id="jc6">package com.carddemo.cbact01c.batch;
+
+import java.math.BigDecimal;
+
+/**
+ * Maps to OUT-FILE output record (FD OUT-FILE / OUT-ACCT-REC).
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:56-69 — FD OUT-FILE layout.
+ * Populated by 1300-POPUL-ACCT-RECORD (CBACT01C.cbl:215-240).
+ *
+ * &lt;p&gt;Key transformation: {@link #reissueDate} holds the YYYYMMDD-formatted date
+ * produced by the COBDATFT assembler call (see {@link DateConversionService}).
+ */
+public record OutRecord(
+        Long acctId,               // OUT-ACCT-ID PIC 9(11)
+        String activeStatus,       // OUT-ACCT-ACTIVE-STATUS PIC X(01)
+        BigDecimal currBal,        // OUT-ACCT-CURR-BAL PIC S9(10)V99
+        BigDecimal creditLimit,    // OUT-ACCT-CREDIT-LIMIT PIC S9(10)V99
+        BigDecimal cashCreditLimit,// OUT-ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99
+        String openDate,           // OUT-ACCT-OPEN-DATE PIC X(10)
+        String expirationDate,     // OUT-ACCT-EXPIRAION-DATE PIC X(10)
+        String reissueDate,        // OUT-ACCT-REISSUE-DATE PIC X(10) — YYYYMMDD via COBDATFT
+        BigDecimal currCycCredit,  // OUT-ACCT-CURR-CYC-CREDIT PIC S9(10)V99
+        BigDecimal currCycDebit,   // OUT-ACCT-CURR-CYC-DEBIT PIC S9(10)V99 COMP-3 (2525.00 if zero)
+        String groupId             // OUT-ACCT-GROUP-ID PIC X(10)
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="7"><pre><code class="language-java" id="jc7">package com.carddemo.cbact01c.batch;
+
+import java.util.List;
+
+/**
+ * Maps to ARRY-FILE output record (FD ARRY-FILE / ARR-ARRAY-REC).
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:71-78 — FD ARRY-FILE layout.
+ * Populated by 1400-POPUL-ARRAY-RECORD (CBACT01C.cbl:253-261).
+ *
+ * &lt;p&gt;The {@code OCCURS 5 TIMES} clause maps to {@link List} of 5 {@link ArrayBalanceEntry}.
+ * Elements 1–3 carry hardcoded values; elements 4–5 are zero (INITIALIZE).
+ */
+public record ArrayRecord(
+        Long acctId,                       // ARR-ACCT-ID PIC 9(11)
+        List&lt;ArrayBalanceEntry&gt; balances   // ARR-ACCT-BAL OCCURS 5 TIMES
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="8"><pre><code class="language-java" id="jc8">package com.carddemo.cbact01c.batch;
+
+import java.math.BigDecimal;
+
+/**
+ * One element of {@code ARR-ACCT-BAL OCCURS 5 TIMES} in the ARRY-FILE record.
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:74-78 — ARR-ACCT-BAL group inside FD ARRY-FILE.
+ */
+public record ArrayBalanceEntry(
+        BigDecimal currBal,     // ARR-ACCT-CURR-BAL PIC S9(10)V99
+        BigDecimal currCycDebit // ARR-ACCT-CURR-CYC-DEBIT PIC S9(10)V99 COMP-3
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="9"><pre><code class="language-java" id="jc9">package com.carddemo.cbact01c.batch;
+
+/**
+ * Short variable-length record written to VBRC-FILE (WS-RECD-LEN = 12).
+ *
+ * &lt;p&gt;Content: ACCT-ID (11 chars) + ACCT-ACTIVE-STATUS (1 char) = 12 bytes.
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:123-125 — VBRC-REC1 layout.
+ * Written by 1550-WRITE-VB1-RECORD (CBACT01C.cbl:287-300).
+ */
+public record VbrRecord1(
+        Long acctId,        // VB1-ACCT-ID PIC 9(11)
+        String activeStatus // VB1-ACCT-ACTIVE-STATUS PIC X(01)
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="10"><pre><code class="language-java" id="jc10">package com.carddemo.cbact01c.batch;
+
+import java.math.BigDecimal;
+
+/**
+ * Long variable-length record written to VBRC-FILE (WS-RECD-LEN = 39).
+ *
+ * &lt;p&gt;Content: ACCT-ID (11) + CURR-BAL + CREDIT-LIMIT + REISSUE-YYYY (4) = 39 bytes.
+ * The REISSUE-YYYY is the year portion extracted from ACCT-REISSUE-DATE via
+ * WS-ACCT-REISSUE-YYYY (first 4 chars of WS-REISSUE-DATE redefine).
+ *
+ * &lt;p&gt;COBOL: CBACT01C.cbl:126-129 — VBRC-REC2 layout.
+ * Populated/written by 1500-POPUL-VBRC-RECORD + 1575-WRITE-VB2-RECORD
+ * (CBACT01C.cbl:276-315).
+ */
+public record VbrRecord2(
+        Long acctId,            // VB2-ACCT-ID PIC 9(11)
+        BigDecimal currBal,     // VB2-ACCT-CURR-BAL PIC S9(10)V99
+        BigDecimal creditLimit, // VB2-ACCT-CREDIT-LIMIT PIC S9(10)V99
+        String reissueYear      // VB2-ACCT-REISSUE-YYYY PIC X(04) — year portion of ACCT-REISSUE-DATE
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="11"><pre><code class="language-java" id="jc11">package com.carddemo.cbact01c.batch;
+
+/**
+ * Groups all output records produced for one account in a single processing step.
+ *
+ * &lt;p&gt;Passed from {@link AccountExportProcessor} to {@link MultiFileItemWriter}.
+ * Mirrors the four write calls in the CBACT01C main loop:
+ * &lt;pre&gt;
+ * L172   PERFORM 1350-WRITE-ACCT-RECORD   → outRecord  → OUTFILE
+ * L174   PERFORM 1450-WRITE-ARRY-RECORD   → arrayRecord → ARRYFILE
+ * L177   PERFORM 1550-WRITE-VB1-RECORD    → vbrRecord1  → VBRCFILE
+ * L178   PERFORM 1575-WRITE-VB2-RECORD    → vbrRecord2  → VBRCFILE
+ * &lt;/pre&gt;
+ */
+public record AccountExportBundle(
+        OutRecord outRecord,
+        ArrayRecord arrayRecord,
+        VbrRecord1 vbrRecord1,
+        VbrRecord2 vbrRecord2
+) {}
+</code></pre></div>
+      <div class="panel" data-tab="12"><pre><code class="language-java" id="jc12">package com.carddemo.cbact01c;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * Spring Boot entry point for the CBACT01C batch job.
+ *
+ * &lt;p&gt;COBOL equivalent: {@code PROCEDURE DIVISION} main flow in CBACT01C.cbl.
+ * The job runs automatically on startup ({@code spring.batch.job.enabled=true})
+ * and the application exits when the job completes.
+ */
+@SpringBootApplication
+public class Cbact01cApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Cbact01cApplication.class, args);
+    }
+}
+</code></pre></div>
+    </div>
+  </div>
+</div>
+<script>
+hljs.configure({tabReplace: '    '});
+document.querySelectorAll('pre code').forEach(function(el){hljs.highlightElement(el);});
+
+function wrapLines(codeEl, idPfx) {
+  var lines = codeEl.innerHTML.split('\n');
+  if (lines.length && lines[lines.length-1]==='') lines.pop();
+  codeEl.innerHTML = lines.map(function(line,i){
+    var n=i+1, s=String(n);
+    while(s.length<4) s='\u00a0'+s;
+    return '<span class="cl" id="'+idPfx+'-L'+n+'"><span class="ln">'+s+'</span>'+(line||'\u200b')+'</span>';
+  }).join('\n');
+}
+wrapLines(document.getElementById('cc'), 'cobol');
+for(var i=0;i<13;i++){
+  var el=document.getElementById('jc'+i);
+  if(el) wrapLines(el,'jc'+i);
+}
+
+var panels=document.querySelectorAll('.panel');
+var tabBtns=document.querySelectorAll('.tabs button');
+var fname=document.getElementById('jfn');
+var flines=document.getElementById('jln');
+var jscroll=document.getElementById('jscroll');
+function cntLines(idx){
+  var el=document.getElementById('jc'+idx);
+  return el?el.querySelectorAll('.cl').length:0;
+}
+function switchTab(idx,noReset){
+  panels.forEach(function(p){p.classList.remove('visible');});
+  tabBtns.forEach(function(b){b.classList.remove('active');});
+  panels[idx].classList.add('visible');
+  tabBtns[idx].classList.add('active');
+  fname.textContent=tabBtns[idx].textContent;
+  flines.textContent=cntLines(idx)+' lines';
+  if(!noReset) jscroll.scrollTop=0;
+}
+window.addEventListener('load',function(){flines.textContent=cntLines(0)+' lines';});
+
+var actC=null,actJ=null,actRow=null;
+function navigate(row){
+  var cl=parseInt(row.dataset.cl),jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+  if(actC) actC.classList.remove('hl');
+  if(actJ) actJ.classList.remove('hl');
+  if(actRow) actRow.classList.remove('row-active');
+  row.classList.add('row-active'); actRow=row;
+  var ce=document.getElementById('cobol-L'+cl);
+  if(ce){ce.scrollIntoView({behavior:'smooth',block:'center'});ce.classList.add('hl');actC=ce;}
+  switchTab(jt,true);
+  setTimeout(function(){
+    var je=document.getElementById('jc'+jt+'-L'+jl);
+    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}
+  },60);
+}
+</script>
+
+</body>
+</html>
