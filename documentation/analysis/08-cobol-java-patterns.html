@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COBOL → Java Patterns – CardDemo</title>
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --bg2:       #181825;
+      --bg3:       #313244;
+      --border:    #45475a;
+      --text:      #cdd6f4;
+      --subtext:   #a6adc8;
+      --comment:   #6c7086;
+      --keyword:   #cba6f7;
+      --string:    #a6e3a1;
+      --number:    #fab387;
+      --cyan:      #89dceb;
+      --gold:      #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --sidebar-w: 272px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex; min-height: 100vh;
+      font-size: 14px; line-height: 1.65;
+    }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--bg2); border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding-bottom: 2rem; flex-shrink: 0;
+    }
+    .sidebar-logo { padding: 1.1rem 1.1rem .9rem; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    .sidebar-logo .sub   { font-size: .72rem; color: var(--subtext); margin-top: .15rem; }
+    #sidebar h2 {
+      font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--subtext); padding: .9rem 1.1rem .25rem;
+    }
+    #sidebar a {
+      display: block; padding: .28rem 1.1rem;
+      color: var(--text); text-decoration: none;
+      font-size: .8rem; border-left: 2px solid transparent;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #sidebar a:hover { color: var(--cyan); background: rgba(137,220,235,.06); }
+    #sidebar a.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(137,220,235,.1); font-weight: 600; }
+    #sidebar a.toc-h3 { padding-left: 1.9rem; font-size: .75rem; color: var(--subtext); }
+    #sidebar a.toc-h3:hover { color: var(--cyan); }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+
+    /* ── Main ────────────────────────────────────── */
+    #main { flex: 1; padding: 2.2rem 2.8rem; max-width: 1100px; overflow-x: hidden; }
+
+    .breadcrumb { font-size: .75rem; color: var(--comment); margin-bottom: 1.6rem; }
+    .breadcrumb a { color: var(--subtext); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--cyan); }
+    .breadcrumb span { color: var(--comment); margin: 0 .4rem; }
+
+    #content h1 { font-size: 1.7rem; color: var(--gold); border-bottom: 1px solid var(--border); padding-bottom: .5rem; margin-bottom: 1.4rem; }
+    #content h2 { font-size: 1.1rem; color: var(--blue); margin: 2.5rem 0 .6rem; padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+    #content h3 { font-size: .97rem; color: var(--cyan); margin: 1.8rem 0 .5rem; }
+    #content h4 { font-size: .87rem; color: var(--keyword); margin: 1.2rem 0 .4rem; font-weight: 600; }
+    #content p  { margin-bottom: .85rem; color: var(--subtext); }
+    #content ul, #content ol { margin: .5rem 0 .85rem 1.4rem; color: var(--subtext); }
+    #content li { margin-bottom: .25rem; }
+    #content a  { color: var(--blue); text-decoration: none; }
+    #content a:hover { color: var(--cyan); text-decoration: underline; }
+    #content hr { border: none; border-top: 1px solid var(--border); margin: 2.2rem 0; }
+
+    /* ── Quick-Reference table ───────────────────── */
+    #content table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; font-size: .82rem; }
+    #content th {
+      background: var(--bg3); color: var(--subtext); padding: .45rem .8rem;
+      text-align: left; font-size: .75rem; text-transform: uppercase;
+      letter-spacing: .05em; border-bottom: 1px solid var(--border);
+    }
+    #content td { padding: .42rem .8rem; border-bottom: 1px solid #31324455; vertical-align: top; }
+    #content tr:hover td { background: rgba(137,220,235,.04); }
+    #content td:first-child { font-family: 'Cascadia Code','Fira Code',monospace; color: var(--string); font-size: .78rem; white-space: nowrap; }
+    #content td:nth-child(2){ font-family: 'Cascadia Code','Fira Code',monospace; color: var(--blue); font-size: .78rem; }
+    #content td:nth-child(3){ color: var(--subtext); font-size: .8rem; }
+
+    code {
+      background: var(--bg3); color: var(--cyan); padding: .15rem .4rem;
+      border-radius: .25rem; font-size: .82em;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+
+    /* ── Side-by-side comparison ─────────────────── */
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: .55rem; margin: .7rem 0 1.6rem;
+    }
+    .panel { border-radius: .45rem; overflow: hidden; border: 1px solid var(--border); }
+    .panel-header {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .3rem .75rem; font-size: .68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-cobol { border-left: 3px solid var(--string); }
+    .panel-java  { border-left: 3px solid var(--blue); }
+    .panel-cobol .panel-header { background: #152315; color: var(--string); }
+    .panel-java  .panel-header { background: #151a2a; color: var(--blue); }
+    .panel pre {
+      margin: 0; border: none; border-radius: 0;
+      background: var(--bg2); padding: .85rem 1rem;
+      overflow-x: auto; font-size: .75rem; line-height: 1.55;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+    }
+    .panel pre code { background: none; padding: 0; font-size: 1em; color: var(--text); }
+    .srcref {
+      display: inline-block;
+      font-family: 'Cascadia Code','Fira Code',monospace;
+      font-size: .77rem; color: var(--blue);
+      background: rgba(137,180,250,.1); border: 1px solid rgba(137,180,250,.25);
+      padding: .1rem .4rem; border-radius: .25rem;
+    }
+
+    /* ── Note / warning boxes ───────────────────── */
+    .note {
+      background: rgba(249,226,175,.07); border-left: 3px solid var(--gold);
+      border-radius: 0 .35rem .35rem 0; padding: .6rem 1rem;
+      margin: .6rem 0 1.2rem; font-size: .85rem; color: var(--subtext);
+    }
+    .note strong { color: var(--gold); }
+    .warn {
+      background: rgba(243,139,168,.07); border-left: 3px solid var(--red);
+      border-radius: 0 .35rem .35rem 0; padding: .6rem 1rem;
+      margin: .6rem 0 1.2rem; font-size: .85rem; color: var(--subtext);
+    }
+    .warn strong { color: var(--red); }
+
+    /* ── Full-width code (no compare) ───────────── */
+    .codeblock {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: .45rem; padding: .85rem 1.1rem;
+      overflow-x: auto; margin: .7rem 0 1.4rem;
+      font-family: 'Cascadia Code','Fira Code','Courier New',monospace;
+      font-size: .77rem; line-height: 1.55;
+    }
+    .codeblock code { background: none; padding: 0; color: var(--text); font-size: 1em; }
+
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--comment); font-size: .72rem; }
+
+    @media print { #sidebar { display: none; } #main { padding: .5rem; max-width: 100%; } }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ───────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">CardDemo</div>
+    <div class="sub">COBOL → Java Patterns</div>
+  </div>
+
+  <h2>Analysis Documents</h2>
+  <a href="index.html">Documentation Overview</a>
+  <a href="00-overview.html">Application Overview</a>
+  <a href="01-programs.html">Program Inventory</a>
+  <a href="02-call-hierarchy.html">Call Hierarchy</a>
+  <a href="03-data-structures.html">Data Structures</a>
+  <a href="04-interfaces.html">External Interfaces</a>
+  <a href="05-business-modules.html">Business Modules</a>
+  <a href="06-business-logic.html">Detailed Business Logic</a>
+  <a href="07-java-mapping.html">Java Mapping</a>
+  <a href="08-cobol-java-patterns.html" class="active">COBOL → Java Patterns</a>
+
+  <hr class="sidebar-divider">
+  <h2>On this page</h2>
+  <a href="#quick-ref">Quick Reference</a>
+  <a href="#batch-patterns">Batch Patterns (JCL + COBOL)</a>
+  <a href="#pat-jcl"        class="toc-h3">JCL → Spring Batch Job</a>
+  <a href="#pat-loop"       class="toc-h3">PERFORM UNTIL → ItemReader</a>
+  <a href="#pat-open-close" class="toc-h3">OPEN/CLOSE → Lifecycle</a>
+  <a href="#pat-read"       class="toc-h3">READ → findById()</a>
+  <a href="#pat-write"      class="toc-h3">WRITE/REWRITE → save()</a>
+  <a href="#pat-findorcreate" class="toc-h3">Find-or-Create Pattern</a>
+  <a href="#pat-composite"  class="toc-h3">Multiple Outputs → CompositeItemWriter</a>
+  <a href="#cics-patterns">CICS Patterns</a>
+  <a href="#pat-receive-map" class="toc-h3">RECEIVE MAP → @RequestBody</a>
+  <a href="#pat-send-map"    class="toc-h3">SEND MAP → ResponseEntity</a>
+  <a href="#pat-cics-read"   class="toc-h3">EXEC CICS READ → Repository</a>
+  <a href="#pat-xctl"        class="toc-h3">XCTL / RETURN TRANSID → Redirect</a>
+  <a href="#pat-commarea"    class="toc-h3">COMMAREA → JWT</a>
+  <a href="#data-patterns">Data Patterns</a>
+  <a href="#pat-pic"        class="toc-h3">PIC Clauses → Java Types</a>
+  <a href="#pat-comp3"      class="toc-h3">COMP-3 → BigDecimal</a>
+  <a href="#pat-occurs"     class="toc-h3">OCCURS → List / Array</a>
+  <a href="#pat-redefines"  class="toc-h3">REDEFINES → ByteBuffer</a>
+  <a href="#control-flow">Control Flow</a>
+  <a href="#pat-perform"    class="toc-h3">PERFORM → Method Call</a>
+  <a href="#pat-evaluate"   class="toc-h3">EVALUATE → switch</a>
+  <a href="#pat-compute"    class="toc-h3">COMPUTE → BigDecimal</a>
+  <a href="#pat-string"     class="toc-h3">STRING INTO → String.format</a>
+  <a href="#pat-inspect"    class="toc-h3">INSPECT → String.replace</a>
+  <a href="#error-handling">Error Handling</a>
+  <a href="#pat-abend"      class="toc-h3">ABEND → noSkip + Exception</a>
+  <a href="#pat-filestatus" class="toc-h3">File Status Codes</a>
+  <a href="#pat-display"    class="toc-h3">DISPLAY → SLF4J</a>
+</nav>
+
+<!-- ── Main ─────────────────────────────────────────── -->
+<main id="main">
+  <div class="breadcrumb">
+    <a href="index.html">Analysis</a>
+    <span>›</span>
+    COBOL → Java Patterns
+  </div>
+
+  <div id="content">
+  <h1>COBOL → Java Patterns</h1>
+  <p>
+    Concrete transformation recipes for every COBOL pattern found in CardDemo.
+    Each section shows the original COBOL (with source reference) side-by-side
+    with its Java/Spring equivalent. All Java examples assume the target stack:
+    <strong>Spring Boot · Spring Batch · Spring Security · JPA/Hibernate · PostgreSQL</strong>.
+  </p>
+
+  <hr id="quick-ref">
+  <h2>Quick Reference</h2>
+
+  <table>
+    <thead><tr><th>COBOL construct</th><th>Java / Spring equivalent</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>VSAM KSDS (sequential)</td><td>JpaCursorItemReader&lt;T&gt;</td><td>or FlatFileItemReader for file migration path</td></tr>
+      <tr><td>VSAM KSDS (random)</td><td>JpaRepository.findById()</td><td>INVALID KEY → Optional.isEmpty()</td></tr>
+      <tr><td>PERFORM UNTIL AT END</td><td>ItemReader.read() returns null</td><td>Spring Batch drives the loop</td></tr>
+      <tr><td>READ … INTO</td><td>repository.findById(key)</td><td>or repository.findBy*()</td></tr>
+      <tr><td>WRITE … FROM</td><td>repository.save(entity)</td><td>INSERT</td></tr>
+      <tr><td>REWRITE … FROM</td><td>repository.save(entity)</td><td>UPDATE (JPA merge)</td></tr>
+      <tr><td>OPEN / CLOSE</td><td>Spring Batch resource lifecycle</td><td>ItemStream.open() / close()</td></tr>
+      <tr><td>EXEC PGM= (JCL)</td><td>@Bean Job (Spring Batch)</td><td>DD statements → @Value / application.yml</td></tr>
+      <tr><td>EXEC CICS RECEIVE MAP</td><td>@RequestBody DTO</td><td>Bean Validation for edits</td></tr>
+      <tr><td>EXEC CICS SEND MAP</td><td>ResponseEntity&lt;DTO&gt;</td><td>or Thymeleaf template</td></tr>
+      <tr><td>EXEC CICS READ</td><td>repository.findById()</td><td>RESP=16 (notfnd) → Optional.isEmpty()</td></tr>
+      <tr><td>EXEC CICS REWRITE</td><td>repository.save(entity)</td><td></td></tr>
+      <tr><td>EXEC CICS RETURN TRANSID</td><td>HTTP response (stateless)</td><td>State moved to JWT</td></tr>
+      <tr><td>EXEC CICS XCTL</td><td>HTTP redirect / forward</td><td></td></tr>
+      <tr><td>COMMAREA</td><td>JWT claims / HTTP session</td><td>Prefer JWT for stateless REST</td></tr>
+      <tr><td>PIC 9(n)</td><td>Long / Integer / String</td><td>Never int for IDs; BigDecimal for money</td></tr>
+      <tr><td>PIC X(n)</td><td>String</td><td>trim() on read, leftPad / rightPad on write</td></tr>
+      <tr><td>PIC S9(n)V99</td><td>BigDecimal</td><td>scale = 2; RoundingMode.HALF_UP</td></tr>
+      <tr><td>COMP-3 / PACKED-DECIMAL</td><td>BigDecimal (+ codec for binary I/O)</td><td>See DM-5 in migration TODOs</td></tr>
+      <tr><td>OCCURS n TIMES</td><td>T[] / List&lt;T&gt;</td><td>Fixed size → array; variable → List</td></tr>
+      <tr><td>REDEFINES</td><td>ByteBuffer / sealed class</td><td>Two views of same bytes</td></tr>
+      <tr><td>EVALUATE WHEN</td><td>switch expression</td><td>Java 14+ switch expressions</td></tr>
+      <tr><td>EVALUATE TRUE</td><td>if-else chain</td><td></td></tr>
+      <tr><td>PERFORM paragraph</td><td>private method</td><td>One paragraph = one method</td></tr>
+      <tr><td>COMPUTE</td><td>BigDecimal arithmetic</td><td>Always specify RoundingMode</td></tr>
+      <tr><td>STRING … INTO</td><td>String.format / StringBuilder</td><td></td></tr>
+      <tr><td>INSPECT REPLACING</td><td>String.replace()</td><td></td></tr>
+      <tr><td>MOVE SPACES TO</td><td>= "" / = null</td><td>Convention: empty string preferred</td></tr>
+      <tr><td>DISPLAY</td><td>log.info() / log.debug()</td><td>SLF4J with structured args</td></tr>
+      <tr><td>ABEND / CEE3ABD</td><td>throw + .noSkip(Exception.class)</td><td>Spring Batch FAILED exit status</td></tr>
+      <tr><td>FILE STATUS '00'</td><td>— (no exception = OK)</td><td>Framework handles status</td></tr>
+      <tr><td>FILE STATUS '10' (EOF)</td><td>ItemReader returns null</td><td></td></tr>
+      <tr><td>FILE STATUS '23' (not found)</td><td>Optional.isEmpty() / notfnd</td><td></td></tr>
+      <tr><td>PERFORM 9999-ABEND-PROGRAM</td><td>throw new RuntimeException(msg)</td><td>wrapped by Step as FAILED</td></tr>
+    </tbody>
+  </table>
+
+  <hr id="batch-patterns">
+  <h2>Batch Patterns (JCL + Batch COBOL)</h2>
+
+  <!-- ── JCL → Spring Batch ── -->
+  <h3 id="pat-jcl">JCL → Spring Batch Job</h3>
+  <p>
+    The JCL job card, <code>EXEC PGM=</code> steps, and <code>DD</code> statements
+    map to a Spring Batch <code>@Configuration</code> class.
+    File paths that were coded in JCL <code>DD DSN=</code> become
+    <code>application.yml</code> properties.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">JCL — POSTTRAN job</div>
+      <pre><code>//POSTTRAN JOB (ACCT),'DAILY TXN',CLASS=A
+//STEP010  EXEC PGM=CBTRN01C
+//DALYTRAN DD DSN=PROD.DALYTRAN.FILE,
+//            DISP=SHR
+//DALYREJS DD DSN=PROD.DALYREJS.FILE,
+//            DISP=(NEW,CATLG)
+//STEP020  EXEC PGM=CBTRN02C,
+//            COND=(0,NE,STEP010)
+//TRANFILE DD DSN=PROD.TRANFILE,
+//            DISP=(NEW,CATLG)
+//ACCTFILE DD DSN=PROD.ACCTFILE,
+//            DISP=SHR
+//TCATBALF DD DSN=PROD.TCATBALF,
+//            DISP=SHR</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — Spring Batch configuration</div>
+      <pre><code>@Configuration
+public class TransactionPostingJobConfig {
+
+  // DD DSN= → application.yml
+  @Value("${carddemo.batch.dalytran-path}")
+  private String dalytranPath;
+
+  @Bean
+  public Job postingJob(Step validateStep,
+                        Step postStep) {
+    return jobBuilder
+        .get("POSTTRAN")
+        .start(validateStep)   // STEP010 = CBTRN01C
+        .next(postStep)        // STEP020 = CBTRN02C
+        .build();
+  }
+  // COND=(0,NE,STEP010) → Spring Batch
+  // stops automatically on FAILED step
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── PERFORM UNTIL AT END ── -->
+  <h3 id="pat-loop">PERFORM UNTIL AT END → Spring Batch ItemReader</h3>
+  <p>
+    The canonical COBOL batch loop — open file, read until AT END, process each record,
+    close file — maps directly to the Spring Batch <code>Step</code> chunk model.
+    The framework drives the read loop; the developer only implements
+    <code>read()</code>, <code>process()</code>, and <code>write()</code>.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L193–L230</div>
+      <pre><code>PROCEDURE DIVISION.
+    DISPLAY 'START OF EXECUTION...'
+    PERFORM 0000-DALYTRAN-OPEN
+    ...
+
+    PERFORM UNTIL END-OF-FILE = 'Y'
+        IF END-OF-FILE = 'N'
+            PERFORM 1000-DALYTRAN-GET-NEXT
+            IF END-OF-FILE = 'N'
+                ADD 1 TO WS-TRANSACTION-COUNT
+                PERFORM 1500-VALIDATE-TRAN
+                IF WS-VALIDATION-FAIL-REASON = 0
+                    PERFORM 2000-POST-TRANSACTION
+                ELSE
+                    PERFORM 2500-WRITE-REJECT-REC
+                END-IF
+            END-IF
+        END-IF
+    END-PERFORM.
+
+    PERFORM 9000-DALYTRAN-CLOSE
+    ...
+    DISPLAY 'END OF EXECUTION...'
+
+1000-DALYTRAN-GET-NEXT.
+    READ DALYTRAN-FILE INTO DALYTRAN-RECORD.
+    IF DALYTRAN-STATUS = '10'  ← EOF
+        MOVE 'Y' TO END-OF-FILE
+    ELSE IF DALYTRAN-STATUS &lt;&gt; '00'
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — Spring Batch Step (chunk-oriented)</div>
+      <pre><code>// Spring Batch drives the loop — no PERFORM UNTIL needed
+@Bean
+public Step postingStep(
+    ItemReader&lt;DailyTransaction&gt; reader,
+    ItemProcessor&lt;DailyTransaction,
+                  PostingResult&gt; processor,
+    ItemWriter&lt;PostingResult&gt; writer) {
+
+  return stepBuilder
+      .&lt;DailyTransaction, PostingResult&gt;chunk(100)
+      .reader(reader)      // null = EOF (= STATUS '10')
+      .processor(processor) // validate + post logic
+      .writer(writer)
+      .listener(new JobExecutionListenerSupport() {
+        public void beforeJob(JobExecution e) {
+          log.info("START OF EXECUTION"); // DISPLAY
+        }
+        public void afterJob(JobExecution e) {
+          log.info("END OF EXECUTION — status: {}",
+                   e.getStatus());
+        }
+      })
+      .build();
+}
+
+// ItemReader: return null signals EOF to the framework
+@Override
+public DailyTransaction read() {
+  DailyTransaction record = delegate.read();
+  return record; // null = no more records
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── OPEN / CLOSE ── -->
+  <h3 id="pat-open-close">OPEN / CLOSE → Spring Batch Resource Lifecycle</h3>
+  <p>
+    COBOL explicitly opens and checks every file before use and closes every file
+    after the loop. Spring Batch handles this via the <code>ItemStream</code>
+    lifecycle: <code>open()</code> before the step, <code>close()</code> after.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L236–L343</div>
+      <pre><code>0000-DALYTRAN-OPEN.
+    OPEN INPUT DALYTRAN-FILE
+    IF DALYTRAN-STATUS = '00'
+        MOVE 0 TO APPL-RESULT
+    ELSE
+        DISPLAY 'ERROR OPENING DALYTRAN'
+        MOVE DALYTRAN-STATUS TO IO-STATUS
+        PERFORM 9910-DISPLAY-IO-STATUS
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.
+
+9000-DALYTRAN-CLOSE.
+    CLOSE DALYTRAN-FILE
+    IF DALYTRAN-STATUS = '00'
+        MOVE 0 TO APPL-RESULT
+    ELSE
+        DISPLAY 'ERROR CLOSING DALYTRAN'
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.
+
+* Repeated for each of the 5 other files</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — Spring Batch handles open/close</div>
+      <pre><code>// FlatFileItemReader (file-based path):
+@Bean
+public FlatFileItemReader&lt;DailyTransaction&gt; reader(
+    @Value("${carddemo.batch.dalytran-path}")
+    Resource resource) {
+
+  return new FlatFileItemReaderBuilder&lt;
+              DailyTransaction&gt;()
+      .name("dalytranReader")
+      .resource(resource)      // open() called by framework
+      .fixedLength()
+      .columns(...)
+      .targetType(DailyTransaction.class)
+      .build();
+  // framework calls close() after step completes
+  // IOException on open → step FAILED immediately
+}
+
+// JPA path (DB instead of file):
+@Bean
+public JpaCursorItemReader&lt;DailyTransaction&gt;
+    dbReader(EntityManagerFactory emf) {
+  return new JpaCursorItemReaderBuilder&lt;&gt;()
+      .name("dalytranDbReader")
+      .entityManagerFactory(emf)
+      .queryString("SELECT t FROM DailyTransaction t
+                    ORDER BY t.id")
+      .build();
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── READ (random) → findById ── -->
+  <h3 id="pat-read">READ (random access) → repository.findById()</h3>
+  <p>
+    Random-key reads — <code>READ FILE INTO RECORD INVALID KEY … NOT INVALID KEY …</code> —
+    map to <code>repository.findById()</code> returning an <code>Optional</code>.
+    The INVALID KEY branch becomes the <code>orElseThrow()</code> or
+    <code>orElse()</code> path.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L383–L430</div>
+      <pre><code>* Look up card cross-reference:
+    MOVE DALYTRAN-CARD-NUM TO FD-XREF-CARD-NUM
+    READ XREF-FILE INTO CARD-XREF-RECORD
+        INVALID KEY
+            MOVE 100 TO WS-VALIDATION-FAIL-REASON
+            MOVE 'INVALID CARD NUMBER FOUND'
+              TO WS-VALIDATION-FAIL-REASON-DESC
+        NOT INVALID KEY
+            CONTINUE
+    END-READ.
+
+* Look up account with credit-limit check:
+    MOVE XREF-ACCT-ID TO FD-ACCT-ID
+    READ ACCOUNT-FILE INTO ACCOUNT-RECORD
+        INVALID KEY
+            MOVE 101 TO WS-VALIDATION-FAIL-REASON
+            MOVE 'ACCOUNT RECORD NOT FOUND'
+              TO WS-VALIDATION-FAIL-REASON-DESC
+        NOT INVALID KEY
+            COMPUTE WS-TEMP-BAL =
+                ACCT-CURR-CYC-CREDIT
+              - ACCT-CURR-CYC-DEBIT
+              + DALYTRAN-AMT
+            IF ACCT-CREDIT-LIMIT &lt; WS-TEMP-BAL
+                MOVE 102 TO WS-VALIDATION-FAIL-REASON
+            END-IF
+    END-READ.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — repository + Optional</div>
+      <pre><code>// Look up card cross-reference
+CardXref xref = cardXrefRepository
+    .findById(tran.getCardNum())
+    .orElseThrow(() -&gt; new ValidationException(
+        100, "INVALID CARD NUMBER FOUND"));
+
+// Look up account
+Account acct = accountRepository
+    .findById(xref.getAcctId())
+    .orElseThrow(() -&gt; new ValidationException(
+        101, "ACCOUNT RECORD NOT FOUND"));
+
+// Credit-limit check (CBTRN02C:L403)
+BigDecimal tempBal = acct.getCurrCycCredit()
+    .subtract(acct.getCurrCycDebit())
+    .add(tran.getAmount());
+
+if (acct.getCreditLimit().compareTo(tempBal) &lt; 0) {
+    throw new ValidationException(
+        102, "OVERLIMIT TRANSACTION");
+}
+
+// Expiration check (CBTRN02C:L414)
+if (acct.getExpirationDate()
+        .isBefore(tran.getOrigTimestamp()
+                      .toLocalDate())) {
+    throw new ValidationException(
+        103, "TRANSACTION RECEIVED AFTER ACCT EXPIRATION");
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── WRITE / REWRITE ── -->
+  <h3 id="pat-write">WRITE / REWRITE → repository.save()</h3>
+  <p>
+    Both <code>WRITE</code> (INSERT) and <code>REWRITE</code> (UPDATE) collapse
+    into a single <code>repository.save(entity)</code> call in JPA — Hibernate
+    decides INSERT vs UPDATE based on whether the entity is managed.
+    For flat-file output, use <code>FlatFileItemWriter</code>.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L510–L575</div>
+      <pre><code>* INSERT new balance record (2700-A):
+    WRITE FD-TRAN-CAT-BAL-RECORD
+          FROM TRAN-CAT-BAL-RECORD
+    IF TCATBALF-STATUS = '00'
+        CONTINUE
+    ELSE
+        DISPLAY 'ERROR WRITING TRANSACTION BALANCE'
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.
+
+* UPDATE existing account record (2800):
+    REWRITE FD-ACCTFILE-REC
+            FROM ACCOUNT-RECORD
+    IF ACCTFILE-STATUS = '00'
+        CONTINUE
+    ELSE
+        DISPLAY 'ERROR REWRITING ACCOUNT'
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.
+
+* INSERT new transaction (2900):
+    WRITE FD-TRANFILE-REC
+          FROM TRAN-RECORD
+    IF TRANFILE-STATUS &lt;&gt; '00'
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — JPA save() handles INSERT + UPDATE</div>
+      <pre><code>@Transactional
+public void postTransaction(DailyTransaction dt,
+                             CardXref xref,
+                             Account acct) {
+
+    // 2700 — INSERT or UPDATE TranCatBalance
+    var key = new TranCatKey(
+        xref.getAcctId(),
+        dt.getTypeCd(), dt.getCatCd());
+    TranCatBalance catBal = catBalRepo
+        .findById(key)
+        // WRITE (INSERT) if not found:
+        .orElse(new TranCatBalance(key,
+                                   BigDecimal.ZERO));
+    catBal.setBalance(
+        catBal.getBalance().add(dt.getAmount()));
+    catBalRepo.save(catBal); // INSERT or REWRITE
+
+    // 2800 — REWRITE account
+    acct.setCurrBal(
+        acct.getCurrBal().add(dt.getAmount()));
+    accountRepo.save(acct); // REWRITE
+
+    // 2900 — WRITE transaction
+    Transaction tran = mapper.toEntity(dt);
+    tran.setProcTimestamp(LocalDateTime.now());
+    transactionRepo.save(tran); // WRITE
+    // IOException → RuntimeException →
+    // Step catches it as FAILED (no need to check status)
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── Find-or-Create ── -->
+  <h3 id="pat-findorcreate">Find-or-Create Pattern (2700-UPDATE-TCATBAL)</h3>
+  <p>
+    A common COBOL pattern: read a record; if INVALID KEY (not found) create it,
+    otherwise update it. JPA's <code>findById().orElse(new …)</code> plus
+    <code>save()</code> is the idiomatic replacement.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L474–L541</div>
+      <pre><code>2700-UPDATE-TCATBAL.
+    MOVE 'N' TO WS-CREATE-TRANCAT-REC
+    READ TCATBAL-FILE INTO TRAN-CAT-BAL-RECORD
+        INVALID KEY
+            DISPLAY 'TCATBAL record not found'
+            MOVE 'Y' TO WS-CREATE-TRANCAT-REC
+    END-READ.
+
+    IF TCATBALF-STATUS = '00' OR '23'
+        MOVE 0 TO APPL-RESULT
+    ELSE
+        PERFORM 9999-ABEND-PROGRAM
+    END-IF.
+
+    IF WS-CREATE-TRANCAT-REC = 'Y'
+        PERFORM 2700-A-CREATE-TCATBAL-REC
+    ELSE
+        PERFORM 2700-B-UPDATE-TCATBAL-REC
+    END-IF.
+
+2700-A-CREATE-TCATBAL-REC.
+    INITIALIZE TRAN-CAT-BAL-RECORD
+    ADD DALYTRAN-AMT TO TRAN-CAT-BAL
+    WRITE FD-TRAN-CAT-BAL-RECORD ...
+
+2700-B-UPDATE-TCATBAL-REC.
+    ADD DALYTRAN-AMT TO TRAN-CAT-BAL
+    REWRITE FD-TRAN-CAT-BAL-RECORD ...</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — findById().orElse() + save()</div>
+      <pre><code>// The entire 2700 paragraph collapses to 4 lines:
+private void updateCatBalance(CardXref xref,
+                               DailyTransaction dt) {
+    var key = new TranCatKey(
+        xref.getAcctId(),
+        dt.getTypeCd(),
+        dt.getCatCd());
+
+    TranCatBalance rec = catBalRepo
+        .findById(key)
+        // STATUS '23' / INVALID KEY path:
+        .orElseGet(() -&gt; {
+            log.debug("TranCatBalance not found — "
+                    + "creating: {}", key);
+            return new TranCatBalance(key,
+                                     BigDecimal.ZERO);
+        });
+
+    // ADD DALYTRAN-AMT TO TRAN-CAT-BAL
+    rec.setBalance(
+        rec.getBalance().add(dt.getAmount()));
+
+    // WRITE or REWRITE — JPA decides automatically
+    catBalRepo.save(rec);
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── CompositeItemWriter ── -->
+  <h3 id="pat-composite">Multiple Output Files → CompositeItemWriter</h3>
+  <p>
+    When a COBOL batch program writes to several output files in one pass
+    (like <span class="srcref">CBACT01C.cbl</span> writing to OUTFILE, ARRYFILE, VBRCFILE),
+    use <code>CompositeItemWriter</code> to fan out to multiple writers.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBACT01C (three output files per record)</div>
+      <pre><code>PERFORM UNTIL END-OF-FILE = 'Y'
+    PERFORM 1000-ACCTFILE-GET-NEXT
+    IF END-OF-FILE = 'N'
+        PERFORM 1100-DISPLAY-ACCT-RECORD
+        PERFORM 1300-POPUL-ACCT-RECORD
+        WRITE FD-ACCTFILE-REC         ← OUTFILE
+              FROM OUT-ACCT-REC
+        PERFORM 1400-POPUL-ARRAY-RECORD
+        WRITE FD-ARRY-RECORD          ← ARRYFILE
+              FROM ARR-ARRAY-REC
+        PERFORM 1500-POPUL-VBRC-RECORD
+        WRITE FD-VBRC-RECORD1         ← VBRCFILE
+              FROM VBRC-REC1
+        WRITE FD-VBRC-RECORD2
+              FROM VBRC-REC2
+    END-IF
+END-PERFORM.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — CompositeItemWriter</div>
+      <pre><code>@Bean
+public CompositeItemWriter&lt;AccountExportResult&gt;
+    compositeWriter(
+      AccountFlatFileWriter flatWriter,
+      AccountArrayFileWriter arrayWriter,
+      AccountVbrFileWriter vbrWriter) {
+
+  return new CompositeItemWriterBuilder&lt;
+                AccountExportResult&gt;()
+      .delegates(flatWriter,   // OUTFILE
+                 arrayWriter,  // ARRYFILE
+                 vbrWriter)    // VBRCFILE
+      .build();
+}
+
+// Each writer receives the same
+// AccountExportResult and extracts its part:
+@Component
+public class AccountFlatFileWriter
+    implements ItemWriter&lt;AccountExportResult&gt; {
+  @Override
+  public void write(Chunk&lt;? extends
+                    AccountExportResult&gt; chunk) {
+    for (var r : chunk.getItems())
+      flatFileWriter.write(r.getFlatRecord());
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <hr id="cics-patterns">
+  <h2>CICS Patterns</h2>
+
+  <!-- ── RECEIVE MAP ── -->
+  <h3 id="pat-receive-map">EXEC CICS RECEIVE MAP → @RequestBody</h3>
+  <p>
+    <code>EXEC CICS RECEIVE MAP</code> reads the BMS map data from the terminal
+    into a COBOL copybook structure. In REST, the equivalent is a JSON request body
+    deserialized into a DTO by Jackson.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COACTUPC.cbl : L1040</div>
+      <pre><code>EXEC CICS RECEIVE
+    MAP    (LIT-THISMAP)
+    MAPSET (LIT-THISMAPSET)
+    INTO   (COACUP0AI)      ← screen input struct
+    RESP   (WS-RESP-CD)
+    RESP2  (WS-REAS-CD)
+END-EXEC.
+
+* Fields are now in copybook structure:
+MOVE ACTIDINL OF COACUP0AI TO WS-ACCT-ID
+MOVE ACSTTUSI OF COACUP0AI TO WS-ACCT-STATUS
+MOVE ACRDLIMI OF COACUP0AI TO WS-CREDIT-LIMIT</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — Spring MVC @RequestBody</div>
+      <pre><code>// DTO mirrors the BMS map fields
+public record UpdateAccountRequest(
+    @NotNull Long accountId,
+    @NotBlank @Size(max = 1)
+    String activeStatus,
+    @NotNull @DecimalMin("0")
+    BigDecimal creditLimit
+    // … further fields from COACUP0AI
+) {}
+
+@RestController
+@RequestMapping("/api/accounts")
+public class AccountController {
+
+  @PutMapping("/{id}")
+  public ResponseEntity&lt;AccountDto&gt; update(
+      @PathVariable Long id,
+      @RequestBody @Valid
+      UpdateAccountRequest req) {
+
+    // Fields land in req — same as
+    // MOVE ACTIDINL OF COACUP0AI TO WS-ACCT-ID
+    AccountDto updated =
+        accountService.update(id, req);
+    return ResponseEntity.ok(updated);
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── SEND MAP ── -->
+  <h3 id="pat-send-map">EXEC CICS SEND MAP → ResponseEntity</h3>
+  <p>
+    <code>EXEC CICS SEND MAP</code> fills a BMS map and sends it to the terminal.
+    In REST, the equivalent is a <code>ResponseEntity&lt;DTO&gt;</code> serialized
+    to JSON by Jackson. For server-side rendering, use a Thymeleaf template.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COSGN00C.cbl : L151</div>
+      <pre><code>* Fill the output map structure:
+MOVE WS-MESSAGE  TO ERRMSGSO OF COSGN0AO
+MOVE WS-TRANID   TO TRNNAMEO OF COSGN0AO
+MOVE -1          TO USERIDL  OF COSGN0AI
+
+* Send the map to the terminal:
+EXEC CICS SEND
+    MAP    ('COSGN0A')
+    MAPSET ('COSGN00')
+    FROM   (COSGN0AO)    ← output struct
+    ERASE
+    CURSOR
+END-EXEC.
+
+* Wait for next operator input — COBOL suspends
+EXEC CICS RETURN
+    TRANSID (WS-TRANID)
+    COMMAREA(CARDDEMO-COMMAREA)
+END-EXEC.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — ResponseEntity (REST) or Thymeleaf</div>
+      <pre><code>// REST API response:
+public record LoginResponse(
+    String token,
+    String userId,
+    String userType,
+    String errorMessage
+) {}
+
+// In controller — replaces SEND MAP:
+return ResponseEntity.ok(
+    new LoginResponse(jwt, userId,
+                      userType, null));
+
+// On error — replaces SEND MAP with error message:
+return ResponseEntity
+    .status(HttpStatus.UNAUTHORIZED)
+    .body(new LoginResponse(null, null, null,
+          "Wrong Password. Try again ..."));
+
+// Thymeleaf (server-side rendering):
+// model.addAttribute("errorMsg", "Wrong Password");
+// return "signon";  // maps to signon.html template</code></pre>
+    </div>
+  </div>
+
+  <!-- ── EXEC CICS READ ── -->
+  <h3 id="pat-cics-read">EXEC CICS READ → Repository</h3>
+  <p>
+    Online programs read VSAM datasets via <code>EXEC CICS READ DATASET(…) RIDFLD(…)</code>.
+    The <code>RESP</code> return code replaces file status. In Java, a
+    <code>findById()</code> call on a JPA repository is the direct equivalent;
+    <code>RESP=16</code> (NOTFND) becomes <code>Optional.isEmpty()</code>.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COSGN00C.cbl : L211–L257</div>
+      <pre><code>READ-USER-SEC-FILE.
+    EXEC CICS READ
+        DATASET   (WS-USRSEC-FILE)
+        INTO      (SEC-USER-DATA)
+        LENGTH    (LENGTH OF SEC-USER-DATA)
+        RIDFLD    (WS-USER-ID)       ← key
+        KEYLENGTH (LENGTH OF WS-USER-ID)
+        RESP      (WS-RESP-CD)
+        RESP2     (WS-REAS-CD)
+    END-EXEC.
+
+    EVALUATE WS-RESP-CD
+        WHEN 0               ← DFHRESP(NORMAL)
+            IF SEC-USR-PWD = WS-USER-PWD
+                PERFORM LOGIN-OK
+            ELSE
+                PERFORM WRONG-PASSWORD
+            END-IF
+        WHEN 13              ← DFHRESP(NOTFND) = 16
+            PERFORM USER-NOT-FOUND
+        WHEN OTHER
+            PERFORM CICS-ERROR
+    END-EVALUATE.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — Spring Security UserDetailsService</div>
+      <pre><code>@Service
+public class AuthenticationService
+        implements UserDetailsService {
+
+  @Override
+  public UserDetails loadUserByUsername(
+      String userId) {
+    // EXEC CICS READ DATASET(USRSEC)
+    //   RIDFLD(WS-USER-ID) RESP(WS-RESP-CD)
+    return userRepository
+        .findByUserId(userId.toUpperCase())
+        // WHEN 0 (NORMAL): user found
+        // WHEN 13 (NOTFND): user not found
+        .orElseThrow(() -&gt;
+            new UsernameNotFoundException(
+                "User not found. Try again ..."));
+    // WHEN OTHER (CICS error):
+    // DataAccessException propagates automatically
+  }
+}
+
+// Password check (COSGN00C:L223 SEC-USR-PWD = WS-USER-PWD)
+// is performed by Spring Security's
+// DaoAuthenticationProvider using BCryptPasswordEncoder
+// — plaintext comparison is replaced by BCrypt.verify()</code></pre>
+    </div>
+  </div>
+
+  <!-- ── XCTL / RETURN TRANSID ── -->
+  <h3 id="pat-xctl">XCTL / RETURN TRANSID → HTTP Redirect</h3>
+  <p>
+    <code>EXEC CICS XCTL PROGRAM(…)</code> transfers control to another CICS
+    program, passing the COMMAREA. <code>EXEC CICS RETURN TRANSID(…)</code>
+    suspends the current transaction and waits for the next terminal input.
+    In REST, program-to-program transfer becomes an HTTP redirect or a service call.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COSGN00C.cbl : L231–L238</div>
+      <pre><code>* Route user after successful login:
+IF CDEMO-USRTYP-ADMIN
+    EXEC CICS XCTL
+        PROGRAM ('COADM01C')  ← admin menu
+        COMMAREA(CARDDEMO-COMMAREA)
+    END-EXEC
+ELSE
+    EXEC CICS XCTL
+        PROGRAM ('COMEN01C')  ← user menu
+        COMMAREA(CARDDEMO-COMMAREA)
+    END-EXEC
+END-IF.
+
+* Keep transaction alive for next input:
+EXEC CICS RETURN
+    TRANSID (WS-TRANID)
+    COMMAREA(CARDDEMO-COMMAREA)
+    LENGTH  (LENGTH OF CARDDEMO-COMMAREA)
+END-EXEC.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — JWT routing / HTTP redirect</div>
+      <pre><code>// User type is stored in the JWT claim
+// → no COMMAREA needed between requests
+@PostMapping("/api/auth/login")
+public ResponseEntity&lt;LoginResponse&gt; login(
+    @RequestBody LoginRequest req) {
+
+  Authentication auth =
+    authManager.authenticate(
+      new UsernamePasswordAuthenticationToken(
+        req.getUserId().toUpperCase(),
+        req.getPassword()));
+
+  AppUser user = (AppUser) auth.getPrincipal();
+  String jwt = jwtService.generateToken(auth);
+
+  // XCTL to COADM01C / COMEN01C
+  // expressed as a routing hint in the response:
+  String redirectTo = user.getUserType()
+      == UserType.A
+      ? "/api/admin/menu"
+      : "/api/menu";
+
+  return ResponseEntity.ok(
+      new LoginResponse(jwt, redirectTo));
+  // Client follows the redirect in the next request
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── COMMAREA ── -->
+  <h3 id="pat-commarea">COMMAREA → JWT Claims</h3>
+  <p>
+    The COMMAREA is the CICS mechanism for passing state between pseudo-conversational
+    transactions. It is re-passed on every <code>EXEC CICS RETURN TRANSID</code>.
+    In a stateless REST API this becomes JWT claims or an HTTP session cookie.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COACTUPC.cbl : L854–L892 (LINKAGE SECTION)</div>
+      <pre><code>LINKAGE SECTION.
+01  DFHCOMMAREA.
+    05  LK-COMMAREA   PIC X(01)
+        OCCURS 1 TO 32767 TIMES
+        DEPENDING ON EIBCALEN.
+
+01  CARDDEMO-COMMAREA.
+    05 CDEMO-USER-ID       PIC X(08).
+    05 CDEMO-USER-TYPE     PIC X(01).  ← 'A' or 'U'
+    05 CDEMO-FROM-TRANID   PIC X(04).
+    05 CDEMO-FROM-PROGRAM  PIC X(08).
+    05 CDEMO-PGM-CONTEXT   PIC 9(01).
+    05 CDEMO-ACCT-ID       PIC 9(11).
+    05 CDEMO-CARD-NUM      PIC X(16).
+    ...
+
+PROCEDURE DIVISION.
+    MOVE DFHCOMMAREA(1:LENGTH OF CARDDEMO-COMMAREA)
+         TO CARDDEMO-COMMAREA</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — JWT claims carry session state</div>
+      <pre><code>// JWT replaces COMMAREA — generated once at login,
+// sent with every request in Authorization header
+@Service
+public class JwtService {
+
+  public String generateToken(Authentication auth) {
+    AppUser user =
+        (AppUser) auth.getPrincipal();
+    return Jwts.builder()
+        // CDEMO-USER-ID:
+        .subject(user.getUserId())
+        // CDEMO-USER-TYPE:
+        .claim("userType",
+               user.getUserType().name())
+        // CDEMO-FROM-TRANID / program:
+        .claim("lastTranId", "CC00")
+        .issuedAt(new Date())
+        .expiration(new Date(
+            System.currentTimeMillis()
+            + 8 * 3_600_000)) // 8-hour session
+        .signWith(signingKey)
+        .compact();
+  }
+
+  // Client sends: Authorization: Bearer &lt;token&gt;
+  // Filter extracts claims — no DFHCOMMAREA needed
+}</code></pre>
+    </div>
+  </div>
+
+  <hr id="data-patterns">
+  <h2>Data Patterns</h2>
+
+  <!-- ── PIC clauses ── -->
+  <h3 id="pat-pic">PIC Clauses → Java Types</h3>
+  <table>
+    <thead><tr><th>COBOL PIC</th><th>Java type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>PIC 9(n)         </td><td>Long / Integer          </td><td>Use Long for IDs (avoids int overflow on large IDs like ACCT-ID PIC 9(11))</td></tr>
+      <tr><td>PIC X(n)         </td><td>String                  </td><td>Right-padded with spaces in COBOL → .trim() on read; format with %-ns on write</td></tr>
+      <tr><td>PIC S9(n)V99     </td><td>BigDecimal              </td><td>scale = number of decimal digits; RoundingMode.HALF_UP for all arithmetic</td></tr>
+      <tr><td>PIC S9(n)V99 COMP-3 </td><td>BigDecimal + codec   </td><td>Binary files only — see COMP-3 pattern below</td></tr>
+      <tr><td>PIC S9(4) COMP   </td><td>short / int             </td><td>Binary integer (TWO-BYTES-BINARY in CBTRN02C)</td></tr>
+      <tr><td>PIC 9(1)         </td><td>boolean / enum          </td><td>ACCT-ACTIVE-STATUS: 'Y'/'N' or enum Active/Inactive</td></tr>
+      <tr><td>PIC X(10) (date) </td><td>LocalDate               </td><td>YYYY-MM-DD format — use DateTimeFormatter.ofPattern("yyyy-MM-dd")</td></tr>
+      <tr><td>PIC X(26) (timestamp) </td><td>LocalDateTime      </td><td>DB2 format YYYY-MM-DD-HH.MM.SS.mmmmm0000 — custom formatter</td></tr>
+      <tr><td>PIC X(8) (user ID)  </td><td>String              </td><td>Always store and compare as uppercase (COSGN00C:L132)</td></tr>
+      <tr><td>PIC X(16) (card num)</td><td>String              </td><td>Not a number — leading zeros are significant</td></tr>
+      <tr><td>FILLER           </td><td>— (skip)                </td><td>Do not map; FILLER is padding with no business meaning</td></tr>
+      <tr><td>88 level (condition) </td><td>enum or boolean    </td><td>CDEMO-USRTYP-ADMIN → UserType.A; use enum for clarity</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ── COMP-3 ── -->
+  <h3 id="pat-comp3">COMP-3 / Packed Decimal → BigDecimal</h3>
+  <p>
+    <code>COMP-3</code> stores two decimal digits per byte, plus a sign nibble.
+    When using <strong>JPA / PostgreSQL</strong>, BigDecimal maps transparently.
+    When reading or writing <strong>raw binary files</strong> (e.g., the OUTFILE
+    from CBACT01C), a packed-decimal codec is needed.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CVACT01Y.cpy (and CBACT01C output records)</div>
+      <pre><code>* In WORKING-STORAGE / copybook:
+05 ACCT-CURR-BAL
+      PIC S9(10)V99 COMP-3.
+05 ACCT-CREDIT-LIMIT
+      PIC S9(10)V99 COMP-3.
+
+* OUT-ACCT-CYC-DEBIT in output record:
+05 OUT-ACCT-CURR-CYC-DEBIT
+      PIC S9(10)V99 COMP-3.
+
+* CBACT01C:L236-238 — default debit value:
+IF ACCT-CURR-CYC-DEBIT = ZEROS
+    MOVE 2525.00 TO OUT-ACCT-CURR-CYC-DEBIT
+ELSE
+    MOVE ACCT-CURR-CYC-DEBIT
+      TO OUT-ACCT-CURR-CYC-DEBIT
+END-IF.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — BigDecimal (DB path) or codec (binary file path)</div>
+      <pre><code>// ── JPA path: transparent ────────────────────────
+@Entity
+public class Account {
+  // COMP-3 → BigDecimal (JPA handles encoding)
+  @Column(precision = 12, scale = 2)
+  private BigDecimal currBal;
+
+  @Column(precision = 12, scale = 2)
+  private BigDecimal creditLimit;
+}
+
+// Business rule BR-2 (CBACT01C:L236):
+BigDecimal debit = acct.getCurrCycDebit();
+flatRecord.setCurrCycDebit(
+    debit.compareTo(BigDecimal.ZERO) == 0
+        ? new BigDecimal("2525.00")
+        : debit);
+
+// ── Binary file path: codec needed ───────────────
+// Option A: Apache Commons Codec (custom):
+byte[] packed = PackedDecimal.toPackedDecimal(
+    "000000252500+", 6); // 12 bytes, scale=2
+
+// Option B: custom utility:
+public static BigDecimal unpackComp3(
+    byte[] b, int scale) {
+  // 2 nibbles per byte, last nibble = sign
+  ...
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── OCCURS ── -->
+  <h3 id="pat-occurs">OCCURS n TIMES → List / Array</h3>
+  <p>
+    Fixed-size tables (<code>OCCURS 5 TIMES</code>) map to Java arrays.
+    Variable-size tables (<code>OCCURS … DEPENDING ON</code>) map to
+    <code>List&lt;T&gt;</code>. A nested <code>OCCURS</code> maps to a
+    <code>List&lt;List&lt;T&gt;&gt;</code> or a custom value class.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — ARR-ARRAY-REC (CBACT01C working storage)</div>
+      <pre><code>01  ARR-ARRAY-REC.
+    05 ARR-ACCT-ID         PIC 9(11).
+    05 ARR-ACCT-BAL-DATA   OCCURS 5 TIMES.
+       10 ARR-ACCT-CURR-BAL
+             PIC S9(10)V99.
+       10 ARR-ACCT-CURR-CYC-DEBIT
+             PIC S9(10)V99 COMP-3.
+
+* Only slots 1, 2, 3 are populated (BR-4):
+    MOVE ACCT-CURR-BAL TO
+         ARR-ACCT-CURR-BAL (1)
+    MOVE 1005.00 TO
+         ARR-ACCT-CURR-CYC-DEBIT (1)
+    ...
+    MOVE -1025.00 TO
+         ARR-ACCT-CURR-BAL (3)    ← hardcoded
+    MOVE -2500.00 TO
+         ARR-ACCT-CURR-CYC-DEBIT (3)</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — inner value class + List</div>
+      <pre><code>// Fixed OCCURS 5 TIMES → array of value objects
+public record BalanceScenario(
+    BigDecimal currBal,
+    BigDecimal currCycDebit
+) {}
+
+public class AccountArrayRecord {
+    private long acctId;
+    // OCCURS 5 TIMES — Java array:
+    private BalanceScenario[] scenarios =
+        new BalanceScenario[5];
+}
+
+// Populating slots 1-3 (BR-4, CBACT01C:L253-261):
+record.setAcctId(acct.getAcctId());
+record.getScenarios()[0] = new BalanceScenario(
+    acct.getCurrBal(),
+    new BigDecimal("1005.00"));       // hardcoded
+record.getScenarios()[1] = new BalanceScenario(
+    acct.getCurrBal(),
+    new BigDecimal("1525.00"));       // hardcoded
+record.getScenarios()[2] = new BalanceScenario(
+    new BigDecimal("-1025.00"),       // hardcoded
+    new BigDecimal("-2500.00"));      // hardcoded
+// slots [3] and [4] remain null / zero</code></pre>
+    </div>
+  </div>
+
+  <!-- ── REDEFINES ── -->
+  <h3 id="pat-redefines">REDEFINES → ByteBuffer / Sealed Class</h3>
+  <p>
+    <code>REDEFINES</code> overlays two different views on the same memory.
+    The most common case in CardDemo is a 2-byte binary integer redefined as
+    two individual characters, used for I/O status decoding.
+    Use <code>ByteBuffer</code> for byte-level reinterpretation, or a
+    <code>sealed interface</code> for mutually-exclusive variant records.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L133–L136</div>
+      <pre><code>* Two views on the same 2 bytes:
+01  TWO-BYTES-BINARY     PIC S9(4) COMP.
+01  TWO-BYTES-ALPHA
+      REDEFINES TWO-BYTES-BINARY.
+    05  TWO-BYTES-LEFT   PIC X.
+    05  TWO-BYTES-RIGHT  PIC X.
+
+* Used in 9910-DISPLAY-IO-STATUS:
+    MOVE IO-STATUS TO TWO-BYTES-ALPHA
+    IF TWO-BYTES-LEFT NOT NUMERIC
+        MOVE '  ' TO IO-STATUS-04(1:2)
+    ELSE
+        MOVE TWO-BYTES-BINARY
+             TO IO-STATUS-0400</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — ByteBuffer overlay</div>
+      <pre><code>// ByteBuffer gives both views of the same bytes:
+private String decodeIoStatus(String ioStatus) {
+  if (ioStatus == null || ioStatus.length() &lt; 2)
+    return "????";
+
+  byte[] bytes = ioStatus.getBytes(
+      StandardCharsets.ISO_8859_1);
+  ByteBuffer buf = ByteBuffer.wrap(bytes);
+
+  // TWO-BYTES-BINARY view (S9(4) COMP):
+  short binary = buf.getShort(0);
+
+  // TWO-BYTES-ALPHA view:
+  char left  = (char)(bytes[0] & 0xFF);
+  char right = (char)(bytes[1] & 0xFF);
+
+  if (!Character.isDigit(left)) {
+    return "  " + ioStatus.substring(0, 2);
+  } else {
+    return String.format("%04d", binary);
+  }
+}
+
+// Variant records (mutual exclusion) → sealed:
+sealed interface VbrRecord
+    permits VbrShortRecord, VbrLongRecord {}
+record VbrShortRecord(long acctId, char status)
+    implements VbrRecord {}
+record VbrLongRecord(long acctId, BigDecimal bal,
+    BigDecimal creditLimit, int reissueYear)
+    implements VbrRecord {}</code></pre>
+    </div>
+  </div>
+
+  <hr id="control-flow">
+  <h2>Control Flow</h2>
+
+  <!-- ── PERFORM paragraph ── -->
+  <h3 id="pat-perform">PERFORM paragraph → private method</h3>
+  <p>
+    Every COBOL paragraph maps one-to-one to a private Java method.
+    The paragraph name becomes the method name (converted to camelCase).
+    Nested <code>PERFORM</code>s map to nested method calls.
+    No <code>GO TO</code> or <code>ALTER</code> needed.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L193–L230 (main loop)</div>
+      <pre><code>PROCEDURE DIVISION.
+    PERFORM 0000-DALYTRAN-OPEN
+    ...
+    PERFORM UNTIL END-OF-FILE = 'Y'
+        PERFORM 1000-DALYTRAN-GET-NEXT
+        IF END-OF-FILE = 'N'
+            PERFORM 1500-VALIDATE-TRAN
+            IF WS-VALIDATION-FAIL-REASON = 0
+                PERFORM 2000-POST-TRANSACTION
+            ELSE
+                PERFORM 2500-WRITE-REJECT-REC
+            END-IF
+        END-IF
+    END-PERFORM.
+    PERFORM 9000-DALYTRAN-CLOSE.
+
+1500-VALIDATE-TRAN.
+    PERFORM 1500-A-LOOKUP-XREF.
+    IF WS-VALIDATION-FAIL-REASON = 0
+        PERFORM 1500-B-LOOKUP-ACCT
+    END-IF.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — private methods (in ItemProcessor)</div>
+      <pre><code>// Spring Batch drives the read loop;
+// we implement the per-record logic as methods:
+@Override
+public PostingResult process(DailyTransaction dt) {
+
+    // 1500-VALIDATE-TRAN:
+    validateTransaction(dt);
+    // 2000-POST-TRANSACTION:
+    return buildPostingResult(dt);
+}
+
+private void validateTransaction(
+        DailyTransaction dt) {
+    // 1500-A-LOOKUP-XREF:
+    CardXref xref = lookupXref(dt.getCardNum());
+    // IF WS-VALIDATION-FAIL-REASON = 0:
+    // 1500-B-LOOKUP-ACCT:
+    Account acct = lookupAccount(xref.getAcctId());
+    checkCreditLimit(acct, dt);
+    checkExpiration(acct, dt);
+}
+
+private CardXref lookupXref(String cardNum) { ... }
+private Account  lookupAccount(Long acctId) { ... }
+private void checkCreditLimit(...) { ... }
+private void checkExpiration(...) { ... }</code></pre>
+    </div>
+  </div>
+
+  <!-- ── EVALUATE ── -->
+  <h3 id="pat-evaluate">EVALUATE → switch expression / if-else</h3>
+  <p>
+    <code>EVALUATE WHEN</code> (discriminant on a variable) maps to a Java
+    <code>switch</code> expression. <code>EVALUATE TRUE WHEN</code>
+    (multiple boolean conditions) maps to an <code>if-else</code> chain.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — COSGN00C.cbl : L85–L130</div>
+      <pre><code>* EVALUATE on AID key (which PF key was pressed):
+EVALUATE EIBAID
+    WHEN DFHENTER
+        PERFORM PROCESS-ENTER-KEY
+    WHEN DFHPF3
+        MOVE CCDA-MSG-THANK-YOU TO WS-MESSAGE
+        PERFORM SEND-PLAIN-TEXT
+    WHEN OTHER
+        MOVE 'Y' TO WS-ERR-FLG
+        MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE
+        PERFORM SEND-SIGNON-SCREEN
+END-EVALUATE.
+
+* EVALUATE TRUE (multi-condition routing):
+EVALUATE TRUE
+    WHEN CDEMO-USRTYP-ADMIN
+        EXEC CICS XCTL PROGRAM('COADM01C') ...
+    WHEN CDEMO-USRTYP-USER
+        EXEC CICS XCTL PROGRAM('COMEN01C') ...
+END-EVALUATE.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — switch + if-else</div>
+      <pre><code>// EVALUATE EIBAID → switch expression (Java 14+)
+// (For REST, the "key" comes from a query param
+//  or action field in the request body)
+String response = switch (request.getAction()) {
+    case "ENTER" -&gt; processEnterKey(request);
+    case "PF3"   -&gt; {
+        log.info(THANK_YOU_MSG);
+        yield sendPlainText(request);
+    }
+    default -&gt; {
+        log.warn("Invalid key: {}",
+                  request.getAction());
+        yield sendSignonScreen(request,
+                               INVALID_KEY_MSG);
+    }
+};
+
+// EVALUATE TRUE WHEN → if-else chain:
+if (user.getUserType() == UserType.A) {
+    return ResponseEntity.ok(
+        new LoginResponse(jwt, "/api/admin/menu"));
+} else {
+    return ResponseEntity.ok(
+        new LoginResponse(jwt, "/api/menu"));
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ── COMPUTE ── -->
+  <h3 id="pat-compute">COMPUTE → BigDecimal Arithmetic</h3>
+  <p>
+    COBOL <code>COMPUTE</code> performs decimal arithmetic with automatic scaling.
+    Java <code>BigDecimal</code> replicates this precisely, but you must specify
+    <code>RoundingMode</code> explicitly whenever division is involved.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBACT04C.cbl : L462–L465 and CBTRN02C.cbl : L403</div>
+      <pre><code>* Monthly interest = (balance × rate) / 1200
+* Source: CBACT04C:L462
+COMPUTE WS-MONTHLY-INT =
+    (TRAN-CAT-BAL * DIS-INT-RATE) / 1200
+
+* Credit limit check — temp balance
+* Source: CBTRN02C:L403
+COMPUTE WS-TEMP-BAL =
+    ACCT-CURR-CYC-CREDIT
+  - ACCT-CURR-CYC-DEBIT
+  + DALYTRAN-AMT
+
+* Closing the billing cycle (CBACT04C:L350-354):
+COMPUTE ACCT-CURR-BAL =
+    ACCT-CURR-BAL + WS-MONTHLY-INT
+MOVE ZEROS TO ACCT-CURR-CYC-CREDIT
+MOVE ZEROS TO ACCT-CURR-CYC-DEBIT</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — BigDecimal</div>
+      <pre><code>// Monthly interest: (balance × rate) / 1200
+BigDecimal monthlyInterest = balance
+    .multiply(annualRate)
+    .divide(BigDecimal.valueOf(1200), 2,
+            RoundingMode.HALF_UP);
+
+// Credit-limit temp balance:
+BigDecimal tempBal = acct.getCurrCycCredit()
+    .subtract(acct.getCurrCycDebit())
+    .add(tran.getAmount());
+
+// Close billing cycle (CBACT04C:L350-354):
+@Transactional
+public void closeBillingCycle(Account acct,
+                               BigDecimal interest) {
+    acct.setCurrBal(
+        acct.getCurrBal().add(interest));
+    acct.setCurrCycCredit(BigDecimal.ZERO);
+    acct.setCurrCycDebit(BigDecimal.ZERO);
+    accountRepository.save(acct);
+}
+
+// CRITICAL: never use double for money —
+// 0.1 + 0.2 != 0.3 in floating-point</code></pre>
+    </div>
+  </div>
+
+  <!-- ── STRING INTO ── -->
+  <h3 id="pat-string">STRING … INTO → String.format / StringBuilder</h3>
+  <p>
+    <code>STRING … INTO</code> concatenates parts into a target field.
+    In Java, use <code>String.format()</code> for formatted output or
+    <code>String.join()</code> / <code>StringBuilder</code> for simple concatenation.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBACT04C.cbl : L476–L490</div>
+      <pre><code>* Build transaction ID from date + counter:
+* Source: CBACT04C:L476
+STRING PARM-DATE,       ← YYYYMMDD
+       SUFFIX           ← 6-digit seq number
+       INTO TRAN-ID
+END-STRING.
+
+* Build interest description line:
+STRING 'Int. for a/c ',
+       XREF-ACCT-ID,
+       ' type ',
+       DALYTRAN-TYPE-CD,
+       ' cat ',
+       DALYTRAN-CAT-CD
+       INTO WS-TRAN-DESC
+END-STRING.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — String.format</div>
+      <pre><code>// TRAN-ID from date + 6-digit suffix:
+String tranId = String.format("%s%06d",
+    paramDate,     // YYYYMMDD
+    suffix);       // 6-digit counter
+
+// Interest description line:
+String tranDesc = String.format(
+    "Int. for a/c %011d type %s cat %04d",
+    xref.getAcctId(),
+    dalytran.getTypeCd(),
+    dalytran.getCatCd());
+
+// Simple concatenation → String.join:
+String msg = String.join(" ",
+    "Int. for a/c",
+    String.valueOf(acctId));
+
+// When the format is purely positional
+// (fill to fixed width), use:
+String padded = String.format("%-50s", desc)
+    .substring(0, 50); // truncate if needed</code></pre>
+    </div>
+  </div>
+
+  <!-- ── INSPECT ── -->
+  <h3 id="pat-inspect">INSPECT REPLACING → String.replace()</h3>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — INSPECT pattern</div>
+      <pre><code>* Replace all spaces with zeros:
+INSPECT WS-NUMERIC-STRING
+    REPLACING ALL SPACES BY ZEROS
+
+* Replace leading spaces with zeros:
+INSPECT WS-AMOUNT
+    REPLACING LEADING SPACES BY ZEROS
+
+* Count occurrences:
+MOVE 0 TO WS-COUNT
+INSPECT WS-STRING
+    TALLYING WS-COUNT FOR ALL 'X'</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — String methods</div>
+      <pre><code>// REPLACING ALL SPACES BY ZEROS:
+String fixed = input.replace(' ', '0');
+
+// REPLACING LEADING SPACES BY ZEROS
+// (right-align a number in a fixed field):
+String padded = String.format("%0" +
+    fieldWidth + "d",
+    Long.parseLong(input.strip()));
+
+// TALLYING FOR ALL:
+long count = input.chars()
+    .filter(c -&gt; c == 'X')
+    .count();
+
+// INSPECT CONVERTING (transliteration):
+// replace each char from set A with set B:
+String translated = input
+    .replace('A', '1')
+    .replace('B', '2'); // etc.</code></pre>
+    </div>
+  </div>
+
+  <hr id="error-handling">
+  <h2>Error Handling</h2>
+
+  <!-- ── ABEND ── -->
+  <h3 id="pat-abend">ABEND / CEE3ABD → noSkip + RuntimeException</h3>
+  <p>
+    CardDemo abends on any I/O error: it calls <code>9999-ABEND-PROGRAM</code>,
+    which calls the CEE3ABD system routine with abend code 999, terminating the
+    entire job. In Spring Batch, configure the Step with
+    <code>.noSkip(Exception.class)</code> to replicate this fail-fast behaviour:
+    any uncaught exception fails the Step and therefore the Job.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L247–L251 and L670+</div>
+      <pre><code>* On any I/O error: display status, then abend
+    DISPLAY 'ERROR OPENING DALYTRAN'
+    MOVE DALYTRAN-STATUS TO IO-STATUS
+    PERFORM 9910-DISPLAY-IO-STATUS
+    PERFORM 9999-ABEND-PROGRAM.
+
+9999-ABEND-PROGRAM.
+    DISPLAY 'ABENDING WITH CODE: 999'
+    MOVE '999' TO ABCODE
+    CALL 'CEE3ABD'           ← system call
+         USING ABCODE, FEEDBACK-TOKEN
+    STOP RUN.
+
+9910-DISPLAY-IO-STATUS.
+* Decodes 2-byte file status into 4-digit code
+    MOVE IO-STATUS TO TWO-BYTES-ALPHA
+    IF TWO-BYTES-LEFT NOT NUMERIC
+        ...
+    ELSE
+        MOVE TWO-BYTES-BINARY TO IO-STATUS-0400
+    END-IF
+    DISPLAY IO-STATUS-04.</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — noSkip + unchecked exception</div>
+      <pre><code>// Step configuration: replicate fail-fast behaviour
+@Bean
+public Step postingStep(...) {
+  return stepBuilder
+      .&lt;DailyTransaction, PostingResult&gt;chunk(100)
+      .reader(reader)
+      .processor(processor)
+      .writer(writer)
+      .faultTolerant()
+      // Any exception = immediate FAILED status
+      // (replicates PERFORM 9999-ABEND-PROGRAM)
+      .noSkip(Exception.class)
+      .noRetry(Exception.class)
+      .build();
+}
+
+// Custom exception (replaces ABEND code 999):
+public class CardDemoAbendException
+        extends RuntimeException {
+  private final int abendCode;
+  public CardDemoAbendException(
+      int code, String msg, Throwable cause) {
+    super("ABEND %03d: %s".formatted(code, msg),
+          cause);
+    this.abendCode = code;
+  }
+}
+
+// Usage (replaces 9999-ABEND-PROGRAM):
+throw new CardDemoAbendException(999,
+    "ERROR OPENING DALYTRAN: " + path, ioException);
+// → Step status = FAILED, Job status = FAILED</code></pre>
+    </div>
+  </div>
+
+  <!-- ── File Status Codes ── -->
+  <h3 id="pat-filestatus">File Status Codes → Exception Types</h3>
+  <table>
+    <thead><tr><th>COBOL file status</th><th>Java / Spring Batch equivalent</th><th>Where it occurs</th></tr></thead>
+    <tbody>
+      <tr><td>'00' — successful</td><td>no exception (normal flow)</td><td>all I/O operations</td></tr>
+      <tr><td>'10' — end of file</td><td>ItemReader.read() returns null</td><td>sequential READ</td></tr>
+      <tr><td>'22' — duplicate key</td><td>DataIntegrityViolationException</td><td>WRITE to unique-key file</td></tr>
+      <tr><td>'23' — key not found</td><td>Optional.isEmpty() / EmptyResultDataAccessException</td><td>random READ, REWRITE</td></tr>
+      <tr><td>'24' — boundary violation</td><td>IllegalArgumentException (rare)</td><td>WRITE beyond file boundary</td></tr>
+      <tr><td>'30' — permanent I/O error</td><td>IOException → CardDemoAbendException</td><td>hardware fault</td></tr>
+      <tr><td>'35' — file not found at OPEN</td><td>ItemStreamException / FileNotFoundException</td><td>OPEN INPUT</td></tr>
+      <tr><td>'39' — attribute mismatch</td><td>configuration error — caught at startup</td><td>OPEN</td></tr>
+      <tr><td>'41' — already open</td><td>impossible with Spring Batch lifecycle</td><td>OPEN</td></tr>
+      <tr><td>'42' — not open</td><td>impossible with Spring Batch lifecycle</td><td>CLOSE</td></tr>
+      <tr><td>'47' — read on output file</td><td>caught by compiler / type system</td><td>READ on OPEN OUTPUT</td></tr>
+      <tr><td>'48' — write on input file</td><td>caught by compiler / type system</td><td>WRITE on OPEN INPUT</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ── DISPLAY → SLF4J ── -->
+  <h3 id="pat-display">DISPLAY → SLF4J Logging</h3>
+  <p>
+    <code>DISPLAY</code> writes to <code>SYSOUT</code>. Replace with SLF4J
+    <code>log.info()</code> / <code>log.debug()</code>. Use a
+    <code>JobExecutionListener</code> for the start/end markers that every
+    CardDemo batch program emits.
+  </p>
+  <div class="compare">
+    <div class="panel panel-cobol">
+      <div class="panel-header">COBOL — CBTRN02C.cbl : L194 and L228–L232</div>
+      <pre><code>* Job start/end markers (CBTRN02C:L194, L228):
+DISPLAY 'START OF EXECUTION OF PROGRAM CBTRN02C'
+...
+DISPLAY 'TRANSACTIONS PROCESSED :' WS-TRANSACTION-COUNT
+DISPLAY 'TRANSACTIONS REJECTED  :' WS-REJECT-COUNT
+
+* Per-account audit dump (CBACT01C:L200-213):
+DISPLAY 'ACCT-ID              : '
+         ACCT-ID
+DISPLAY 'ACCT-ACTIVE-STATUS   : '
+         ACCT-ACTIVE-STATUS
+DISPLAY 'ACCT-CURR-BAL        : '
+         ACCT-CURR-BAL
+* ... 8 more DISPLAY statements ...</code></pre>
+    </div>
+    <div class="panel panel-java">
+      <div class="panel-header">Java — SLF4J + JobExecutionListener</div>
+      <pre><code>// Job start/end → JobExecutionListener:
+@Component
+public class CardDemoJobListener
+        implements JobExecutionListener {
+
+  private static final Logger log =
+      LoggerFactory.getLogger(CardDemoJobListener.class);
+
+  @Override
+  public void beforeJob(JobExecution e) {
+    log.info("START OF EXECUTION — job: {}",
+             e.getJobInstance().getJobName());
+  }
+  @Override
+  public void afterJob(JobExecution e) {
+    log.info("END OF EXECUTION — status: {}, "
+           + "processed: {}, rejected: {}",
+             e.getStatus(),
+             e.getStepExecutions()
+              .iterator().next().getWriteCount(),
+             e.getStepExecutions()
+              .iterator().next().getSkipCount());
+  }
+}
+
+// Per-record audit dump (CBACT01C:L200-213):
+// Use DEBUG so it can be suppressed in production
+log.debug("Account: id={} status={} bal={} "
+        + "creditLimit={} cashLimit={} "
+        + "openDate={} expDate={} reissueDate={} "
+        + "cycCredit={} cycDebit={} zip={}",
+    acct.getAcctId(),    acct.getActiveStatus(),
+    acct.getCurrBal(),   acct.getCreditLimit(),
+    acct.getCashCreditLimit(), acct.getOpenDate(),
+    acct.getExpirationDate(), acct.getReissueDate(),
+    acct.getCurrCycCredit(), acct.getCurrCycDebit(),
+    acct.getAddrZip());</code></pre>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Production volume warning:</strong>
+    CBACT01C logs 11 fields per account with <code>DISPLAY</code>.
+    At millions of accounts this generates millions of log lines.
+    Use SLF4J <code>log.debug()</code> and configure
+    <code>logging.level.com.carddemo.batch=INFO</code> in production;
+    switch to <code>DEBUG</code> only when troubleshooting.
+  </div>
+
+  <hr>
+  <p style="color:var(--comment);font-size:.8rem;">
+    Source references: <span class="srcref">app/cbl/CBTRN02C.cbl</span> &middot;
+    <span class="srcref">app/cbl/CBACT01C.cbl</span> &middot;
+    <span class="srcref">app/cbl/CBACT04C.cbl</span> &middot;
+    <span class="srcref">app/cbl/COSGN00C.cbl</span> &middot;
+    <span class="srcref">app/cbl/COACTUPC.cbl</span>
+  </p>
+
+  </div><!-- /content -->
+
+  <footer>
+    CardDemo Mainframe Modernisation &middot;
+    COBOL → Java Pattern Reference &middot;
+    <code>documentation/analysis/08-cobol-java-patterns.html</code>
+  </footer>
+</main>
+
+</body>
+</html>
