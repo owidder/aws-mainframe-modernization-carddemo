@@ -87,6 +87,21 @@ header h1{font-size:1.1rem;color:var(--cyan)}
     margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
 .cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
 .cl.hl .ln{color:var(--cyan)}
+
+/* ── cobol line tooltips ── */
+#ctip{position:fixed;z-index:9999;display:none;max-width:430px;padding:.5rem .8rem;
+      background:#1e1e2e;border:1px solid #89dceb;border-radius:6px;
+      font-size:.72rem;line-height:1.55;pointer-events:none;
+      box-shadow:0 6px 24px rgba(0,0,0,.65);font-family:'Segoe UI',system-ui,sans-serif;color:#cdd6f4}
+#ctip .tc{color:#fab387;font-weight:700;font-size:.68rem;margin-bottom:.18rem}
+#ctip .tj{color:#a6e3a1;font-weight:700;font-size:.68rem;margin-top:.28rem;margin-bottom:.18rem}
+#ctip .tn{color:#a6adc8;font-size:.69rem;margin-top:.28rem;border-top:1px solid #45475a;padding-top:.25rem}
+.cl[data-tip]{cursor:pointer;border-left:3px solid rgba(137,220,235,.4);background:rgba(137,220,235,.04)}
+.cl[data-tip] .ln{color:#89dceb;font-weight:700}
+.cl[data-tip] .ln::after{content:'';display:inline-block;width:5px;height:5px;background:rgba(137,220,235,.7);border-radius:50%;margin-left:.35em;vertical-align:middle;transition:all .15s}
+.cl[data-tip]:hover{background:rgba(137,220,235,.13);border-left-color:#89dceb}
+.cl[data-tip]:hover .ln{color:#89dceb}
+.cl[data-tip]:hover .ln::after{content:'→';width:auto;height:auto;background:none;border-radius:0;font-weight:400;font-size:.8em;letter-spacing:0}
 </style>
 </head>
 <body>
@@ -128,7 +143,7 @@ header h1{font-size:1.1rem;color:var(--cyan)}
 <tr class="nav-row" data-cl="317" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L317 / AccountExportJobConfig.java L95">
   <td><code>0000-ACCTFILE-OPEN</code><br><small>L317–333</small></td><td><code>AccountExportJobConfig</code> — <code>accountReader()</code></td><td>Spring Batch ItemStream.open() replaces OPEN INPUT ACCTFILE-FILE</td>
 </tr>
-<tr class="nav-row" data-cl="334" data-jt="2" data-jl="92" onclick="navigate(this)" title="Jump to COBOL L334 / MultiFileItemWriter.java L92">
+<tr class="nav-row" data-cl="334" data-jt="2" data-jl="93" onclick="navigate(this)" title="Jump to COBOL L334 / MultiFileItemWriter.java L93">
   <td><code>2000/3000/4000-*-OPEN</code><br><small>L334–386</small></td><td><code>MultiFileItemWriter.open()</code></td><td>Three FlatFileItemWriter instances opened via ItemStream lifecycle</td>
 </tr>
 <tr class="nav-row" data-cl="165" data-jt="0" data-jl="95" onclick="navigate(this)" title="Jump to COBOL L165 / AccountExportJobConfig.java L95">
@@ -161,11 +176,11 @@ header h1{font-size:1.1rem;color:var(--cyan)}
 <tr class="nav-row" data-cl="287" data-jt="2" data-jl="76" onclick="navigate(this)" title="Jump to COBOL L287 / MultiFileItemWriter.java L76">
   <td><code>1550/1575-WRITE-VB*</code><br><small>L287–315</small></td><td><code>MultiFileItemWriter</code> — <code>formatVbr1()</code> / <code>formatVbr2()</code></td><td>Variable-length VBR-REC → prefixed text lines (VBR1|… / VBR2|…)</td>
 </tr>
-<tr class="nav-row" data-cl="388" data-jt="2" data-jl="107" onclick="navigate(this)" title="Jump to COBOL L388 / MultiFileItemWriter.java L107">
+<tr class="nav-row" data-cl="388" data-jt="2" data-jl="108" onclick="navigate(this)" title="Jump to COBOL L388 / MultiFileItemWriter.java L108">
   <td><code>9000-ACCTFILE-CLOSE</code><br><small>L388–404</small></td><td><code>MultiFileItemWriter.close()</code></td><td>Step teardown closes all three FlatFileItemWriter instances</td>
 </tr>
-<tr class="nav-row" data-cl="406" data-jt="1" data-jl="45" onclick="navigate(this)" title="Jump to COBOL L406 / AccountExportProcessor.java L45">
-  <td><code>9999-ABEND-PROGRAM</code><br><small>L406–410</small></td><td>Uncaught exception → Spring Batch step FAILED</td><td>CALL &#39;CEE3ABD&#39; replaced by exception propagation from process()</td>
+<tr class="nav-row" data-cl="406" data-jt="0" data-jl="77" onclick="navigate(this)" title="Jump to COBOL L406 / AccountExportJobConfig.java L77">
+  <td><code>9999-ABEND-PROGRAM</code><br><small>L406–410</small></td><td><code>AccountExportJobConfig</code> — <code>accountExportStep()</code> StepBuilder (implicit fault tolerance)</td><td>CALL &#39;CEE3ABD&#39; (abend code 999) replaced by uncaught exception → Spring Batch marks step FAILED and stores the exception in StepExecution</td>
 </tr>
 <tr class="nav-row" data-cl="413" data-jt="0" data-jl="77" onclick="navigate(this)" title="Jump to COBOL L413 / AccountExportJobConfig.java L77">
   <td><code>9910-DISPLAY-IO-STATUS</code><br><small>L413–426</small></td><td>Spring Batch StepExecution failure cause (step builder at L77)</td><td>File status display replaced by exception in JobExecution metadata</td>
@@ -1422,7 +1437,71 @@ function navigate(row){
     if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}
   },60);
 }
-</script>
 
-</body>
-</html>
+var CT={
+  140:{c:'PROCEDURE DIVISION main flow — PERFORM UNTIL END-OF-FILE',j:'Spring Batch Job + chunk-oriented Step (AccountExportJobConfig)',n:'The sequential read-loop is replaced by a paginated Step. Spring Batch handles paging, restartability, and chunk-level transactions automatically.'},
+  317:{c:'0000-ACCTFILE-OPEN — OPEN INPUT ACCTFILE-FILE',j:'RepositoryItemReader.open() via Spring Batch ItemStream lifecycle',n:'No explicit file open needed. Spring Batch calls open() before the step starts and close() after it ends — identical to COBOL OPEN/CLOSE semantics.'},
+  334:{c:'2000/3000/4000 — OPEN OUTPUT OUT-FILE / ARRY-FILE / VBRC-FILE',j:'MultiFileItemWriter.open() — delegates to three FlatFileItemWriter instances',n:'All output files are opened in a single ItemStream.open() call. Spring Batch registers MultiFileItemWriter as a stream via the step builder.'},
+  165:{c:'1000-ACCTFILE-GET-NEXT — READ ACCTFILE-FILE INTO ACCOUNT-RECORD',j:'RepositoryItemReader.read() → AccountRepository.findAll(Pageable)',n:'Sequential READ becomes a paginated JPA query ordered by acctId ASC, page size 10. Returning null signals EOF — equivalent to file status \'10\'.'},
+  200:{c:'1100-DISPLAY-ACCT-RECORD — DISPLAY field-name : field-value (×11)',j:'AccountExportProcessor.process() — log.debug(account fields...)',n:'All 11 DISPLAY statements become one SLF4J log.debug() call. Output is only visible at DEBUG log level — set logging.level.com.carddemo=DEBUG in application.yml.'},
+  215:{c:'1300-POPUL-ACCT-RECORD — MOVE field TO out-field (×11 fields)',j:'new OutRecord(acctId, activeStatus, currBal, ..., groupId)',n:'Field-by-field MOVE statements become constructor arguments of a Java record. Immutability is guaranteed — no accidental overwrite bugs.'},
+  231:{c:'CALL \'COBDATFT\' USING CODATECN-REC (TYPE=\'2\', OUTTYPE=\'2\')',j:'DateConversionService.convertYyyyMmDdToYyyymmdd(date)',n:'The IBM Assembler date formatter is replaced by java.time: LocalDate.parse(date, ISO_LOCAL_DATE).format(BASIC_ISO_DATE). TYPE=2 → YYYY-MM-DD in, OUTTYPE=2 → YYYYMMDD out.'},
+  236:{c:'IF ACCT-CURR-CYC-DEBIT EQUAL TO ZERO  MOVE 2525.00 TO OUT-ACCT-CURR-CYC-DEBIT',j:'BigDecimal.ZERO.compareTo(account.getCurrCycDebit()) == 0 ? DEFAULT_CYC_DEBIT : account.getCurrCycDebit()',n:'The ternary mirrors the COBOL IF exactly. DEFAULT_CYC_DEBIT uses the BigDecimal String constructor — never use a double literal for financial values.'},
+  242:{c:'1350-WRITE-ACCT-RECORD — WRITE OUT-ACCT-REC',j:'outWriter.write(new Chunk<>(outRecords)) → OUTFILE.txt',n:'FlatFileItemWriter formats each OutRecord as a pipe-delimited line. Locale.US is mandatory — without it, German/French locales produce \'1940,00\' instead of \'1940.00\'.'},
+  253:{c:'1400-POPUL-ARRAY-RECORD — MOVE values to ARR-ACCT-BAL OCCURS 5 TIMES',j:'List.of(5 ArrayBalanceEntry) — entries 4–5 are BigDecimal.ZERO (INITIALIZE)',n:'OCCURS 5 TIMES becomes a fixed List of 5 elements. INITIALIZE ARR-ARRAY-REC zeroes entries 4–5; the Java code sets those to BigDecimal.ZERO explicitly.'},
+  263:{c:'1450-WRITE-ARRY-RECORD — WRITE ARR-ARRAY-REC',j:'arryWriter.write(new Chunk<>(arryRecords)) → ARRYFILE.txt',n:'FlatFileItemWriter formats each ArrayRecord as: ACCT-ID followed by 5 × (|BAL|DEBIT) pairs using String.format(Locale.US, ...).'},
+  276:{c:'1500-POPUL-VBRC-RECORD — MOVE fields to VBRC-REC1 + VBRC-REC2',j:'new VbrRecord1(acctId, activeStatus) + new VbrRecord2(acctId, currBal, creditLimit, year)',n:'Two separate fixed-layout record types replace the REDEFINES trick. WS-ACCT-REISSUE-YYYY (chars 1–4 of the date) becomes reissueDate.substring(0, 4).'},
+  287:{c:'1550-WRITE-VB1-RECORD (12 bytes) + 1575-WRITE-VB2-RECORD (39 bytes)',j:'formatVbr1() → \'VBR1|{id}|{status}\' + formatVbr2() → \'VBR2|{id}|{bal}|{limit}|{year}\'',n:'Variable-length binary records (WS-RECD-LEN=12 / 39) become prefixed text lines. The VBR1|/VBR2| prefix replaces the implicit record-length descriptor used by RECORDING MODE IS V.'},
+  388:{c:'9000-ACCTFILE-CLOSE — CLOSE ACCTFILE-FILE',j:'MultiFileItemWriter.close() — delegates to all three FlatFileItemWriter instances',n:'Spring Batch calls close() during step teardown. All four files (ACCTFILE + 3 output files) are closed automatically through the ItemStream lifecycle.'},
+  406:{c:'9999-ABEND-PROGRAM — CALL \'CEE3ABD\' USING ABCODE, TIMING',j:'AccountExportJobConfig.accountExportStep() — StepBuilder (L77)',n:'No explicit error handler. Exception from reader/processor/writer propagates to Spring Batch, which marks the step FAILED and stores it in StepExecution.getFailureExceptions().'},
+  413:{c:'9910-DISPLAY-IO-STATUS — DISPLAY \'FILE STATUS IS: NNNN\' IO-STATUS-04',j:'Exception message in StepExecution.getFailureExceptions()',n:'Two-byte VSAM file status codes (e.g. \'35\' = file not found) are translated by the exception message. No manual binary decoding needed — Java IO exceptions carry meaningful text.'}
+};
+var ctip=(function(){
+  var d=document.createElement('div');
+  d.id='ctip';
+  document.body.appendChild(d);
+  return d;
+}());
+var TABS=(function(){
+  return Array.from(document.querySelectorAll('.tabs button')).map(function(b){return b.textContent.trim();});
+}());
+function showCTip(e,ln){
+  var d=CT[ln];
+  if(!d)return;
+  var ref='';
+  var row=document.querySelector('.nav-row[data-cl="'+ln+'"]');
+  if(row){
+    var jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+    var cls=TABS[jt]||('Tab '+jt);
+    ref='<div class=tj style="font-size:.72rem;margin-bottom:.1rem;opacity:.85">→ '+cls+':'+jl+'</div>';
+  }
+  ctip.innerHTML='<div class=tc>COBOL: '+d.c+'</div>'+
+                 ref+
+                 '<div class=tj>Java: '+d.j+'</div>'+
+                 '<div class=tn>'+d.n+'</div>';
+  ctip.style.display='block';
+  posCTip(e);
+}
+function posCTip(e){
+  var x=e.clientX+18,y=e.clientY+10,w=ctip.offsetWidth+20,h=ctip.offsetHeight+10;
+  if(x+w>window.innerWidth)  x=e.clientX-w;
+  if(y+h>window.innerHeight) y=e.clientY-h-10;
+  ctip.style.left=x+'px'; ctip.style.top=y+'px';
+}
+function hideCTip(){ctip.style.display='none';}
+(function attachTips(){
+  Object.keys(CT).forEach(function(ln){
+    var el=document.getElementById('cobol-L'+ln);
+    if(!el)return;
+    el.dataset.tip='1';
+    el.addEventListener('mouseenter',function(e){showCTip(e,+ln);});
+    el.addEventListener('mousemove',posCTip);
+    el.addEventListener('mouseleave',hideCTip);
+    var row=document.querySelector('.nav-row[data-cl="'+ln+'"]');
+    if(row){
+      el.addEventListener('click',function(){hideCTip();navigate(row);});
+    }
+  });
+}());
+
+</script>

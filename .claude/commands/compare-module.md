@@ -87,10 +87,15 @@ For each annotation:
 
 **Build one mapping row per annotation**, deduplicating by paragraph name (keep the row with the lowest `cobol_line`). Sort rows by `cobol_line` ascending.
 
-For rows, construct HTML cells:
-- **COBOL cell**: `<code>PARAGRAPH-NAME</code><br><small>L{cobol_line}</small>`
-- **Java cell**: `<code>{ClassName}</code> — <code>{methodName}()</code>`
-- **Notes**: a one-sentence description inferred from the code context (what the COBOL construct does and what the Java replacement is)
+For each row produce **both** an HTML cell and a plain-text description (used in the tooltip CT object):
+
+| Field | HTML (`cc`, `jc`) | Plain text (`cobol_desc`, `java_desc`) |
+|-------|-------------------|----------------------------------------|
+| COBOL | `<code>PARA-NAME</code><br><small>L{n}</small>` | `PARA-NAME — COBOL line {n}` |
+| Java  | `<code>{ClassName}</code> — <code>{method}()</code>` | `{ClassName}.{method}()` |
+| Notes | (same for both) | one-sentence description |
+
+MAPPING tuple: `(cobol_line, java_tab, java_line, cc, jc, notes, cobol_desc, java_desc)`
 
 ---
 
@@ -98,7 +103,7 @@ For rows, construct HTML cells:
 
 Write a Python script to `/tmp/compare_<MODULE_LOWER>.py` and execute it.
 
-**The script must follow this exact pattern** (copy structure from CBACT01C generation):
+**The script must follow this exact pattern:**
 
 ```python
 import html, os, re
@@ -117,13 +122,18 @@ java_files = [
     # ... one tuple per file, in the ordered list from Step 2
 ]
 
-# Mapping data: list of (cobol_line, java_tab, java_line, cobol_cell_html, java_cell_html, notes)
+# MAPPING: (cobol_line, java_tab, java_line, cobol_cell_html, java_cell_html, notes, cobol_desc, java_desc)
 MAPPING = [
-    (140, 0, 57, "<code>...</code><br><small>L140</small>", "<code>...</code> — <code>method()</code>", "Notes..."),
+    (140, 0, 57,
+     "<code>PROCEDURE DIVISION</code><br><small>L140</small>",
+     "<code>AccountExportJobConfig</code> — <code>accountExportJob()</code>",
+     "Chunk-oriented step replaces PERFORM UNTIL END-OF-FILE loop",
+     "PROCEDURE DIVISION main flow — PERFORM UNTIL END-OF-FILE",
+     "Spring Batch Job + chunk-oriented Step (AccountExportJobConfig)"),
     # ... one tuple per row from Step 3
 ]
 
-# Build HTML fragments
+# ── Build HTML fragments ──────────────────────────────────────────────────────
 cobol_esc   = html.escape(cobol)
 cobol_lines = len(cobol.splitlines())
 total_java  = sum(len(read(p).splitlines()) for _, p in java_files)
@@ -135,10 +145,12 @@ for i, (name, path) in enumerate(java_files):
     act = ' class="active"' if i == 0 else ''
     vis = ' visible'        if i == 0 else ''
     tabs_html   += '      <button%s onclick="switchTab(%d)">%s</button>\n' % (act, i, name)
-    panels_html += '      <div class="panel%s" data-tab="%d"><pre><code class="language-java" id="jc%d">%s</code></pre></div>\n' % (vis, i, i, src)
+    panels_html += ('      <div class="panel%s" data-tab="%d">'
+                    '<pre><code class="language-java" id="jc%d">%s</code></pre></div>\n'
+                    % (vis, i, i, src))
 
 rows_html = ""
-for cl, jt, jl, cc, jc, notes in MAPPING:
+for cl, jt, jl, cc, jc, notes, _, _ in MAPPING:
     jname   = java_files[jt][0]
     tooltip = "Jump to COBOL L%d / %s L%d" % (cl, jname, jl)
     rows_html += ('<tr class="nav-row" data-cl="%d" data-jt="%d" data-jl="%d"'
@@ -146,22 +158,37 @@ for cl, jt, jl, cc, jc, notes in MAPPING:
                   '  <td>%s</td><td>%s</td><td>%s</td>\n</tr>\n'
                   % (cl, jt, jl, tooltip, cc, jc, notes))
 
-# JavaScript — written as list of strings to avoid </script> in literals
+# CT object entries  {cobol_line: {c, j, n}}
+ct_entries = []
+for cl, jt, jl, cc, jc, notes, cobol_desc, java_desc in MAPPING:
+    c = cobol_desc.replace("'", "\\'")
+    j = java_desc.replace("'",  "\\'")
+    n = notes.replace("'",      "\\'")
+    ct_entries.append("  %d:{c:'%s',j:'%s',n:'%s'}" % (cl, c, j, n))
+ct_js = "var CT={\n" + ",\n".join(ct_entries) + "\n};"
+
+# ── JavaScript ────────────────────────────────────────────────────────────────
 N = len(java_files)
-JS = [
+
+# IMPORTANT: never write </script> as a literal inside Python strings.
+# Build every closing script tag via string concatenation.
+JS_LINES = [
     "hljs.configure({tabReplace: '    '});",
     "document.querySelectorAll('pre code').forEach(function(el){hljs.highlightElement(el);});",
+    "",
     "function wrapLines(codeEl, idPfx) {",
     "  var lines = codeEl.innerHTML.split('\\n');",
     "  if (lines.length && lines[lines.length-1]==='') lines.pop();",
     "  codeEl.innerHTML = lines.map(function(line,i){",
     "    var n=i+1, s=String(n);",
     "    while(s.length<4) s='\\u00a0'+s;",
-    "    return '<span class=\"cl\" id=\"'+idPfx+'-L'+n+'\">'+'<span class=\"ln\">'+s+'</span>'+(line||'\\u200b')+'</span>';",
+    "    return '<span class=\"cl\" id=\"'+idPfx+'-L'+n+'\">'",
+    "           +'<span class=\"ln\">'+s+'</span>'+(line||'\\u200b')+'</span>';",
     "  }).join('\\n');",
     "}",
     "wrapLines(document.getElementById('cc'), 'cobol');",
     "for(var i=0;i<%d;i++){var el=document.getElementById('jc'+i);if(el)wrapLines(el,'jc'+i);}" % N,
+    "",
     "var panels=document.querySelectorAll('.panel'),tabBtns=document.querySelectorAll('.tabs button');",
     "var fname=document.getElementById('jfn'),flines=document.getElementById('jln'),jscroll=document.getElementById('jscroll');",
     "function cntLines(i){var e=document.getElementById('jc'+i);return e?e.querySelectorAll('.cl').length:0;}",
@@ -174,6 +201,7 @@ JS = [
     "  if(!noReset)jscroll.scrollTop=0;",
     "}",
     "window.addEventListener('load',function(){flines.textContent=cntLines(0)+' lines';});",
+    "",
     "var actC=null,actJ=null,actRow=null;",
     "function navigate(row){",
     "  var cl=parseInt(row.dataset.cl),jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);",
@@ -185,12 +213,68 @@ JS = [
     "  setTimeout(function(){var je=document.getElementById('jc'+jt+'-L'+jl);",
     "    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}},60);",
     "}",
+    "",
+    ct_js,   # var CT={...};
+    "",
+    # TABS: read class names from rendered tab buttons
+    "var TABS=(function(){",
+    "  return Array.from(document.querySelectorAll('.tabs button')).map(function(b){return b.textContent.trim();});",
+    "}());",
+    "",
+    # Floating tooltip div
+    "var ctip=(function(){",
+    "  var d=document.createElement('div');",
+    "  d.id='ctip';",
+    "  document.body.appendChild(d);",
+    "  return d;",
+    "}());",
+    "",
+    # showCTip: renders COBOL desc + Java class:line + Java desc + note
+    "function showCTip(e,ln){",
+    "  var d=CT[ln];if(!d)return;",
+    "  var ref='';",
+    "  var row=document.querySelector('.nav-row[data-cl=\"'+ln+'\"');",
+    "  if(row){",
+    "    var jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);",
+    "    var cls=TABS[jt]||('Tab '+jt);",
+    "    ref='<div class=tj style=\"font-size:.72rem;margin-bottom:.1rem;opacity:.85\">\u2192 '+cls+':'+jl+'</div>';",
+    "  }",
+    "  ctip.innerHTML='<div class=tc>COBOL: '+d.c+'</div>'",
+    "                +ref",
+    "                +'<div class=tj>Java: '+d.j+'</div>'",
+    "                +'<div class=tn>'+d.n+'</div>';",
+    "  ctip.style.display='block';",
+    "  posCTip(e);",
+    "}",
+    "function posCTip(e){",
+    "  var x=e.clientX+14,y=e.clientY+14;",
+    "  if(x+370>window.innerWidth)x=e.clientX-374;",
+    "  if(y+160>window.innerHeight)y=e.clientY-164;",
+    "  ctip.style.left=x+'px';ctip.style.top=y+'px';",
+    "}",
+    "function hideCTip(){ctip.style.display='none';}",
+    "",
+    # attachTips: mark lines, wire tooltip events AND click-to-navigate
+    "(function attachTips(){",
+    "  Object.keys(CT).forEach(function(ln){",
+    "    var el=document.getElementById('cobol-L'+ln);",
+    "    if(!el)return;",
+    "    el.dataset.tip='1';",
+    "    el.addEventListener('mouseenter',function(e){showCTip(e,+ln);});",
+    "    el.addEventListener('mousemove',posCTip);",
+    "    el.addEventListener('mouseleave',hideCTip);",
+    "    var row=document.querySelector('.nav-row[data-cl=\"'+ln+'\"');",
+    "    if(row){",
+    "      el.addEventListener('click',function(){hideCTip();navigate(row);});",
+    "    }",
+    "  });",
+    "}());",
 ]
-js = "\n".join(JS)
+js = "\n".join(JS_LINES)
 
-# Assemble page using list of string parts — never embed </script> as a literal
-MODULE      = "<MODULE>"       # e.g. CBACT01C
-ARTIFACT    = "<artifact-dir>" # e.g. cbact01c
+# ── Assemble page ─────────────────────────────────────────────────────────────
+MODULE   = "<MODULE>"        # e.g. CBACT01C
+ARTIFACT = "<artifact-dir>"  # e.g. cbact01c
 
 parts = []
 parts.append("""<!DOCTYPE html>
@@ -278,14 +362,95 @@ header h1{font-size:1.1rem;color:var(--cyan)}
     margin-right:.5em;font-variant-numeric:tabular-nums}
 .cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
 .cl.hl .ln{color:var(--cyan)}
+/* Tooltip-bearing COBOL lines */
+.cl[data-tip]{cursor:pointer;border-left:3px solid rgba(137,220,235,.4);background:rgba(137,220,235,.04)}
+.cl[data-tip] .ln{color:#89dceb;font-weight:700}
+.cl[data-tip] .ln::after{content:'';display:inline-block;width:5px;height:5px;
+  background:rgba(137,220,235,.7);border-radius:50%;margin-left:.35em;
+  vertical-align:middle;transition:all .15s}
+.cl[data-tip]:hover{background:rgba(137,220,235,.13);border-left-color:#89dceb}
+.cl[data-tip]:hover .ln{color:#89dceb}
+.cl[data-tip]:hover .ln::after{content:'\u2192';width:auto;height:auto;background:none;
+  border-radius:0;font-weight:400;font-size:.8em;letter-spacing:0}
+/* Floating tooltip */
+#ctip{position:fixed;display:none;max-width:360px;padding:.5rem .65rem;
+      background:#24273a;border:1px solid #45475a;border-radius:6px;
+      font-size:.72rem;line-height:1.5;color:#cdd6f4;
+      pointer-events:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+#ctip .tc{color:#f9e2af;font-weight:700;margin-bottom:.2rem}
+#ctip .tj{color:#a6e3a1;font-weight:700;font-size:.68rem;margin-top:.28rem;margin-bottom:.18rem}
+#ctip .tn{color:#a6adc8;font-size:.69rem;margin-top:.28rem;border-top:1px solid #45475a;padding-top:.25rem}
 </style>
 </head>
 <body>""")
 
-# nav, header, map section, split, inline script — assemble with % substitution
-# (see CBACT01C page for the exact pattern)
-# ...
+# nav bar
+parts.append("""<nav>
+  <a href="../index.html">Home</a><span class="sep">/</span>
+  <a href="../java-transformation.html">Java Transformation</a><span class="sep">/</span>
+  <span>%(mod)s</span>
+  <span class="badge-nav">COBOL \u2194 Java</span>
+</nav>""" % {"mod": MODULE})
 
+# header with badges — adjust type/badge classes per module
+parts.append("""<header>
+  <h1>%(mod)s \u2014 COBOL \u2194 Java Comparison</h1>
+  <div class="meta">
+    <span class="mc"><code>app/cbl/%(mod)s.cbl</code></span>
+    &nbsp;\u2192&nbsp;
+    <span class="mj"><code>java/%(art)s/</code></span>
+    &nbsp;&nbsp;%(cl)d COBOL lines &nbsp;|&nbsp; %(jl)d Java lines across %(jn)d files
+  </div>
+  <div class="badges">
+    <span class="badge b-cobol">COBOL</span>
+    <span class="badge b-batch">Spring Batch</span>
+    <span class="badge b-spring">Spring Boot</span>
+  </div>
+</header>""" % {"mod": MODULE, "art": ARTIFACT, "cl": cobol_lines, "jl": total_java, "jn": len(java_files)})
+
+# mapping table
+parts.append("""<div class="map-wrap">
+  <h2>Paragraph mapping &nbsp;<span class="nav-hint">(click row or highlighted COBOL line to navigate)</span></h2>
+  <table class="mt">
+    <thead><tr><th>COBOL paragraph</th><th>Java equivalent</th><th>Transformation notes</th></tr></thead>
+    <tbody>
+""" + rows_html + """    </tbody>
+  </table>
+</div>""")
+
+# split panes
+parts.append("""<div class="split">
+  <div class="pane pane-cobol">
+    <div class="pane-hdr">
+      <span class="lang-tag lc">COBOL</span>
+      <span class="pane-fn">app/cbl/%(mod)s.cbl</span>
+      <span class="pane-ln">%(cl)d lines</span>
+    </div>
+    <div class="cs" id="cscroll">
+      <pre><code class="language-cobol" id="cc">%(cobol)s</code></pre>
+    </div>
+  </div>
+  <div class="pane pane-java">
+    <div class="pane-hdr">
+      <span class="lang-tag lj">Java</span>
+      <span class="pane-fn" id="jfn">%(first_java)s</span>
+      <span class="pane-ln" id="jln"></span>
+    </div>
+    <div class="tabs">
+%(tabs)s    </div>
+    <div class="cs" id="jscroll">
+%(panels)s    </div>
+  </div>
+</div>""" % {
+    "mod":        MODULE,
+    "cl":         cobol_lines,
+    "cobol":      cobol_esc,
+    "first_java": java_files[0][0],
+    "tabs":       tabs_html,
+    "panels":     panels_html,
+})
+
+# inline script — close tag is built via concatenation, never as a literal
 parts.append('<script>\n' + js + '\n' + '</script>')
 parts.append('\n</body>\n</html>')
 
@@ -297,6 +462,14 @@ with open(dest, 'w', encoding='utf-8') as f:
     f.write(page)
 print("Written %d bytes -> %s" % (len(page), dest))
 ```
+
+> **Critical rules for the Python script**
+> - Never write `</script>` as a literal string anywhere in the Python source.
+>   Build every closing script tag via string concatenation:
+>   `'<script src="...">' + '</script>'` and `'<script>\n' + js + '\n' + '</script>'`
+> - Build `ct_js` with single-quote escaping as shown above, then inject it into `JS_LINES`.
+> - The `→` arrow in `showCTip` must be written as the unicode escape `\u2192` inside the
+>   Python string, not as a raw `→` character inside JS string literals, to avoid encoding issues.
 
 ---
 
@@ -313,6 +486,10 @@ Verify the output file:
 - Contains `id="jc0"` (first Java code block)
 - Contains `wrapLines` (line number function)
 - Contains `navigate` (click handler)
+- Contains `showCTip` (tooltip renderer)
+- Contains `attachTips` (tooltip + click-link wiring)
+- Contains `data-tip` CSS rules (`.cl[data-tip]`)
+- Contains `#ctip` CSS (floating tooltip div)
 - Contains no broken `<\/script>` tags (grep for `<\\` should return nothing)
 
 If the file fails verification, fix the script and re-run.
@@ -340,6 +517,7 @@ Insert it immediately after the existing Java artifact `<a>` link, inside the sa
 ✓ COBOL    : <N> lines  (app/cbl/<MODULE>.cbl)
 ✓ Java     : <M> lines across <K> files  (java/<artifact-dir>/)
 ✓ Mapping  : <P> paragraph rows (from // COBOL: annotations)
+✓ Tooltips : <P> COBOL lines wired (hover = tooltip, click = navigate to Java)
 
 Open: file:///…/documentation/html/comparison/<MODULE>.html
 ```
