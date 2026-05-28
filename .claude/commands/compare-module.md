@@ -68,7 +68,7 @@ Build a list: `[(filename_short, full_path, source_content), ...]` — this list
 
 ---
 
-### Step 3 — Build the COBOL→Java mapping
+### Step 3 — Build the COBOL→Java paragraph mapping
 
 **Parse `// COBOL:` annotations** from every Java file. The annotation format is:
 
@@ -80,14 +80,14 @@ Build a list: `[(filename_short, full_path, source_content), ...]` — this list
 For each annotation:
 - `cobol_line` = first line number from the annotation (the `START` part)
 - `java_tab`   = 0-based index of the file containing the annotation
-- `java_line`  = line number of the **next non-blank, non-comment** line after the annotation (the actual Java code being described)
+- `java_line`  = line number of the **next non-blank, non-comment** line after the annotation
 - `paragraph`  = the paragraph name after the `—` separator
 
 **Find the enclosing Java method** by scanning backwards from `java_line` to the nearest line matching `^\s+(public|private|protected|@Override)`. Use the method name in the Java cell.
 
-**Build one mapping row per annotation**, deduplicating by paragraph name (keep the row with the lowest `cobol_line`). Sort rows by `cobol_line` ascending.
+**Build one mapping row per annotation**, deduplicating by paragraph name (keep lowest `cobol_line`). Sort by `cobol_line` ascending.
 
-For each row produce **both** an HTML cell and a plain-text description (used in the tooltip CT object):
+For each row produce **both** an HTML cell and a plain-text description (used in the CT tooltip object):
 
 | Field | HTML (`cc`, `jc`) | Plain text (`cobol_desc`, `java_desc`) |
 |-------|-------------------|----------------------------------------|
@@ -96,6 +96,72 @@ For each row produce **both** an HTML cell and a plain-text description (used in
 | Notes | (same for both) | one-sentence description |
 
 MAPPING tuple: `(cobol_line, java_tab, java_line, cc, jc, notes, cobol_desc, java_desc)`
+
+---
+
+### Step 3.5 — Build the VARS object (variable-name tooltips)
+
+Read the COBOL **DATA DIVISION** (FILE SECTION, WORKING-STORAGE SECTION) and all referenced **copybooks** (`app/cpy/*.cpy`). For every data item (FD records, 01/05/10/88-level items, REDEFINES overlays, file names from SELECT entries) build a `VARS` Python dict:
+
+```python
+VARS = {
+    # Key  = COBOL data-item name (uppercase, as written in source)
+    # b    = business-meaning description (one sentence, plain English)
+    # j    = Java equivalent note (class.field or "No Java equivalent — reason")
+    # jt   = Java tab index (0-based, OMIT if no direct Java counterpart)
+    # jl   = Java line number to navigate to (OMIT if no direct Java counterpart)
+    'ACCT-ID': dict(
+        b='Account number — 11-digit unique credit-card account identifier',
+        j='Account.acctId (Long) — @Id, column acct_id',
+        jt=4, jl=26),
+    'END-OF-FILE': dict(
+        b='Loop-termination flag — set to "Y" when the account file is exhausted',
+        j='No Java equivalent — Spring Batch chunk loop ends when ItemReader returns null'),
+    # ...
+}
+```
+
+**Rules for `jt`/`jl`:**
+- Include `jt`/`jl` when the variable maps to a **named Java field, method, or class declaration** in one of the Java files.
+- Omit them for COBOL-specific constructs (file-status codes, REDEFINES overlays, 88-level conditions, abend parameters) that have no direct Java field.
+- To find the line: search the Java file content for the camelCase equivalent of the COBOL name (e.g. `ACCT-ID` → `acctId`, `OUT-ACCT-REC` → class `OutRecord`). Use the field declaration line, not a usage line.
+
+**Helper functions to include in the Python script:**
+
+```python
+def cobol_to_camel(name):
+    parts = name.lower().split('-')
+    return parts[0] + ''.join(p.capitalize() for p in parts[1:])
+
+def find_java_field(java_files_content, cobol_name):
+    """Return (jt, jl) of the field/class declaration or (None, None)."""
+    camel = cobol_to_camel(cobol_name)
+    patterns = [
+        r'private\s+\S+\s+' + re.escape(camel) + r'\b',   # entity field
+        r'\b' + re.escape(camel) + r'\s*[,)\[]',           # record component
+        r'class\s+' + re.escape(camel[0].upper()+camel[1:]), # class name
+    ]
+    for jt, (name, path, content) in enumerate(java_files_content):
+        for jl, line in enumerate(content.splitlines(), 1):
+            if any(re.search(p, line) for p in patterns):
+                return jt, jl
+    return None, None
+```
+
+**Generate `vars_js`** from the VARS dict:
+
+```python
+def esc_sq(s): return s.replace("\\", "\\\\").replace("'", "\\'")
+
+var_entries = []
+for vn, d in VARS.items():
+    b, j = esc_sq(d['b']), esc_sq(d['j'])
+    if 'jt' in d:
+        var_entries.append("  '%s':{b:'%s',j:'%s',jt:%d,jl:%d}" % (vn, b, j, d['jt'], d['jl']))
+    else:
+        var_entries.append("  '%s':{b:'%s',j:'%s'}" % (vn, b, j))
+vars_js = "var VARS={\n" + ",\n".join(var_entries) + "\n};"
+```
 
 ---
 
@@ -121,8 +187,9 @@ java_files = [
     ("FileName.java", "java/<artifact>/src/main/java/.../<File>.java"),
     # ... one tuple per file, in the ordered list from Step 2
 ]
+java_files_content = [(n, p, read(p)) for n, p in java_files]
 
-# MAPPING: (cobol_line, java_tab, java_line, cobol_cell_html, java_cell_html, notes, cobol_desc, java_desc)
+# MAPPING: (cobol_line, java_tab, java_line, cobol_html, java_html, notes, cobol_desc, java_desc)
 MAPPING = [
     (140, 0, 57,
      "<code>PROCEDURE DIVISION</code><br><small>L140</small>",
@@ -130,24 +197,60 @@ MAPPING = [
      "Chunk-oriented step replaces PERFORM UNTIL END-OF-FILE loop",
      "PROCEDURE DIVISION main flow — PERFORM UNTIL END-OF-FILE",
      "Spring Batch Job + chunk-oriented Step (AccountExportJobConfig)"),
-    # ... one tuple per row from Step 3
+    # ...
 ]
+
+# VARS: from Step 3.5 — built with cobol_to_camel / find_java_field helpers
+def cobol_to_camel(name):
+    parts = name.lower().split('-')
+    return parts[0] + ''.join(p.capitalize() for p in parts[1:])
+
+def find_java_field(jfc, cobol_name):
+    camel = cobol_to_camel(cobol_name)
+    patterns = [
+        r'private\s+\S+\s+' + re.escape(camel) + r'\b',
+        r'\b' + re.escape(camel) + r'\s*[,)\[]',
+        r'class\s+' + re.escape(camel[0].upper()+camel[1:]),
+    ]
+    for jt, (name, path, content) in enumerate(jfc):
+        for jl, line in enumerate(content.splitlines(), 1):
+            if any(re.search(p, line) for p in patterns):
+                return jt, jl
+    return None, None
+
+VARS = {
+    'ACCT-ID': dict(b='Account number — 11-digit unique credit-card identifier',
+                    j='Account.acctId (Long) — @Id, column acct_id', jt=4, jl=26),
+    'END-OF-FILE': dict(b='Loop-termination flag set to "Y" when file is exhausted',
+                        j='No Java equivalent — ItemReader returns null to signal EOF'),
+    # ... one entry per data item from DATA DIVISION + copybooks + SELECT names
+}
+
+def esc_sq(s): return s.replace("\\", "\\\\").replace("'", "\\'")
+var_entries = []
+for vn, d in VARS.items():
+    b, j = esc_sq(d['b']), esc_sq(d['j'])
+    if 'jt' in d:
+        var_entries.append("  '%s':{b:'%s',j:'%s',jt:%d,jl:%d}" % (vn, b, j, d['jt'], d['jl']))
+    else:
+        var_entries.append("  '%s':{b:'%s',j:'%s'}" % (vn, b, j))
+vars_js = "var VARS={\n" + ",\n".join(var_entries) + "\n};"
 
 # ── Build HTML fragments ──────────────────────────────────────────────────────
 cobol_esc   = html.escape(cobol)
 cobol_lines = len(cobol.splitlines())
-total_java  = sum(len(read(p).splitlines()) for _, p in java_files)
+total_java  = sum(len(c.splitlines()) for _, _, c in java_files_content)
 
 tabs_html   = ""
 panels_html = ""
-for i, (name, path) in enumerate(java_files):
-    src = html.escape(read(path))
+for i, (name, path, src) in enumerate(java_files_content):
+    src_esc = html.escape(src)
     act = ' class="active"' if i == 0 else ''
     vis = ' visible'        if i == 0 else ''
     tabs_html   += '      <button%s onclick="switchTab(%d)">%s</button>\n' % (act, i, name)
     panels_html += ('      <div class="panel%s" data-tab="%d">'
                     '<pre><code class="language-java" id="jc%d">%s</code></pre></div>\n'
-                    % (vis, i, i, src))
+                    % (vis, i, i, src_esc))
 
 rows_html = ""
 for cl, jt, jl, cc, jc, notes, _, _ in MAPPING:
@@ -158,12 +261,12 @@ for cl, jt, jl, cc, jc, notes, _, _ in MAPPING:
                   '  <td>%s</td><td>%s</td><td>%s</td>\n</tr>\n'
                   % (cl, jt, jl, tooltip, cc, jc, notes))
 
-# CT object entries  {cobol_line: {c, j, n}}
+# CT object: paragraph-line tooltips {cobol_line: {c, j, n}}
 ct_entries = []
 for cl, jt, jl, cc, jc, notes, cobol_desc, java_desc in MAPPING:
-    c = cobol_desc.replace("'", "\\'")
-    j = java_desc.replace("'",  "\\'")
-    n = notes.replace("'",      "\\'")
+    c = esc_sq(cobol_desc)
+    j = esc_sq(java_desc)
+    n = esc_sq(notes)
     ct_entries.append("  %d:{c:'%s',j:'%s',n:'%s'}" % (cl, c, j, n))
 ct_js = "var CT={\n" + ",\n".join(ct_entries) + "\n};"
 
@@ -216,12 +319,12 @@ JS_LINES = [
     "",
     ct_js,   # var CT={...};
     "",
-    # TABS: read class names from rendered tab buttons
+    # TABS: class names from rendered tab buttons — used by both showCTip and showVTip
     "var TABS=(function(){",
     "  return Array.from(document.querySelectorAll('.tabs button')).map(function(b){return b.textContent.trim();});",
     "}());",
     "",
-    # Floating tooltip div
+    # Floating tooltip div (shared by paragraph tooltips and variable tooltips)
     "var ctip=(function(){",
     "  var d=document.createElement('div');",
     "  d.id='ctip';",
@@ -229,7 +332,7 @@ JS_LINES = [
     "  return d;",
     "}());",
     "",
-    # showCTip: renders COBOL desc + Java class:line + Java desc + note
+    # showCTip: paragraph-line tooltip (COBOL desc + → ClassName.java:LINE + Java desc + note)
     "function showCTip(e,ln){",
     "  var d=CT[ln];if(!d)return;",
     "  var ref='';",
@@ -254,7 +357,7 @@ JS_LINES = [
     "}",
     "function hideCTip(){ctip.style.display='none';}",
     "",
-    # attachTips: mark lines, wire tooltip events AND click-to-navigate
+    # attachTips: paragraph lines — hover tooltip + click-to-navigate
     "(function attachTips(){",
     "  Object.keys(CT).forEach(function(ln){",
     "    var el=document.getElementById('cobol-L'+ln);",
@@ -269,6 +372,92 @@ JS_LINES = [
     "    }",
     "  });",
     "}());",
+    "",
+    # VARS: variable-name tooltips — injected from Python vars_js
+    vars_js,
+    "",
+    # navigateVar: jump Java pane to a specific tab+line (used by variable clicks)
+    "function navigateVar(jt,jl){",
+    "  if(actJ)actJ.classList.remove('hl');",
+    "  switchTab(jt,true);",
+    "  setTimeout(function(){",
+    "    var je=document.getElementById('jc'+jt+'-L'+jl);",
+    "    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}",
+    "  },60);",
+    "}",
+    "",
+    # showVTip: variable tooltip — name + business meaning + → ClassName:LINE + Java note
+    "function showVTip(e,vn){",
+    "  var d=VARS[vn];if(!d)return;",
+    "  var ref='';",
+    "  if(d.jt!==undefined){",
+    "    var cls=TABS[d.jt]||('Tab '+d.jt);",
+    "    ref='<div class=tj style=\"font-size:.72rem;margin-bottom:.1rem;opacity:.85\">\u2192 '+cls+':'+d.jl+'</div>';",
+    "  }",
+    "  ctip.innerHTML=",
+    "    '<div class=tc style=\"font-family:\\'JetBrains Mono\\',monospace;letter-spacing:.02em\">'+vn+'</div>'",
+    "    +'<div class=tj>\\u25b6 '+d.b+'</div>'",
+    "    +ref",
+    "    +'<div class=tn>'+d.j+(d.jt!==undefined?' \\u2014 click to navigate':'')+'</div>';",
+    "  ctip.style.display='block';",
+    "  posCTip(e);",
+    "}",
+    "",
+    # wrapVars: TreeWalker post-processor — wraps variable names in <span class="vt"> / "vt vt-link"
+    # Uses negative lookbehind/lookahead to avoid partial matches within longer names.
+    # Runs AFTER wrapLines() so it works on already-highlighted DOM text nodes.
+    # Skips .ln (line number) spans.
+    "function wrapVars(codeEl){",
+    "  var varList=Object.keys(VARS).sort(function(a,b){return b.length-a.length;});",
+    "  var esc=varList.map(function(v){return v.replace(/-/g,'\\\\-');}).join('|');",
+    "  var re=new RegExp('(?<![A-Za-z0-9-])('+esc+')(?![A-Za-z0-9-])','gi');",
+    "  var walker=document.createTreeWalker(",
+    "    codeEl,NodeFilter.SHOW_TEXT,",
+    "    {acceptNode:function(n){",
+    "      var p=n.parentNode;",
+    "      while(p&&p!==codeEl){",
+    "        if(p.className&&(p.className==='ln'||p.className.indexOf('ln ')===0)) return NodeFilter.FILTER_REJECT;",
+    "        p=p.parentNode;",
+    "      }",
+    "      return NodeFilter.FILTER_ACCEPT;",
+    "    }},false",
+    "  );",
+    "  var nodes=[],nd;",
+    "  while((nd=walker.nextNode()))nodes.push(nd);",
+    "  nodes.forEach(function(nd){",
+    "    var txt=nd.textContent; re.lastIndex=0;",
+    "    if(!re.test(txt))return;",
+    "    re.lastIndex=0;",
+    "    var frag=document.createDocumentFragment(),last=0,m;",
+    "    while((m=re.exec(txt))!==null){",
+    "      if(m.index>last)frag.appendChild(document.createTextNode(txt.slice(last,m.index)));",
+    "      var sp=document.createElement('span');",
+    "      var vn=m[1].toUpperCase();",
+    "      var hasLink=VARS[vn]&&VARS[vn].jt!==undefined;",
+    "      sp.className='vt'+(hasLink?' vt-link':'');",
+    "      sp.dataset.vn=vn; sp.textContent=m[1];",
+    "      (function(sp,vn,hasLink){",
+    "        sp.addEventListener('mouseenter',function(e){showVTip(e,vn);});",
+    "        sp.addEventListener('mousemove',posCTip);",
+    "        sp.addEventListener('mouseleave',function(e){",
+    "          var cl=sp.closest&&sp.closest('.cl[data-tip]');",
+    "          if(cl&&cl.contains(e.relatedTarget)){",
+    "            showCTip(e,parseInt(cl.id.replace('cobol-L','')));",
+    "          } else hideCTip();",
+    "        });",
+    "        if(hasLink){",
+    "          sp.addEventListener('click',function(){",
+    "            hideCTip();navigateVar(VARS[vn].jt,VARS[vn].jl);",
+    "          });",
+    "        }",
+    "      }(sp,vn,hasLink));",
+    "      frag.appendChild(sp); last=m.index+m[0].length;",
+    "    }",
+    "    if(last<txt.length)frag.appendChild(document.createTextNode(txt.slice(last)));",
+    "    nd.parentNode.replaceChild(frag,nd);",
+    "  });",
+    "}",
+    "wrapVars(document.getElementById('cc'));",
 ]
 js = "\n".join(JS_LINES)
 
@@ -359,10 +548,10 @@ header h1{font-size:1.1rem;color:var(--cyan)}
 .cl{display:block;padding-right:.4rem}
 .ln{display:inline-block;min-width:3em;color:var(--border);user-select:none;
     text-align:right;padding-right:.6em;border-right:1px solid var(--border);
-    margin-right:.5em;font-variant-numeric:tabular-nums}
+    margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
 .cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
 .cl.hl .ln{color:var(--cyan)}
-/* Tooltip-bearing COBOL lines */
+/* Tooltip-bearing COBOL paragraph lines */
 .cl[data-tip]{cursor:pointer;border-left:3px solid rgba(137,220,235,.4);background:rgba(137,220,235,.04)}
 .cl[data-tip] .ln{color:#89dceb;font-weight:700}
 .cl[data-tip] .ln::after{content:'';display:inline-block;width:5px;height:5px;
@@ -372,7 +561,7 @@ header h1{font-size:1.1rem;color:var(--cyan)}
 .cl[data-tip]:hover .ln{color:#89dceb}
 .cl[data-tip]:hover .ln::after{content:'\u2192';width:auto;height:auto;background:none;
   border-radius:0;font-weight:400;font-size:.8em;letter-spacing:0}
-/* Floating tooltip */
+/* Floating tooltip (shared by paragraph and variable tooltips) */
 #ctip{position:fixed;display:none;max-width:360px;padding:.5rem .65rem;
       background:#24273a;border:1px solid #45475a;border-radius:6px;
       font-size:.72rem;line-height:1.5;color:#cdd6f4;
@@ -380,6 +569,13 @@ header h1{font-size:1.1rem;color:var(--cyan)}
 #ctip .tc{color:#f9e2af;font-weight:700;margin-bottom:.2rem}
 #ctip .tj{color:#a6e3a1;font-weight:700;font-size:.68rem;margin-top:.28rem;margin-bottom:.18rem}
 #ctip .tn{color:#a6adc8;font-size:.69rem;margin-top:.28rem;border-top:1px solid #45475a;padding-top:.25rem}
+/* Variable-name tooltip spans */
+.vt{background:rgba(249,226,175,.12);border-bottom:1px solid rgba(249,226,175,.55);
+    color:#f9e2af;border-radius:2px;cursor:help;
+    transition:background .12s,border-color .12s,color .12s;padding:0 1px}
+.vt:hover{background:rgba(249,226,175,.25);border-bottom-color:#f9e2af;color:#fff}
+.vt-link{cursor:pointer}
+.vt-link:hover{border-bottom-width:2px}
 </style>
 </head>
 <body>""")
@@ -392,7 +588,7 @@ parts.append("""<nav>
   <span class="badge-nav">COBOL \u2194 Java</span>
 </nav>""" % {"mod": MODULE})
 
-# header with badges — adjust type/badge classes per module
+# header with badges — adjust badge classes per module type
 parts.append("""<header>
   <h1>%(mod)s \u2014 COBOL \u2194 Java Comparison</h1>
   <div class="meta">
@@ -450,7 +646,7 @@ parts.append("""<div class="split">
     "panels":     panels_html,
 })
 
-# inline script — close tag is built via concatenation, never as a literal
+# inline script — close tag built via concatenation, never as a literal
 parts.append('<script>\n' + js + '\n' + '</script>')
 parts.append('\n</body>\n</html>')
 
@@ -460,39 +656,38 @@ dest = os.path.join(BASE, "documentation/html/comparison/%s.html" % MODULE)
 os.makedirs(os.path.dirname(dest), exist_ok=True)
 with open(dest, 'w', encoding='utf-8') as f:
     f.write(page)
+vars_with_link = sum(1 for d in VARS.values() if 'jt' in d)
 print("Written %d bytes -> %s" % (len(page), dest))
+print("VARS: %d entries, %d with Java link" % (len(VARS), vars_with_link))
 ```
 
 > **Critical rules for the Python script**
-> - Never write `</script>` as a literal string anywhere in the Python source.
->   Build every closing script tag via string concatenation:
+> - Never write `</script>` as a literal. Always use string concatenation:
 >   `'<script src="...">' + '</script>'` and `'<script>\n' + js + '\n' + '</script>'`
-> - Build `ct_js` with single-quote escaping as shown above, then inject it into `JS_LINES`.
-> - The `→` arrow in `showCTip` must be written as the unicode escape `\u2192` inside the
->   Python string, not as a raw `→` character inside JS string literals, to avoid encoding issues.
+> - Escape single quotes in all `b`/`j` strings via `esc_sq()` before injecting into JS.
+> - Unicode arrows (`→` = `\u2192`, `▶` = `\u25b6`) must be written as Python unicode escapes
+>   inside JS string literals to avoid encoding issues.
+> - `wrapVars` must run **after** `wrapLines` in `JS_LINES` (order in the list is execution order).
 
 ---
 
 ### Step 5 — Run and verify
 
-Execute the Python script:
 ```bash
 python3 /tmp/compare_<module_lower>.py
 ```
 
 Verify the output file:
 - Exists at `documentation/html/comparison/<MODULE>.html`
-- Contains `id="cc"` (COBOL code block)
-- Contains `id="jc0"` (first Java code block)
-- Contains `wrapLines` (line number function)
-- Contains `navigate` (click handler)
-- Contains `showCTip` (tooltip renderer)
-- Contains `attachTips` (tooltip + click-link wiring)
-- Contains `data-tip` CSS rules (`.cl[data-tip]`)
-- Contains `#ctip` CSS (floating tooltip div)
+- Contains `id="cc"` (COBOL code block) and `id="jc0"` (first Java block)
+- Contains `wrapLines` and `wrapVars` (both post-processors)
+- Contains `navigate` (paragraph click) and `navigateVar` (variable click)
+- Contains `showCTip` and `showVTip` (two tooltip renderers)
+- Contains `attachTips` (paragraph tooltip wiring)
+- Contains CSS `.cl[data-tip]`, `.vt`, `.vt-link`, `#ctip`
 - Contains no broken `<\/script>` tags (grep for `<\\` should return nothing)
 
-If the file fails verification, fix the script and re-run.
+If verification fails, fix the script and re-run.
 
 ---
 
@@ -512,14 +707,14 @@ Insert it immediately after the existing Java artifact `<a>` link, inside the sa
 ### Step 7 — Report
 
 ```
-✓ Module   : <MODULE>
-✓ Output   : documentation/html/comparison/<MODULE>.html
-✓ COBOL    : <N> lines  (app/cbl/<MODULE>.cbl)
-✓ Java     : <M> lines across <K> files  (java/<artifact-dir>/)
-✓ Mapping  : <P> paragraph rows (from // COBOL: annotations)
-✓ Tooltips : <P> COBOL lines wired (hover = tooltip, click = navigate to Java)
+✓ Module    : <MODULE>
+✓ Output    : documentation/html/comparison/<MODULE>.html
+✓ COBOL     : <N> lines  (app/cbl/<MODULE>.cbl)
+✓ Java      : <M> lines across <K> files  (java/<artifact-dir>/)
+✓ Paragraphs: <P> mapping rows  (// COBOL: annotations → CT object)
+✓ Variables : <V> tooltipped, <L> with click-to-navigate Java link  (VARS object)
 
 Open: file:///…/documentation/html/comparison/<MODULE>.html
 ```
 
-List any COBOL paragraphs that had no matching `// COBOL:` annotation and were left out of the mapping table.
+List any COBOL paragraphs without a `// COBOL:` annotation (omitted from mapping table) and any data items that could not be automatically matched to a Java field (set to tooltip-only, no `jt`/`jl`).
