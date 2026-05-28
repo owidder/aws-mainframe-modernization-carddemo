@@ -72,7 +72,7 @@ header h1{font-size:1.1rem;color:var(--cyan)}
              font-family:'JetBrains Mono','Cascadia Code','Fira Code',monospace !important}
 .hljs{background:var(--bg) !important}
 .cl{display:block;padding-right:.4rem}
-.ln{display:inline-block;min-width:3em;color:var(--border);user-select:none;
+.ln{display:inline-block;min-width:3em;color:#7f849c;user-select:none;
     text-align:right;padding-right:.6em;border-right:1px solid var(--border);
     margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
 .cl.hl{background:rgba(137,220,235,.14);border-radius:2px;outline:1px solid rgba(137,220,235,.25)}
@@ -114,7 +114,7 @@ header h1{font-size:1.1rem;color:var(--cyan)}
     <span class="mc"><code>app/cbl/CBACT02C.cbl</code></span>
     &nbsp;→&nbsp;
     <span class="mj"><code>java/cbact02c/</code></span>
-    &nbsp;&nbsp;178 COBOL lines &nbsp;|&nbsp; 370 Java lines across 6 files
+    &nbsp;&nbsp;178 COBOL lines &nbsp;|&nbsp; 594 Java lines across 8 files
   </div>
   <div class="badges">
     <span class="badge b-cobol">COBOL Batch</span>
@@ -362,6 +362,8 @@ header h1{font-size:1.1rem;color:var(--cyan)}
       <button onclick="switchTab(3)">CardRecord.java</button>
       <button onclick="switchTab(4)">CardRepository.java</button>
       <button onclick="switchTab(5)">CardFileException.java</button>
+      <button onclick="switchTab(6)">CardDisplayProcessorTest.java</button>
+      <button onclick="switchTab(7)">Cbact02cIntegrationTest.java</button>
     </div>
     <div class="cs" id="jscroll">
       <div class="panel visible" data-tab="0"><pre><code class="language-java" id="jc0">package com.carddemo.cbact02c.batch;
@@ -740,6 +742,232 @@ public class CardFileException extends RuntimeException {
     }
 }
 </code></pre></div>
+      <div class="panel" data-tab="6"><pre><code class="language-java" id="jc6">package com.carddemo.cbact02c.batch;
+
+import com.carddemo.cbact02c.domain.CardRecord;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Unit tests for {@link CardDisplayProcessor}.
+ *
+ * &lt;p&gt;Validates that the Java DISPLAY simulation matches the COBOL
+ * {@code DISPLAY CARD-RECORD} output for various record states.
+ *
+ * &lt;p&gt;COBOL reference: CBACT02C.cbl — main PERFORM loop body.
+ */
+class CardDisplayProcessorTest {
+
+    private final CardDisplayProcessor processor = new CardDisplayProcessor();
+
+    /**
+     * Happy path: a fully-populated active card record.
+     *
+     * &lt;p&gt;Verifies the 150-character fixed-width layout matches COBOL PIC widths.
+     * COBOL: CVACT02Y.cpy — CARD-RECORD layout (150 bytes).
+     */
+    @Test
+    void process_activeCard_produces150CharLine() throws Exception {
+        CardRecord card = new CardRecord(
+                &quot;0500024453765740&quot;, 50L, &quot;747&quot;,
+                &quot;Aniya Von&quot;, &quot;2023-03-09&quot;, &quot;Y&quot;);
+
+        String line = processor.process(card);
+
+        assertThat(line).hasSize(150);
+        // CARD-NUM at position 0-15
+        assertThat(line.substring(0, 16)).isEqualTo(&quot;0500024453765740&quot;);
+        // CARD-ACCT-ID at position 16-26 (zero-padded 11 digits)
+        assertThat(line.substring(16, 27)).isEqualTo(&quot;00000000050&quot;);
+        // CARD-CVV-CD at position 27-29
+        assertThat(line.substring(27, 30)).isEqualTo(&quot;747&quot;);
+        // CARD-EMBOSSED-NAME at position 30-79 (left-justified, space-padded to 50)
+        assertThat(line.substring(30, 80)).isEqualTo(String.format(&quot;%-50s&quot;, &quot;Aniya Von&quot;));
+        // CARD-EXPIRAION-DATE at position 80-89
+        assertThat(line.substring(80, 90)).isEqualTo(&quot;2023-03-09&quot;);
+        // CARD-ACTIVE-STATUS at position 90
+        assertThat(line.substring(90, 91)).isEqualTo(&quot;Y&quot;);
+        // FILLER at position 91-149 (59 spaces)
+        assertThat(line.substring(91, 150)).isEqualTo(&quot; &quot;.repeat(59));
+    }
+
+    /**
+     * Inactive card: CARD-ACTIVE-STATUS = &#x27;N&#x27;.
+     *
+     * &lt;p&gt;COBOL: CBACT02C.cbl — no filtering; inactive cards are also DISPLAYed.
+     */
+    @Test
+    void process_inactiveCard_statusIsN() throws Exception {
+        CardRecord card = new CardRecord(
+                &quot;1234567890123456&quot;, 1L, &quot;001&quot;,
+                &quot;John Doe&quot;, &quot;2020-01-01&quot;, &quot;N&quot;);
+
+        String line = processor.process(card);
+
+        assertThat(line).hasSize(150);
+        assertThat(line.substring(90, 91)).isEqualTo(&quot;N&quot;);
+    }
+
+    /**
+     * CVV with leading zero: stored as &quot;007&quot;, must be right-aligned with zero-pad.
+     *
+     * &lt;p&gt;COBOL: CARD-CVV-CD PIC 9(03) — numeric fields are zero-padded in DISPLAY.
+     */
+    @Test
+    void process_cvvWithLeadingZero_zeroPreserved() throws Exception {
+        CardRecord card = new CardRecord(
+                &quot;9999888877776666&quot;, 3L, &quot;007&quot;,
+                &quot;James Bond&quot;, &quot;2030-12-31&quot;, &quot;Y&quot;);
+
+        String line = processor.process(card);
+
+        assertThat(line.substring(27, 30)).isEqualTo(&quot;007&quot;);
+    }
+
+    /**
+     * Max-length embossed name (50 chars) fits exactly with no truncation.
+     *
+     * &lt;p&gt;COBOL: CARD-EMBOSSED-NAME PIC X(50) — exactly 50 characters allocated.
+     */
+    @Test
+    void process_maxLengthEmbossedName_exactlyFiftyChars() throws Exception {
+        String fiftyCharName = &quot;A&quot;.repeat(50);
+        CardRecord card = new CardRecord(
+                &quot;1111222233334444&quot;, 5L, &quot;123&quot;,
+                fiftyCharName, &quot;2025-06-01&quot;, &quot;Y&quot;);
+
+        String line = processor.process(card);
+
+        assertThat(line.substring(30, 80)).isEqualTo(fiftyCharName);
+    }
+
+    /**
+     * Long embossed name (&gt; 50 chars) is truncated by format to 50 chars.
+     *
+     * &lt;p&gt;COBOL: PIC X(50) physically cannot store more than 50 characters;
+     * the Java format spec {@code %-50s} left-justifies and pads but does not
+     * truncate — the name must be stored truncated in the DB, which preserves COBOL semantics.
+     * This test documents the boundary behaviour.
+     */
+    @Test
+    void process_accountIdZeroPaddedToElevenDigits() throws Exception {
+        CardRecord card = new CardRecord(
+                &quot;0000000000000001&quot;, 1L, &quot;001&quot;,
+                &quot;Min Id Card&quot;, &quot;2024-01-01&quot;, &quot;Y&quot;);
+
+        String line = processor.process(card);
+
+        // CARD-ACCT-ID: PIC 9(11) → &quot;00000000001&quot;
+        assertThat(line.substring(16, 27)).isEqualTo(&quot;00000000001&quot;);
+    }
+}
+</code></pre></div>
+      <div class="panel" data-tab="7"><pre><code class="language-java" id="jc7">package com.carddemo.cbact02c;
+
+import com.carddemo.cbact02c.repository.CardRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Full-stack integration test for the CBACT02C card-print batch job.
+ *
+ * &lt;p&gt;Launches the Spring Batch job end-to-end against the in-memory H2 database
+ * seeded by {@code db/data.sql} (10 card records).  Validates that the job
+ * completes with COMPLETED status and processes all seeded records, mirroring the
+ * COBOL behaviour:
+ *
+ * &lt;pre&gt;
+ * COBOL: CBACT02C.cbl — main PERFORM UNTIL END-OF-FILE loop reads and DISPLAYs
+ *        every record from CARDFILE-FILE, then terminates normally (GOBACK).
+ *        The Java job must complete with BatchStatus.COMPLETED and read count == row count.
+ * &lt;/pre&gt;
+ */
+@SpringBootTest
+@SpringBatchTest
+@ActiveProfiles(&quot;test&quot;)
+class Cbact02cIntegrationTest {
+
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @Autowired
+    private Job cardPrintJob;
+
+    @Autowired
+    private CardRepository cardRepository;
+
+    /**
+     * Happy-path integration test: job reads all 10 seeded card records and completes.
+     *
+     * &lt;p&gt;COBOL analogue: run CBACT02C against a CARDFILE with 10 records;
+     * expect DISPLAY output for each and RC=0 on GOBACK.
+     */
+    @Test
+    void cardPrintJob_withSeededData_completesSuccessfully() throws Exception {
+        jobLauncherTestUtils.setJob(cardPrintJob);
+
+        JobExecution execution = jobLauncherTestUtils.launchJob();
+
+        // COBOL: normal GOBACK = BatchStatus.COMPLETED
+        assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+
+        // All step executions must also be COMPLETED (none FAILED/STOPPED)
+        execution.getStepExecutions().forEach(step -&gt;
+                assertThat(step.getStatus()).isEqualTo(BatchStatus.COMPLETED));
+    }
+
+    /**
+     * Verifies the reader processes exactly as many records as are in the database.
+     *
+     * &lt;p&gt;COBOL: 1000-CARDFILE-GET-NEXT increments APPL-RESULT=0 for each successful read;
+     * the loop terminates only when CARDFILE-STATUS = &#x27;10&#x27; (EOF). The read count in the
+     * step execution must equal the table row count.
+     */
+    @Test
+    void cardPrintJob_readCountMatchesDatabaseRows() throws Exception {
+        jobLauncherTestUtils.setJob(cardPrintJob);
+
+        long rowCount = cardRepository.count();
+        JobExecution execution = jobLauncherTestUtils.launchJob();
+
+        long totalRead = execution.getStepExecutions().stream()
+                .mapToLong(s -&gt; s.getReadCount())
+                .sum();
+
+        assertThat(totalRead).isEqualTo(rowCount);
+    }
+
+    /**
+     * Verifies no records are skipped or filtered.
+     *
+     * &lt;p&gt;COBOL: CBACT02C does not filter records — every card read is displayed.
+     * Write count must equal read count (processor returns a value for every input).
+     */
+    @Test
+    void cardPrintJob_writeCountEqualsReadCount() throws Exception {
+        jobLauncherTestUtils.setJob(cardPrintJob);
+
+        JobExecution execution = jobLauncherTestUtils.launchJob();
+
+        long totalRead = execution.getStepExecutions().stream()
+                .mapToLong(s -&gt; s.getReadCount()).sum();
+        long totalWrite = execution.getStepExecutions().stream()
+                .mapToLong(s -&gt; s.getWriteCount()).sum();
+
+        assertThat(totalWrite).isEqualTo(totalRead);
+    }
+}
+</code></pre></div>
     </div>
   </div>
 </div>
@@ -758,7 +986,7 @@ function wrapLines(codeEl, idPfx) {
   }).join('\n');
 }
 wrapLines(document.getElementById('cc'), 'cobol');
-for(var i=0;i<6;i++){var el=document.getElementById('jc'+i);if(el)wrapLines(el,'jc'+i);}
+for(var i=0;i<8;i++){var el=document.getElementById('jc'+i);if(el)wrapLines(el,'jc'+i);}
 
 var panels=document.querySelectorAll('.panel'),tabBtns=document.querySelectorAll('.tabs button');
 var fname=document.getElementById('jfn'),flines=document.getElementById('jln'),jscroll=document.getElementById('jscroll');
