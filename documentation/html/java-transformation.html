@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CardDemo – Java Transformation Status</title>
+  <style>
+    :root {
+      --bg:#1e1e2e; --bg2:#181825; --bg3:#313244; --border:#45475a;
+      --text:#cdd6f4; --subtext:#a6adc8; --comment:#6c7086;
+      --keyword:#cba6f7; --string:#a6e3a1; --gold:#f9e2af; --cyan:#89dceb;
+      --red:#f38ba8; --green:#a6e3a1; --yellow:#f9e2af;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; padding:2rem; }
+    h1 { color:var(--gold); font-size:2rem; margin-bottom:.5rem; }
+    .subtitle { color:var(--subtext); margin-bottom:1.5rem; }
+
+    /* ── Top navigation ── */
+    .topnav { margin-bottom:1.5rem; }
+    .topnav a {
+      display:inline-block; padding:.35rem .9rem; background:var(--bg2);
+      border:1px solid var(--border); border-radius:.35rem;
+      color:var(--cyan); text-decoration:none; font-size:.82rem; margin-right:.4rem;
+    }
+    .topnav a:hover { border-color:var(--cyan); background:var(--bg3); }
+
+    /* ── Progress bar ── */
+    .progress-wrap { margin-bottom:2rem; }
+    .progress-label { font-size:.85rem; color:var(--subtext); margin-bottom:.5rem; }
+    .progress-bar-bg {
+      background:var(--bg3); border-radius:1rem; height:10px; width:100%; max-width:500px;
+      overflow:hidden;
+    }
+    .progress-bar-fill {
+      height:100%; border-radius:1rem; background:var(--green);
+      width: calc(2 / 44 * 100%);   /* 2 transformed of 44 total */
+      transition:width .3s;
+    }
+    .progress-count { margin-top:.4rem; font-size:.8rem; color:var(--comment); }
+
+    /* ── Filter bar ── */
+    .filters { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.25rem; align-items:center; }
+    .filters span { font-size:.8rem; color:var(--subtext); }
+    .filter-btn {
+      padding:.25rem .7rem; border-radius:1rem; border:1px solid var(--border);
+      background:var(--bg2); color:var(--subtext); font-size:.78rem; cursor:pointer;
+      transition:border-color .15s, color .15s;
+    }
+    .filter-btn:hover, .filter-btn.active { border-color:var(--cyan); color:var(--cyan); }
+    .filter-btn.active-green { border-color:var(--green); color:var(--green); }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    thead th {
+      background:var(--bg2); color:var(--subtext); font-weight:600;
+      text-align:left; padding:.6rem 1rem; border-bottom:2px solid var(--border);
+      white-space:nowrap; user-select:none; cursor:pointer;
+      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;
+    }
+    thead th:hover { color:var(--cyan); }
+    tbody tr { border-bottom:1px solid var(--bg3); transition:background .1s; }
+    tbody tr:hover { background:var(--bg2); }
+    tbody tr.done { }
+    tbody tr.pending { opacity:.8; }
+    tbody tr.hidden { display:none; }
+    td { padding:.6rem 1rem; vertical-align:top; }
+    td.mod  { font-family:monospace; font-size:.9rem; }
+    td.mod a { color:var(--cyan); text-decoration:none; }
+    td.mod a:hover { text-decoration:underline; }
+    td.group { color:var(--subtext); white-space:nowrap; }
+    td.desc { color:var(--subtext); line-height:1.4; max-width:420px; }
+
+    /* ── Badges ── */
+    .badge {
+      display:inline-block; padding:.15rem .55rem; border-radius:1rem;
+      font-size:.7rem; font-weight:600; white-space:nowrap;
+    }
+    .b-cics  { background:#1e3a5f; color:#89b4fa; }
+    .b-batch { background:#1a3324; color:var(--string); }
+    .b-util  { background:#2d2d1b; color:var(--gold); }
+
+    /* ── Java status ── */
+    td.java { white-space:nowrap; }
+    .status-done {
+      display:inline-flex; align-items:center; gap:.4rem;
+      background:#1a3324; border:1px solid #2d5a3d; border-radius:.35rem;
+      padding:.2rem .6rem; font-size:.78rem; color:var(--green);
+    }
+    .status-done a { color:var(--green); text-decoration:none; font-family:monospace; }
+    .status-done a:hover { text-decoration:underline; }
+    .status-done .check { font-size:.85rem; }
+    .status-pending {
+      font-size:.78rem; color:var(--comment);
+    }
+
+    footer { margin-top:3rem; color:var(--comment); font-size:.75rem; }
+  </style>
+</head>
+<body>
+
+  <h1>CardDemo &ndash; Java Transformation Status</h1>
+  <p class="subtitle">One row per COBOL module &middot; links point to the generated Java microservice source</p>
+
+  <div class="topnav">
+    <a href="index.html">&larr; Program Index</a>
+    <a href="status/index.html">Documentation Status</a>
+    <a href="migration/">Migration TODOs</a>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">Transformation progress &mdash; <strong id="done-count">2</strong> of <strong>44</strong> modules transformed</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+    <div class="progress-count" id="progress-pct">4.5 %</div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filters">
+    <span>Show:</span>
+    <button class="filter-btn active" data-filter="all">All (44)</button>
+    <button class="filter-btn active-green" data-filter="done">Transformed (2)</button>
+    <button class="filter-btn" data-filter="pending">Pending (42)</button>
+    <span style="margin-left:.5rem;">Group:</span>
+    <button class="filter-btn" data-group="Account">Account</button>
+    <button class="filter-btn" data-group="Admin">Admin</button>
+    <button class="filter-btn" data-group="Authentication">Authentication</button>
+    <button class="filter-btn" data-group="Card">Card</button>
+    <button class="filter-btn" data-group="Customer">Customer</button>
+    <button class="filter-btn" data-group="Reporting">Reporting</button>
+    <button class="filter-btn" data-group="Transaction">Transaction</button>
+    <button class="filter-btn" data-group="Utility">Utility</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead>
+        <tr>
+          <th data-col="mod">Module</th>
+          <th data-col="group">Group</th>
+          <th data-col="type">Type</th>
+          <th data-col="desc">Description</th>
+          <th data-col="java">Java Artifact</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- ═══ Account ═══════════════════════════════════════════════════ -->
+        <tr class="done" data-group="Account">
+          <td class="mod"><a href="CBACT01C.html">CBACT01C</a></td>
+          <td class="group">Account</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Reads all account records sequentially and distributes data into multiple output files (flat, array, variable-length).</td>
+          <td class="java">
+            <span class="status-done">
+              <span class="check">&#10003;</span>
+              <a href="../../java/cbact01c/src/main/java/com/carddemo/cbact01c/Cbact01cApplication.java">cbact01c</a>
+            </span>
+          </td>
+        </tr>
+
+        <tr class="pending" data-group="Account">
+          <td class="mod"><a href="CBACT02C.html">CBACT02C</a></td>
+          <td class="group">Card</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Reads and prints all credit card records from the card master file for reporting or audit purposes.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Account">
+          <td class="mod"><a href="CBACT03C.html">CBACT03C</a></td>
+          <td class="group">Card</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Read and print all card-to-account cross-reference records from the cross-reference file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Account">
+          <td class="mod"><a href="CBACT04C.html">CBACT04C</a></td>
+          <td class="group">Account</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Computes and posts monthly interest charges and fees to credit card accounts based on transaction category balances.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="done" data-group="Account">
+          <td class="mod"><a href="COACCT01.html">COACCT01</a></td>
+          <td class="group">Account</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Retrieve and return credit card account details in response to incoming service requests received via IBM MQ.</td>
+          <td class="java">
+            <span class="status-done">
+              <span class="check">&#10003;</span>
+              <a href="../../java/account-enquiry/src/main/java/com/carddemo/account/AccountEnquiryApplication.java">account-enquiry</a>
+            </span>
+          </td>
+        </tr>
+
+        <tr class="pending" data-group="Account">
+          <td class="mod"><a href="COACTUPC.html">COACTUPC</a></td>
+          <td class="group">Account</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Accepts and processes updates to credit card account and customer information entered by bank staff through an online screen.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Account">
+          <td class="mod"><a href="COACTVWC.html">COACTVWC</a></td>
+          <td class="group">Account</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allows bank staff to view the full details of a credit card account by entering an account number.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Admin ══════════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Admin">
+          <td class="mod"><a href="COADM01C.html">COADM01C</a></td>
+          <td class="group">Admin</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Presents and manages the administrative navigation menu for authorised admin users.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Admin">
+          <td class="mod"><a href="COUSR00C.html">COUSR00C</a></td>
+          <td class="group">Admin</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Provides administrators with a paginated list of all system users, allowing them to select a user for update or deletion.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Admin">
+          <td class="mod"><a href="COUSR01C.html">COUSR01C</a></td>
+          <td class="group">Admin</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Add a new Regular or Admin user account to the CardDemo system's user security file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Admin">
+          <td class="mod"><a href="COUSR02C.html">COUSR02C</a></td>
+          <td class="group">Admin</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allow administrators to look up and update an existing user account's details in the user security file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Admin">
+          <td class="mod"><a href="COUSR03C.html">COUSR03C</a></td>
+          <td class="group">Admin</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allow administrators to look up and permanently delete an existing user account from the user security file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Authentication ══════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="CBPAUP0C.html">CBPAUP0C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Cleanup of expired, outstanding authorization messages from the credit card authorization database.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="COPAUA0C.html">COPAUA0C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Real-time credit card authorization decision: checks incoming requests from an MQ queue and approves or declines.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="COPAUS0C.html">COPAUS0C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Overview display of pending authorization messages for a credit card account with scrolling and drill-down.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="COPAUS1C.html">COPAUS1C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Detail view of a pending credit card authorization message with the option to mark transactions as fraudulent.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="COPAUS2C.html">COPAUS2C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Persistence of a fraud report or fraud de-marking for a credit card authorization transaction.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="COSGN00C.html">COSGN00C</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Authenticates users logging into CardDemo and routes them to the appropriate menu based on their user type.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="DBUNLDGS.html">DBUNLDGS</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Unload of outstanding authorization data from the IMS database into sequential GSAM output files.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="PAUDBLOD.html">PAUDBLOD</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Loading of outstanding authorization data from sequential files into the IMS database for recovery or initial population.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Authentication">
+          <td class="mod"><a href="PAUDBUNL.html">PAUDBUNL</a></td>
+          <td class="group">Authentication</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Unload all pending authorization data from the IMS database into sequential output files for archiving or backup.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Card ═══════════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Card">
+          <td class="mod"><a href="COCRDLIC.html">COCRDLIC</a></td>
+          <td class="group">Card</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Displays a paginated list of credit cards to bank staff, filtered by account or showing all cards for admins.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Card">
+          <td class="mod"><a href="COCRDSLC.html">COCRDSLC</a></td>
+          <td class="group">Card</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allows bank staff to search for and display the details of a specific credit card by account or card number.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Card">
+          <td class="mod"><a href="COCRDUPC.html">COCRDUPC</a></td>
+          <td class="group">Card</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allows bank staff to update credit card details (cardholder name, expiry date, active status) through a confirmation workflow.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Customer ════════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Customer">
+          <td class="mod"><a href="CBCUS01C.html">CBCUS01C</a></td>
+          <td class="group">Customer</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Sequentially reads and prints all customer records from the customer master file for reporting or audit purposes.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Customer">
+          <td class="mod"><a href="COMEN01C.html">COMEN01C</a></td>
+          <td class="group">Customer</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Presents and manages the main navigation menu for regular (non-admin) users of the CardDemo system.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Reporting ═══════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Reporting">
+          <td class="mod"><a href="CBSTM03A.html">CBSTM03A</a></td>
+          <td class="group">Reporting</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Generates periodic credit card account statements from transaction data, in plain text and HTML formats.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Reporting">
+          <td class="mod"><a href="CBSTM03B.html">CBSTM03B</a></td>
+          <td class="group">Reporting</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Reusable batch file-access subroutine providing controlled read access to transaction, card, customer, and account files.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Reporting">
+          <td class="mod"><a href="CBTRN03C.html">CBTRN03C</a></td>
+          <td class="group">Reporting</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Generates a formatted transaction detail report for credit card transactions within a date range, with subtotals and grand totals.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Reporting">
+          <td class="mod"><a href="CORPT00C.html">CORPT00C</a></td>
+          <td class="group">Reporting</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allows staff to request and submit transaction reports (monthly, yearly, or custom range) from an online CICS screen.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Transaction ═════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="CBTRN01C.html">CBTRN01C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Reads daily credit card transactions and validates each by verifying the card number and resolving it to a customer account.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="CBTRN02C.html">CBTRN02C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Validates and posts daily credit card transactions, updating account balances and routing invalid transactions to a rejection file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COBIL00C.html">COBIL00C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Enables cardholders to pay their credit card account balance in full through an online bill payment transaction.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COBTUPDT.html">COBTUPDT</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Maintains the Transaction Type reference table by processing a sequential input file to add, update, or delete type codes.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COTRN00C.html">COTRN00C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Displays a paginated list of credit card transactions, allowing users to browse and select individual transactions for detail viewing.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COTRN01C.html">COTRN01C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Displays the full details of a single credit card transaction retrieved from the TRANSACT file by Transaction ID.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COTRN02C.html">COTRN02C</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Allows authorised users to manually add a new credit card transaction record to the CardDemo transaction ledger.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COTRTLIC.html">COTRTLIC</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Interactive screen for administrators to browse, search, and initiate updates or deletions of Transaction Type reference data.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Transaction">
+          <td class="mod"><a href="COTRTUPC.html">COTRTUPC</a></td>
+          <td class="group">Transaction</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Interactive CICS screen for administrators to add, update, or delete Transaction Type reference data records.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <!-- ═══ Utility ═════════════════════════════════════════════════════ -->
+        <tr class="pending" data-group="Utility">
+          <td class="mod"><a href="CBEXPORT.html">CBEXPORT</a></td>
+          <td class="group">Utility</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Exports complete customer, account, card, cross-reference, and transaction data into a structured migration file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Utility">
+          <td class="mod"><a href="CBIMPORT.html">CBIMPORT</a></td>
+          <td class="group">Utility</td>
+          <td><span class="badge b-batch">Batch</span></td>
+          <td class="desc">Imports and normalises customer, account, card, and transaction data from a branch migration export file.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Utility">
+          <td class="mod"><a href="COBSWAIT.html">COBSWAIT</a></td>
+          <td class="group">Utility</td>
+          <td><span class="badge b-util">Utility</span></td>
+          <td class="desc">Introduces a controlled pause into batch processing workflows for a specified duration in centiseconds.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Utility">
+          <td class="mod"><a href="CODATE01.html">CODATE01</a></td>
+          <td class="group">Utility</td>
+          <td><span class="badge b-cics">CICS Online</span></td>
+          <td class="desc">Provides current date and time information to requesting services via IBM MQ, acting as a centralised date/time service.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+        <tr class="pending" data-group="Utility">
+          <td class="mod"><a href="CSUTLDTC.html">CSUTLDTC</a></td>
+          <td class="group">Utility</td>
+          <td><span class="badge b-util">Utility</span></td>
+          <td class="desc">Validates whether a given date string is a legitimate calendar date according to a specified format.</td>
+          <td class="java"><span class="status-pending">&mdash;</span></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <footer>CardDemo Mainframe Modernization &middot; <code>documentation/html/java-transformation.html</code></footer>
+
+  <script>
+    // ── Filter buttons ──────────────────────────────────────────────────
+    const rows = Array.from(document.querySelectorAll('tbody tr'));
+    let activeFilter = 'all';
+    let activeGroup  = null;
+
+    function applyFilters() {
+      rows.forEach(r => {
+        const isDone   = r.classList.contains('done');
+        const grp      = r.dataset.group;
+
+        const filterOk = activeFilter === 'all'
+                      || (activeFilter === 'done'    &&  isDone)
+                      || (activeFilter === 'pending' && !isDone);
+        const groupOk  = !activeGroup || grp === activeGroup;
+
+        r.classList.toggle('hidden', !(filterOk && groupOk));
+      });
+    }
+
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active', 'active-green'));
+        activeFilter = btn.dataset.filter;
+        btn.classList.add(activeFilter === 'done' ? 'active-green' : 'active');
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('[data-group]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (activeGroup === btn.dataset.group) {
+          activeGroup = null;
+          document.querySelectorAll('[data-group]').forEach(b => b.classList.remove('active'));
+        } else {
+          document.querySelectorAll('[data-group]').forEach(b => b.classList.remove('active'));
+          activeGroup = btn.dataset.group;
+          btn.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+
+    // ── Column sort ─────────────────────────────────────────────────────
+    let sortCol = null, sortAsc = true;
+    document.querySelectorAll('thead th').forEach((th, idx) => {
+      th.addEventListener('click', () => {
+        if (sortCol === idx) { sortAsc = !sortAsc; } else { sortCol = idx; sortAsc = true; }
+        const tbody = document.querySelector('tbody');
+        rows.sort((a, b) => {
+          const ta = a.cells[idx].textContent.trim();
+          const tb = b.cells[idx].textContent.trim();
+          return sortAsc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>
