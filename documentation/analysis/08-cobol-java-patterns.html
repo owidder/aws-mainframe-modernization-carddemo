@@ -188,16 +188,16 @@
   <a href="#quick-ref">Quick Reference</a>
   <a href="#batch-patterns">Batch Patterns (JCL + COBOL)</a>
   <a href="#pat-jcl"        class="toc-h3">JCL → Spring Batch Job</a>
-  <a href="#pat-loop"       class="toc-h3">PERFORM UNTIL → ItemReader</a>
+  <a href="#pat-loop"       class="toc-h3">VSAM Seq. / PERFORM UNTIL → ItemReader</a>
   <a href="#pat-open-close" class="toc-h3">OPEN/CLOSE → Lifecycle</a>
-  <a href="#pat-read"       class="toc-h3">READ → findById()</a>
+  <a href="#pat-read"       class="toc-h3">VSAM Random / READ … INTO → findById()</a>
   <a href="#pat-write"      class="toc-h3">WRITE/REWRITE → save()</a>
   <a href="#pat-findorcreate" class="toc-h3">Find-or-Create Pattern</a>
   <a href="#pat-composite"  class="toc-h3">Multiple Outputs → CompositeItemWriter</a>
   <a href="#cics-patterns">CICS Patterns</a>
   <a href="#pat-receive-map" class="toc-h3">RECEIVE MAP → @RequestBody</a>
   <a href="#pat-send-map"    class="toc-h3">SEND MAP → ResponseEntity</a>
-  <a href="#pat-cics-read"   class="toc-h3">EXEC CICS READ → Repository</a>
+  <a href="#pat-cics-read"   class="toc-h3">EXEC CICS READ / REWRITE → Repository</a>
   <a href="#pat-xctl"        class="toc-h3">XCTL / RETURN TRANSID → Redirect</a>
   <a href="#pat-commarea"    class="toc-h3">COMMAREA → JWT</a>
   <a href="#data-patterns">Data Patterns</a>
@@ -212,7 +212,7 @@
   <a href="#pat-string"     class="toc-h3">STRING INTO → String.format</a>
   <a href="#pat-inspect"    class="toc-h3">INSPECT → String.replace</a>
   <a href="#error-handling">Error Handling</a>
-  <a href="#pat-abend"      class="toc-h3">ABEND → noSkip + Exception</a>
+  <a href="#pat-abend"      class="toc-h3">ABEND / 9999-ABEND-PROGRAM → noSkip</a>
   <a href="#pat-filestatus" class="toc-h3">File Status Codes</a>
   <a href="#pat-display"    class="toc-h3">DISPLAY → SLF4J</a>
 </nav>
@@ -240,40 +240,40 @@
   <table id="qr-table">
     <thead><tr><th>COBOL construct</th><th>Description</th><th>Java / Spring equivalent</th><th>Notes</th></tr></thead>
     <tbody>
-      <tr><td><a href="#pat-loop">VSAM KSDS (sequential)</a></td><td>Sequential scan of a Key-Sequenced Dataset; reads all records in primary-key order</td><td>JpaCursorItemReader&lt;T&gt;</td><td>or FlatFileItemReader for file migration path</td></tr>
-      <tr><td><a href="#pat-read">VSAM KSDS (random)</a></td><td>Random lookup of a single record by primary key; INVALID KEY branch fires if the key is absent</td><td>JpaRepository.findById()</td><td>INVALID KEY → Optional.isEmpty()</td></tr>
-      <tr><td><a href="#pat-loop">PERFORM UNTIL AT END</a></td><td>Main batch loop verb: repeats a paragraph until a condition is true or end-of-file is reached</td><td>ItemReader.read() returns null</td><td>Spring Batch drives the loop</td></tr>
-      <tr><td><a href="#pat-read">READ … INTO</a></td><td>Reads one record from a file into a working-storage buffer area</td><td>repository.findById(key)</td><td>or repository.findBy*()</td></tr>
-      <tr><td><a href="#pat-write">WRITE … FROM</a></td><td>Inserts a new record into a file from a working-storage buffer</td><td>repository.save(entity)</td><td>INSERT</td></tr>
-      <tr><td><a href="#pat-write">REWRITE … FROM</a></td><td>Replaces the last-read record in a file with updated working-storage data</td><td>repository.save(entity)</td><td>UPDATE (JPA merge)</td></tr>
-      <tr><td><a href="#pat-open-close">OPEN / CLOSE</a></td><td>Opens a dataset for I/O before the read loop; closes it to flush buffers and release the resource after</td><td>Spring Batch resource lifecycle</td><td>ItemStream.open() / close()</td></tr>
-      <tr><td><a href="#pat-jcl">EXEC PGM= (JCL)</a></td><td>JCL step card that runs a batch COBOL program; DD statements assign physical datasets to DDNames</td><td>@Bean Job (Spring Batch)</td><td>DD statements → @Value / application.yml</td></tr>
-      <tr><td><a href="#pat-receive-map">EXEC CICS RECEIVE MAP</a></td><td>Reads terminal screen input (BMS map) into a COBOL data structure for processing</td><td>@RequestBody DTO</td><td>Bean Validation for edits</td></tr>
-      <tr><td><a href="#pat-send-map">EXEC CICS SEND MAP</a></td><td>Fills a BMS map layout with output data and sends the rendered screen to the terminal</td><td>ResponseEntity&lt;DTO&gt;</td><td>or Thymeleaf template</td></tr>
-      <tr><td><a href="#pat-cics-read">EXEC CICS READ</a></td><td>Reads one VSAM record by key via CICS file control; RESP return code replaces file status</td><td>repository.findById()</td><td>RESP=16 (notfnd) → Optional.isEmpty()</td></tr>
-      <tr><td><a href="#pat-cics-read">EXEC CICS REWRITE</a></td><td>Updates a previously-read CICS-controlled VSAM record in place; must follow a CICS READ</td><td>repository.save(entity)</td><td></td></tr>
-      <tr><td><a href="#pat-xctl">EXEC CICS RETURN TRANSID</a></td><td>Ends the pseudo-conversation; queues the specified transaction ID to activate on the next terminal input</td><td>HTTP response (stateless)</td><td>State moved to JWT</td></tr>
-      <tr><td><a href="#pat-xctl">EXEC CICS XCTL</a></td><td>Transfers control to another CICS program, passing the COMMAREA; the caller does not regain control</td><td>HTTP redirect / forward</td><td></td></tr>
-      <tr><td><a href="#pat-commarea">COMMAREA</a></td><td>Fixed-length data area passed between CICS programs to carry session state across pseudo-conversational calls</td><td>JWT claims / HTTP session</td><td>Prefer JWT for stateless REST</td></tr>
-      <tr><td><a href="#pat-pic">PIC 9(n)</a></td><td>Unsigned zoned-decimal numeric field; n = total digits (no sign, no implied decimal point)</td><td>Long / Integer / String</td><td>Never int for IDs; BigDecimal for money</td></tr>
-      <tr><td><a href="#pat-pic">PIC X(n)</a></td><td>Fixed-length alphanumeric field; always exactly n bytes, right-padded with spaces in COBOL</td><td>String</td><td>trim() on read, leftPad / rightPad on write</td></tr>
-      <tr><td><a href="#pat-pic">PIC S9(n)V99</a></td><td>Signed numeric with an implied decimal point; V marks the position, 2 fractional digits</td><td>BigDecimal</td><td>scale = 2; RoundingMode.HALF_UP</td></tr>
-      <tr><td><a href="#pat-comp3">COMP-3 / PACKED-DECIMAL</a></td><td>Binary storage format: 2 decimal digits packed per byte plus a sign nibble; saves space vs. zoned-decimal</td><td>BigDecimal (+ codec for binary I/O)</td><td>See DM-5 in migration TODOs</td></tr>
-      <tr><td><a href="#pat-occurs">OCCURS n TIMES</a></td><td>Declares a repeating table (array) of n identical sub-group elements within a record</td><td>T[] / List&lt;T&gt;</td><td>Fixed size → array; variable → List</td></tr>
-      <tr><td><a href="#pat-redefines">REDEFINES</a></td><td>Overlays a second field definition on the same memory bytes as an existing field; two views of one buffer</td><td>ByteBuffer / sealed class</td><td>Two views of same bytes</td></tr>
-      <tr><td><a href="#pat-evaluate">EVALUATE WHEN</a></td><td>Multi-way branch testing a single subject value against each WHEN clause (equivalent to switch)</td><td>switch expression</td><td>Java 14+ switch expressions</td></tr>
-      <tr><td><a href="#pat-evaluate">EVALUATE TRUE</a></td><td>Multi-way branch evaluating a boolean condition per WHEN clause (equivalent to if-else chain)</td><td>if-else chain</td><td></td></tr>
-      <tr><td><a href="#pat-perform">PERFORM paragraph</a></td><td>Calls a named paragraph as a subroutine; execution returns to the next statement after the paragraph ends</td><td>private method</td><td>One paragraph = one method</td></tr>
-      <tr><td><a href="#pat-compute">COMPUTE</a></td><td>Evaluates an arithmetic expression and assigns the result with automatic decimal scaling</td><td>BigDecimal arithmetic</td><td>Always specify RoundingMode</td></tr>
-      <tr><td><a href="#pat-string">STRING … INTO</a></td><td>Concatenates multiple fields and literals into one target field, left to right, with optional delimiter</td><td>String.format / StringBuilder</td><td></td></tr>
-      <tr><td><a href="#pat-inspect">INSPECT REPLACING</a></td><td>Scans a string character by character; replaces ALL, LEADING, or FIRST occurrences of a pattern</td><td>String.replace()</td><td></td></tr>
-      <tr><td><a href="../../app/cbl/CBTRN02C.cbl">MOVE SPACES TO</a></td><td>Initializes an alphanumeric field to all blank spaces; idiomatic COBOL way to clear a string field</td><td>= "" / = null</td><td>Convention: empty string preferred</td></tr>
-      <tr><td><a href="#pat-display">DISPLAY</a></td><td>Writes a text line to SYSOUT (job log / stdout); used for progress messages and error diagnostics</td><td>log.info() / log.debug()</td><td>SLF4J with structured args</td></tr>
-      <tr><td><a href="#pat-abend">ABEND / CEE3ABD</a></td><td>Abnormally terminates the program with a numeric abend code; dumps the region and kills the JES job</td><td>throw + .noSkip(Exception.class)</td><td>Spring Batch FAILED exit status</td></tr>
-      <tr><td><a href="#pat-filestatus">FILE STATUS '00'</a></td><td>Two-character I/O return code set after every file verb; '00' means the operation completed successfully</td><td>— (no exception = OK)</td><td>Framework handles status</td></tr>
-      <tr><td><a href="#pat-filestatus">FILE STATUS '10' (EOF)</a></td><td>I/O return code: sequential READ reached end-of-file; no further records are available</td><td>ItemReader returns null</td><td></td></tr>
-      <tr><td><a href="#pat-filestatus">FILE STATUS '23' (not found)</a></td><td>I/O return code: the specified key was not found on a random READ or REWRITE</td><td>Optional.isEmpty() / notfnd</td><td></td></tr>
-      <tr><td><a href="#pat-abend">PERFORM 9999-ABEND-PROGRAM</a></td><td>CardDemo convention: paragraph that calls CEE3ABD with code 999 on any unrecoverable I/O error</td><td>throw new RuntimeException(msg)</td><td>wrapped by Step as FAILED</td></tr>
+      <tr><td><a href="#pat-loop" title="→ VSAM KSDS (sequential) / PERFORM UNTIL AT END → Spring Batch ItemReader">VSAM KSDS (sequential)</a></td><td>Sequential scan of a Key-Sequenced Dataset; reads all records in primary-key order via PERFORM UNTIL loop</td><td>JpaCursorItemReader&lt;T&gt;</td><td>or FlatFileItemReader for file migration path</td></tr>
+      <tr><td><a href="#pat-read" title="→ VSAM KSDS (random) / READ … INTO → repository.findById()">VSAM KSDS (random)</a></td><td>Random lookup of a single record by primary key; INVALID KEY branch fires if the key is absent</td><td>JpaRepository.findById()</td><td>INVALID KEY → Optional.isEmpty()</td></tr>
+      <tr><td><a href="#pat-loop" title="→ VSAM KSDS (sequential) / PERFORM UNTIL AT END → Spring Batch ItemReader">PERFORM UNTIL AT END</a></td><td>Main batch loop verb: repeats a paragraph until a condition is true or end-of-file is reached</td><td>ItemReader.read() returns null</td><td>Spring Batch drives the loop</td></tr>
+      <tr><td><a href="#pat-read" title="→ VSAM KSDS (random) / READ … INTO → repository.findById()">READ … INTO</a></td><td>Reads one record from a file into a working-storage buffer area</td><td>repository.findById(key)</td><td>or repository.findBy*()</td></tr>
+      <tr><td><a href="#pat-write" title="→ WRITE / REWRITE → repository.save()">WRITE … FROM</a></td><td>Inserts a new record into a file from a working-storage buffer</td><td>repository.save(entity)</td><td>INSERT</td></tr>
+      <tr><td><a href="#pat-write" title="→ WRITE / REWRITE → repository.save()">REWRITE … FROM</a></td><td>Replaces the last-read record in a file with updated working-storage data</td><td>repository.save(entity)</td><td>UPDATE (JPA merge)</td></tr>
+      <tr><td><a href="#pat-open-close" title="→ OPEN / CLOSE → Spring Batch Resource Lifecycle">OPEN / CLOSE</a></td><td>Opens a dataset for I/O before the read loop; closes it to flush buffers and release the resource after</td><td>Spring Batch resource lifecycle</td><td>ItemStream.open() / close()</td></tr>
+      <tr><td><a href="#pat-jcl" title="→ JCL → Spring Batch Job">EXEC PGM= (JCL)</a></td><td>JCL step card that runs a batch COBOL program; DD statements assign physical datasets to DDNames</td><td>@Bean Job (Spring Batch)</td><td>DD statements → @Value / application.yml</td></tr>
+      <tr><td><a href="#pat-receive-map" title="→ EXEC CICS RECEIVE MAP → @RequestBody">EXEC CICS RECEIVE MAP</a></td><td>Reads terminal screen input (BMS map) into a COBOL data structure for processing</td><td>@RequestBody DTO</td><td>Bean Validation for edits</td></tr>
+      <tr><td><a href="#pat-send-map" title="→ EXEC CICS SEND MAP → ResponseEntity">EXEC CICS SEND MAP</a></td><td>Fills a BMS map layout with output data and sends the rendered screen to the terminal</td><td>ResponseEntity&lt;DTO&gt;</td><td>or Thymeleaf template</td></tr>
+      <tr><td><a href="#pat-cics-read" title="→ EXEC CICS READ / REWRITE → Repository">EXEC CICS READ</a></td><td>Reads one VSAM record by key via CICS file control; RESP return code replaces file status</td><td>repository.findById()</td><td>RESP=16 (notfnd) → Optional.isEmpty()</td></tr>
+      <tr><td><a href="#pat-cics-read" title="→ EXEC CICS READ / REWRITE → Repository">EXEC CICS REWRITE</a></td><td>Updates a previously-read CICS-controlled VSAM record in place; must follow a CICS READ</td><td>repository.save(entity)</td><td></td></tr>
+      <tr><td><a href="#pat-xctl" title="→ XCTL / RETURN TRANSID → HTTP Redirect">EXEC CICS RETURN TRANSID</a></td><td>Ends the pseudo-conversation; queues the specified transaction ID to activate on the next terminal input</td><td>HTTP response (stateless)</td><td>State moved to JWT</td></tr>
+      <tr><td><a href="#pat-xctl" title="→ XCTL / RETURN TRANSID → HTTP Redirect">EXEC CICS XCTL</a></td><td>Transfers control to another CICS program, passing the COMMAREA; the caller does not regain control</td><td>HTTP redirect / forward</td><td></td></tr>
+      <tr><td><a href="#pat-commarea" title="→ COMMAREA → JWT Claims">COMMAREA</a></td><td>Fixed-length data area passed between CICS programs to carry session state across pseudo-conversational calls</td><td>JWT claims / HTTP session</td><td>Prefer JWT for stateless REST</td></tr>
+      <tr><td><a href="#pat-pic" title="→ PIC Clauses → Java Types">PIC 9(n)</a></td><td>Unsigned zoned-decimal numeric field; n = total digits (no sign, no implied decimal point)</td><td>Long / Integer / String</td><td>Never int for IDs; BigDecimal for money</td></tr>
+      <tr><td><a href="#pat-pic" title="→ PIC Clauses → Java Types">PIC X(n)</a></td><td>Fixed-length alphanumeric field; always exactly n bytes, right-padded with spaces in COBOL</td><td>String</td><td>trim() on read, leftPad / rightPad on write</td></tr>
+      <tr><td><a href="#pat-pic" title="→ PIC Clauses → Java Types">PIC S9(n)V99</a></td><td>Signed numeric with an implied decimal point; V marks the position, 2 fractional digits</td><td>BigDecimal</td><td>scale = 2; RoundingMode.HALF_UP</td></tr>
+      <tr><td><a href="#pat-comp3" title="→ COMP-3 / Packed Decimal → BigDecimal">COMP-3 / PACKED-DECIMAL</a></td><td>Binary storage format: 2 decimal digits packed per byte plus a sign nibble; saves space vs. zoned-decimal</td><td>BigDecimal (+ codec for binary I/O)</td><td>See DM-5 in migration TODOs</td></tr>
+      <tr><td><a href="#pat-occurs" title="→ OCCURS n TIMES → List / Array">OCCURS n TIMES</a></td><td>Declares a repeating table (array) of n identical sub-group elements within a record</td><td>T[] / List&lt;T&gt;</td><td>Fixed size → array; variable → List</td></tr>
+      <tr><td><a href="#pat-redefines" title="→ REDEFINES → ByteBuffer / Sealed Class">REDEFINES</a></td><td>Overlays a second field definition on the same memory bytes as an existing field; two views of one buffer</td><td>ByteBuffer / sealed class</td><td>Two views of same bytes</td></tr>
+      <tr><td><a href="#pat-evaluate" title="→ EVALUATE → switch expression / if-else">EVALUATE WHEN</a></td><td>Multi-way branch testing a single subject value against each WHEN clause (equivalent to switch)</td><td>switch expression</td><td>Java 14+ switch expressions</td></tr>
+      <tr><td><a href="#pat-evaluate" title="→ EVALUATE → switch expression / if-else">EVALUATE TRUE</a></td><td>Multi-way branch evaluating a boolean condition per WHEN clause (equivalent to if-else chain)</td><td>if-else chain</td><td></td></tr>
+      <tr><td><a href="#pat-perform" title="→ PERFORM paragraph → private method">PERFORM paragraph</a></td><td>Calls a named paragraph as a subroutine; execution returns to the next statement after the paragraph ends</td><td>private method</td><td>One paragraph = one method</td></tr>
+      <tr><td><a href="#pat-compute" title="→ COMPUTE → BigDecimal Arithmetic">COMPUTE</a></td><td>Evaluates an arithmetic expression and assigns the result with automatic decimal scaling</td><td>BigDecimal arithmetic</td><td>Always specify RoundingMode</td></tr>
+      <tr><td><a href="#pat-string" title="→ STRING … INTO → String.format / StringBuilder">STRING … INTO</a></td><td>Concatenates multiple fields and literals into one target field, left to right, with optional delimiter</td><td>String.format / StringBuilder</td><td></td></tr>
+      <tr><td><a href="#pat-inspect" title="→ INSPECT REPLACING → String.replace()">INSPECT REPLACING</a></td><td>Scans a string character by character; replaces ALL, LEADING, or FIRST occurrences of a pattern</td><td>String.replace()</td><td></td></tr>
+      <tr><td><a href="../../app/cbl/CBTRN02C.cbl" title="→ CBTRN02C.cbl (no dedicated pattern section)">MOVE SPACES TO</a></td><td>Initializes an alphanumeric field to all blank spaces; idiomatic COBOL way to clear a string field</td><td>= "" / = null</td><td>Convention: empty string preferred</td></tr>
+      <tr><td><a href="#pat-display" title="→ DISPLAY → SLF4J Logging">DISPLAY</a></td><td>Writes a text line to SYSOUT (job log / stdout); used for progress messages and error diagnostics</td><td>log.info() / log.debug()</td><td>SLF4J with structured args</td></tr>
+      <tr><td><a href="#pat-abend" title="→ ABEND / CEE3ABD / PERFORM 9999-ABEND-PROGRAM → noSkip + RuntimeException">ABEND / CEE3ABD</a></td><td>Abnormally terminates the program with a numeric abend code; dumps the region and kills the JES job</td><td>throw + .noSkip(Exception.class)</td><td>Spring Batch FAILED exit status</td></tr>
+      <tr><td><a href="#pat-filestatus" title="→ File Status Codes → Exception Types">FILE STATUS '00'</a></td><td>Two-character I/O return code set after every file verb; '00' means the operation completed successfully</td><td>— (no exception = OK)</td><td>Framework handles status</td></tr>
+      <tr><td><a href="#pat-filestatus" title="→ File Status Codes → Exception Types">FILE STATUS '10' (EOF)</a></td><td>I/O return code: sequential READ reached end-of-file; no further records are available</td><td>ItemReader returns null</td><td></td></tr>
+      <tr><td><a href="#pat-filestatus" title="→ File Status Codes → Exception Types">FILE STATUS '23' (not found)</a></td><td>I/O return code: the specified key was not found on a random READ or REWRITE</td><td>Optional.isEmpty() / notfnd</td><td></td></tr>
+      <tr><td><a href="#pat-abend" title="→ ABEND / CEE3ABD / PERFORM 9999-ABEND-PROGRAM → noSkip + RuntimeException">PERFORM 9999-ABEND-PROGRAM</a></td><td>CardDemo convention: paragraph that calls CEE3ABD with code 999 on any unrecoverable I/O error</td><td>throw new RuntimeException(msg)</td><td>wrapped by Step as FAILED</td></tr>
     </tbody>
   </table>
 
@@ -331,7 +331,7 @@ public class TransactionPostingJobConfig {
   </div>
 
   <!-- ── PERFORM UNTIL AT END ── -->
-  <h3 id="pat-loop">PERFORM UNTIL AT END → Spring Batch ItemReader</h3>
+  <h3 id="pat-loop">VSAM KSDS (sequential) / PERFORM UNTIL AT END → Spring Batch ItemReader</h3>
   <p>
     The canonical COBOL batch loop — open file, read until AT END, process each record,
     close file — maps directly to the Spring Batch <code>Step</code> chunk model.
@@ -476,7 +476,7 @@ public JpaCursorItemReader&lt;DailyTransaction&gt;
   </div>
 
   <!-- ── READ (random) → findById ── -->
-  <h3 id="pat-read">READ (random access) → repository.findById()</h3>
+  <h3 id="pat-read">VSAM KSDS (random) / READ … INTO → repository.findById()</h3>
   <p>
     Random-key reads — <code>READ FILE INTO RECORD INVALID KEY … NOT INVALID KEY …</code> —
     map to <code>repository.findById()</code> returning an <code>Optional</code>.
@@ -866,7 +866,7 @@ return ResponseEntity
   </div>
 
   <!-- ── EXEC CICS READ ── -->
-  <h3 id="pat-cics-read">EXEC CICS READ → Repository</h3>
+  <h3 id="pat-cics-read">EXEC CICS READ / REWRITE → Repository</h3>
   <p>
     Online programs read VSAM datasets via <code>EXEC CICS READ DATASET(…) RIDFLD(…)</code>.
     The <code>RESP</code> return code replaces file status. In Java, a
@@ -1547,7 +1547,7 @@ String translated = input
   <h2>Error Handling</h2>
 
   <!-- ── ABEND ── -->
-  <h3 id="pat-abend">ABEND / CEE3ABD → noSkip + RuntimeException</h3>
+  <h3 id="pat-abend">ABEND / CEE3ABD / PERFORM 9999-ABEND-PROGRAM → noSkip + RuntimeException</h3>
   <p>
     CardDemo abends on any I/O error: it calls <code>9999-ABEND-PROGRAM</code>,
     which calls the CEE3ABD system routine with abend code 999, terminating the
