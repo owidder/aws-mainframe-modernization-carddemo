@@ -85,12 +85,17 @@ def main():
     docs = []
     for jf in json_files:
         doc = load_doc(jf)
+        # Skip non-program data files (e.g. transformation.json) that have no
+        # program_name; those are rendered by their own dedicated generators.
+        if 'program_name' not in doc.get('meta', {}):
+            continue
         out = render_program(doc, args.output_dir, env)
         print(f'  → {out.name}')
         docs.append(doc)
 
-    # Always regenerate the index from all available data
-    all_docs = [load_doc(f) for f in sorted(args.input_dir.glob('*.json'))]
+    # Always regenerate the index from all available program data
+    all_docs = [d for d in (load_doc(f) for f in sorted(args.input_dir.glob('*.json')))
+                if 'program_name' in d.get('meta', {})]
     idx = render_index(all_docs, args.output_dir, env)
     print(f'  → {idx.name}  ({len(all_docs)} programs)')
 

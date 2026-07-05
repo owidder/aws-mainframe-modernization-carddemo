@@ -190,6 +190,9 @@ Examples:
         status_script = SCRIPTS_DIR / 'generate_status.py'
         if status_script.exists():
             subprocess.run([python, str(status_script)])
+        transformation_script = SCRIPTS_DIR / 'generate_transformation.py'
+        if transformation_script.exists():
+            subprocess.run([python, str(transformation_script)])
 
     print(f'\n======================================')
     print(f'Done   : {ok} processed, {skipped} skipped, {len(failed)} errors')

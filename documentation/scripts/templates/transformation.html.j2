@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ doc.title }}</title>
+  <style>
+    :root {
+      --bg:#eff1f5; --bg2:#e6e9ef; --bg3:#ccd0da; --border:#acb0c4;
+      --text:#1a1c2e; --subtext:#383a58; --comment:#52546e;
+      --keyword:#5c15c4; --string:#1d6010; --gold:#8b5e00; --cyan:#0069b4;
+      --red:#b5002a; --green:#1d6010; --yellow:#8b5e00;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; padding:2rem; }
+    h1 { color:var(--gold); font-size:2rem; margin-bottom:.5rem; }
+    .subtitle { color:var(--subtext); margin-bottom:1.5rem; }
+
+    /* ── Top navigation ── */
+    .topnav { margin-bottom:1.5rem; }
+    .topnav a {
+      display:inline-block; padding:.35rem .9rem; background:var(--bg2);
+      border:1px solid var(--border); border-radius:.35rem;
+      color:var(--cyan); text-decoration:none; font-size:.82rem; margin-right:.4rem;
+    }
+    .topnav a:hover { border-color:var(--cyan); background:var(--bg3); }
+
+    /* ── Progress bar ── */
+    .progress-wrap { margin-bottom:2rem; }
+    .progress-label { font-size:.85rem; color:var(--subtext); margin-bottom:.5rem; }
+    .progress-bar-bg {
+      background:var(--bg3); border-radius:1rem; height:10px; width:100%; max-width:500px;
+      overflow:hidden;
+    }
+    .progress-bar-fill {
+      height:100%; border-radius:1rem; background:var(--green);
+      transition:width .3s;
+    }
+    .progress-count { margin-top:.4rem; font-size:.8rem; color:var(--comment); }
+
+    /* ── Filter bar ── */
+    .filters { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.25rem; align-items:center; }
+    .filters span { font-size:.8rem; color:var(--subtext); }
+    .filter-btn {
+      padding:.25rem .7rem; border-radius:1rem; border:1px solid var(--border);
+      background:var(--bg2); color:var(--subtext); font-size:.78rem; cursor:pointer;
+      transition:border-color .15s, color .15s;
+    }
+    .filter-btn:hover, .filter-btn.active { border-color:var(--cyan); color:var(--cyan); }
+    .filter-btn.active-green { border-color:var(--green); color:var(--green); }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    thead th {
+      background:var(--bg2); color:var(--subtext); font-weight:600;
+      text-align:left; padding:.6rem 1rem; border-bottom:2px solid var(--border);
+      white-space:nowrap; user-select:none; cursor:pointer;
+      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;
+    }
+    thead th:hover { color:var(--cyan); }
+    tbody tr { border-bottom:1px solid var(--bg3); transition:background .1s; }
+    tbody tr:hover { background:var(--bg2); }
+    tbody tr.done { }
+    tbody tr.pending { opacity:.8; }
+    tbody tr.hidden { display:none; }
+    td { padding:.6rem 1rem; vertical-align:top; }
+    td.mod  { font-family:monospace; font-size:.9rem; }
+    td.mod a { color:var(--cyan); text-decoration:none; }
+    td.mod a:hover { text-decoration:underline; }
+    td.group { color:var(--subtext); white-space:nowrap; }
+    td.desc { color:var(--subtext); line-height:1.4; max-width:420px; }
+
+    /* ── Badges ── */
+    .badge {
+      display:inline-block; padding:.15rem .55rem; border-radius:1rem;
+      font-size:.7rem; font-weight:600; white-space:nowrap;
+    }
+    .b-cics  { background:#d8e8fd; color:#1040b8; }
+    .b-batch { background:#d8f0d8; color:var(--string); }
+    .b-util  { background:#fdf0d0; color:var(--gold); }
+
+    /* ── Java status ── */
+    td.java { white-space:nowrap; }
+    .status-done {
+      display:inline-flex; align-items:center; gap:.4rem;
+      background:#d8f0d8; border:1px solid rgba(29,96,16,.3); border-radius:.35rem;
+      padding:.2rem .6rem; font-size:.78rem; color:var(--green);
+    }
+    .status-done a { color:var(--green); text-decoration:none; font-family:monospace; }
+    .status-done a:hover { text-decoration:underline; }
+    .status-done .check { font-size:.85rem; }
+    .status-pending {
+      font-size:.78rem; color:var(--comment);
+    }
+
+    footer { margin-top:3rem; color:var(--comment); font-size:.75rem; }
+  </style>
+</head>
+<body>
+  {%- set total = doc.modules | length %}
+  {%- set done = doc.modules | selectattr('status', 'equalto', 'done') | list | length %}
+  {%- set pending = total - done %}
+  {%- set pct = (done / total * 100) | round(1) %}
+  {%- set groups = doc.modules | map(attribute='group') | unique | sort %}
+  {%- set type_badge = {'Batch': 'b-batch', 'CICS Online': 'b-cics', 'Utility': 'b-util'} %}
+
+  <h1>{{ doc.title }}</h1>
+  <p class="subtitle">{{ doc.subtitle }}</p>
+
+  <div class="topnav">
+    <a href="index.html">&larr; Program Index</a>
+    <a href="status/index.html">Documentation Status</a>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">Transformation progress &mdash; <strong id="done-count">{{ done }}</strong> of <strong>{{ total }}</strong> modules transformed</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width: calc({{ done }} / {{ total }} * 100%)"></div></div>
+    <div class="progress-count" id="progress-pct">{{ pct }} %</div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filters">
+    <span>Show:</span>
+    <button class="filter-btn active" data-filter="all">All ({{ total }})</button>
+    <button class="filter-btn active-green" data-filter="done">Transformed ({{ done }})</button>
+    <button class="filter-btn" data-filter="pending">Pending ({{ pending }})</button>
+    <span style="margin-left:.5rem;">Group:</span>
+    {%- for g in groups %}
+    <button class="filter-btn" data-group="{{ g }}">{{ g }}</button>
+    {%- endfor %}
+  </div>
+
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead>
+        <tr>
+          <th data-col="mod">Module</th>
+          <th data-col="group">Group</th>
+          <th data-col="type">Type</th>
+          <th data-col="desc">Description</th>
+          <th data-col="java">Java Artifact</th>
+        </tr>
+      </thead>
+      <tbody>
+      {%- for m in doc.modules %}
+        <tr class="{{ m.status }}" data-group="{{ m.group }}">
+          <td class="mod"><a href="{{ m.name }}.html">{{ m.name }}</a></td>
+          <td class="group">{{ m.group }}</td>
+          <td><span class="badge {{ type_badge.get(m.type, 'b-util') }}">{{ m.type }}</span></td>
+          <td class="desc">{{ m.description | e }}</td>
+          <td class="java">
+            {%- if m.status == 'done' %}
+            <span class="status-done">
+              <span class="check">&#10003;</span>
+              <a href="comparison/{{ m.name }}.html" title="COBOL &#8596; Java side-by-side">{{ m.artifact }}</a>
+            </span>
+            {%- else %}
+            <span class="status-pending">&mdash;</span>
+            {%- endif %}
+          </td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <footer>CardDemo Mainframe Modernization &middot; <code>documentation/html/java-transformation.html</code></footer>
+
+  <script>
+    // ── Filter buttons ──────────────────────────────────────────────────
+    const rows = Array.from(document.querySelectorAll('tbody tr'));
+    let activeFilter = 'all';
+    let activeGroup  = null;
+
+    function applyFilters() {
+      rows.forEach(r => {
+        const isDone   = r.classList.contains('done');
+        const grp      = r.dataset.group;
+
+        const filterOk = activeFilter === 'all'
+                      || (activeFilter === 'done'    &&  isDone)
+                      || (activeFilter === 'pending' && !isDone);
+        const groupOk  = !activeGroup || grp === activeGroup;
+
+        r.classList.toggle('hidden', !(filterOk && groupOk));
+      });
+    }
+
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active', 'active-green'));
+        activeFilter = btn.dataset.filter;
+        btn.classList.add(activeFilter === 'done' ? 'active-green' : 'active');
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('[data-group]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (activeGroup === btn.dataset.group) {
+          activeGroup = null;
+          document.querySelectorAll('[data-group]').forEach(b => b.classList.remove('active'));
+        } else {
+          document.querySelectorAll('[data-group]').forEach(b => b.classList.remove('active'));
+          activeGroup = btn.dataset.group;
+          btn.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+
+    // ── Column sort ─────────────────────────────────────────────────────
+    let sortCol = null, sortAsc = true;
+    document.querySelectorAll('thead th').forEach((th, idx) => {
+      th.addEventListener('click', () => {
+        if (sortCol === idx) { sortAsc = !sortAsc; } else { sortCol = idx; sortAsc = true; }
+        const tbody = document.querySelector('tbody');
+        rows.sort((a, b) => {
+          const ta = a.cells[idx].textContent.trim();
+          const tb = b.cells[idx].textContent.trim();
+          return sortAsc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>
