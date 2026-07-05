@@ -97,7 +97,7 @@
     {% for line in doc.lines %}
     <tr class="{{ line.type }}"
         {% if line.paragraph %}id="code-para-{{ line.paragraph }}"{% endif %}>
-      <td class="ln">{{ line.number }}</td>
+      <td class="ln" id="srcline-{{ line.number }}">{{ line.number }}</td>
       <td class="code-cell t-{{ line.type }}">{{ line.code }}</td>
       <td class="expl-cell">
         {%- if line.explanation %}{{ line.explanation }}{% endif -%}
@@ -151,13 +151,12 @@
   <script>
   (function(){
     var tip = document.getElementById('src-tip');
-    var COMP = 'comparison/{{ doc.meta.program_name }}.html';
 
-    // Convert every L123 or L29-33 occurrence into a clickable link
-    // that jumps to the corresponding line in the COBOL pane of the comparison page.
+    // Convert every L123 or L29-33 reference into a link that jumps to the
+    // corresponding COBOL source line on THIS page.
     function linkify(text) {
       return text.replace(/L(\d+)(?:-(\d+))?/g, function(m, start) {
-        return '<a href="' + COMP + '#cobol-L' + start + '" target="_blank">' + m + '</a>';
+        return '<a href="#srcline-' + start + '" class="tip-srclink" data-srcline="' + start + '">' + m + '</a>';
       });
     }
 
@@ -185,6 +184,22 @@
     // Keep tooltip visible when the mouse moves onto it (so links can be clicked)
     tip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
     tip.addEventListener('mouseleave', hideTip);
+
+    // Clicking an L-reference scrolls to that source line and flashes it.
+    tip.addEventListener('click', function(e) {
+      var a = e.target.closest('a.tip-srclink');
+      if (!a) return;
+      e.preventDefault();
+      var target = document.getElementById('srcline-' + a.dataset.srcline);
+      if (!target) return;
+      tip.style.display = 'none';
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var row = target.closest('tr');
+      if (row) {
+        row.classList.add('src-line-hl');
+        setTimeout(function() { row.classList.remove('src-line-hl'); }, 1600);
+      }
+    });
 
     document.querySelectorAll('.src-badge[data-tip]').forEach(function(el) {
       el.addEventListener('mouseenter', function(e) { showTip(el.dataset.tip, e); });
