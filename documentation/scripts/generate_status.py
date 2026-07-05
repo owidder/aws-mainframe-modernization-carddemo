@@ -115,7 +115,7 @@ def action_html(row: dict) -> str:
 
 
 def bar(pct: int) -> str:
-    color = '#a6e3a1' if pct >= 60 else '#f9e2af' if pct >= 40 else '#f38ba8'
+    color = '#1d6010' if pct >= 60 else '#8b5e00' if pct >= 40 else '#b5002a'
     return (
         f'<div class="bar-wrap" title="{pct}% of lines annotated">'
         f'<div class="bar-fill" style="width:{pct}%;background:{color}"></div>'
@@ -193,11 +193,11 @@ def render(rows: list[dict]) -> str:
   <title>Documentation Status – CardDemo app/cbl/</title>
   <style>
     :root {{
-      --bg:      #1e1e2e; --bg2: #181825; --bg3: #313244;
-      --border:  #45475a; --text: #cdd6f4; --sub:  #a6adc8;
-      --comment: #6c7086; --gold: #f9e2af; --cyan: #89dceb;
-      --green:   #a6e3a1; --red:  #f38ba8; --yellow: #f9e2af;
-      --keyword: #cba6f7;
+      --bg:      #eff1f5; --bg2: #e6e9ef; --bg3: #ccd0da;
+      --border:  #acb0c4; --text: #1a1c2e; --sub:  #383a58;
+      --comment: #52546e; --gold: #8b5e00; --cyan: #0069b4;
+      --green:   #1d6010; --red:  #b5002a; --yellow: #8b5e00;
+      --keyword: #5c15c4;
     }}
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ background: var(--bg); color: var(--text);
@@ -255,8 +255,8 @@ def render(rows: list[dict]) -> str:
       letter-spacing: .05em; border-bottom: 1px solid var(--border);
       position: sticky; top: 0; z-index: 1;
     }}
-    td {{ padding: .4rem .7rem; border-bottom: 1px solid #31324433; vertical-align: middle; }}
-    tr.prog-row:hover td {{ background: #31324422; }}
+    td {{ padding: .4rem .7rem; border-bottom: 1px solid #acb0c433; vertical-align: middle; }}
+    tr.prog-row:hover td {{ background: #ccd0da55; }}
 
     tr.module-sep td {{
       background: var(--bg2); color: var(--keyword);
@@ -281,9 +281,9 @@ def render(rows: list[dict]) -> str:
       display: inline-block; padding: .15rem .55rem; border-radius: 1rem;
       font-size: .7rem; font-weight: 700; white-space: nowrap;
     }}
-    .badge-ok      {{ background: #1a3324; color: var(--green);  border: 1px solid #a6e3a144; }}
-    .badge-patch   {{ background: #2d2a18; color: var(--yellow); border: 1px solid #f9e2af44; }}
-    .badge-missing {{ background: #2d1b1b; color: var(--red);    border: 1px solid #f38ba844; }}
+    .badge-ok      {{ background: #d8f0d8; color: var(--green);  border: 1px solid #1d601044; }}
+    .badge-patch   {{ background: #fdf0d0; color: var(--yellow); border: 1px solid #8b5e0044; }}
+    .badge-missing {{ background: #fbe0e5; color: var(--red);    border: 1px solid #b5002a44; }}
 
     /* Progress bar */
     .bar-wrap  {{ position: relative; background: var(--bg3); border-radius: .2rem;
