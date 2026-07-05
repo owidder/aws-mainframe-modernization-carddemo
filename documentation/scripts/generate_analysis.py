@@ -34,6 +34,8 @@ ANALYSIS_PAGES = [
     ('05-fachliche-module.md', '05-business-modules.html', 'Business Modules'),
     ('06-geschaeftslogik.md',  '06-business-logic.html',   'Detailed Business Logic'),
     ('07-java-mapping.md',     '07-java-mapping.html',     'Java Mapping'),
+    # HTML-fragment source (rich hand-authored content, not markdown):
+    ('08-cobol-java-patterns.html', '08-cobol-java-patterns.html', 'COBOL → Java Patterns'),
 ]
 
 # src→(html, title) lookup
@@ -59,6 +61,30 @@ def slugify(text: str) -> str:
 
 def escape(text: str) -> str:
     return html_module.escape(text)
+
+
+def _strip_tags(text: str) -> str:
+    return re.sub(r'<[^>]+>', '', text).strip()
+
+
+def html_fragment_toc(content: str) -> list[dict]:
+    """Build the sidebar TOC for a pre-built HTML content fragment.
+
+    Sections are anchored on <hr id="..."> immediately followed by an <h2>
+    (level 2); individual patterns use <h3 id="...">  (level 3).
+    """
+    toc = []
+    pattern = re.compile(
+        r'<hr\s+id="([^"]+)">\s*<h2[^>]*>(.*?)</h2>'   # section: hr id + following h2
+        r'|<h3[^>]*\bid="([^"]+)"[^>]*>(.*?)</h3>',     # pattern: h3 with id
+        re.DOTALL,
+    )
+    for m in pattern.finditer(content):
+        if m.group(1) is not None:
+            toc.append({'id': m.group(1), 'text': _strip_tags(m.group(2)), 'level': 2})
+        else:
+            toc.append({'id': m.group(3), 'text': _strip_tags(m.group(4)), 'level': 3})
+    return toc
 
 
 def process_inline(text: str) -> str:
@@ -258,8 +284,14 @@ def render_page(
     env: Environment,
     output_dir: Path,
 ) -> Path:
-    md_text = src_file.read_text(encoding='utf-8')
-    content_html, toc = md_to_html(md_text)
+    if src_file.suffix.lower() == '.html':
+        # Pre-built HTML content fragment (not markdown). Use verbatim and
+        # derive the TOC from <hr id>+<h2> (level 2) and <h3 id> (level 3).
+        content_html = src_file.read_text(encoding='utf-8')
+        toc = html_fragment_toc(content_html)
+    else:
+        md_text = src_file.read_text(encoding='utf-8')
+        content_html, toc = md_to_html(md_text)
 
     page = {
         'title':        page_title,

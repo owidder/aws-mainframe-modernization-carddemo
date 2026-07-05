@@ -58,6 +58,7 @@ All pages in `documentation/html/` are **generated artifacts**. They must be pro
 - **Program pages** (`<PROGRAM>.html`): `generate_html.py` + `program.html.j2` + `data/<PROGRAM>.json`.
 - **Landing page** (`index.html`): `generate_html.py` (`render_index`) + `index.html.j2`, derived from all program JSONs.
 - **Java transformation status** (`java-transformation.html`): `generate_transformation.py` + `transformation.html.j2` + `data/transformation.json`.
+- **Analysis documents** (`analysis/*.html`): `generate_analysis.py` + `analysis.html.j2`, from Markdown sources in `analyse/*.md`. One page (`08-cobol-java-patterns`) uses a rich hand-authored HTML **fragment** source (`analyse/08-cobol-java-patterns.html`) instead of Markdown; the generator detects `.html` sources, uses them verbatim as content, and builds the TOC from `<hr id>`+`<h2>` / `<h3 id>` headings.
 - **Documentation status** (`status/index.html`): `generate_status.py` (derived from `app/cbl/` + program JSONs).
 - **Migration plans** (`migration/*.html`): `generate_migration_html.py` + `migration.html.j2` / `migration_index.html.j2` + `data/migration/*.json`.
 - **COBOL ↔ Java comparison** (`comparison/*.html`): `generate_comparison.py` + `comparison.html.j2` + `data/comparison/*.json`. Each JSON is self-contained (COBOL + Java source, mapping rows, `ct` line tooltips, `vars` variable tooltips). Syntax highlighting uses highlight.js `catppuccin-latte` (light).
