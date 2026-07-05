@@ -108,6 +108,7 @@
   </table>
 
   <!-- Variables Glossary -->
+  {%- set has_source = doc.variables | selectattr('source') | list | length > 0 %}
   {% if doc.variables %}
   <div class="section-title" style="margin-top:3rem;">Variables &amp; Data Structures</div>
   <table class="var-table">
@@ -118,6 +119,10 @@
         <th>PIC</th>
         <th>Value</th>
         <th>Description</th>
+        {%- if has_source %}
+        <th>Knowledge source</th>
+        <th>Confidence</th>
+        {%- endif %}
       </tr>
     </thead>
     <tbody>
@@ -131,10 +136,63 @@
       <td class="var-pic">{{ v.picture or '–' }}</td>
       <td class="var-pic">{{ v.value or '–' }}</td>
       <td class="var-desc">{{ v.description }}</td>
+      {%- if has_source %}
+      <td class="var-source">{% if v.source %}<span class="src-badge src-{{ v.source.kind }}" data-tip="{{ v.source.tip|e }}">{{ v.source.label }}</span>{% endif %}</td>
+      <td class="var-conf">{% if v.confidence %}<span class="conf-badge conf-{{ v.confidence.level }}">{{ v.confidence.label }}</span>{% endif %}</td>
+      {%- endif %}
     </tr>
     {% endfor %}
     </tbody>
   </table>
+  {% endif %}
+
+  {% if has_source %}
+  <div id="src-tip"></div>
+  <script>
+  (function(){
+    var tip = document.getElementById('src-tip');
+    var COMP = 'comparison/{{ doc.meta.program_name }}.html';
+
+    // Convert every L123 or L29-33 occurrence into a clickable link
+    // that jumps to the corresponding line in the COBOL pane of the comparison page.
+    function linkify(text) {
+      return text.replace(/L(\d+)(?:-(\d+))?/g, function(m, start) {
+        return '<a href="' + COMP + '#cobol-L' + start + '" target="_blank">' + m + '</a>';
+      });
+    }
+
+    function posTip(e) {
+      var x = e.clientX + 16, y = e.clientY + 16;
+      if (x + 370 > window.innerWidth)  x = e.clientX - 374;
+      if (y + 220 > window.innerHeight) y = e.clientY - 224;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    }
+
+    var hideTimer = null;
+
+    function showTip(text, e) {
+      clearTimeout(hideTimer);
+      tip.innerHTML = linkify(text);
+      tip.style.display = 'block';
+      posTip(e);
+    }
+
+    function hideTip() {
+      hideTimer = setTimeout(function() { tip.style.display = 'none'; }, 120);
+    }
+
+    // Keep tooltip visible when the mouse moves onto it (so links can be clicked)
+    tip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
+    tip.addEventListener('mouseleave', hideTip);
+
+    document.querySelectorAll('.src-badge[data-tip]').forEach(function(el) {
+      el.addEventListener('mouseenter', function(e) { showTip(el.dataset.tip, e); });
+      el.addEventListener('mousemove',  posTip);
+      el.addEventListener('mouseleave', hideTip);
+    });
+  }());
+  </script>
   {% endif %}
 
   <footer>

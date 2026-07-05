@@ -5624,7 +5624,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A processing control flag that tracks whether the input MQ queue still has account enquiry requests to process. Initialised to 'N' (messages may exist), it drives the batch processing loop — when set to 'Y', the program knows the queue is exhausted and stops fetching further requests."
+      "description": "A processing control flag that tracks whether the input MQ queue still has account enquiry requests to process. Initialised to 'N' (messages may exist), it drives the batch processing loop — when set to 'Y', the program knows the queue is exhausted and stops fetching further requests.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L13: \"01 WS-MQ-MSG-FLAG PIC X(01) VALUE 'N'.\" L14: 88 level NO-MORE-MSGS VALUE 'Y'. Flag drives the main processing loop (L215-216). Set to TRUE ('Y') by L378 when MQRC-NO-MSG-AVAILABLE is returned, ending the loop."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "NO-MORE-MSGS",
@@ -5634,7 +5643,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A named condition on WS-MQ-MSG-FLAG that evaluates to true when the input MQ queue has been fully drained of account enquiry requests. When this condition is true, the program terminates its processing loop, having fulfilled all pending enquiries in the current batch."
+      "description": "A named condition on WS-MQ-MSG-FLAG that evaluates to true when the input MQ queue has been fully drained of account enquiry requests. When this condition is true, the program terminates its processing loop, having fulfilled all pending enquiries in the current batch.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L14: \"88  NO-MORE-MSGS VALUE 'Y'.\" subordinate to WS-MQ-MSG-FLAG (L13). L377-378: SET NO-MORE-MSGS TO TRUE when MQ-REASON-CODE = MQRC-NO-MSG-AVAILABLE, signalling the end of the message loop at L215-216."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-RESP-QUEUE-STS",
@@ -5644,7 +5662,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A status flag indicating whether the MQ response queue (CARD.DEMO.REPLY.ACCT) has been successfully opened. Initialised to 'N' (not open), it is set to 'Y' once the queue is available, ensuring account enquiry responses are only sent when the reply channel is confirmed ready."
+      "description": "A status flag indicating whether the MQ response queue (CARD.DEMO.REPLY.ACCT) has been successfully opened. Initialised to 'N' (not open), it is set to 'Y' once the queue is available, ensuring account enquiry responses are only sent when the reply channel is confirmed ready.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L16: \"01 WS-RESP-QUEUE-STS PIC X(01) VALUE 'N'.\" Tracks whether the output (reply) MQ queue has been successfully opened. L279: SET RESP-QUEUE-OPEN TO TRUE after successful MQOPEN. L543-544: tested in 8000-TERMINATION to decide whether to close the queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "RESP-QUEUE-OPEN",
@@ -5654,7 +5681,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A named condition on WS-RESP-QUEUE-STS that evaluates to true when the MQ reply queue (CARD.DEMO.REPLY.ACCT) is confirmed open and ready to receive account enquiry responses. The program uses this condition to guard against sending responses to an unavailable queue."
+      "description": "A named condition on WS-RESP-QUEUE-STS that evaluates to true when the MQ reply queue (CARD.DEMO.REPLY.ACCT) is confirmed open and ready to receive account enquiry responses. The program uses this condition to guard against sending responses to an unavailable queue.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L17: \"88  RESP-QUEUE-OPEN VALUE 'Y'.\" subordinate to WS-RESP-QUEUE-STS (L16). L543: IF RESP-QUEUE-OPEN PERFORM 5100-CLOSE-OUTPUT-QUEUE — guards the close call so MQCLOSE is only attempted if the queue was successfully opened."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ERR-QUEUE-STS",
@@ -5664,7 +5700,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A status flag indicating whether the MQ error queue (CARD.DEMO.ERROR) has been successfully opened. Initialised to 'N' (not open), it is set to 'Y' once the error queue is available, ensuring that failed or unprocessable account enquiry messages can be safely routed for operational investigation."
+      "description": "A status flag indicating whether the MQ error queue (CARD.DEMO.ERROR) has been successfully opened. Initialised to 'N' (not open), it is set to 'Y' once the error queue is available, ensuring that failed or unprocessable account enquiry messages can be safely routed for operational investigation.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L19: \"01 WS-ERR-QUEUE-STS PIC X(01) VALUE 'N'.\" Tracks whether the error queue has been opened. L314: SET ERR-QUEUE-OPEN TO TRUE after successful MQOPEN in 2100-OPEN-ERROR-QUEUE. L546-547: tested in 8000-TERMINATION to conditionally close the error queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "ERR-QUEUE-OPEN",
@@ -5674,7 +5719,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A named condition on WS-ERR-QUEUE-STS that evaluates to true when the MQ error queue (CARD.DEMO.ERROR) is confirmed open and ready to receive failed messages. The program uses this condition to ensure error routing is available before attempting to write problem messages for operational recovery."
+      "description": "A named condition on WS-ERR-QUEUE-STS that evaluates to true when the MQ error queue (CARD.DEMO.ERROR) is confirmed open and ready to receive failed messages. The program uses this condition to ensure error routing is available before attempting to write problem messages for operational recovery.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L20: \"88  ERR-QUEUE-OPEN VALUE 'Y'.\" subordinate to WS-ERR-QUEUE-STS (L19). L546: IF ERR-QUEUE-OPEN PERFORM 5200-CLOSE-ERROR-QUEUE — guards the close so MQCLOSE is only called when the queue was actually opened."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-REPLY-QUEUE-STS",
@@ -5684,7 +5738,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A status flag indicating whether the dynamic reply-to MQ queue specified in the incoming request message has been successfully opened. Initialised to 'N' (not open), it confirms the specific downstream consumer's reply channel is ready before the program attempts to send account details back."
+      "description": "A status flag indicating whether the dynamic reply-to MQ queue specified in the incoming request message has been successfully opened. Initialised to 'N' (not open), it confirms the specific downstream consumer's reply channel is ready before the program attempts to send account details back.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L22: \"01 WS-REPLY-QUEUE-STS PIC X(01) VALUE 'N'.\" Tracks whether the input (get) queue has been opened for reading. L245: SET REPLY-QUEUE-OPEN TO TRUE after successful MQOPEN in 2300-OPEN-INPUT-QUEUE. L540-541: tested in 8000-TERMINATION to conditionally close the input queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "REPLY-QUEUE-OPEN",
@@ -5694,7 +5757,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A named condition on WS-REPLY-QUEUE-STS that evaluates to true when the dynamic reply-to MQ queue from the incoming request is confirmed open. The program uses this condition to verify the requesting application's reply channel is available before dispatching account enquiry results."
+      "description": "A named condition on WS-REPLY-QUEUE-STS that evaluates to true when the dynamic reply-to MQ queue from the incoming request is confirmed open. The program uses this condition to verify the requesting application's reply channel is available before dispatching account enquiry results.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L23: \"88  REPLY-QUEUE-OPEN VALUE 'Y'.\" subordinate to WS-REPLY-QUEUE-STS (L22). L540: IF REPLY-QUEUE-OPEN PERFORM 5000-CLOSE-INPUT-QUEUE — guards the MQCLOSE call so input queue is only closed if it was successfully opened."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CICS-RESP-CDS",
@@ -5704,7 +5776,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A group record that captures the CICS response codes returned after each CICS command (such as retrieving the MQ trigger message or reading the account file). These codes are used to detect and diagnose failures in CICS operations, enabling the program to route errors appropriately and protect data integrity."
+      "description": "A group record that captures the CICS response codes returned after each CICS command (such as retrieving the MQ trigger message or reading the account file). These codes are used to detect and diagnose failures in CICS operations, enabling the program to route errors appropriately and protect data integrity.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L26: \"01 WS-CICS-RESP-CDS.\" group item holding CICS response codes. Contains RESP1 (primary) and RESP2 (secondary) codes plus display counterparts. Used at L193-194 to capture EXEC CICS RETRIEVE response, and tested at L196."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CICS-RESP1-CD",
@@ -5714,7 +5795,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The primary CICS response code returned after a CICS command executes. A non-zero value indicates a CICS-level failure (such as a failed MQ trigger retrieve or file read), prompting the program to route the request to the error queue rather than returning account data."
+      "description": "The primary CICS response code returned after a CICS command executes. A non-zero value indicates a CICS-level failure (such as a failed MQ trigger retrieve or file read), prompting the program to route the request to the error queue rather than returning account data.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L27: \"05 WS-CICS-RESP1-CD PIC S9(08) COMP VALUE ZERO.\" Primary CICS response code populated via RESP() option of EXEC CICS RETRIEVE (L193). Tested at L196: IF WS-CICS-RESP1-CD = DFHRESP(NORMAL). COMP (BINARY) layout is required by the CICS command-level interface."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CICS-RESP2-CD",
@@ -5724,7 +5814,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The secondary CICS response code providing additional diagnostic detail when a CICS command fails. Used alongside the primary response code to give operations teams a precise diagnosis of what went wrong during account enquiry processing."
+      "description": "The secondary CICS response code providing additional diagnostic detail when a CICS command fails. Used alongside the primary response code to give operations teams a precise diagnosis of what went wrong during account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L28: \"05 WS-CICS-RESP2-CD PIC S9(08) COMP VALUE ZERO.\" Secondary CICS response code populated via RESP2() option of EXEC CICS RETRIEVE (L194). Provides additional diagnostic detail when RESP1 is not NORMAL; used in error STRING at L203."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CICS-RESP1-CD-D",
@@ -5734,7 +5833,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A display-formatted copy of the primary CICS response code, used for writing human-readable error information to logs or the MQ error queue. Allows operations staff to read the failure code without needing to interpret binary-packed numeric formats."
+      "description": "A display-formatted copy of the primary CICS response code, used for writing human-readable error information to logs or the MQ error queue. Allows operations staff to read the failure code without needing to interpret binary-packed numeric formats.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L29: \"05 WS-CICS-RESP1-CD-D PIC 9(08) VALUE ZERO.\" Display (unsigned) copy of WS-CICS-RESP1-CD (COMP). L201: MOVE WS-CICS-RESP1-CD TO WS-CICS-RESP1-CD-D before STRING into error message, because COMP fields cannot be directly used in STRING statements portably."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CICS-RESP2-CD-D",
@@ -5744,7 +5852,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A display-formatted copy of the secondary CICS response code, used for writing human-readable supplementary error detail to logs or the MQ error queue. Supports operational investigation by presenting the secondary failure code in a readable format."
+      "description": "A display-formatted copy of the secondary CICS response code, used for writing human-readable supplementary error detail to logs or the MQ error queue. Supports operational investigation by presenting the secondary failure code in a readable format.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L30: \"05 WS-CICS-RESP2-CD-D PIC 9(08) VALUE ZERO.\" Display copy of WS-CICS-RESP2-CD for use in STRING. L202 shows: MOVE WS-CICS-RESP2-CD TO WS-CICS-RESP2-CD — note: the source and target appear identical in the source (possible copy-paste artifact); still used in the error STRING at L203."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-DATE-TIME",
@@ -5754,7 +5871,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A group record holding the current date and time values retrieved during processing. Used to timestamp account enquiry responses or error messages, providing an audit trail of when each request was handled."
+      "description": "A group record holding the current date and time values retrieved during processing. Used to timestamp account enquiry responses or error messages, providing an audit trail of when each request was handled.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L35: \"01 WS-DATE-TIME.\" group item for date/time working storage. L392: INITIALIZE WS-DATE-TIME REPLACING NUMERIC BY ZEROES at the start of each message processing cycle in 4000-PROCESS-REQUEST-REPLY. Contains ABS-TIME, formatted date, and time sub-fields."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ABS-TIME",
@@ -5764,7 +5890,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The raw absolute timestamp (in CICS internal time units) captured at the point of processing. Used as the source value from which the human-readable date and time are derived for timestamping account enquiry responses and error records."
+      "description": "The raw absolute timestamp (in CICS internal time units) captured at the point of processing. Used as the source value from which the human-readable date and time are derived for timestamping account enquiry responses and error records.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L36: \"10 WS-ABS-TIME PIC S9(15) COMP-3 VALUE ZERO.\" Holds an absolute time value (packed decimal COMP-3). Intended for EXEC CICS ASKTIME ABSTIME() — standard CICS time retrieval pattern; field is initialised at L392 but the ASKTIME call appears commented out in this version."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-MMDDYYYY",
@@ -5774,7 +5909,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The current processing date formatted as MM/DD/YYYY, derived from the absolute timestamp. Used to timestamp account enquiry responses and error messages, providing a human-readable date for audit and operational monitoring purposes."
+      "description": "The current processing date formatted as MM/DD/YYYY, derived from the absolute timestamp. Used to timestamp account enquiry responses and error messages, providing a human-readable date for audit and operational monitoring purposes.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L37: \"10 WS-MMDDYYYY PIC X(10) VALUE SPACES.\" Stores a formatted date in MM/DD/YYYY format (10-char alphanumeric). Naming convention WS- prefix + MMDDYYYY format label. Populated from WS-ABS-TIME via EXEC CICS FORMATTIME when the time retrieval logic is active."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-TIME",
@@ -5784,7 +5928,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The current processing time formatted as HH:MM:SS, derived from the absolute timestamp. Used alongside the date to provide a precise timestamp on account enquiry responses and error messages for audit trail and operational monitoring."
+      "description": "The current processing time formatted as HH:MM:SS, derived from the absolute timestamp. Used alongside the date to provide a precise timestamp on account enquiry responses and error messages for audit trail and operational monitoring.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L38: \"10 WS-TIME PIC X(8) VALUE SPACES.\" Stores a formatted time string (HH:MM:SS, 8 characters). Standard time display field; populated via EXEC CICS FORMATTIME TIME() when active. WS- prefix is the working-storage naming convention."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-QUEUE",
@@ -5794,7 +5947,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the MQ queue currently being opened or accessed during processing. Acts as a working variable holding the queue name passed to MQ API calls, used when opening the input, reply, or error queues to establish the messaging channels needed for account enquiry processing."
+      "description": "The name of the MQ queue currently being opened or accessed during processing. Acts as a working variable holding the queue name passed to MQ API calls, used when opening the input, reply, or error queues to establish the messaging channels needed for account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L42: \"01 MQ-QUEUE PIC X(48).\" Work field for the current MQ queue name being processed. L340: MOVE INPUT-QUEUE-NAME TO MQ-QUEUE before MQGET; L553: MOVE INPUT-QUEUE-NAME TO MQ-QUEUE before MQCLOSE. 48 chars matches the IBM MQ queue name length limit."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-QUEUE-REPLY",
@@ -5804,7 +5966,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the MQ reply queue to which account enquiry responses will be sent. Holds the fixed reply queue name (CARD.DEMO.REPLY.ACCT) used when putting response messages, ensuring all account data is returned to the correct downstream consumer."
+      "description": "The name of the MQ reply queue to which account enquiry responses will be sent. Holds the fixed reply queue name (CARD.DEMO.REPLY.ACCT) used when putting response messages, ensuring all account data is returned to the correct downstream consumer.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L43: \"01 MQ-QUEUE-REPLY PIC X(48).\" Holds the reply-to queue name extracted from the incoming message descriptor. L366: MOVE MQMD-REPLYTOQ TO MQ-QUEUE-REPLY after a successful MQGET. Used in 4100-PUT-REPLY to route the response back to the requester."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-HCONN",
@@ -5814,7 +5985,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ connection handle representing the active connection to the IBM MQ Queue Manager. Required for all MQ API operations (opening queues, getting and putting messages) during account enquiry processing — without a valid handle, no messages can be consumed or responses sent."
+      "description": "The MQ connection handle representing the active connection to the IBM MQ Queue Manager. Required for all MQ API operations (opening queues, getting and putting messages) during account enquiry processing — without a valid handle, no messages can be consumed or responses sent.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L44: \"01 MQ-HCONN PIC S9(09) BINARY VALUE 0.\" IBM MQ queue manager connection handle. Standard MQ API parameter (first argument to MQOPEN, MQGET, MQPUT, MQCLOSE). Populated by MQCONN/MQCONNX; this program uses QMGR-HANDLE-CONN for the same purpose (both refer to the connection handle)."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-CONDITION-CODE",
@@ -5824,7 +6004,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The completion code returned by each MQ API call, indicating whether the operation succeeded, completed with a warning, or failed. The program inspects this code after every MQ operation to decide whether to continue processing account enquiries or route the request to the error queue."
+      "description": "The completion code returned by each MQ API call, indicating whether the operation succeeded, completed with a warning, or failed. The program inspects this code after every MQ operation to decide whether to continue processing account enquiries or route the request to the error queue.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L45: \"01 MQ-CONDITION-CODE PIC S9(09) BINARY VALUE 0.\" IBM MQ completion code (MQCC_OK=0, MQCC_WARNING=1, MQCC_FAILED=2). Evaluated after every MQOPEN/MQGET/MQPUT/MQCLOSE call (e.g. L240, L274, L363, L406). BINARY storage matches MQ API MQLONG type."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-REASON-CODE",
@@ -5834,7 +6023,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The detailed reason code returned by each MQ API call when the completion code indicates a warning or failure. Provides the specific cause of an MQ error (e.g., queue not found, no message available), enabling precise diagnosis and appropriate error handling during account enquiry processing."
+      "description": "The detailed reason code returned by each MQ API call when the completion code indicates a warning or failure. Provides the specific cause of an MQ error (e.g., queue not found, no message available), enabling precise diagnosis and appropriate error handling during account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L46: \"01 MQ-REASON-CODE PIC S9(09) BINARY VALUE 0.\" IBM MQ reason code providing detail when MQ-CONDITION-CODE is non-zero. L377: tested for MQRC-NO-MSG-AVAILABLE to detect queue exhaustion. Standard companion to the MQ completion code in all MQ API calls."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-HOBJ",
@@ -5844,7 +6042,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ object handle representing a specific queue that has been successfully opened. Used in subsequent MQ GET and PUT operations to reference the correct queue (input, reply, or error) when consuming account enquiry requests or publishing responses and errors."
+      "description": "The MQ object handle representing a specific queue that has been successfully opened. Used in subsequent MQ GET and PUT operations to reference the correct queue (input, reply, or error) when consuming account enquiry requests or publishing responses and errors.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L47: \"01 MQ-HOBJ PIC S9(09) BINARY VALUE 0.\" IBM MQ object handle returned by MQOPEN, used as the queue handle in subsequent MQGET/MQPUT/MQCLOSE calls. L244: MOVE MQ-HOBJ TO INPUT-QUEUE-HANDLE after successful open. A new handle is returned for each opened queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-OPTIONS",
@@ -5854,7 +6061,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A bitmask of options passed to MQ API calls to control queue open and message get/put behaviour (e.g., open for input, open for output, fail if no message). Determines how the program interacts with each MQ queue during account enquiry request consumption and response publishing."
+      "description": "A bitmask of options passed to MQ API calls to control queue open and message get/put behaviour (e.g., open for input, open for output, fail if no message). Determines how the program interacts with each MQ queue during account enquiry request consumption and response publishing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L48: \"01 MQ-OPTIONS PIC S9(09) BINARY VALUE 0.\" Work field used to build the open options bitmask passed to MQOPEN. L229: COMPUTE MQ-OPTIONS = MQOO-INPUT-SHARED + MQOO-SAVE-ALL-CONTEXT + MQOO-FAIL-IF-QUIESCING for input queue. L263 builds output options; L298 builds error queue options."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-BUFFER-LENGTH",
@@ -5864,7 +6080,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The maximum size (in bytes) of the message buffer allocated for reading or writing MQ messages. Tells the MQ API how much space is available when retrieving an account enquiry request or placing an account response, preventing buffer overflows during message handling."
+      "description": "The maximum size (in bytes) of the message buffer allocated for reading or writing MQ messages. Tells the MQ API how much space is available when retrieving an account enquiry request or placing an account response, preventing buffer overflows during message handling.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L49: \"01 MQ-BUFFER-LENGTH PIC S9(09) BINARY.\" Specifies (on MQGET) or confirms (on MQPUT) the buffer size in bytes. L342: MOVE 1000 TO MQ-BUFFER-LENGTH before MQGET; L468: MOVE 1000 TO MQ-BUFFER-LENGTH before MQPUT. Matches the 1000-byte MQ-BUFFER field."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-BUFFER",
@@ -5874,7 +6099,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The raw message buffer used to hold the content of MQ messages being read from the input queue or written to the reply/error queue. Contains the account enquiry request data (function code, account key) when reading, and the account details response when writing back to the downstream consumer."
+      "description": "The raw message buffer used to hold the content of MQ messages being read from the input queue or written to the reply/error queue. Contains the account enquiry request data (function code, account key) when reading, and the account details response when writing back to the downstream consumer.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L50: \"01 MQ-BUFFER PIC X(1000).\" The actual data buffer passed to MQGET (receive) and MQPUT (send). L369: MOVE MQ-BUFFER TO REQUEST-MESSAGE after MQGET; L467: MOVE REPLY-MESSAGE TO MQ-BUFFER before MQPUT. 1000 bytes matches MQ-BUFFER-LENGTH constant used throughout."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-DATA-LENGTH",
@@ -5884,7 +6118,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The actual length (in bytes) of the data contained in the MQ message buffer after a GET operation, or the length of data to be sent in a PUT operation. Ensures only the valid portion of the message buffer is processed or transmitted, avoiding misinterpretation of account enquiry data."
+      "description": "The actual length (in bytes) of the data contained in the MQ message buffer after a GET operation, or the length of data to be sent in a PUT operation. Ensures only the valid portion of the message buffer is processed or transmitted, avoiding misinterpretation of account enquiry data.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L51: \"01 MQ-DATA-LENGTH PIC S9(09) BINARY.\" Receives the actual byte length of the message returned by MQGET. Standard MQ API parameter (DataLength argument in MQGET call at L358). Allows programs to know how many bytes were actually written into MQ-BUFFER."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-CORRELID",
@@ -5894,7 +6137,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ correlation identifier used to link an account enquiry response back to its originating request. By echoing the correlation ID from the inbound request onto the outbound response, the downstream consumer can match the account details returned to the specific enquiry it submitted."
+      "description": "The MQ correlation identifier used to link an account enquiry response back to its originating request. By echoing the correlation ID from the inbound request onto the outbound response, the downstream consumer can match the account details returned to the specific enquiry it submitted.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L52: \"01 MQ-CORRELID PIC X(24).\" Working copy of the MQ correlation identifier (24 bytes, matching MQ CorrelId field). L338: cleared to SPACES before MQGET; L365: MOVE MQMD-CORRELID TO MQ-CORRELID after get. L370: saved to SAVE-CORELID for use when putting the reply."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-MSG-ID",
@@ -5904,7 +6156,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The unique message identifier assigned by MQ to each account enquiry request message. Used to uniquely identify individual messages in the queue, supporting message tracking, duplicate detection, and audit trail for account enquiry processing."
+      "description": "The unique message identifier assigned by MQ to each account enquiry request message. Used to uniquely identify individual messages in the queue, supporting message tracking, duplicate detection, and audit trail for account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L53: \"01 MQ-MSG-ID PIC X(24).\" Working copy of the MQ message identifier (24 bytes). L339: cleared before MQGET; L364: MOVE MQMD-MSGID TO MQ-MSG-ID after successful get. L372: saved to SAVE-MSGID and later copied back into MQMD-MSGID for the reply (L469)."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-MSG-COUNT",
@@ -5914,7 +6175,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A counter tracking the total number of account enquiry request messages processed during the current program execution. Provides an operational metric of batch throughput, useful for monitoring how many account lookups were fulfilled in a single run."
+      "description": "A counter tracking the total number of account enquiry request messages processed during the current program execution. Provides an operational metric of batch throughput, useful for monitoring how many account lookups were fulfilled in a single run.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L54: \"01 MQ-MSG-COUNT PIC 9(09).\" Running counter of successfully processed MQ messages. L375: ADD 1 TO MQ-MSG-COUNT after each successful MQGET + process cycle. Useful for logging and post-processing audits; not otherwise tested in the program."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "SAVE-CORELID",
@@ -5924,7 +6194,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A saved copy of the MQ correlation ID from the inbound account enquiry request. Preserved so that after the account lookup is performed, the correct correlation ID can be placed on the outbound response message, ensuring the requesting application can match the reply to its original enquiry."
+      "description": "A saved copy of the MQ correlation ID from the inbound account enquiry request. Preserved so that after the account lookup is performed, the correct correlation ID can be placed on the outbound response message, ensuring the requesting application can match the reply to its original enquiry.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L55: \"01 SAVE-CORELID PIC X(24).\" Preserves the correlation ID of the received message across processing. L370: MOVE MQ-CORRELID TO SAVE-CORELID after MQGET. L470: MOVE SAVE-CORELID TO MQMD-CORRELID when sending the reply so the requester can match it."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "SAVE-MSGID",
@@ -5934,7 +6213,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A saved copy of the MQ message ID from the inbound account enquiry request. Retained so it can be referenced when constructing the response or error message, maintaining the message chain linkage for audit and operational tracing purposes."
+      "description": "A saved copy of the MQ message ID from the inbound account enquiry request. Retained so it can be referenced when constructing the response or error message, maintaining the message chain linkage for audit and operational tracing purposes.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L56: \"01 SAVE-MSGID PIC X(24).\" Preserves the message ID of the received request. L372: MOVE MQ-MSG-ID TO SAVE-MSGID after MQGET. L469: MOVE SAVE-MSGID TO MQMD-MSGID when building the reply — standard MQ request/reply pattern."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "SAVE-REPLY2Q",
@@ -5944,7 +6232,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A saved copy of the reply-to queue name specified in the inbound account enquiry request message. Preserved so the program knows exactly which MQ queue the requesting application expects the account details response to be delivered to, supporting correct response routing."
+      "description": "A saved copy of the reply-to queue name specified in the inbound account enquiry request message. Preserved so the program knows exactly which MQ queue the requesting application expects the account details response to be delivered to, supporting correct response routing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L57: \"01 SAVE-REPLY2Q PIC X(48).\" Saves the reply-to queue name extracted from the incoming message descriptor. L371: MOVE MQ-QUEUE-REPLY TO SAVE-REPLY2Q after MQGET. Preserved across the processing cycle; used to route the response to the correct dynamic reply queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-ERR-DISPLAY",
@@ -5954,7 +6251,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A formatted error message record constructed when an MQ operation fails during account enquiry processing. Combines a description of the failing operation, an application-level error message, the MQ condition and reason codes, and the queue name involved, providing a complete diagnostic record written to the error queue or system log."
+      "description": "A formatted error message record constructed when an MQ operation fails during account enquiry processing. Combines a description of the failing operation, an application-level error message, the MQ condition and reason codes, and the queue name involved, providing a complete diagnostic record written to the error queue or system log.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L58: \"01 MQ-ERR-DISPLAY.\" group item composing a human-readable error message. L185: INITIALIZE MQ-ERR-DISPLAY at startup. L505: MOVE MQ-ERR-DISPLAY TO ERROR-MESSAGE in 9000-ERROR; L320: DISPLAY MQ-ERR-DISPLAY on error queue open failure. Concatenates paragraph name, return message, condition/reason codes, and queue name."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-ERROR-PARA",
@@ -5964,7 +6270,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A short description identifying which part of the account enquiry processing failed (e.g., 'OPEN INPUT QUEUE', 'GET MESSAGE'). Helps operations staff quickly identify the stage at which the MQ error occurred without needing to analyse raw code values."
+      "description": "A short description identifying which part of the account enquiry processing failed (e.g., 'OPEN INPUT QUEUE', 'GET MESSAGE'). Helps operations staff quickly identify the stage at which the MQ error occurred without needing to analyse raw code values.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L59: \"05 MQ-ERROR-PARA PIC X(25).\" within MQ-ERR-DISPLAY. Holds the name of the paragraph where the error occurred (e.g. L200: MOVE 'CICS RETREIVE' TO MQ-ERROR-PARA; L250: 'INP MQOPEN ERR'). Provides paragraph-level context in the error record sent to the error queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "FILLER",
@@ -5974,7 +6289,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A spacing separator within the formatted MQ error message record. Improves readability of the error message written to the error queue or log by visually separating the error paragraph description from the application return message."
+      "description": "A spacing separator within the formatted MQ error message record. Improves readability of the error message written to the error queue or log by visually separating the error paragraph description from the application return message.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "Multiple FILLER fields (L60, L62, L64, L66) within MQ-ERR-DISPLAY. Standard COBOL padding fields (ANS-85) used to insert space separators between the display fields: MQ-ERROR-PARA, MQ-APPL-RETURN-MESSAGE, MQ-APPL-CONDITION-CODE, MQ-APPL-REASON-CODE, MQ-APPL-QUEUE-NAME. PIC X(02) VALUE SPACES provides two-space visual separation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-APPL-RETURN-MESSAGE",
@@ -5984,7 +6308,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A human-readable application-level error description included in the MQ error record (e.g., 'QUEUE OPEN FAILED'). Provides operations staff with a plain-language explanation of what went wrong during account enquiry processing, complementing the technical MQ reason codes."
+      "description": "A human-readable application-level error description included in the MQ error record (e.g., 'QUEUE OPEN FAILED'). Provides operations staff with a plain-language explanation of what went wrong during account enquiry processing, complementing the technical MQ reason codes.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L61: \"05 MQ-APPL-RETURN-MESSAGE PIC X(25).\" within MQ-ERR-DISPLAY. Short descriptive error phrase set before error handling (e.g. L250: 'INP MQOPEN ERR', L250: 'OUT MQOPEN ERR', L384: 'INP MQGET ERR:'). Included in the error message put to the error queue by 9000-ERROR."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "FILLER",
@@ -5994,7 +6327,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the application return message from the MQ condition code in the error record written to the error queue."
+      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the application return message from the MQ condition code in the error record written to the error queue.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "Multiple FILLER fields (L60, L62, L64, L66) within MQ-ERR-DISPLAY. Standard COBOL padding fields (ANS-85) used to insert space separators between the display fields: MQ-ERROR-PARA, MQ-APPL-RETURN-MESSAGE, MQ-APPL-CONDITION-CODE, MQ-APPL-REASON-CODE, MQ-APPL-QUEUE-NAME. PIC X(02) VALUE SPACES provides two-space visual separation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-APPL-CONDITION-CODE",
@@ -6004,7 +6346,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ completion code (0=success, 1=warning, 2=failure) formatted for display in the error record. Allows operations staff to immediately see the severity of the MQ failure that occurred during account enquiry processing without interpreting binary values."
+      "description": "The MQ completion code (0=success, 1=warning, 2=failure) formatted for display in the error record. Allows operations staff to immediately see the severity of the MQ failure that occurred during account enquiry processing without interpreting binary values.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L63: \"05 MQ-APPL-CONDITION-CODE PIC 9(02).\" within MQ-ERR-DISPLAY. Display copy of MQ-CONDITION-CODE for inclusion in the error string. L242/L247/L276...: MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE after each MQ call. PIC 9(02) is sufficient for MQCC values (0-2)."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "FILLER",
@@ -6014,7 +6365,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the MQ condition code from the MQ reason code in the error record written to the error queue."
+      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the MQ condition code from the MQ reason code in the error record written to the error queue.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "Multiple FILLER fields (L60, L62, L64, L66) within MQ-ERR-DISPLAY. Standard COBOL padding fields (ANS-85) used to insert space separators between the display fields: MQ-ERROR-PARA, MQ-APPL-RETURN-MESSAGE, MQ-APPL-CONDITION-CODE, MQ-APPL-REASON-CODE, MQ-APPL-QUEUE-NAME. PIC X(02) VALUE SPACES provides two-space visual separation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-APPL-REASON-CODE",
@@ -6024,7 +6384,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The specific MQ reason code formatted for display in the error record, identifying the precise cause of the MQ failure (e.g., reason code 2033 = no message available). Enables operations staff to look up the exact MQ error and take appropriate recovery action for failed account enquiries."
+      "description": "The specific MQ reason code formatted for display in the error record, identifying the precise cause of the MQ failure (e.g., reason code 2033 = no message available). Enables operations staff to look up the exact MQ error and take appropriate recovery action for failed account enquiries.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L65: \"05 MQ-APPL-REASON-CODE PIC 9(05).\" within MQ-ERR-DISPLAY. Display copy of MQ-REASON-CODE for the error record. L243/L248/L277...: MOVE MQ-REASON-CODE TO MQ-APPL-REASON-CODE after each MQ call. 5 digits accommodates the full range of IBM MQ reason codes (up to 99999)."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "FILLER",
@@ -6034,7 +6403,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the MQ reason code from the queue name in the error record written to the error queue."
+      "description": "A spacing separator within the formatted MQ error message record. Improves readability by visually separating the MQ reason code from the queue name in the error record written to the error queue.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "Multiple FILLER fields (L60, L62, L64, L66) within MQ-ERR-DISPLAY. Standard COBOL padding fields (ANS-85) used to insert space separators between the display fields: MQ-ERROR-PARA, MQ-APPL-RETURN-MESSAGE, MQ-APPL-CONDITION-CODE, MQ-APPL-REASON-CODE, MQ-APPL-QUEUE-NAME. PIC X(02) VALUE SPACES provides two-space visual separation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-APPL-QUEUE-NAME",
@@ -6044,7 +6422,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the MQ queue involved in the failed operation, included in the error record. Tells operations staff exactly which queue (input, reply, or error) was being accessed when the failure occurred, enabling targeted investigation and recovery of the account enquiry processing failure."
+      "description": "The name of the MQ queue involved in the failed operation, included in the error record. Tells operations staff exactly which queue (input, reply, or error) was being accessed when the failure occurred, enabling targeted investigation and recovery of the account enquiry processing failure.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L67: \"05 MQ-APPL-QUEUE-NAME PIC X(48).\" within MQ-ERR-DISPLAY. Records which queue name was involved when an error occurred. L249: MOVE INPUT-QUEUE-NAME TO MQ-APPL-QUEUE-NAME; L283: MOVE REPLY-QUEUE-NAME; L318: MOVE ERROR-QUEUE-NAME. 48 chars matches IBM MQ queue name maximum length."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-GET-MESSAGE-OPTIONS",
@@ -6054,7 +6441,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The MQ Get Message Options structure controlling how account enquiry request messages are retrieved from the input queue. Options set here determine behaviour such as whether to wait for a message, browse or destructively read, and how to match messages — governing the consumption of incoming account enquiry requests."
+      "description": "The MQ Get Message Options structure controlling how account enquiry request messages are retrieved from the input queue. Options set here determine behaviour such as whether to wait for a message, browse or destructively read, and how to match messages — governing the consumption of incoming account enquiry requests.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L70: \"01 MQ-GET-MESSAGE-OPTIONS.\" group redefined by COPY CMQGMOV (L71). Contains the MQGMO structure used in the MQGET call at L355. L347-350: COMPUTE MQGMO-OPTIONS = MQGMO-SYNCPOINT + MQGMO-FAIL-IF-QUIESCING + MQGMO-CONVERT + MQGMO-WAIT. L337: MOVE 5000 TO MQGMO-WAITINTERVAL sets a 5-second wait."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-PUT-MESSAGE-OPTIONS",
@@ -6064,7 +6460,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The MQ Put Message Options structure controlling how account enquiry response messages are placed onto the reply or error queue. Options set here govern delivery behaviour such as persistence and syncpoint participation, ensuring account responses and error messages are reliably delivered to downstream consumers."
+      "description": "The MQ Put Message Options structure controlling how account enquiry response messages are placed onto the reply or error queue. Options set here govern delivery behaviour such as persistence and syncpoint participation, ensuring account responses and error messages are reliably delivered to downstream consumers.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L74: \"01 MQ-PUT-MESSAGE-OPTIONS.\" group redefined by COPY CMQPMOV (L75). Contains the MQPMO structure used in MQPUT calls at L482 and L519. L475-477: COMPUTE MQPMO-OPTIONS = MQPMO-SYNCPOINT + MQPMO-DEFAULT-CONTEXT + MQPMO-FAIL-IF-QUIESCING. Same options used for both reply and error queue puts."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-MESSAGE-DESCRIPTOR",
@@ -6074,7 +6479,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The MQ Message Descriptor (MQMD) structure that accompanies each MQ message, carrying metadata such as message ID, correlation ID, reply-to queue name, message type, and persistence. Used both when reading inbound account enquiry requests (to extract routing information) and when constructing outbound account responses (to set correlation and reply details)."
+      "description": "The MQ Message Descriptor (MQMD) structure that accompanies each MQ message, carrying metadata such as message ID, correlation ID, reply-to queue name, message type, and persistence. Used both when reading inbound account enquiry requests (to extract routing information) and when constructing outbound account responses (to set correlation and reply details).",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L78: \"01 MQ-MESSAGE-DESCRIPTOR.\" group redefined by COPY CMQMDV (L79). The MQMD (Message Descriptor) structure passed to every MQGET and MQPUT call. L343-344: MQMD-MSGID/CORRELID set to MQMI-NONE/MQCI-NONE before GET; L469-471: fields set from SAVE-* fields and MQFMT-STRING before PUT."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-OBJECT-DESCRIPTOR",
@@ -6084,7 +6498,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The MQ Object Descriptor (MQOD) structure used when opening MQ queues, specifying the target queue name and queue manager. Required to establish access to the input queue (for consuming account enquiry requests), the reply queue (for sending account details), and the error queue (for routing failed messages)."
+      "description": "The MQ Object Descriptor (MQOD) structure used when opening MQ queues, specifying the target queue name and queue manager. Required to establish access to the input queue (for consuming account enquiry requests), the reply queue (for sending account details), and the error queue (for routing failed messages).",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L82: \"01 MQ-OBJECT-DESCRIPTOR.\" group redefined by COPY CMQODV (L83). The MQOD (Object Descriptor) structure used in MQOPEN calls. L226/L260/L295: MOVE SPACES TO MQOD-OBJECTQMGRNAME; L227/L261/L296: MOVE queue name TO MQOD-OBJECTNAME before each MQOPEN call."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-CONSTANTS",
@@ -6094,7 +6517,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A group of predefined IBM MQ constant values (such as MQOO_INPUT_EXCLUSIVE, MQGMO_NO_WAIT, MQPMO_NO_SYNCPOINT) used to set options for MQ API calls. These constants control the precise behaviour of queue open, message get, and message put operations throughout account enquiry processing."
+      "description": "A group of predefined IBM MQ constant values (such as MQOO_INPUT_EXCLUSIVE, MQGMO_NO_WAIT, MQPMO_NO_SYNCPOINT) used to set options for MQ API calls. These constants control the precise behaviour of queue open, message get, and message put operations throughout account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L86: \"01 MQ-CONSTANTS.\" group redefined by COPY CMQV (L87). Defines all IBM MQ symbolic constants (MQOO-*, MQGMO-*, MQPMO-*, MQCC-*, MQRC-*, MQFMT-*, etc.). These constants are referenced throughout the PROCEDURE DIVISION to specify MQ API options without hardcoding numeric values."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "MQ-GET-QUEUE-MESSAGE",
@@ -6104,7 +6536,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A structured representation of the account enquiry request message retrieved from the input MQ queue. Contains the parsed fields of the inbound request (such as function code and account key) that drive the account lookup in the ACCTDAT master file."
+      "description": "A structured representation of the account enquiry request message retrieved from the input MQ queue. Contains the parsed fields of the inbound request (such as function code and account key) that drive the account lookup in the ACCTDAT master file.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L89: \"01 MQ-GET-QUEUE-MESSAGE.\" group redefined by COPY CMQTML (L90). Defines the MQTM (Trigger Message) structure — used at L191-195 where EXEC CICS RETRIEVE INTO(MQTM) receives the trigger message. L197: MOVE MQTM-QNAME TO INPUT-QUEUE-NAME extracts the initiating queue name."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "QUEUE-INFO",
@@ -6114,7 +6555,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A group record holding the MQ infrastructure configuration for the account enquiry service, including the Queue Manager name and the names of the input, reply, and error queues. Populated from the CICS trigger message at startup, this record defines the complete messaging topology the program uses to consume requests and route responses."
+      "description": "A group record holding the MQ infrastructure configuration for the account enquiry service, including the Queue Manager name and the names of the input, reply, and error queues. Populated from the CICS trigger message at startup, this record defines the complete messaging topology the program uses to consume requests and route responses.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L92: \"01 QUEUE-INFO.\" group item holding queue name configuration. Contains QMGR-NAME, INPUT-QUEUE-NAME, REPLY-QUEUE-NAME, ERROR-QUEUE-NAME (L93-L96). Centralises all queue addressing; populated at startup from the CICS trigger message and hardcoded values."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "QMGR-NAME",
@@ -6124,7 +6574,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the IBM MQ Queue Manager that hosts the account enquiry queues. Required to establish the MQ connection at program startup — without a valid Queue Manager name, no messages can be consumed or responses sent for account enquiry processing."
+      "description": "The name of the IBM MQ Queue Manager that hosts the account enquiry queues. Required to establish the MQ connection at program startup — without a valid Queue Manager name, no messages can be consumed or responses sent for account enquiry processing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L93: \"05 QMGR-NAME PIC X(48) VALUE SPACES.\" within QUEUE-INFO. The queue manager name used to qualify the MQ connection. L182: MOVE SPACES TO QMGR-NAME at startup (local QM assumed — empty name means use default). 48 chars matches MQ queue manager name limit."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "INPUT-QUEUE-NAME",
@@ -6134,7 +6593,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the MQ queue from which incoming account enquiry requests are consumed. Received via the CICS trigger message, this identifies the specific queue the program must open and drain of all pending account lookup requests during the current processing run."
+      "description": "The name of the MQ queue from which incoming account enquiry requests are consumed. Received via the CICS trigger message, this identifies the specific queue the program must open and drain of all pending account lookup requests during the current processing run.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L94: \"05 INPUT-QUEUE-NAME PIC X(48) VALUE SPACES.\" within QUEUE-INFO. Name of the MQ queue from which account enquiry requests are read. L197: MOVE MQTM-QNAME TO INPUT-QUEUE-NAME from the trigger message; L227: MOVE INPUT-QUEUE-NAME TO MQOD-OBJECTNAME before MQOPEN."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "REPLY-QUEUE-NAME",
@@ -6144,7 +6612,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the fixed MQ reply queue (CARD.DEMO.REPLY.ACCT) to which all account enquiry responses are published. Ensures that account details retrieved from the ACCTDAT master file are consistently routed to the correct downstream consumer queue, regardless of which application submitted the request."
+      "description": "The name of the fixed MQ reply queue (CARD.DEMO.REPLY.ACCT) to which all account enquiry responses are published. Ensures that account details retrieved from the ACCTDAT master file are consistently routed to the correct downstream consumer queue, regardless of which application submitted the request.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L95: \"05 REPLY-QUEUE-NAME PIC X(48) VALUE SPACES.\" within QUEUE-INFO. Name of the MQ queue to which processed account responses are sent. L198: MOVE 'CARD.DEMO.REPLY.ACCT' TO REPLY-QUEUE-NAME — hardcoded reply destination. L261: MOVE REPLY-QUEUE-NAME TO MQOD-OBJECTNAME before opening the output queue."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "ERROR-QUEUE-NAME",
@@ -6154,7 +6631,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The name of the MQ error queue (CARD.DEMO.ERROR) to which failed or unprocessable account enquiry messages are routed. Provides a dedicated channel for capturing problem messages, enabling operations teams to investigate and recover from account enquiry processing failures without losing the original request data."
+      "description": "The name of the MQ error queue (CARD.DEMO.ERROR) to which failed or unprocessable account enquiry messages are routed. Provides a dedicated channel for capturing problem messages, enabling operations teams to investigate and recover from account enquiry processing failures without losing the original request data.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L96: \"05 ERROR-QUEUE-NAME PIC X(48) VALUE SPACES.\" within QUEUE-INFO. Name of the MQ error queue for dead-letter / error messages. L294: MOVE 'CARD.DEMO.ERROR' TO ERROR-QUEUE-NAME — hardcoded error destination. L296: MOVE ERROR-QUEUE-NAME TO MQOD-OBJECTNAME before MQOPEN in 2100-OPEN-ERROR-QUEUE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "INPUT-QUEUE-HANDLE",
@@ -6164,7 +6650,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ object handle for the opened input queue, returned by MQ after a successful queue open. Used in all subsequent MQGET calls to retrieve account enquiry request messages from the input queue — a valid handle is required before any requests can be consumed."
+      "description": "The MQ object handle for the opened input queue, returned by MQ after a successful queue open. Used in all subsequent MQGET calls to retrieve account enquiry request messages from the input queue — a valid handle is required before any requests can be consumed.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L98: \"01 INPUT-QUEUE-HANDLE PIC S9(09) BINARY VALUE 0.\" Stores the MQ object handle for the input queue returned by MQOPEN. L244: MOVE MQ-HOBJ TO INPUT-QUEUE-HANDLE after successful open. L341: MOVE INPUT-QUEUE-HANDLE TO MQ-HOBJ before MQGET; L554: before MQCLOSE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "OUTPUT-QUEUE-HANDLE",
@@ -6174,7 +6669,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ object handle for the opened reply queue (CARD.DEMO.REPLY.ACCT), returned by MQ after a successful queue open. Used in all MQPUT calls to publish account enquiry responses — a valid handle is required before account details can be sent back to the downstream consumer."
+      "description": "The MQ object handle for the opened reply queue (CARD.DEMO.REPLY.ACCT), returned by MQ after a successful queue open. Used in all MQPUT calls to publish account enquiry responses — a valid handle is required before account details can be sent back to the downstream consumer.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L100: \"01 OUTPUT-QUEUE-HANDLE PIC S9(09) BINARY VALUE 0.\" Stores the MQ object handle for the reply (output) queue. L278: MOVE MQ-HOBJ TO OUTPUT-QUEUE-HANDLE after successful MQOPEN. L480: USING OUTPUT-QUEUE-HANDLE in MQPUT call in 4100-PUT-REPLY."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "ERROR-QUEUE-HANDLE",
@@ -6184,7 +6688,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ object handle for the opened error queue (CARD.DEMO.ERROR), returned by MQ after a successful queue open. Used in MQPUT calls to route failed or unprocessable account enquiry messages to the error queue for operational investigation and recovery."
+      "description": "The MQ object handle for the opened error queue (CARD.DEMO.ERROR), returned by MQ after a successful queue open. Used in MQPUT calls to route failed or unprocessable account enquiry messages to the error queue for operational investigation and recovery.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L102: \"01 ERROR-QUEUE-HANDLE PIC S9(09) BINARY VALUE 0.\" Stores the MQ object handle for the error queue. L313: MOVE MQ-HOBJ TO ERROR-QUEUE-HANDLE after successful MQOPEN in 2100-OPEN-ERROR-QUEUE. L517: USING ERROR-QUEUE-HANDLE in MQPUT call within 9000-ERROR."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "QMGR-HANDLE-CONN",
@@ -6194,7 +6707,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The MQ connection handle representing the active session with the IBM MQ Queue Manager, returned after a successful MQCONN or MQCONNX call. All MQ queue open, message get, and message put operations during account enquiry processing reference this handle to operate within the established MQ connection."
+      "description": "The MQ connection handle representing the active session with the IBM MQ Queue Manager, returned after a successful MQCONN or MQCONNX call. All MQ queue open, message get, and message put operations during account enquiry processing reference this handle to operate within the established MQ connection.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L104: \"01 QMGR-HANDLE-CONN PIC S9(09) BINARY VALUE 0.\" Connection handle to the MQ queue manager. Used as the first argument (Hconn) in every MQOPEN, MQGET, MQPUT, and MQCLOSE call (e.g. L233, L267, L302, L352). Distinct from MQ-HCONN; both serve as Hconn but QMGR-HANDLE-CONN is the primary handle used in CALL statements."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "QUEUE-MESSAGE",
@@ -6204,7 +6726,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A working buffer holding the raw content of an MQ message being processed — either an inbound account enquiry request being parsed for the function code and account key, or an outbound account response being assembled before being placed onto the reply queue."
+      "description": "A working buffer holding the raw content of an MQ message being processed — either an inbound account enquiry request being parsed for the function code and account key, or an outbound account response being assembled before being placed onto the reply queue.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L105: \"01 QUEUE-MESSAGE PIC X(1000).\" General-purpose 1000-byte message buffer. L183: MOVE SPACES TO QUEUE-MESSAGE during initialisation. Used as a staging buffer; actual MQGET data flows via MQ-BUFFER → REQUEST-MESSAGE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "REQUEST-MESSAGE",
@@ -6214,7 +6745,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A preserved copy of the original inbound account enquiry request message retrieved from the input MQ queue. Retained throughout processing so that if an error occurs during the account lookup, the original request content can be forwarded intact to the error queue for operational investigation and potential reprocessing."
+      "description": "A preserved copy of the original inbound account enquiry request message retrieved from the input MQ queue. Retained throughout processing so that if an error occurs during the account lookup, the original request content can be forwarded intact to the error queue for operational investigation and potential reprocessing.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L106: \"01 REQUEST-MESSAGE PIC X(1000).\" Holds the raw request message received from the input MQ queue. L369: MOVE MQ-BUFFER TO REQUEST-MESSAGE after successful MQGET. L373: MOVE REQUEST-MESSAGE TO REQUEST-MSG-COPY to parse structured fields (WS-FUNC, WS-KEY)."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "REPLY-MESSAGE",
@@ -6224,7 +6764,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The formatted account enquiry response message that is placed onto the MQ reply queue (CARD.DEMO.REPLY.ACCT) and returned to the requesting application. It carries the account details retrieved from the master file in a structured text payload up to 1000 characters long."
+      "description": "The formatted account enquiry response message that is placed onto the MQ reply queue (CARD.DEMO.REPLY.ACCT) and returned to the requesting application. It carries the account details retrieved from the master file in a structured text payload up to 1000 characters long.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L107: \"01 REPLY-MESSAGE PIC X(1000).\" Holds the reply message to be sent back to the requester. L391: MOVE SPACES TO REPLY-MESSAGE at start of each cycle. L426: MOVE WS-ACCT-RESPONSE TO REPLY-MESSAGE on success; L467: MOVE REPLY-MESSAGE TO MQ-BUFFER before MQPUT in 4100-PUT-REPLY."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "ERROR-MESSAGE",
@@ -6234,7 +6783,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The error notification message written to the MQ error queue (CARD.DEMO.ERROR) when a processing failure occurs, such as an MQ open failure or an unprocessable request. It supports operational monitoring and recovery by capturing failure details for investigation."
+      "description": "The error notification message written to the MQ error queue (CARD.DEMO.ERROR) when a processing failure occurs, such as an MQ open failure or an unprocessable request. It supports operational monitoring and recovery by capturing failure details for investigation.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L108: \"01 ERROR-MESSAGE PIC X(1000).\" Holds the error message sent to the MQ error queue. L505: MOVE MQ-ERR-DISPLAY TO ERROR-MESSAGE; L506: MOVE ERROR-MESSAGE TO MQ-BUFFER. Acts as a bridge between the compact MQ-ERR-DISPLAY and the 1000-byte MQ buffer."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "REQUEST-MSG-COPY",
@@ -6244,7 +6802,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The structured layout of the incoming MQ account enquiry request message consumed from the input queue. It holds the operation type and the account identifier that drive the account lookup, along with unused padding space to complete the fixed-length message format."
+      "description": "The structured layout of the incoming MQ account enquiry request message consumed from the input queue. It holds the operation type and the account identifier that drive the account lookup, along with unused padding space to complete the fixed-length message format.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L109: \"01 REQUEST-MSG-COPY.\" structured overlay for the incoming request. L373: MOVE REQUEST-MESSAGE TO REQUEST-MSG-COPY to parse function code and key. L345: INITIALIZE REQUEST-MSG-COPY REPLACING NUMERIC BY ZEROES before each GET. Sub-fields WS-FUNC (4 chars), WS-KEY (11 digits), WS-FILLER (985 chars) define the request protocol."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-FUNC",
@@ -6254,7 +6821,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The function code extracted from the incoming MQ request message that identifies the type of operation being requested (e.g. account enquiry). The program validates this code to ensure only supported operations are processed before any account lookup is attempted."
+      "description": "The function code extracted from the incoming MQ request message that identifies the type of operation being requested (e.g. account enquiry). The program validates this code to ensure only supported operations are processed before any account lookup is attempted.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L110: \"10 WS-FUNC PIC X(04) VALUE SPACES.\" within REQUEST-MSG-COPY. L393: IF WS-FUNC = 'INQA' AND WS-KEY > ZEROES — the only supported function code. 'INQA' means \"INquire Account\" — the 4-char function identifier used in the MQ request protocol."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-KEY",
@@ -6264,7 +6840,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The numeric account identifier extracted from the incoming MQ request message, used as the key to look up the corresponding account record in the ACCTDAT master file. Must be a valid non-zero numeric value for the request to be processed."
+      "description": "The numeric account identifier extracted from the incoming MQ request message, used as the key to look up the corresponding account record in the ACCTDAT master file. Must be a valid non-zero numeric value for the request to be processed.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L111: \"10 WS-KEY PIC 9(11) VALUE ZEROES.\" within REQUEST-MSG-COPY. The account ID key extracted from the MQ request message. L393: tested > ZEROES; L394: MOVE WS-KEY TO WS-CARD-RID-ACCT-ID before EXEC CICS READ. 11-digit numeric matches ACCT-ID PIC 9(11) in CVACT01Y."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-FILLER",
@@ -6274,7 +6859,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "Unused padding within the incoming MQ request message structure that fills the remainder of the fixed 1000-character message layout beyond the function code and account key fields. It has no business meaning but ensures the message conforms to the agreed fixed-length MQ message format."
+      "description": "Unused padding within the incoming MQ request message structure that fills the remainder of the fixed 1000-character message layout beyond the function code and account key fields. It has no business meaning but ensures the message conforms to the agreed fixed-length MQ message format.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L112: \"10 WS-FILLER PIC X(985) VALUE SPACES.\" within REQUEST-MSG-COPY. Padding to complete the 1000-byte request message structure (4 + 11 + 985 = 1000). Standard protocol layout filler; not referenced in the PROCEDURE DIVISION."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-VARIABLES",
@@ -6284,7 +6878,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A working-storage group holding internal processing variables used during account enquiry execution, including the account master file name, CICS response codes, and cross-reference record identifiers needed to locate and validate account data."
+      "description": "A working-storage group holding internal processing variables used during account enquiry execution, including the account master file name, CICS response codes, and cross-reference record identifiers needed to locate and validate account data.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L114: \"01 WS-VARIABLES.\" group item containing miscellaneous working-storage fields. Groups LIT-ACCTFILENAME, WS-RESP-CD, WS-REAS-CD, and WS-XREF-RID. WS- prefix is the standard working-storage naming convention for this program."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "LIT-ACCTFILENAME",
@@ -6294,7 +6897,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The literal name of the ACCTDAT credit card account master file as known to CICS, used when issuing file control commands to open and read account records. It identifies which file to access when performing the account lookup."
+      "description": "The literal name of the ACCTDAT credit card account master file as known to CICS, used when issuing file control commands to open and read account records. It identifies which file to access when performing the account lookup.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L115-116: \"05 LIT-ACCTFILENAME PIC X(8) VALUE 'ACCTDAT '.\" Literal constant holding the CICS DATASET name for the account file. L397: DATASET (LIT-ACCTFILENAME) in EXEC CICS READ — identifies the VSAM ACCTDAT dataset. Trailing space in 'ACCTDAT ' pads to the 8-char CICS dataset name field."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-RESP-CD",
@@ -6304,7 +6916,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The CICS response code returned after each CICS command (such as file read or MQ operation), used to determine whether the operation succeeded or failed. A non-zero value triggers error handling and routing of the request to the error queue."
+      "description": "The CICS response code returned after each CICS command (such as file read or MQ operation), used to determine whether the operation succeeded or failed. A non-zero value triggers error handling and routing of the request to the error queue.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L117-118: \"05 WS-RESP-CD PIC S9(09) COMP VALUE ZEROS.\" Primary CICS response code from EXEC CICS READ (RESP option, L402). L406: EVALUATE WS-RESP-CD WHEN DFHRESP(NORMAL) / WHEN DFHRESP(NOTFND) / WHEN OTHER. COMP storage matches the CICS RESP parameter type."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-REAS-CD",
@@ -6314,7 +6935,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The CICS reason code accompanying the response code, providing additional detail about why a CICS command failed. Used alongside WS-RESP-CD to diagnose and log the specific cause of processing errors for operational investigation."
+      "description": "The CICS reason code accompanying the response code, providing additional detail about why a CICS command failed. Used alongside WS-RESP-CD to diagnose and log the specific cause of processing errors for operational investigation.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L119-120: \"05 WS-REAS-CD PIC S9(09) COMP VALUE ZEROS.\" Secondary CICS reason code from EXEC CICS READ (RESP2 option, L403). L439-440: MOVE WS-REAS-CD TO MQ-APPL-REASON-CODE for error reporting in the WHEN OTHER branch. Provides additional diagnostic detail when RESP is not NORMAL."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-XREF-RID",
@@ -6324,7 +6954,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "A cross-reference record identifier structure used to locate an account by navigating from a card number or customer identifier to the associated account. It supports flexible account lookup strategies beyond direct account ID access."
+      "description": "A cross-reference record identifier structure used to locate an account by navigating from a card number or customer identifier to the associated account. It supports flexible account lookup strategies beyond direct account ID access.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L121: \"05 WS-XREF-RID.\" group item composing the VSAM record identifier. Contains card number, customer ID, and account ID sub-fields for CICS READ keying. L398: RIDFLD (WS-CARD-RID-ACCT-ID-X) uses the alphanumeric REDEFINES for CICS READ key passing."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CARD-RID-CARDNUM",
@@ -6334,7 +6973,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The 16-digit credit card number used as part of the cross-reference key to locate the account record associated with a specific physical card. Enables account lookup when the request is driven by card number rather than account ID."
+      "description": "The 16-digit credit card number used as part of the cross-reference key to locate the account record associated with a specific physical card. Enables account lookup when the request is driven by card number rather than account ID.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L122: \"10 WS-CARD-RID-CARDNUM PIC X(16).\" within WS-XREF-RID. Holds a 16-digit card number (alphanumeric for key matching). Not directly set in the PROCEDURE DIVISION of this program — appears to be part of the shared cross-reference record key structure; naming convention: WS-CARD-RID- prefix + CARDNUM."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-CARD-RID-CUST-ID",
@@ -6344,7 +6992,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The numeric customer identifier within the cross-reference key, linking a cardholder's customer record to their credit card account. Used when the account lookup is initiated from a customer context rather than directly by account ID."
+      "description": "The numeric customer identifier within the cross-reference key, linking a cardholder's customer record to their credit card account. Used when the account lookup is initiated from a customer context rather than directly by account ID.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L123: \"10 WS-CARD-RID-CUST-ID PIC 9(09).\" within WS-XREF-RID. Numeric customer ID sub-field of the cross-reference key. Not explicitly assigned in this program's PROCEDURE DIVISION; included in the shared WS-XREF-RID layout by convention with other CardDemo programs."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-CARD-RID-CUST-ID-X",
@@ -6354,7 +7011,16 @@
       "redefines": "WS-CARD-RID-CUST-ID",
       "occurs": null,
       "is_group": true,
-      "description": "An alphanumeric redefinition of the numeric customer identifier field, allowing the customer ID to be treated as character data when needed for string-based operations or comparisons during cross-reference processing."
+      "description": "An alphanumeric redefinition of the numeric customer identifier field, allowing the customer ID to be treated as character data when needed for string-based operations or comparisons during cross-reference processing.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "L124-125: \"10 WS-CARD-RID-CUST-ID-X REDEFINES WS-CARD-RID-CUST-ID PIC X(09).\" Standard COBOL REDEFINES overlay providing alphanumeric (X) view of numeric WS-CARD-RID-CUST-ID. Pattern used for CICS RIDFLD keying — CICS requires the key as PIC X for the RIDFLD parameter; the numeric field holds the value, the X-redefine passes it to CICS."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CARD-RID-ACCT-ID",
@@ -6364,7 +7030,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The numeric account identifier within the cross-reference record, representing the unique credit card account number linked to a card or customer. This is the key used to retrieve the full account record from the ACCTDAT master file."
+      "description": "The numeric account identifier within the cross-reference record, representing the unique credit card account number linked to a card or customer. This is the key used to retrieve the full account record from the ACCTDAT master file.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L126: \"10 WS-CARD-RID-ACCT-ID PIC 9(11).\" within WS-XREF-RID. Numeric account ID used as the VSAM KSDS record key. L394: MOVE WS-KEY TO WS-CARD-RID-ACCT-ID — the parsed account number from the MQ request is loaded here before the EXEC CICS READ at L396."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CARD-RID-ACCT-ID-X",
@@ -6374,7 +7049,16 @@
       "redefines": "WS-CARD-RID-ACCT-ID",
       "occurs": null,
       "is_group": true,
-      "description": "An alphanumeric redefinition of the numeric account identifier field, allowing the account ID to be handled as character data for string operations or display formatting during cross-reference and response construction processing."
+      "description": "An alphanumeric redefinition of the numeric account identifier field, allowing the account ID to be handled as character data for string operations or display formatting during cross-reference and response construction processing.",
+      "source": {
+        "kind": "std",
+        "label": "COBOL standard",
+        "tip": "L127-128: \"10 WS-CARD-RID-ACCT-ID-X REDEFINES WS-CARD-RID-ACCT-ID PIC X(11).\" REDEFINES overlay providing alphanumeric view of WS-CARD-RID-ACCT-ID. L398: RIDFLD (WS-CARD-RID-ACCT-ID-X) and L399: KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X) in EXEC CICS READ — standard pattern for passing numeric keys to CICS as alphanumeric RIDFLD."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-RESPONSE",
@@ -6384,7 +7068,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": true,
-      "description": "The complete structured account enquiry response record that is populated with retrieved account data and formatted for transmission onto the MQ reply queue. It contains labelled fields covering the account's financial limits, current balance, billing cycle activity, lifecycle dates, and group membership, supporting downstream account display or credit decisioning."
+      "description": "The complete structured account enquiry response record that is populated with retrieved account data and formatted for transmission onto the MQ reply queue. It contains labelled fields covering the account's financial limits, current balance, billing cycle activity, lifecycle dates, and group membership, supporting downstream account display or credit decisioning.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L130: \"01 WS-ACCT-RESPONSE.\" group item forming the formatted account inquiry response. L426: MOVE WS-ACCT-RESPONSE TO REPLY-MESSAGE — the entire group is serialised into the 1000-byte reply buffer and sent via MQPUT. Contains labelled account fields for display."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-LBL",
@@ -6394,7 +7087,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Account ID:') included in the MQ reply message to identify the account number field for the consuming application or human reader. It makes the response self-describing and easier to parse or display."
+      "description": "A fixed descriptive label (e.g. 'Account ID:') included in the MQ reply message to identify the account number field for the consuming application or human reader. It makes the response self-describing and easier to parse or display.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L132-133: \"05 WS-ACCT-LBL PIC X(13) VALUE 'ACCOUNT ID : '.\" Literal label prefix for the account ID in the formatted reply message. Hardcoded display label; part of WS-ACCT-RESPONSE layout that is written directly to the MQ reply."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-ID",
@@ -6404,7 +7106,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The unique 11-digit credit card account identifier included in the MQ reply message, confirming which account the returned data relates to. It allows the consuming application to match the response back to the original enquiry request."
+      "description": "The unique 11-digit credit card account identifier included in the MQ reply message, confirming which account the returned data relates to. It allows the consuming application to match the response back to the original enquiry request.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L134: \"05 WS-ACCT-ID PIC 9(11) VALUE ZEROES.\" within WS-ACCT-RESPONSE. L408: MOVE ACCT-ID TO WS-ACCT-ID after successful CICS READ — receives the account number from the ACCOUNT-RECORD (CVACT01Y). Included in the reply message after its label field."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-STATUS-LBL",
@@ -6414,7 +7125,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Active Status:') included in the MQ reply message to identify the account status field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Active Status:') included in the MQ reply message to identify the account status field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L135-136: \"05 WS-STATUS-LBL PIC X(17) VALUE 'ACCOUNT STATUS : '.\" Literal label for the account active-status field in the reply. Hardcoded display separator; part of the fixed-format WS-ACCT-RESPONSE response layout."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-ACTIVE-STATUS",
@@ -6424,7 +7144,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A single-character indicator showing whether the credit card account is currently active or inactive, included in the MQ reply message. Downstream systems use this to determine whether the account can be used for transactions or requires intervention."
+      "description": "A single-character indicator showing whether the credit card account is currently active or inactive, included in the MQ reply message. Downstream systems use this to determine whether the account can be used for transactions or requires intervention.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L137: \"05 WS-ACCT-ACTIVE-STATUS PIC X(01) VALUE SPACES.\" within WS-ACCT-RESPONSE. L409-410: MOVE ACCT-ACTIVE-STATUS TO WS-ACCT-ACTIVE-STATUS from CVACT01Y. Single-char status code: domain knowledge — 'Y' = active, 'N' = closed/inactive; convention common in credit-card core banking systems."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CURR-BAL-LBL",
@@ -6434,7 +7163,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Curr Bal:') included in the MQ reply message to identify the current balance field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Curr Bal:') included in the MQ reply message to identify the current balance field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L138-139: \"05 WS-CURR-BAL-LBL PIC X(10) VALUE 'BALANCE : '.\" Literal label for the current balance field in the formatted reply. Fixed-format label in WS-ACCT-RESPONSE; pairs with WS-ACCT-CURR-BAL."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-CURR-BAL",
@@ -6444,7 +7182,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The current outstanding balance on the credit card account at the time of the enquiry, included in the MQ reply message. Downstream applications use this to assess the cardholder's current debt position and available credit."
+      "description": "The current outstanding balance on the credit card account at the time of the enquiry, included in the MQ reply message. Downstream applications use this to assess the cardholder's current debt position and available credit.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L140-141: \"05 WS-ACCT-CURR-BAL PIC S9(10)V99 VALUE ZEROES.\" within WS-ACCT-RESPONSE. L411: MOVE ACCT-CURR-BAL TO WS-ACCT-CURR-BAL from CVACT01Y (line 7). Signed 10-digit integer + 2 decimal places (V99 = implied decimal); represents the account's running balance."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CRDT-LMT-LBL",
@@ -6454,7 +7201,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Credit Limit:') included in the MQ reply message to identify the credit limit field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Credit Limit:') included in the MQ reply message to identify the credit limit field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "name",
+        "label": "Naming convention",
+        "tip": "L142-143: \"05 WS-CRDT-LMT-LBL PIC X(15) VALUE 'CREDIT LIMIT : '.\" Literal label for the credit limit field. Name decoded: WS- (working storage) + CRDT (credit) + LMT (limit) + LBL (label). Hardcoded display label pairing with WS-ACCT-CREDIT-LIMIT."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-CREDIT-LIMIT",
@@ -6464,7 +7220,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The maximum total credit limit authorised for the account, included in the MQ reply message. Downstream systems use this alongside the current balance to calculate available credit and make transaction authorisation decisions."
+      "description": "The maximum total credit limit authorised for the account, included in the MQ reply message. Downstream systems use this alongside the current balance to calculate available credit and make transaction authorisation decisions.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L144-145: \"05 WS-ACCT-CREDIT-LIMIT PIC S9(10)V99 VALUE ZEROES.\" within WS-ACCT-RESPONSE. L412-413: MOVE ACCT-CREDIT-LIMIT TO WS-ACCT-CREDIT-LIMIT from CVACT01Y (line 8). Maximum total credit authorised on the account; signed decimal matching the ACCT-CREDIT-LIMIT layout."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CASH-LIMIT-LBL",
@@ -6474,7 +7239,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Cash Limit:') included in the MQ reply message to identify the cash advance limit field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Cash Limit:') included in the MQ reply message to identify the cash advance limit field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "name",
+        "label": "Naming convention",
+        "tip": "L146-147: \"05 WS-CASH-LIMIT-LBL PIC X(13) VALUE 'CASH LIMIT : '.\" Label for the cash credit limit. Name: WS- + CASH + LIMIT + LBL. Hardcoded display label pairing with WS-ACCT-CASH-CREDIT-LIMIT in WS-ACCT-RESPONSE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-CASH-CREDIT-LIMIT",
@@ -6484,7 +7258,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The maximum cash advance limit authorised for the account, included in the MQ reply message. Downstream systems use this to control and validate cash withdrawal requests made against the credit card account."
+      "description": "The maximum cash advance limit authorised for the account, included in the MQ reply message. Downstream systems use this to control and validate cash withdrawal requests made against the credit card account.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L148-149: \"05 WS-ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99 VALUE ZEROES.\" within WS-ACCT-RESPONSE. L414-415: MOVE ACCT-CASH-CREDIT-LIMIT TO WS-ACCT-CASH-CREDIT-LIMIT from CVACT01Y (line 9). Cash-advance sub-limit of the total credit line; a distinct product feature in credit-card banking."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-OPEN-DATE-LBL",
@@ -6494,7 +7277,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Open Date:') included in the MQ reply message to identify the account opening date field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Open Date:') included in the MQ reply message to identify the account opening date field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "name",
+        "label": "Naming convention",
+        "tip": "L150-151: \"05 WS-OPEN-DATE-LBL PIC X(12) VALUE 'OPEN DATE : '.\" Label for the account open date. Name: WS- + OPEN + DATE + LBL. Hardcoded label pairing with WS-ACCT-OPEN-DATE in WS-ACCT-RESPONSE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-OPEN-DATE",
@@ -6504,7 +7296,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The date the credit card account was originally opened, included in the MQ reply message. Downstream applications use this to determine account tenure, which may influence credit decisions, loyalty assessments, or regulatory reporting."
+      "description": "The date the credit card account was originally opened, included in the MQ reply message. Downstream applications use this to determine account tenure, which may influence credit decisions, loyalty assessments, or regulatory reporting.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L152: \"05 WS-ACCT-OPEN-DATE PIC X(10) VALUE SPACES.\" within WS-ACCT-RESPONSE. L416: MOVE ACCT-OPEN-DATE TO WS-ACCT-OPEN-DATE from CVACT01Y (line 10). 10-char alphanumeric date (YYYY-MM-DD or MM/DD/YYYY) recording when the account was opened."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-EXPR-DATE-LBL",
@@ -6514,7 +7315,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Expiry Date:') included in the MQ reply message to identify the card expiry date field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Expiry Date:') included in the MQ reply message to identify the card expiry date field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "name",
+        "label": "Naming convention",
+        "tip": "L153-154: \"05 WS-EXPR-DATE-LBL PIC X(12) VALUE 'EXPR DATE : '.\" Label for the card expiration date. Name: WS- + EXPR (expiration) + DATE + LBL. Hardcoded label pairing with WS-ACCT-EXPIRAION-DATE."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-EXPIRAION-DATE",
@@ -6524,7 +7334,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The expiry date of the credit card associated with the account, included in the MQ reply message. Downstream systems use this to validate card transactions, trigger card renewal processes, and prevent use of expired cards."
+      "description": "The expiry date of the credit card associated with the account, included in the MQ reply message. Downstream systems use this to validate card transactions, trigger card renewal processes, and prevent use of expired cards.",
+      "source": {
+        "kind": "code",
+        "label": "Source code",
+        "tip": "L155: \"05 WS-ACCT-EXPIRAION-DATE PIC X(10) VALUE SPACES.\" within WS-ACCT-RESPONSE. L417-418: MOVE ACCT-EXPIRAION-DATE TO WS-ACCT-EXPIRAION-DATE from CVACT01Y (line 11). Note: \"EXPIRAION\" is a typo preserved from CVACT01Y; matches the copybook field name exactly."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-REISSUE-DT-LBL",
@@ -6534,7 +7353,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Reissue Date:') included in the MQ reply message to identify the card reissue date field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Reissue Date:') included in the MQ reply message to identify the card reissue date field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L156-157: \"05 WS-REISSUE-DT-LBL PIC X(12) VALUE 'REIS DATE : '.\" Label for the card reissue date. Name: WS- + REISSUE + DT (date) + LBL. Domain knowledge: card reissue (REISSUE) is the process of issuing a replacement card, common in credit-card lifecycle management."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-ACCT-REISSUE-DATE",
@@ -6544,7 +7372,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The date the credit card was last reissued to the cardholder, included in the MQ reply message. Downstream systems use this to track card lifecycle events, verify card validity, and support fraud investigation by confirming when a replacement card was issued."
+      "description": "The date the credit card was last reissued to the cardholder, included in the MQ reply message. Downstream systems use this to track card lifecycle events, verify card validity, and support fraud investigation by confirming when a replacement card was issued.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L158: \"05 WS-ACCT-REISSUE-DATE PIC X(10) VALUE SPACES.\" within WS-ACCT-RESPONSE. L419-420: MOVE ACCT-REISSUE-DATE TO WS-ACCT-REISSUE-DATE from CVACT01Y (line 12). Domain: date on which the card was last reissued (renewal/replacement); used for card lifecycle tracking in credit-card systems."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CURR-CYC-CREDIT-LBL",
@@ -6554,7 +7391,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Cycle Credit:') included in the MQ reply message to identify the current billing cycle credit total field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Cycle Credit:') included in the MQ reply message to identify the current billing cycle credit total field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L159-160: \"05 WS-CURR-CYC-CREDIT-LBL PIC X(13) VALUE 'CREDIT BAL : '.\" Label for the current-cycle credit balance. Name: WS- + CURR (current) + CYC (cycle) + CREDIT + LBL. Domain: billing cycle is the periodic interval (e.g. monthly) over which credit/debit activity is accumulated in credit-card processing."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-ACCT-CURR-CYC-CREDIT",
@@ -6564,7 +7410,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The total value of credit transactions (such as payments and refunds) posted to the account in the current billing cycle, included in the MQ reply message. Downstream systems use this to calculate the net position for statement generation and balance management."
+      "description": "The total value of credit transactions (such as payments and refunds) posted to the account in the current billing cycle, included in the MQ reply message. Downstream systems use this to calculate the net position for statement generation and balance management.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L161-162: \"05 WS-ACCT-CURR-CYC-CREDIT PIC S9(10)V99 VALUE ZEROES.\" within WS-ACCT-RESPONSE. L421-422: MOVE ACCT-CURR-CYC-CREDIT TO WS-ACCT-CURR-CYC-CREDIT from CVACT01Y (line 13). Domain: cumulative credit (payment) activity in the current billing cycle; used in cycle-end balance calculation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-CURR-CYC-DEBIT-LBL",
@@ -6574,7 +7429,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Cycle Debit:') included in the MQ reply message to identify the current billing cycle debit total field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Cycle Debit:') included in the MQ reply message to identify the current billing cycle debit total field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L163-164: \"05 WS-CURR-CYC-DEBIT-LBL PIC X(12) VALUE 'DEBIT BAL : '.\" Label for the current-cycle debit balance. Name: WS- + CURR + CYC (billing cycle) + DEBIT + LBL. Domain: tracks purchase/charge activity within the current billing cycle."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-ACCT-CURR-CYC-DEBIT",
@@ -6584,7 +7448,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The total value of debit transactions (such as purchases and cash advances) posted to the account in the current billing cycle, included in the MQ reply message. Downstream systems use this alongside cycle credits to calculate net billing cycle activity for statement and balance purposes."
+      "description": "The total value of debit transactions (such as purchases and cash advances) posted to the account in the current billing cycle, included in the MQ reply message. Downstream systems use this alongside cycle credits to calculate net billing cycle activity for statement and balance purposes.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L165-166: \"05 WS-ACCT-CURR-CYC-DEBIT PIC S9(10)V99 VALUE ZEROES.\" within WS-ACCT-RESPONSE. L423-424: MOVE ACCT-CURR-CYC-DEBIT TO WS-ACCT-CURR-CYC-DEBIT from CVACT01Y (line 14). Domain: cumulative debit (purchase/fee) activity in the current billing cycle; contrasts with CURR-CYC-CREDIT for net activity calculation."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     },
     {
       "name": "WS-ACCT-GRP-LBL",
@@ -6594,7 +7467,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "A fixed descriptive label (e.g. 'Group ID:') included in the MQ reply message to identify the account group identifier field, making the response self-describing for downstream consumers."
+      "description": "A fixed descriptive label (e.g. 'Group ID:') included in the MQ reply message to identify the account group identifier field, making the response self-describing for downstream consumers.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L167-168: \"05 WS-ACCT-GRP-LBL PIC X(11) VALUE 'GROUP ID : '.\" Label for the account group ID field. Name: WS- + ACCT + GRP (group) + LBL. Domain: GROUP-ID identifies the product portfolio or card tier (e.g. classic, gold, platinum) in credit-card product management."
+      },
+      "confidence": {
+        "level": "medium",
+        "label": "Medium"
+      }
     },
     {
       "name": "WS-ACCT-GROUP-ID",
@@ -6604,7 +7486,16 @@
       "redefines": null,
       "occurs": null,
       "is_group": false,
-      "description": "The group or portfolio identifier to which the credit card account belongs, included in the MQ reply message. Downstream systems use this to apply group-level policies, pricing rules, or reporting segmentation relevant to the account's portfolio classification."
+      "description": "The group or portfolio identifier to which the credit card account belongs, included in the MQ reply message. Downstream systems use this to apply group-level policies, pricing rules, or reporting segmentation relevant to the account's portfolio classification.",
+      "source": {
+        "kind": "domain",
+        "label": "Source + domain",
+        "tip": "L169: \"05 WS-ACCT-GROUP-ID PIC X(10) VALUE SPACES.\" within WS-ACCT-RESPONSE. L425: MOVE ACCT-GROUP-ID TO WS-ACCT-GROUP-ID from CVACT01Y (line 16). Domain: 10-char product group / portfolio identifier; credit-card systems use this to associate accounts with product tiers and their corresponding terms and benefits."
+      },
+      "confidence": {
+        "level": "high",
+        "label": "High"
+      }
     }
   ],
   "paragraphs": [
