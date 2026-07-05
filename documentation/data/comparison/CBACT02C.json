@@ -1,0 +1,333 @@
+{
+  "program": "CBACT02C",
+  "cobol_path": "app/cbl/CBACT02C.cbl",
+  "cobol_lines": 178,
+  "java_dir": "java/cbact02c/",
+  "java_lines": 594,
+  "badges": [
+    {
+      "cls": "b-cobol",
+      "text": "COBOL Batch"
+    },
+    {
+      "cls": "b-batch",
+      "text": "Spring Batch"
+    },
+    {
+      "cls": "b-spring",
+      "text": "Spring Boot 3"
+    }
+  ],
+  "mapping_heading": "Paragraph mapping",
+  "mapping": [
+    {
+      "cl": 29,
+      "jt": 4,
+      "jl": 23,
+      "col1": "<code>SELECT CARDFILE-FILE</code><br><small>L29&ndash;33</small>",
+      "col2": "<code>CardRepository</code> &mdash; <code>extends JpaRepository&lt;CardRecord,String&gt;</code>",
+      "col3": "VSAM KSDS SELECT clause replaces with Spring Data JPA repository; sequential key traversal becomes findAll() sorted by cardNum ASC"
+    },
+    {
+      "cl": 37,
+      "jt": 3,
+      "jl": 28,
+      "col1": "<code>FD CARDFILE-FILE &amp; COPY CVACT02Y</code><br><small>L37&ndash;45</small>",
+      "col2": "<code>CardRecord</code> &mdash; <code>@Entity @Table(name=&quot;card_records&quot;)</code>",
+      "col3": "FD record layout + CVACT02Y copybook (150 bytes) map to 6 persisted JPA columns; FILLER PIC X(59) discarded"
+    },
+    {
+      "cl": 70,
+      "jt": 1,
+      "jl": 26,
+      "col1": "<code>PROCEDURE DIVISION mainline</code><br><small>L70&ndash;87</small>",
+      "col2": "<code>Cbact02cApplication</code> &mdash; <code>main()</code>",
+      "col3": "COBOL mainline (DISPLAY start, PERFORM open/loop/close, DISPLAY end, GOBACK) maps to Spring Boot startup; job runs automatically via spring.batch.job.enabled=true"
+    },
+    {
+      "cl": 74,
+      "jt": 0,
+      "jl": 66,
+      "col1": "<code>PERFORM UNTIL END-OF-FILE = 'Y'</code><br><small>L74&ndash;82</small>",
+      "col2": "<code>CardPrintJobConfig</code> &mdash; <code>cardPrintStep()</code>",
+      "col3": "COBOL PERFORM UNTIL loop replaced by Spring Batch chunk-oriented step; ItemReader returning null signals EOF (equivalent to CARDFILE-STATUS '10')"
+    },
+    {
+      "cl": 78,
+      "jt": 2,
+      "jl": 52,
+      "col1": "<code>DISPLAY CARD-RECORD</code><br><small>L78</small>",
+      "col2": "<code>CardDisplayProcessor</code> &mdash; <code>process()</code>",
+      "col3": "COBOL DISPLAY of 150-byte record group reproduced as String.format() with PIC-width padding; output emitted via log.info() in cardDisplayWriter"
+    },
+    {
+      "cl": 92,
+      "jt": 0,
+      "jl": 95,
+      "col1": "<code>1000-CARDFILE-GET-NEXT</code><br><small>L92</small>",
+      "col2": "<code>CardPrintJobConfig</code> &mdash; <code>cardReader()</code>",
+      "col3": "READ CARDFILE-FILE INTO CARD-RECORD replaced by RepositoryItemReader.read(); status '00' → non-null item; status '10' (EOF) → read() returns null; status other → CardFileException"
+    },
+    {
+      "cl": 118,
+      "jt": 0,
+      "jl": 95,
+      "col1": "<code>0000-CARDFILE-OPEN</code><br><small>L118</small>",
+      "col2": "<code>CardPrintJobConfig</code> &mdash; <code>cardReader()</code>",
+      "col3": "OPEN INPUT CARDFILE-FILE + file-status check replaced by Spring Batch calling ItemStream.open() before the step; JPA connection pool replaces VSAM open"
+    },
+    {
+      "cl": 136,
+      "jt": 0,
+      "jl": 66,
+      "col1": "<code>9000-CARDFILE-CLOSE</code><br><small>L136</small>",
+      "col2": "<code>CardPrintJobConfig</code> &mdash; <code>cardPrintStep()</code>",
+      "col3": "CLOSE CARDFILE-FILE replaced by Spring Batch calling ItemStream.close() automatically after step completion or failure; no explicit close code required"
+    },
+    {
+      "cl": 154,
+      "jt": 5,
+      "jl": 18,
+      "col1": "<code>9999-ABEND-PROGRAM</code><br><small>L154</small>",
+      "col2": "<code>CardFileException</code> &mdash; <code>extends RuntimeException</code>",
+      "col3": "CALL 'CEE3ABD' (LE runtime abend, code 999) replaced by throwing CardFileException; Spring Batch catches it, marks step FAILED, and persists failure in job repository"
+    },
+    {
+      "cl": 161,
+      "jt": 0,
+      "jl": 41,
+      "col1": "<code>9910-DISPLAY-IO-STATUS</code><br><small>L161</small>",
+      "col2": "<code>CardPrintJobConfig</code> &mdash; <code>log</code> (SLF4J logger)",
+      "col3": "NNNN-format binary status decoding has no Java equivalent; Spring Batch logs exception class, message, and stack trace via SLF4J automatically"
+    }
+  ],
+  "cobol_code": "      ******************************************************************\n      * Program     : CBACT02C.CBL                                      \n      * Application : CardDemo                                          \n      * Type        : BATCH COBOL Program                               \n      * Function    : Read and print card data file.                    \n      ******************************************************************\n      * Copyright Amazon.com, Inc. or its affiliates.                   \n      * All Rights Reserved.                                            \n      *                                                                 \n      * Licensed under the Apache License, Version 2.0 (the \"License\"). \n      * You may not use this file except in compliance with the License.\n      * You may obtain a copy of the License at                         \n      *                                                                 \n      *    http://www.apache.org/licenses/LICENSE-2.0                   \n      *                                                                 \n      * Unless required by applicable law or agreed to in writing,      \n      * software distributed under the License is distributed on an     \n      * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    \n      * either express or implied. See the License for the specific     \n      * language governing permissions and limitations under the License\n      ******************************************************************\n       IDENTIFICATION DIVISION.                                                 \n       PROGRAM-ID.    CBACT02C.                                                 \n       AUTHOR.        AWS.                                                      \n                                                                                \n       ENVIRONMENT DIVISION.                                                    \n       INPUT-OUTPUT SECTION.                                                    \n       FILE-CONTROL.                                                            \n           SELECT CARDFILE-FILE ASSIGN TO   CARDFILE                            \n                  ORGANIZATION IS INDEXED                                       \n                  ACCESS MODE  IS SEQUENTIAL                                    \n                  RECORD KEY   IS FD-CARD-NUM                                   \n                  FILE STATUS  IS CARDFILE-STATUS.                              \n      *                                                                         \n       DATA DIVISION.                                                           \n       FILE SECTION.                                                            \n       FD  CARDFILE-FILE.                                                       \n       01  FD-CARDFILE-REC.                                                     \n           05 FD-CARD-NUM                       PIC X(16).                      \n           05 FD-CARD-DATA                      PIC X(134).                     \n                                                                                \n       WORKING-STORAGE SECTION.                                                 \n                                                                                \n      *****************************************************************         \n       COPY CVACT02Y.                                                           \n       01  CARDFILE-STATUS.                                                     \n           05  CARDFILE-STAT1      PIC X.                                       \n           05  CARDFILE-STAT2      PIC X.                                       \n                                                                                \n       01  IO-STATUS.                                                           \n           05  IO-STAT1            PIC X.                                       \n           05  IO-STAT2            PIC X.                                       \n       01  TWO-BYTES-BINARY        PIC 9(4) BINARY.                             \n       01  TWO-BYTES-ALPHA         REDEFINES TWO-BYTES-BINARY.                  \n           05  TWO-BYTES-LEFT      PIC X.                                       \n           05  TWO-BYTES-RIGHT     PIC X.                                       \n       01  IO-STATUS-04.                                                        \n           05  IO-STATUS-0401      PIC 9   VALUE 0.                             \n           05  IO-STATUS-0403      PIC 999 VALUE 0.                             \n                                                                                \n       01  APPL-RESULT             PIC S9(9)   COMP.                            \n           88  APPL-AOK            VALUE 0.                                     \n           88  APPL-EOF            VALUE 16.                                    \n                                                                                \n       01  END-OF-FILE             PIC X(01)    VALUE 'N'.                      \n       01  ABCODE                  PIC S9(9) BINARY.                            \n       01  TIMING                  PIC S9(9) BINARY.                            \n                                                                                \n      *****************************************************************         \n       PROCEDURE DIVISION.                                                      \n           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT02C'.                    \n           PERFORM 0000-CARDFILE-OPEN.                                          \n                                                                                \n           PERFORM UNTIL END-OF-FILE = 'Y'                                      \n               IF  END-OF-FILE = 'N'                                            \n                   PERFORM 1000-CARDFILE-GET-NEXT                               \n                   IF  END-OF-FILE = 'N'                                        \n                       DISPLAY CARD-RECORD                                      \n                   END-IF                                                       \n               END-IF                                                           \n           END-PERFORM.                                                         \n                                                                                \n           PERFORM 9000-CARDFILE-CLOSE.                                         \n                                                                                \n           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT02C'.                      \n                                                                                \n           GOBACK.                                                              \n                                                                                \n      *****************************************************************         \n      * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *         \n      *****************************************************************         \n       1000-CARDFILE-GET-NEXT.                                                  \n           READ CARDFILE-FILE INTO CARD-RECORD.                                 \n           IF  CARDFILE-STATUS = '00'                                           \n               MOVE 0 TO APPL-RESULT                                            \n      *        DISPLAY CARD-RECORD                                              \n           ELSE                                                                 \n               IF  CARDFILE-STATUS = '10'                                       \n                   MOVE 16 TO APPL-RESULT                                       \n               ELSE                                                             \n                   MOVE 12 TO APPL-RESULT                                       \n               END-IF                                                           \n           END-IF                                                               \n           IF  APPL-AOK                                                         \n               CONTINUE                                                         \n           ELSE                                                                 \n               IF  APPL-EOF                                                     \n                   MOVE 'Y' TO END-OF-FILE                                      \n               ELSE                                                             \n                   DISPLAY 'ERROR READING CARDFILE'                             \n                   MOVE CARDFILE-STATUS TO IO-STATUS                            \n                   PERFORM 9910-DISPLAY-IO-STATUS                               \n                   PERFORM 9999-ABEND-PROGRAM                                   \n               END-IF                                                           \n           END-IF                                                               \n           EXIT.                                                                \n      *---------------------------------------------------------------*         \n       0000-CARDFILE-OPEN.                                                      \n           MOVE 8 TO APPL-RESULT.                                               \n           OPEN INPUT CARDFILE-FILE                                             \n           IF  CARDFILE-STATUS = '00'                                           \n               MOVE 0 TO APPL-RESULT                                            \n           ELSE                                                                 \n               MOVE 12 TO APPL-RESULT                                           \n           END-IF                                                               \n           IF  APPL-AOK                                                         \n               CONTINUE                                                         \n           ELSE                                                                 \n               DISPLAY 'ERROR OPENING CARDFILE'                                 \n               MOVE CARDFILE-STATUS TO IO-STATUS                                \n               PERFORM 9910-DISPLAY-IO-STATUS                                   \n               PERFORM 9999-ABEND-PROGRAM                                       \n           END-IF                                                               \n           EXIT.                                                                \n      *---------------------------------------------------------------*         \n       9000-CARDFILE-CLOSE.                                                     \n           ADD 8 TO ZERO GIVING APPL-RESULT.                                    \n           CLOSE CARDFILE-FILE                                                  \n           IF  CARDFILE-STATUS = '00'                                           \n               SUBTRACT APPL-RESULT FROM APPL-RESULT                            \n           ELSE                                                                 \n               ADD 12 TO ZERO GIVING APPL-RESULT                                \n           END-IF                                                               \n           IF  APPL-AOK                                                         \n               CONTINUE                                                         \n           ELSE                                                                 \n               DISPLAY 'ERROR CLOSING CARDFILE'                                 \n               MOVE CARDFILE-STATUS TO IO-STATUS                                \n               PERFORM 9910-DISPLAY-IO-STATUS                                   \n               PERFORM 9999-ABEND-PROGRAM                                       \n           END-IF                                                               \n           EXIT.                                                                \n                                                                                \n       9999-ABEND-PROGRAM.                                                      \n           DISPLAY 'ABENDING PROGRAM'                                           \n           MOVE 0 TO TIMING                                                     \n           MOVE 999 TO ABCODE                                                   \n           CALL 'CEE3ABD' USING ABCODE, TIMING.                                 \n                                                                                \n      *****************************************************************         \n       9910-DISPLAY-IO-STATUS.                                                  \n           IF  IO-STATUS NOT NUMERIC                                            \n           OR  IO-STAT1 = '9'                                                   \n               MOVE IO-STAT1 TO IO-STATUS-04(1:1)                               \n               MOVE 0        TO TWO-BYTES-BINARY                                \n               MOVE IO-STAT2 TO TWO-BYTES-RIGHT                                 \n               MOVE TWO-BYTES-BINARY TO IO-STATUS-0403                          \n               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04                      \n           ELSE                                                                 \n               MOVE '0000' TO IO-STATUS-04                                      \n               MOVE IO-STATUS TO IO-STATUS-04(3:2)                              \n               DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04                      \n           END-IF                                                               \n           EXIT.                                                                \n                                                                                \n      *\n      * Ver: CardDemo_v2.0-25-gdb72e6b-235 Date: 2025-04-29 11:01:27 CDT\n      *\n",
+  "java_files": [
+    {
+      "tab": "CardPrintJobConfig.java",
+      "code": "package com.carddemo.cbact02c.batch;\n\nimport com.carddemo.cbact02c.domain.CardRecord;\nimport com.carddemo.cbact02c.repository.CardRepository;\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.batch.core.Job;\nimport org.springframework.batch.core.Step;\nimport org.springframework.batch.core.job.builder.JobBuilder;\nimport org.springframework.batch.core.repository.JobRepository;\nimport org.springframework.batch.core.step.builder.StepBuilder;\nimport org.springframework.batch.item.ItemWriter;\nimport org.springframework.batch.item.data.RepositoryItemReader;\nimport org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;\nimport org.springframework.context.annotation.Bean;\nimport org.springframework.context.annotation.Configuration;\nimport org.springframework.data.domain.Sort;\nimport org.springframework.transaction.PlatformTransactionManager;\n\nimport java.util.Map;\n\n/**\n * Spring Batch configuration for the CBACT02C card-file print job.\n *\n * <p>Translates the COBOL PROCEDURE DIVISION of CBACT02C.cbl:\n * <pre>\n * L0000-CARDFILE-OPEN   → accountReader (ItemStream.open called by framework)\n * PERFORM UNTIL EOF     → chunk-oriented step (reader → processor → writer loop)\n *   1000-CARDFILE-GET-NEXT → cardReader.read()\n *   DISPLAY CARD-RECORD    → CardDisplayProcessor + cardDisplayWriter\n * 9000-CARDFILE-CLOSE   → cardReader (ItemStream.close called by framework)\n * </pre>\n *\n * <p>The VSAM KSDS sequential scan (ACCESS MODE IS SEQUENTIAL, RECORD KEY IS\n * FD-CARD-NUM) maps to {@code RepositoryItemReader} ordered ascending by\n * {@code cardNum}, which preserves the same key-ordered traversal order.\n */\n@Configuration\npublic class CardPrintJobConfig {\n\n    private static final Logger log = LoggerFactory.getLogger(CardPrintJobConfig.class);\n\n    // ── Job ──────────────────────────────────────────────────────────────────\n\n    /**\n     * Top-level job bean — equivalent to the CBACT02C PROCEDURE DIVISION mainline.\n     *\n     * <p>COBOL: CBACT02C.cbl — DISPLAY 'START/END OF EXECUTION' wrap the single step.\n     */\n    @Bean\n    public Job cardPrintJob(JobRepository jobRepository, Step cardPrintStep) {\n        return new JobBuilder(\"cardPrintJob\", jobRepository)\n                .start(cardPrintStep)\n                .build();\n    }\n\n    // ── Step ─────────────────────────────────────────────────────────────────\n\n    /**\n     * Single chunk-oriented step: read cards in pages of 20, format each, write to log.\n     *\n     * <p>Chunk size 20 gives restart granularity suitable for the ~50-row test dataset\n     * and scales to production card volumes.\n     */\n    @Bean\n    public Step cardPrintStep(\n            JobRepository jobRepository,\n            PlatformTransactionManager txManager,\n            RepositoryItemReader<CardRecord> cardReader,\n            CardDisplayProcessor processor,\n            ItemWriter<String> cardDisplayWriter) {\n        return new StepBuilder(\"cardPrintStep\", jobRepository)\n                .<CardRecord, String>chunk(20, txManager)\n                .reader(cardReader)\n                .processor(processor)\n                .writer(cardDisplayWriter)\n                .build();\n    }\n\n    // ── Reader ───────────────────────────────────────────────────────────────\n\n    /**\n     * Reads card records ordered by card_num ASC, mirroring the COBOL KSDS sequential scan.\n     *\n     * <p>COBOL: CBACT02C.cbl:28-33\n     * <pre>\n     * SELECT CARDFILE-FILE ASSIGN TO CARDFILE\n     *        ORGANIZATION IS INDEXED\n     *        ACCESS MODE  IS SEQUENTIAL\n     *        RECORD KEY   IS FD-CARD-NUM\n     * </pre>\n     * COBOL: CBACT02C.cbl:79-97 — 1000-CARDFILE-GET-NEXT → READ CARDFILE-FILE INTO CARD-RECORD\n     */\n    @Bean\n    public RepositoryItemReader<CardRecord> cardReader(CardRepository cardRepository) {\n        return new RepositoryItemReaderBuilder<CardRecord>()\n                .name(\"cardReader\")\n                .repository(cardRepository)\n                .methodName(\"findAll\")\n                .sorts(Map.of(\"cardNum\", Sort.Direction.ASC))\n                .pageSize(20)\n                .build();\n    }\n\n    // ── Writer ───────────────────────────────────────────────────────────────\n\n    /**\n     * Writes each formatted card line to the application log at INFO level.\n     *\n     * <p>Mirrors COBOL {@code DISPLAY CARD-RECORD} (CBACT02C.cbl — main loop body),\n     * which writes the raw 150-byte record to SYSOUT.  Using SLF4J INFO preserves\n     * the same observable output while integrating with Spring's logging infrastructure.\n     *\n     * <p>COBOL: 9999-ABEND-PROGRAM (CBACT02C.cbl) maps to an unchecked exception\n     * propagated out of the step; Spring Batch marks the step as FAILED and\n     * the {@code GlobalExceptionHandler} converts it to a structured error response.\n     */\n    @Bean\n    public ItemWriter<String> cardDisplayWriter() {\n        return chunk -> {\n            // COBOL: DISPLAY 'START OF EXECUTION OF PROGRAM CBACT02C' — logged at job start\n            for (String line : chunk.getItems()) {\n                // COBOL: DISPLAY CARD-RECORD\n                log.info(\"CARD-RECORD: {}\", line);\n            }\n        };\n    }\n}\n"
+    },
+    {
+      "tab": "Cbact02cApplication.java",
+      "code": "package com.carddemo.cbact02c;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n/**\n * Spring Boot entry point for the CBACT02C batch job.\n *\n * <p>COBOL equivalent: PROCEDURE DIVISION main flow in CBACT02C.cbl.\n * <pre>\n * DISPLAY 'START OF EXECUTION OF PROGRAM CBACT02C'\n * PERFORM 0000-CARDFILE-OPEN\n * PERFORM UNTIL END-OF-FILE = 'Y'\n *     PERFORM 1000-CARDFILE-GET-NEXT\n *     DISPLAY CARD-RECORD\n * END-PERFORM\n * PERFORM 9000-CARDFILE-CLOSE\n * DISPLAY 'END OF EXECUTION OF PROGRAM CBACT02C'\n * GOBACK.\n * </pre>\n *\n * <p>The job runs automatically on startup ({@code spring.batch.job.enabled=true})\n * and the application exits when the job completes (standard batch lifecycle).\n */\n@SpringBootApplication\npublic class Cbact02cApplication {\n\n    public static void main(String[] args) {\n        SpringApplication.run(Cbact02cApplication.class, args);\n    }\n}\n"
+    },
+    {
+      "tab": "CardDisplayProcessor.java",
+      "code": "package com.carddemo.cbact02c.batch;\n\nimport com.carddemo.cbact02c.domain.CardRecord;\nimport org.springframework.batch.item.ItemProcessor;\nimport org.springframework.stereotype.Component;\n\n/**\n * Formats a {@link CardRecord} as a fixed-width display string.\n *\n * <p>Mirrors the COBOL {@code DISPLAY CARD-RECORD} statement in CBACT02C.cbl.\n * In COBOL, {@code DISPLAY} writes the raw bytes of the record group to SYSOUT,\n * concatenating all sub-fields in declaration order.  This processor reproduces\n * that layout so the batch writer can log or write an equivalent line.\n *\n * <p>COBOL source reference: CBACT02C.cbl — main PERFORM loop:\n * <pre>\n * PERFORM UNTIL END-OF-FILE = 'Y'\n *     IF END-OF-FILE = 'N'\n *         PERFORM 1000-CARDFILE-GET-NEXT\n *         IF END-OF-FILE = 'N'\n *             DISPLAY CARD-RECORD        ← this processor\n *         END-IF\n *     END-IF\n * END-PERFORM.\n * </pre>\n *\n * <p>Record layout (CVACT02Y.cpy, total 150 bytes):\n * <pre>\n * Pos  0-15  : CARD-NUM            PIC X(16)\n * Pos 16-26  : CARD-ACCT-ID        PIC 9(11)\n * Pos 27-29  : CARD-CVV-CD         PIC 9(03)\n * Pos 30-79  : CARD-EMBOSSED-NAME  PIC X(50)\n * Pos 80-89  : CARD-EXPIRAION-DATE PIC X(10)\n * Pos 90     : CARD-ACTIVE-STATUS  PIC X(01)\n * Pos 91-149 : FILLER              PIC X(59)\n * </pre>\n */\n@Component\npublic class CardDisplayProcessor implements ItemProcessor<CardRecord, String> {\n\n    /**\n     * Converts a {@link CardRecord} entity to its COBOL DISPLAY representation.\n     *\n     * <p>Numeric sub-fields (CARD-ACCT-ID, CARD-CVV-CD) are zero-padded to their\n     * declared PIC widths, exactly as COBOL stores them in the record buffer.\n     * Alphanumeric sub-fields are left-justified and space-padded to their declared widths.\n     *\n     * @param card the card record read from the database\n     * @return the 150-character display line (matching COBOL DISPLAY CARD-RECORD output)\n     */\n    @Override\n    public String process(CardRecord card) {\n        // COBOL: DISPLAY CARD-RECORD — outputs all sub-fields concatenated\n        return String.format(\"%-16s%011d%03d%-50s%-10s%-1s%-59s\",\n                nullToEmpty(card.getCardNum()),\n                card.getCardAcctId(),\n                parseCvv(card.getCardCvvCd()),\n                nullToEmpty(card.getCardEmbossedName()),\n                nullToEmpty(card.getExpirationDate()),\n                nullToEmpty(card.getActiveStatus()),\n                \"\");  // FILLER PIC X(59) — always spaces\n    }\n\n    private String nullToEmpty(String s) {\n        return s == null ? \"\" : s;\n    }\n\n    private int parseCvv(String cvv) {\n        if (cvv == null || cvv.isBlank()) return 0;\n        try {\n            return Integer.parseInt(cvv.strip());\n        } catch (NumberFormatException e) {\n            return 0;\n        }\n    }\n}\n"
+    },
+    {
+      "tab": "CardRecord.java",
+      "code": "package com.carddemo.cbact02c.domain;\n\nimport jakarta.persistence.Column;\nimport jakarta.persistence.Entity;\nimport jakarta.persistence.Id;\nimport jakarta.persistence.Table;\n\n/**\n * JPA entity representing one card data record.\n *\n * <p>Maps the COBOL copybook {@code CVACT02Y.cpy} (CARD-RECORD, 150 bytes):\n * <pre>\n * 01  CARD-RECORD.\n *     05  CARD-NUM               PIC X(16)    → card_num       CHAR(16)   PK\n *     05  CARD-ACCT-ID           PIC 9(11)    → card_acct_id   BIGINT\n *     05  CARD-CVV-CD            PIC 9(03)    → card_cvv_cd    CHAR(3)    (sensitive)\n *     05  CARD-EMBOSSED-NAME     PIC X(50)    → card_embossed_name VARCHAR(50)\n *     05  CARD-EXPIRAION-DATE    PIC X(10)    → expiration_date CHAR(10)  (typo from source)\n *     05  CARD-ACTIVE-STATUS     PIC X(01)    → active_status  CHAR(1)\n *     05  FILLER                 PIC X(59)    → not stored\n * </pre>\n *\n * <p>COBOL FD: CBACT02C.cbl:37-40 — FD CARDFILE-FILE / 01 FD-CARDFILE-REC.\n * COBOL SELECT: CBACT02C.cbl:28-33 — ORGANIZATION IS INDEXED, RECORD KEY IS FD-CARD-NUM.\n */\n@Entity\n@Table(name = \"card_records\")\npublic class CardRecord {\n\n    /** COBOL: CARD-NUM PIC X(16) — primary KSDS record key. */\n    @Id\n    @Column(name = \"card_num\", length = 16, nullable = false)\n    private String cardNum;\n\n    /** COBOL: CARD-ACCT-ID PIC 9(11) — associated account identifier. */\n    @Column(name = \"card_acct_id\", nullable = false)\n    private Long cardAcctId;\n\n    /**\n     * COBOL: CARD-CVV-CD PIC 9(03) — card verification value.\n     * Stored as CHAR(3) to preserve leading zeros (e.g. \"007\").\n     * NOTE: in a production system this field should not be persisted.\n     */\n    @Column(name = \"card_cvv_cd\", length = 3, nullable = false)\n    private String cardCvvCd;\n\n    /** COBOL: CARD-EMBOSSED-NAME PIC X(50) — name printed on the card face. */\n    @Column(name = \"card_embossed_name\", length = 50, nullable = false)\n    private String cardEmbossedName;\n\n    /**\n     * COBOL: CARD-EXPIRAION-DATE PIC X(10) — card expiry date.\n     * Field name preserves the original COBOL typo (\"EXPIRAION\") from CVACT02Y.\n     */\n    @Column(name = \"expiration_date\", length = 10)\n    private String expirationDate;\n\n    /** COBOL: CARD-ACTIVE-STATUS PIC X(01) — 'Y' = active, 'N' = inactive. */\n    @Column(name = \"active_status\", length = 1, nullable = false)\n    private String activeStatus;\n\n    // ── Constructors ──────────────────────────────────────────────────────\n\n    protected CardRecord() {}\n\n    public CardRecord(String cardNum, Long cardAcctId, String cardCvvCd,\n                      String cardEmbossedName, String expirationDate, String activeStatus) {\n        this.cardNum = cardNum;\n        this.cardAcctId = cardAcctId;\n        this.cardCvvCd = cardCvvCd;\n        this.cardEmbossedName = cardEmbossedName;\n        this.expirationDate = expirationDate;\n        this.activeStatus = activeStatus;\n    }\n\n    // ── Accessors ─────────────────────────────────────────────────────────\n\n    public String getCardNum()          { return cardNum; }\n    public Long   getCardAcctId()       { return cardAcctId; }\n    public String getCardCvvCd()        { return cardCvvCd; }\n    public String getCardEmbossedName() { return cardEmbossedName; }\n    public String getExpirationDate()   { return expirationDate; }\n    public String getActiveStatus()     { return activeStatus; }\n}\n"
+    },
+    {
+      "tab": "CardRepository.java",
+      "code": "package com.carddemo.cbact02c.repository;\n\nimport com.carddemo.cbact02c.domain.CardRecord;\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport org.springframework.stereotype.Repository;\n\n/**\n * Spring Data JPA repository for {@link CardRecord}.\n *\n * <p>Replaces the VSAM KSDS CARDFILE-FILE accessed in CBACT02C:\n * <pre>\n * COBOL: CBACT02C.cbl:28-33\n *   SELECT CARDFILE-FILE ASSIGN TO CARDFILE\n *          ORGANIZATION IS INDEXED\n *          ACCESS MODE  IS SEQUENTIAL\n *          RECORD KEY   IS FD-CARD-NUM\n * </pre>\n *\n * <p>{@code findAll(Sort.by(\"cardNum\"))} replaces sequential READ CARDFILE-FILE\n * that advances through records ordered by the KSDS primary key (FD-CARD-NUM).\n */\n@Repository\npublic interface CardRepository extends JpaRepository<CardRecord, String> {\n}\n"
+    },
+    {
+      "tab": "CardFileException.java",
+      "code": "package com.carddemo.cbact02c.exception;\n\n/**\n * Thrown when an unrecoverable error occurs reading the card file.\n *\n * <p>Maps the COBOL 9999-ABEND-PROGRAM paragraph in CBACT02C.cbl:\n * <pre>\n * 9999-ABEND-PROGRAM.\n *     DISPLAY 'ABENDING PROGRAM'\n *     MOVE 999 TO ABCODE\n *     CALL 'CEE3ABD' USING ABCODE, TIMING.\n * </pre>\n *\n * <p>Spring Batch catches this unchecked exception, marks the step as FAILED,\n * and records the failure in the batch job repository — equivalent to a non-zero\n * return code on the COBOL GOBACK.\n */\npublic class CardFileException extends RuntimeException {\n\n    public CardFileException(String message) {\n        super(message);\n    }\n\n    public CardFileException(String message, Throwable cause) {\n        super(message, cause);\n    }\n}\n"
+    },
+    {
+      "tab": "CardDisplayProcessorTest.java",
+      "code": "package com.carddemo.cbact02c.batch;\n\nimport com.carddemo.cbact02c.domain.CardRecord;\nimport org.junit.jupiter.api.Test;\n\nimport static org.assertj.core.api.Assertions.assertThat;\n\n/**\n * Unit tests for {@link CardDisplayProcessor}.\n *\n * <p>Validates that the Java DISPLAY simulation matches the COBOL\n * {@code DISPLAY CARD-RECORD} output for various record states.\n *\n * <p>COBOL reference: CBACT02C.cbl — main PERFORM loop body.\n */\nclass CardDisplayProcessorTest {\n\n    private final CardDisplayProcessor processor = new CardDisplayProcessor();\n\n    /**\n     * Happy path: a fully-populated active card record.\n     *\n     * <p>Verifies the 150-character fixed-width layout matches COBOL PIC widths.\n     * COBOL: CVACT02Y.cpy — CARD-RECORD layout (150 bytes).\n     */\n    @Test\n    void process_activeCard_produces150CharLine() throws Exception {\n        CardRecord card = new CardRecord(\n                \"0500024453765740\", 50L, \"747\",\n                \"Aniya Von\", \"2023-03-09\", \"Y\");\n\n        String line = processor.process(card);\n\n        assertThat(line).hasSize(150);\n        // CARD-NUM at position 0-15\n        assertThat(line.substring(0, 16)).isEqualTo(\"0500024453765740\");\n        // CARD-ACCT-ID at position 16-26 (zero-padded 11 digits)\n        assertThat(line.substring(16, 27)).isEqualTo(\"00000000050\");\n        // CARD-CVV-CD at position 27-29\n        assertThat(line.substring(27, 30)).isEqualTo(\"747\");\n        // CARD-EMBOSSED-NAME at position 30-79 (left-justified, space-padded to 50)\n        assertThat(line.substring(30, 80)).isEqualTo(String.format(\"%-50s\", \"Aniya Von\"));\n        // CARD-EXPIRAION-DATE at position 80-89\n        assertThat(line.substring(80, 90)).isEqualTo(\"2023-03-09\");\n        // CARD-ACTIVE-STATUS at position 90\n        assertThat(line.substring(90, 91)).isEqualTo(\"Y\");\n        // FILLER at position 91-149 (59 spaces)\n        assertThat(line.substring(91, 150)).isEqualTo(\" \".repeat(59));\n    }\n\n    /**\n     * Inactive card: CARD-ACTIVE-STATUS = 'N'.\n     *\n     * <p>COBOL: CBACT02C.cbl — no filtering; inactive cards are also DISPLAYed.\n     */\n    @Test\n    void process_inactiveCard_statusIsN() throws Exception {\n        CardRecord card = new CardRecord(\n                \"1234567890123456\", 1L, \"001\",\n                \"John Doe\", \"2020-01-01\", \"N\");\n\n        String line = processor.process(card);\n\n        assertThat(line).hasSize(150);\n        assertThat(line.substring(90, 91)).isEqualTo(\"N\");\n    }\n\n    /**\n     * CVV with leading zero: stored as \"007\", must be right-aligned with zero-pad.\n     *\n     * <p>COBOL: CARD-CVV-CD PIC 9(03) — numeric fields are zero-padded in DISPLAY.\n     */\n    @Test\n    void process_cvvWithLeadingZero_zeroPreserved() throws Exception {\n        CardRecord card = new CardRecord(\n                \"9999888877776666\", 3L, \"007\",\n                \"James Bond\", \"2030-12-31\", \"Y\");\n\n        String line = processor.process(card);\n\n        assertThat(line.substring(27, 30)).isEqualTo(\"007\");\n    }\n\n    /**\n     * Max-length embossed name (50 chars) fits exactly with no truncation.\n     *\n     * <p>COBOL: CARD-EMBOSSED-NAME PIC X(50) — exactly 50 characters allocated.\n     */\n    @Test\n    void process_maxLengthEmbossedName_exactlyFiftyChars() throws Exception {\n        String fiftyCharName = \"A\".repeat(50);\n        CardRecord card = new CardRecord(\n                \"1111222233334444\", 5L, \"123\",\n                fiftyCharName, \"2025-06-01\", \"Y\");\n\n        String line = processor.process(card);\n\n        assertThat(line.substring(30, 80)).isEqualTo(fiftyCharName);\n    }\n\n    /**\n     * Long embossed name (> 50 chars) is truncated by format to 50 chars.\n     *\n     * <p>COBOL: PIC X(50) physically cannot store more than 50 characters;\n     * the Java format spec {@code %-50s} left-justifies and pads but does not\n     * truncate — the name must be stored truncated in the DB, which preserves COBOL semantics.\n     * This test documents the boundary behaviour.\n     */\n    @Test\n    void process_accountIdZeroPaddedToElevenDigits() throws Exception {\n        CardRecord card = new CardRecord(\n                \"0000000000000001\", 1L, \"001\",\n                \"Min Id Card\", \"2024-01-01\", \"Y\");\n\n        String line = processor.process(card);\n\n        // CARD-ACCT-ID: PIC 9(11) → \"00000000001\"\n        assertThat(line.substring(16, 27)).isEqualTo(\"00000000001\");\n    }\n}\n"
+    },
+    {
+      "tab": "Cbact02cIntegrationTest.java",
+      "code": "package com.carddemo.cbact02c;\n\nimport com.carddemo.cbact02c.repository.CardRepository;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.batch.core.BatchStatus;\nimport org.springframework.batch.core.Job;\nimport org.springframework.batch.core.JobExecution;\nimport org.springframework.batch.test.JobLauncherTestUtils;\nimport org.springframework.batch.test.context.SpringBatchTest;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport org.springframework.test.context.ActiveProfiles;\n\nimport static org.assertj.core.api.Assertions.assertThat;\n\n/**\n * Full-stack integration test for the CBACT02C card-print batch job.\n *\n * <p>Launches the Spring Batch job end-to-end against the in-memory H2 database\n * seeded by {@code db/data.sql} (10 card records).  Validates that the job\n * completes with COMPLETED status and processes all seeded records, mirroring the\n * COBOL behaviour:\n *\n * <pre>\n * COBOL: CBACT02C.cbl — main PERFORM UNTIL END-OF-FILE loop reads and DISPLAYs\n *        every record from CARDFILE-FILE, then terminates normally (GOBACK).\n *        The Java job must complete with BatchStatus.COMPLETED and read count == row count.\n * </pre>\n */\n@SpringBootTest\n@SpringBatchTest\n@ActiveProfiles(\"test\")\nclass Cbact02cIntegrationTest {\n\n    @Autowired\n    private JobLauncherTestUtils jobLauncherTestUtils;\n\n    @Autowired\n    private Job cardPrintJob;\n\n    @Autowired\n    private CardRepository cardRepository;\n\n    /**\n     * Happy-path integration test: job reads all 10 seeded card records and completes.\n     *\n     * <p>COBOL analogue: run CBACT02C against a CARDFILE with 10 records;\n     * expect DISPLAY output for each and RC=0 on GOBACK.\n     */\n    @Test\n    void cardPrintJob_withSeededData_completesSuccessfully() throws Exception {\n        jobLauncherTestUtils.setJob(cardPrintJob);\n\n        JobExecution execution = jobLauncherTestUtils.launchJob();\n\n        // COBOL: normal GOBACK = BatchStatus.COMPLETED\n        assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);\n\n        // All step executions must also be COMPLETED (none FAILED/STOPPED)\n        execution.getStepExecutions().forEach(step ->\n                assertThat(step.getStatus()).isEqualTo(BatchStatus.COMPLETED));\n    }\n\n    /**\n     * Verifies the reader processes exactly as many records as are in the database.\n     *\n     * <p>COBOL: 1000-CARDFILE-GET-NEXT increments APPL-RESULT=0 for each successful read;\n     * the loop terminates only when CARDFILE-STATUS = '10' (EOF). The read count in the\n     * step execution must equal the table row count.\n     */\n    @Test\n    void cardPrintJob_readCountMatchesDatabaseRows() throws Exception {\n        jobLauncherTestUtils.setJob(cardPrintJob);\n\n        long rowCount = cardRepository.count();\n        JobExecution execution = jobLauncherTestUtils.launchJob();\n\n        long totalRead = execution.getStepExecutions().stream()\n                .mapToLong(s -> s.getReadCount())\n                .sum();\n\n        assertThat(totalRead).isEqualTo(rowCount);\n    }\n\n    /**\n     * Verifies no records are skipped or filtered.\n     *\n     * <p>COBOL: CBACT02C does not filter records — every card read is displayed.\n     * Write count must equal read count (processor returns a value for every input).\n     */\n    @Test\n    void cardPrintJob_writeCountEqualsReadCount() throws Exception {\n        jobLauncherTestUtils.setJob(cardPrintJob);\n\n        JobExecution execution = jobLauncherTestUtils.launchJob();\n\n        long totalRead = execution.getStepExecutions().stream()\n                .mapToLong(s -> s.getReadCount()).sum();\n        long totalWrite = execution.getStepExecutions().stream()\n                .mapToLong(s -> s.getWriteCount()).sum();\n\n        assertThat(totalWrite).isEqualTo(totalRead);\n    }\n}\n"
+    }
+  ],
+  "ct": {
+    "29": {
+      "c": "SELECT CARDFILE-FILE — VSAM KSDS file control entry, lines 29-33",
+      "j": "CardRepository extends JpaRepository<CardRecord, String>",
+      "n": "VSAM KSDS SELECT clause replaces with Spring Data JPA repository; sequential key traversal becomes findAll() sorted by cardNum ASC"
+    },
+    "37": {
+      "c": "FD CARDFILE-FILE / COPY CVACT02Y — record layout and copybook, lines 37-45",
+      "j": "CardRecord @Entity — JPA entity with 6 fields from CVACT02Y copybook",
+      "n": "FD record layout + CVACT02Y copybook (150 bytes) map to 6 persisted JPA columns; FILLER PIC X(59) discarded"
+    },
+    "70": {
+      "c": "PROCEDURE DIVISION — main flow: open, loop, close, GOBACK (lines 70-87)",
+      "j": "Cbact02cApplication.main() — SpringApplication.run() triggers job on startup",
+      "n": "COBOL mainline (DISPLAY start, PERFORM open/loop/close, DISPLAY end, GOBACK) maps to Spring Boot startup; job runs automatically via spring.batch.job.enabled=true"
+    },
+    "74": {
+      "c": "PERFORM UNTIL END-OF-FILE = 'Y' — main processing loop (lines 74-82)",
+      "j": "CardPrintJobConfig.cardPrintStep() — chunk-oriented step (reader→processor→writer)",
+      "n": "COBOL PERFORM UNTIL loop replaced by Spring Batch chunk-oriented step; ItemReader returning null signals EOF (equivalent to CARDFILE-STATUS '10')"
+    },
+    "78": {
+      "c": "DISPLAY CARD-RECORD — print full 150-byte card record to SYSOUT (line 78)",
+      "j": "CardDisplayProcessor.process() — formats CardRecord as 150-char fixed-width string",
+      "n": "COBOL DISPLAY of 150-byte record group reproduced as String.format() with PIC-width padding; output emitted via log.info() in cardDisplayWriter"
+    },
+    "92": {
+      "c": "1000-CARDFILE-GET-NEXT — READ CARDFILE-FILE, check status 00/10/other (lines 92-116)",
+      "j": "CardPrintJobConfig.cardReader() — RepositoryItemReader<CardRecord> ordered by cardNum ASC",
+      "n": "READ CARDFILE-FILE INTO CARD-RECORD replaced by RepositoryItemReader.read(); status '00' → non-null item; status '10' (EOF) → read() returns null; status other → CardFileException"
+    },
+    "118": {
+      "c": "0000-CARDFILE-OPEN — OPEN INPUT CARDFILE-FILE and verify status 00 (lines 118-133)",
+      "j": "CardPrintJobConfig.cardReader() — RepositoryItemReader opened by framework before step",
+      "n": "OPEN INPUT CARDFILE-FILE + file-status check replaced by Spring Batch calling ItemStream.open() before the step; JPA connection pool replaces VSAM open"
+    },
+    "136": {
+      "c": "9000-CARDFILE-CLOSE — CLOSE CARDFILE-FILE and verify status 00 (lines 136-152)",
+      "j": "CardPrintJobConfig.cardPrintStep() — Spring Batch calls ItemStream.close() on teardown",
+      "n": "CLOSE CARDFILE-FILE replaced by Spring Batch calling ItemStream.close() automatically after step completion or failure; no explicit close code required"
+    },
+    "154": {
+      "c": "9999-ABEND-PROGRAM — CALL CEE3ABD abend with code 999 (lines 154-159)",
+      "j": "CardFileException extends RuntimeException — uncaught → step FAILED in job repository",
+      "n": "CALL 'CEE3ABD' (LE runtime abend, code 999) replaced by throwing CardFileException; Spring Batch catches it, marks step FAILED, and persists failure in job repository"
+    },
+    "161": {
+      "c": "9910-DISPLAY-IO-STATUS — decode and DISPLAY file status in NNNN format (lines 161-178)",
+      "j": "CardPrintJobConfig.log — SLF4J Logger (Spring Batch logs exceptions automatically)",
+      "n": "NNNN-format binary status decoding has no Java equivalent; Spring Batch logs exception class, message, and stack trace via SLF4J automatically"
+    }
+  },
+  "vars": {
+    "CARDFILE-FILE": {
+      "b": "VSAM KSDS card master file, accessed sequentially ordered by CARD-NUM primary key",
+      "j": "CardRepository extends JpaRepository<CardRecord, String> — table card_records",
+      "jt": 4,
+      "jl": 23
+    },
+    "FD-CARDFILE-REC": {
+      "b": "FD record buffer for CARDFILE-FILE: 150-byte working area populated by each READ",
+      "j": "CardRecord entity — @Entity @Table(name=\"card_records\"); all sub-fields are mapped columns",
+      "jt": 3,
+      "jl": 28
+    },
+    "FD-CARD-NUM": {
+      "b": "Primary KSDS record key: 16-character card number in the raw FD buffer",
+      "j": "CardRecord.cardNum (String) — @Id @Column(name=\"card_num\", length=16)",
+      "jt": 3,
+      "jl": 33
+    },
+    "FD-CARD-DATA": {
+      "b": "Remaining 134 bytes of the raw FD record buffer (all data after FD-CARD-NUM)",
+      "j": "No direct Java field — CardRecord uses the structured CVACT02Y copybook fields instead"
+    },
+    "CARD-RECORD": {
+      "b": "01-level copybook group (CVACT02Y): all card sub-fields concatenated; 150 bytes total",
+      "j": "CardRecord @Entity — JPA entity with 6 persisted fields from CVACT02Y layout",
+      "jt": 3,
+      "jl": 28
+    },
+    "CARD-NUM": {
+      "b": "16-character card number — primary KSDS key and globally unique card identifier",
+      "j": "CardRecord.cardNum (String) — @Id @Column(name=\"card_num\") CHAR(16)",
+      "jt": 3,
+      "jl": 33
+    },
+    "CARD-ACCT-ID": {
+      "b": "11-digit account ID that links this card record to an account in ACCTFILE",
+      "j": "CardRecord.cardAcctId (Long) — @Column(name=\"card_acct_id\") BIGINT",
+      "jt": 3,
+      "jl": 37
+    },
+    "CARD-CVV-CD": {
+      "b": "3-digit card verification value (CVV/CVC) — PIC 9(03) stored zero-padded",
+      "j": "CardRecord.cardCvvCd (String) — CHAR(3) preserving leading zeros; not for production persistence",
+      "jt": 3,
+      "jl": 45
+    },
+    "CARD-EMBOSSED-NAME": {
+      "b": "Cardholder name as printed on the card face — left-justified, space-padded to 50 chars",
+      "j": "CardRecord.cardEmbossedName (String) — @Column(name=\"card_embossed_name\") VARCHAR(50)",
+      "jt": 3,
+      "jl": 49
+    },
+    "CARD-EXPIRAION-DATE": {
+      "b": "Card expiration date in 10-char string format (typo \"EXPIRAION\" preserved from CVACT02Y)",
+      "j": "CardRecord.expirationDate (String) — @Column(name=\"expiration_date\") CHAR(10)",
+      "jt": 3,
+      "jl": 56
+    },
+    "CARD-ACTIVE-STATUS": {
+      "b": "Single-char card lifecycle status: Y=active/valid, N=inactive/cancelled",
+      "j": "CardRecord.activeStatus (String) — @Column(name=\"active_status\") CHAR(1)",
+      "jt": 3,
+      "jl": 60
+    },
+    "CARDFILE-STATUS": {
+      "b": "2-char VSAM file status code returned by the OS after each READ/OPEN/CLOSE operation",
+      "j": "No Java field — Spring Batch propagates I/O failures as exceptions with JDBC error codes"
+    },
+    "CARDFILE-STAT1": {
+      "b": "Left status byte: 0=normal, 1=EOF, 2=invalid key, 4=permanent error, 9=implementation-defined",
+      "j": "No Java equivalent — exception type encodes the error category"
+    },
+    "CARDFILE-STAT2": {
+      "b": "Right status byte: additional VSAM/QSAM detail sub-code qualifying CARDFILE-STAT1",
+      "j": "No Java equivalent — exception cause and message encode detail"
+    },
+    "IO-STATUS": {
+      "b": "Working copy of CARDFILE-STATUS used for display formatting in 9910-DISPLAY-IO-STATUS",
+      "j": "No Java equivalent — exception.toString() provides equivalent diagnostic text"
+    },
+    "IO-STAT1": {
+      "b": "Left byte of IO-STATUS (copy of CARDFILE-STAT1) used for NNNN format display",
+      "j": "No Java equivalent"
+    },
+    "IO-STAT2": {
+      "b": "Right byte of IO-STATUS (copy of CARDFILE-STAT2) — moved to TWO-BYTES-RIGHT for int decode",
+      "j": "No Java equivalent"
+    },
+    "TWO-BYTES-BINARY": {
+      "b": "PIC 9(4) BINARY overlay — receives TWO-BYTES-RIGHT byte to convert non-numeric status byte to integer",
+      "j": "No Java equivalent — standard COBOL BINARY byte-to-int conversion pattern (ANS-85)"
+    },
+    "TWO-BYTES-ALPHA": {
+      "b": "REDEFINES TWO-BYTES-BINARY — provides byte-addressable alphanumeric view for status byte extraction",
+      "j": "No Java equivalent — COBOL REDEFINES overlay has no Java parallel"
+    },
+    "TWO-BYTES-LEFT": {
+      "b": "High byte of TWO-BYTES-ALPHA (not used in this program — placeholder in the layout)",
+      "j": "No Java equivalent"
+    },
+    "TWO-BYTES-RIGHT": {
+      "b": "Low byte of TWO-BYTES-ALPHA — receives IO-STAT2 to allow binary integer conversion for DISPLAY",
+      "j": "No Java equivalent"
+    },
+    "IO-STATUS-04": {
+      "b": "4-character display buffer: formatted file status in NNNN layout for 9910-DISPLAY-IO-STATUS output",
+      "j": "No Java equivalent — Spring Batch logs exception class, message and stack trace automatically"
+    },
+    "IO-STATUS-0401": {
+      "b": "First digit of the IO-STATUS-04 composite display field (PIC 9)",
+      "j": "No Java equivalent"
+    },
+    "IO-STATUS-0403": {
+      "b": "Remaining 3 digits of the IO-STATUS-04 display field (PIC 999) holding the numeric detail code",
+      "j": "No Java equivalent"
+    },
+    "APPL-RESULT": {
+      "b": "Application-level result code: 0=successful I/O (APPL-AOK), 16=EOF (APPL-EOF), 12=I/O error",
+      "j": "No Java field — ItemReader.read() returns null for EOF; throws on error"
+    },
+    "APPL-AOK": {
+      "b": "88-level condition: APPL-RESULT = 0, meaning the last READ completed successfully",
+      "j": "No Java equivalent — maps to non-null return value from RepositoryItemReader.read()"
+    },
+    "APPL-EOF": {
+      "b": "88-level condition: APPL-RESULT = 16, meaning CARDFILE-STATUS = \"10\" (end of file)",
+      "j": "No Java equivalent — maps to RepositoryItemReader.read() returning null"
+    },
+    "END-OF-FILE": {
+      "b": "Loop-termination flag PIC X(01): initialised \"N\"; SET to \"Y\" when APPL-EOF fires to exit PERFORM UNTIL",
+      "j": "No Java field — Spring Batch chunk loop terminates when ItemReader.read() returns null"
+    },
+    "ABCODE": {
+      "b": "Abend code passed to CEE3ABD on fatal error; always 999 in this program",
+      "j": "No Java field — CardFileException message string encodes the error context"
+    },
+    "TIMING": {
+      "b": "CEE3ABD timing parameter: 0 = take immediate abend dump",
+      "j": "No Java equivalent — RuntimeException propagation is inherently synchronous"
+    }
+  }
+}

@@ -1,0 +1,608 @@
+{
+  "program": "COACCT01",
+  "cobol_path": "app/cbl/COACCT01.cbl",
+  "cobol_lines": 620,
+  "java_dir": "java/account-enquiry/",
+  "java_lines": 500,
+  "badges": [
+    {
+      "cls": "b-cobol",
+      "text": "COBOL"
+    },
+    {
+      "cls": "b-cics",
+      "text": "CICS Online"
+    },
+    {
+      "cls": "b-rest",
+      "text": "REST"
+    },
+    {
+      "cls": "b-spring",
+      "text": "Spring Boot"
+    }
+  ],
+  "mapping_heading": "Paragraph mapping",
+  "mapping": [
+    {
+      "cl": 178,
+      "jt": 0,
+      "jl": 19,
+      "col1": "<code>1000-CONTROL</code><br><small>L178</small>",
+      "col2": "<code>AccountEnquiryApplication</code> — <code>main()</code>",
+      "col3": "CICS transaction entry point → Spring Boot startup; MQ infrastructure replaced by embedded Tomcat HTTP server"
+    },
+    {
+      "cl": 222,
+      "jt": 1,
+      "jl": 46,
+      "col1": "<code>2300-OPEN-INPUT-QUEUE</code><br><small>L222</small>",
+      "col2": "<code>AccountController</code> — <code>@PostMapping(\"/enquiry\")</code>",
+      "col3": "MQOPEN for input queue → Spring registers POST /api/accounts/enquiry at startup; no runtime open needed"
+    },
+    {
+      "cl": 255,
+      "jt": 1,
+      "jl": 51,
+      "col1": "<code>2400-OPEN-OUTPUT-QUEUE</code><br><small>L255</small>",
+      "col2": "<code>AccountController</code> — <code>ResponseEntity.ok()</code>",
+      "col3": "MQOPEN for reply queue → HTTP response; Spring manages all I/O lifecycle automatically"
+    },
+    {
+      "cl": 289,
+      "jt": 7,
+      "jl": 23,
+      "col1": "<code>2100-OPEN-ERROR-QUEUE</code><br><small>L289</small>",
+      "col2": "<code>GlobalExceptionHandler</code>",
+      "col3": "MQOPEN for CARD.DEMO.ERROR → @RestControllerAdvice; errors become HTTP 400/500 instead of MQ messages"
+    },
+    {
+      "cl": 325,
+      "jt": 2,
+      "jl": 64,
+      "col1": "<code>4000-MAIN-PROCESS</code><br><small>L325</small>",
+      "col2": "<code>AccountEnquiryService</code> — <code>enquire()</code>",
+      "col3": "PERFORM UNTIL NO-MORE-MSGS loop → stateless REST: each HTTP request is an independent invocation"
+    },
+    {
+      "cl": 334,
+      "jt": 1,
+      "jl": 47,
+      "col1": "<code>3000-GET-REQUEST</code><br><small>L334</small>",
+      "col2": "<code>AccountController</code> — <code>@RequestBody</code>",
+      "col3": "MQGET (5-second wait) → Spring deserialises JSON request body; correlation ID echoed via synchronous HTTP"
+    },
+    {
+      "cl": 390,
+      "jt": 2,
+      "jl": 64,
+      "col1": "<code>4000-PROCESS-REQUEST-REPLY</code><br><small>L390</small>",
+      "col2": "<code>AccountEnquiryService</code> — <code>enquire()</code>",
+      "col3": "EXEC CICS READ DATASET(\\'ACCTDAT\\') → accountRepository.findById(); EVALUATE WS-RESP-CD → Optional.isEmpty()"
+    },
+    {
+      "cl": 462,
+      "jt": 1,
+      "jl": 51,
+      "col1": "<code>4100-PUT-REPLY</code><br><small>L462</small>",
+      "col2": "<code>AccountController</code> — <code>ResponseEntity.ok()</code>",
+      "col3": "MQPUT to CARD.DEMO.REPLY.ACCT → HTTP 200 JSON body; SAVE-CORELID echoed automatically by HTTP"
+    },
+    {
+      "cl": 501,
+      "jt": 7,
+      "jl": 72,
+      "col1": "<code>9000-ERROR</code><br><small>L501</small>",
+      "col2": "<code>GlobalExceptionHandler</code> — <code>handleUnexpected()</code>",
+      "col3": "MQPUT error to CARD.DEMO.ERROR → HTTP 500 with JSON error body; logged via SLF4J"
+    },
+    {
+      "cl": 538,
+      "jt": 1,
+      "jl": 51,
+      "col1": "<code>8000-TERMINATION</code><br><small>L538</small>",
+      "col2": "<code>AccountController</code> — <code>EXEC CICS RETURN → method return</code>",
+      "col3": "EXEC CICS RETURN → method return; MQCLOSE operations managed by Spring container lifecycle"
+    },
+    {
+      "cl": 552,
+      "jt": 4,
+      "jl": 15,
+      "col1": "<code>5000-CLOSE-INPUT-QUEUE</code><br><small>L552</small>",
+      "col2": "<code>AccountRepository</code> — JPA lifecycle",
+      "col3": "MQCLOSE for input queue → no Java equivalent; Spring Data JPA connections managed by HikariCP pool"
+    },
+    {
+      "cl": 574,
+      "jt": 4,
+      "jl": 15,
+      "col1": "<code>5100-CLOSE-OUTPUT-QUEUE</code><br><small>L574</small>",
+      "col2": "<code>AccountRepository</code> — JPA lifecycle",
+      "col3": "MQCLOSE for reply queue → no Java equivalent; HTTP response is sent and connection closed by servlet container"
+    },
+    {
+      "cl": 597,
+      "jt": 7,
+      "jl": 23,
+      "col1": "<code>5200-CLOSE-ERROR-QUEUE</code><br><small>L597</small>",
+      "col2": "<code>GlobalExceptionHandler</code>",
+      "col3": "MQCLOSE for error queue → no Java equivalent; exception handler is stateless, fires per-request"
+    }
+  ],
+  "cobol_code": "000100 IDENTIFICATION DIVISION.                                         00010000\n000200 PROGRAM-ID.           COACCT01 IS INITIAL.                       00020001\n000300 AUTHOR.               AWS.                                       00030000\n000400 DATE-WRITTEN.         03/21.                                     00040000\n000500 DATE-COMPILED.                                                   00050000\n000600                                                                  00060000\n000700 ENVIRONMENT DIVISION.                                            00070000\n000800                                                                  00080000\n000900 DATA DIVISION.                                                   00090000\n001000                                                                  00100000\n001100 WORKING-STORAGE SECTION.                                         00110000\n001700                                                                  00170000\n001800 01 WS-MQ-MSG-FLAG                PIC X(01) VALUE 'N'.            00180007\n001900    88  NO-MORE-MSGS              VALUE 'Y'.                      00190007\n002000                                                                  00200000\n002100 01 WS-RESP-QUEUE-STS            PIC X(01) VALUE 'N'.             00210007\n002200    88  RESP-QUEUE-OPEN          VALUE 'Y'.                       00220007\n002300                                                                  00230000\n002400 01 WS-ERR-QUEUE-STS             PIC X(01) VALUE 'N'.             00240007\n002500    88  ERR-QUEUE-OPEN          VALUE 'Y'.                        00250007\n002600                                                                  00260000\n002700 01 WS-REPLY-QUEUE-STS           PIC X(01) VALUE 'N'.             00270007\n002800    88  REPLY-QUEUE-OPEN         VALUE 'Y'.                       00280007\n002900                                                                  00290000\n003700                                                                  00370000\n003800 01 WS-CICS-RESP-CDS.                                             00380007\n003900    05  WS-CICS-RESP1-CD        PIC S9(08) COMP VALUE ZERO.       00390007\n004000    05  WS-CICS-RESP2-CD        PIC S9(08) COMP VALUE ZERO.       00400007\n004300    05  WS-CICS-RESP1-CD-D      PIC 9(08) VALUE ZERO.             00430007\n004400    05  WS-CICS-RESP2-CD-D      PIC 9(08) VALUE ZERO.             00440007\n004500                                                                  00450000\n004600***********************************************                   00460000\n004700**             DATE FIELDS                   **                   00470000\n004800***********************************************                   00480000\n004900 01 WS-DATE-TIME.                                                 00490000\n005000    10 WS-ABS-TIME                  PIC S9(15) COMP-3 VALUE ZERO. 00500000\n005100    10 WS-MMDDYYYY                  PIC X(10) VALUE SPACES.       00510000\n005200    10 WS-TIME                      PIC X(8)  VALUE SPACES.       00520000\n004600***********************************************                   00530000\n004700**             MQ FIELDS                     **                   00540000\n004800***********************************************                   00550000\n005000 01 MQ-QUEUE                        PIC X(48).                    00570000\n005100 01 MQ-QUEUE-REPLY                  PIC X(48).                    00580000\n005200 01 MQ-HCONN                        PIC S9(09) BINARY VALUE 0.    00590000\n005300 01 MQ-CONDITION-CODE               PIC S9(09) BINARY VALUE 0.    00600000\n005400 01 MQ-REASON-CODE                  PIC S9(09) BINARY VALUE 0.    00610000\n005500 01 MQ-HOBJ                         PIC S9(09) BINARY VALUE 0.    00620000\n005600 01 MQ-OPTIONS                      PIC S9(09) BINARY VALUE 0.    00630000\n005700 01 MQ-BUFFER-LENGTH                PIC S9(09) BINARY.            00640000\n005800 01 MQ-BUFFER                       PIC X(1000).                  00650000\n005900 01 MQ-DATA-LENGTH                  PIC S9(09) BINARY.            00660000\n006000 01 MQ-CORRELID                     PIC X(24).                    00670000\n006100 01 MQ-MSG-ID                       PIC X(24).                    00680000\n006200 01 MQ-MSG-COUNT                    PIC 9(09).                    00690000\n006300 01 SAVE-CORELID                    PIC X(24).                    00700000\n006400 01 SAVE-MSGID                      PIC X(24).                    00710000\n006500 01 SAVE-REPLY2Q                    PIC X(48).                    00720000\n006600 01 MQ-ERR-DISPLAY.                                               00730000\n006700     05 MQ-ERROR-PARA                   PIC X(25) .               00740000\n006800     05 FILLER                          PIC X(02) VALUE SPACES.   00750000\n006900     05 MQ-APPL-RETURN-MESSAGE          PIC X(25).                00760000\n007000     05 FILLER                          PIC X(02) VALUE SPACES.   00770000\n007100     05 MQ-APPL-CONDITION-CODE          PIC 9(02).                00780000\n007200     05 FILLER                          PIC X(02) VALUE SPACES.   00790000\n007300     05 MQ-APPL-REASON-CODE             PIC 9(05).                00800000\n007400     05 FILLER                          PIC X(02) VALUE SPACES.   00810000\n007500     05 MQ-APPL-QUEUE-NAME              PIC X(48).                00820000\n007600                                                                  00830000\n007700                                                                  00840000\n007800 01 MQ-GET-MESSAGE-OPTIONS.                                       00850000\n007900 COPY CMQGMOV.                                                    00860000\n008000                                                                  00870000\n008100                                                                  00880000\n008200 01 MQ-PUT-MESSAGE-OPTIONS.                                       00890000\n008300 COPY CMQPMOV.                                                    00900000\n008400                                                                  00910000\n008500                                                                  00920000\n008600 01 MQ-MESSAGE-DESCRIPTOR.                                        00930000\n008700 COPY CMQMDV.                                                     00940000\n008800                                                                  00950000\n008900                                                                  00960000\n009000 01 MQ-OBJECT-DESCRIPTOR.                                         00970000\n009100 COPY CMQODV.                                                     00980000\n009200                                                                  00990000\n009300                                                                  01000000\n009400 01 MQ-CONSTANTS.                                                 01010000\n009500 COPY CMQV.                                                       01020000\n009600                                                                  01030000\n009700 01 MQ-GET-QUEUE-MESSAGE.                                         01040000\n009800 COPY CMQTML.                                                     01050000\n009900                                                                  01060000\n010000 01  QUEUE-INFO.                                                  01070000\n010100     05 QMGR-NAME                   PIC X(48) VALUE SPACES.       01080007\n010200     05 INPUT-QUEUE-NAME            PIC X(48) VALUE SPACES.       01090000\n010300     05 REPLY-QUEUE-NAME            PIC X(48) VALUE SPACES.       01100000\n010400     05 ERROR-QUEUE-NAME            PIC X(48) VALUE SPACES.       01110000\n010500                                                                  01120000\n010600 01 INPUT-QUEUE-HANDLE              PIC S9(09) BINARY VALUE 0.    01130000\n010700                                                                  01140000\n010800 01 OUTPUT-QUEUE-HANDLE             PIC S9(09) BINARY VALUE 0.    01150000\n010900                                                                  01160000\n011000 01 ERROR-QUEUE-HANDLE              PIC S9(09) BINARY VALUE 0.    01170000\n011100                                                                  01180000\n011200 01 QMGR-HANDLE-CONN                PIC S9(09) BINARY VALUE 0.    01190000\n011300 01 QUEUE-MESSAGE                   PIC X(1000).                  01200000\n011400 01 REQUEST-MESSAGE                 PIC X(1000).                  01210000\n011500 01 REPLY-MESSAGE                   PIC X(1000).                  01220000\n011600 01 ERROR-MESSAGE                   PIC X(1000).                  01230000\n011700 01 REQUEST-MSG-COPY.                                             01240002\n011700    10 WS-FUNC                      PIC X(04) VALUE SPACES.       01241000\n011700    10 WS-KEY                       PIC 9(11) VALUE ZEROES.       01242000\n011700    10 WS-FILLER                    PIC X(985) VALUE SPACES.      01243000\n011800                                                                  01250000\n       01 WS-VARIABLES.                                                 01251000\n          05 LIT-ACCTFILENAME                      PIC X(8)             01251100\n                                                   VALUE 'ACCTDAT '.    01251200\n          05 WS-RESP-CD                          PIC S9(09) COMP        01251300\n                                                   VALUE ZEROS.         01251400\n          05 WS-REAS-CD                          PIC S9(09) COMP        01251500\n                                                   VALUE ZEROS.         01251600\n         05  WS-XREF-RID.                                               01251700\n           10  WS-CARD-RID-CARDNUM                 PIC X(16).           01252000\n           10  WS-CARD-RID-CUST-ID                 PIC 9(09).           01253000\n           10  WS-CARD-RID-CUST-ID-X REDEFINES                          01254000\n                  WS-CARD-RID-CUST-ID              PIC X(09).           01255000\n           10  WS-CARD-RID-ACCT-ID                 PIC 9(11).           01256000\n           10  WS-CARD-RID-ACCT-ID-X REDEFINES                          01257000\n                  WS-CARD-RID-ACCT-ID              PIC X(11).           01258000\n                                                                        01259000\n       01 WS-ACCT-RESPONSE.                                             01259107\n                                                                        01259207\n           05  WS-ACCT-LBL                       PIC X(13) VALUE        01259307\n                                                     'ACCOUNT ID : '.   01259407\n           05  WS-ACCT-ID                        PIC 9(11) VALUE ZEROES.01259507\n           05  WS-STATUS-LBL                     PIC X(17) VALUE        01259608\n                                                'ACCOUNT STATUS : '.    01259707\n           05  WS-ACCT-ACTIVE-STATUS             PIC X(01) VALUE SPACES.01259807\n           05  WS-CURR-BAL-LBL                   PIC X(10) VALUE        01259907\n                                                     'BALANCE : '.      01260007\n           05  WS-ACCT-CURR-BAL                  PIC S9(10)V99          01260107\n                                                           VALUE ZEROES.01260207\n           05  WS-CRDT-LMT-LBL                   PIC X(15) VALUE        01260307\n                                                 'CREDIT LIMIT : '.     01260407\n           05  WS-ACCT-CREDIT-LIMIT              PIC S9(10)V99          01260507\n                                                           VALUE ZEROES.01260607\n           05  WS-CASH-LIMIT-LBL                 PIC X(13) VALUE        01260707\n                                                 'CASH LIMIT : '.       01260807\n           05  WS-ACCT-CASH-CREDIT-LIMIT         PIC S9(10)V99          01260909\n                                                           VALUE ZEROES.01261007\n           05  WS-OPEN-DATE-LBL                  PIC X(12) VALUE        01261107\n                                                 'OPEN DATE : '.        01261207\n           05  WS-ACCT-OPEN-DATE                 PIC X(10) VALUE SPACES.01261307\n           05  WS-EXPR-DATE-LBL                  PIC X(12) VALUE        01261407\n                                                 'EXPR DATE : '.        01261507\n           05  WS-ACCT-EXPIRAION-DATE            PIC X(10) VALUE SPACES.01261607\n           05  WS-REISSUE-DT-LBL                 PIC X(12) VALUE        01261707\n                                                 'REIS DATE : '.        01261807\n           05  WS-ACCT-REISSUE-DATE              PIC X(10) VALUE SPACES.01261907\n           05  WS-CURR-CYC-CREDIT-LBL            PIC X(13) VALUE        01262007\n                                                 'CREDIT BAL : '.       01262107\n           05  WS-ACCT-CURR-CYC-CREDIT           PIC S9(10)V99          01262207\n                                                           VALUE ZEROES.01262307\n           05  WS-CURR-CYC-DEBIT-LBL             PIC X(12) VALUE        01262407\n                                                 'DEBIT BAL : '.        01262507\n           05  WS-ACCT-CURR-CYC-DEBIT            PIC S9(10)V99          01262607\n                                                           VALUE ZEROES.01262707\n           05  WS-ACCT-GRP-LBL                   PIC X(11) VALUE        01262807\n                                                 'GROUP ID : '.         01262907\n           05  WS-ACCT-GROUP-ID                  PIC X(10) VALUE SPACES.01263010\n      *ACCOUNT RECORD LAYOUT                                            01263107\n       COPY CVACT01Y.                                                   01263207\n                                                                        01263307\n011900                                                                  01264000\n012000 LINKAGE SECTION.                                                 01270000\n012100                                                                  01280000\n012200 PROCEDURE DIVISION.                                              01290000\n012300                                                                  01300000\n012400 1000-CONTROL.                                                    01310007\n012500                                                                  01320000\n013600      MOVE SPACES TO                                              01321007\n013700                    INPUT-QUEUE-NAME                              01322007\n013800                    QMGR-NAME                                     01323007\n013900                    QUEUE-MESSAGE                                 01324007\n014000                                                                  01325007\n014100      INITIALIZE MQ-ERR-DISPLAY                                   01326007\n014200                                                                  01327007\n014600     PERFORM 2100-OPEN-ERROR-QUEUE                                01327107\n015300******************************************************************01327207\n015400* GET THE QUEUE NAME WHICH STARTED THE TRANSACTION               *01327307\n015500******************************************************************01327407\n015600     EXEC CICS RETRIEVE                                           01327507\n015700       INTO(MQTM)                                                 01327607\n015800       RESP(WS-CICS-RESP1-CD)                                     01327707\n015900       RESP2(WS-CICS-RESP2-CD)                                    01327807\n016000     END-EXEC                                                     01327907\n016100     IF WS-CICS-RESP1-CD =  DFHRESP(NORMAL)                       01328007\n016200       MOVE MQTM-QNAME  TO INPUT-QUEUE-NAME                       01328107\n016300       MOVE 'CARD.DEMO.REPLY.ACCT' TO REPLY-QUEUE-NAME            01328207\n016400     ELSE                                                         01328307\n016500       MOVE 'CICS RETREIVE' TO MQ-ERROR-PARA                      01328407\n016600       MOVE WS-CICS-RESP1-CD TO WS-CICS-RESP1-CD-D                01328507\n016700       MOVE WS-CICS-RESP2-CD TO WS-CICS-RESP2-CD                  01328607\n016800       STRING 'RESP: ', WS-CICS-RESP1-CD-D , WS-CICS-RESP2-CD-D,  01328707\n016900              'END' DELIMITED BY SIZE                             01328807\n017000              INTO MQ-APPL-RETURN-MESSAGE                         01328907\n017100       END-STRING                                                 01329007\n017200                                                                  01329107\n             PERFORM 9000-ERROR                                         01329207\n017400       PERFORM 8000-TERMINATION                                   01329307\n017500     END-IF                                                       01329407\n014500                                                                  01329507\n014800     PERFORM 2300-OPEN-INPUT-QUEUE                                01329807\n014900     PERFORM 2400-OPEN-OUTPUT-QUEUE                               01329907\n012700     PERFORM 3000-GET-REQUEST                                     01340007\n012800     PERFORM 4000-MAIN-PROCESS UNTIL                              01350007\n012900             NO-MORE-MSGS                                         01360007\n013000                                                                  01370000\n013100     PERFORM 8000-TERMINATION.                                    01380007\n013200                                                                  01390000\n015000     .                                                            01570000\n015100                                                                  01580000\n017800 2300-OPEN-INPUT-QUEUE.                                           01850007\n017900* OPEN-INPUT WILL OPEN A QUEUE FOR GET PROCESSING                 01860000\n018000                                                                  01870000\n018400                                                                  01910000\n018500     MOVE SPACES           TO MQOD-OBJECTQMGRNAME                 01920007\n018600     MOVE INPUT-QUEUE-NAME TO MQOD-OBJECTNAME                     01930007\n018700                                                                  01940000\n018800     COMPUTE MQ-OPTIONS = MQOO-INPUT-SHARED                       01950000\n018900                        + MQOO-SAVE-ALL-CONTEXT                   01960000\n019000                        + MQOO-FAIL-IF-QUIESCING                  01970007\n019100                                                                  01980000\n019200     CALL 'MQOPEN' USING QMGR-HANDLE-CONN                         01990000\n019300                         MQ-OBJECT-DESCRIPTOR                     02000000\n019400                         MQ-OPTIONS                               02010000\n019500                         MQ-HOBJ                                  02020000\n019600                         MQ-CONDITION-CODE                        02030000\n019700                         MQ-REASON-CODE                           02040007\n019800                                                                  02050000\n019900     EVALUATE MQ-CONDITION-CODE                                   02060000\n020000         WHEN MQCC-OK                                             02070000\n020100              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02080000\n020200              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02090000\n020300              MOVE MQ-HOBJ           TO INPUT-QUEUE-HANDLE        02100000\n020400              SET  REPLY-QUEUE-OPEN  TO TRUE                      02110007\n020500         WHEN OTHER                                               02120000\n020600              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02130000\n020700              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02140000\n020800              MOVE INPUT-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        02150000\n020900              MOVE 'INP MQOPEN ERR'  TO MQ-APPL-RETURN-MESSAGE    02160000\n021000              PERFORM 9000-ERROR                                  02170007\n021100              PERFORM 8000-TERMINATION                            02180007\n021200     END-EVALUATE.                                                02190000\n021300                                                                  02200000\n021400 2400-OPEN-OUTPUT-QUEUE.                                          02210007\n021500                                                                  02220000\n021600* OPEN-OUTPUT WILL OPEN A QUEUE FOR PUT PROCESSING                02230000\n021700                                                                  02240000\n022100                                                                  02280000\n022200     MOVE SPACES            TO MQOD-OBJECTQMGRNAME                02290007\n022300     MOVE REPLY-QUEUE-NAME  TO MQOD-OBJECTNAME                    02300007\n022400                                                                  02310000\n022500     COMPUTE MQ-OPTIONS = MQOO-OUTPUT                             02320000\n022600                        + MQOO-PASS-ALL-CONTEXT                   02330000\n022700                        + MQOO-FAIL-IF-QUIESCING                  02340007\n022800                                                                  02350000\n022900     CALL 'MQOPEN' USING QMGR-HANDLE-CONN                         02360000\n023000                         MQ-OBJECT-DESCRIPTOR                     02370000\n023100                         MQ-OPTIONS                               02380000\n023200                         MQ-HOBJ                                  02390000\n023300                         MQ-CONDITION-CODE                        02400000\n023400                         MQ-REASON-CODE                           02410007\n023500                                                                  02420000\n023600     EVALUATE MQ-CONDITION-CODE                                   02430000\n023700         WHEN MQCC-OK                                             02440000\n023800              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02450000\n023900              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02460000\n024000              MOVE MQ-HOBJ           TO OUTPUT-QUEUE-HANDLE       02470000\n024100              SET  RESP-QUEUE-OPEN   TO TRUE                      02480007\n024200         WHEN OTHER                                               02490000\n024300              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02500000\n024400              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02510000\n024500              MOVE REPLY-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        02520000\n024600              MOVE 'OUT MQOPEN ERR'  TO MQ-APPL-RETURN-MESSAGE    02530000\n024700              PERFORM 9000-ERROR                                  02540007\n024800              PERFORM 8000-TERMINATION                            02550007\n024900     END-EVALUATE.                                                02560000\n025000                                                                  02570000\n025100 2100-OPEN-ERROR-QUEUE.                                           02580007\n025200                                                                  02590000\n025300* OPEN-OUTPUT WILL OPEN A QUEUE FOR PUT PROCESSING                02600000\n025400                                                                  02610000\n025800                                                                  02650000\n025900     MOVE 'CARD.DEMO.ERROR' TO ERROR-QUEUE-NAME                   02660000\n026000     MOVE SPACES            TO MQOD-OBJECTQMGRNAME                02670007\n026100     MOVE ERROR-QUEUE-NAME  TO MQOD-OBJECTNAME                    02680007\n026200                                                                  02690000\n026300     COMPUTE MQ-OPTIONS = MQOO-OUTPUT                             02700000\n026400                        + MQOO-PASS-ALL-CONTEXT                   02710000\n026500                        + MQOO-FAIL-IF-QUIESCING                  02720007\n026600                                                                  02730000\n026700     CALL 'MQOPEN' USING QMGR-HANDLE-CONN                         02740000\n026800                         MQ-OBJECT-DESCRIPTOR                     02750000\n026900                         MQ-OPTIONS                               02760000\n027000                         MQ-HOBJ                                  02770000\n027100                         MQ-CONDITION-CODE                        02780000\n027200                         MQ-REASON-CODE                           02790007\n027300                                                                  02800000\n027400     EVALUATE MQ-CONDITION-CODE                                   02810000\n027500         WHEN MQCC-OK                                             02820000\n027600              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02830000\n027700              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02840000\n027800              MOVE MQ-HOBJ           TO ERROR-QUEUE-HANDLE        02850000\n027900              SET  ERR-QUEUE-OPEN   TO TRUE                       02860007\n028000         WHEN OTHER                                               02870000\n028100              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    02880000\n028200              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       02890000\n028300              MOVE ERROR-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        02900000\n028400              MOVE 'ERR MQOPEN ERR'  TO MQ-APPL-RETURN-MESSAGE    02910000\n028500              DISPLAY MQ-ERR-DISPLAY                              02920000\n028600              PERFORM 8000-TERMINATION                            02930007\n028700     END-EVALUATE.                                                02940000\n028800                                                                  02950000\n028900                                                                  02960000\n029000 4000-MAIN-PROCESS.                                               02970007\n029100     EXEC CICS                                                    02980000\n029200          SYNCPOINT                                               02990000\n029300     END-EXEC                                                     03000000\n029400                                                                  03010000\n029500     PERFORM 3000-GET-REQUEST                                     03020007\n029600     .                                                            03030000\n029700                                                                  03040000\n029800                                                                  03050000\n029900 3000-GET-REQUEST.                                                03060007\n030000* GET WILL GET A MESSAGE FROM THE QUEUE                           03070012\n030700*** ADDED 5000 MS (5 SECS) AS THE WAIT INTERVAL FOR GET           03140000\n030800     MOVE 5000                            TO MQGMO-WAITINTERVAL   03150000\n030900     MOVE SPACES                          TO MQ-CORRELID          03160000\n031000     MOVE SPACES                          TO MQ-MSG-ID            03170000\n031100     MOVE INPUT-QUEUE-NAME                TO MQ-QUEUE             03180000\n031200     MOVE INPUT-QUEUE-HANDLE              TO MQ-HOBJ              03190000\n031300     MOVE 1000                            TO MQ-BUFFER-LENGTH     03200000\n031400     MOVE MQMI-NONE         TO MQMD-MSGID                         03210000\n031500     MOVE MQCI-NONE         TO MQMD-CORRELID                      03220000\n031500     INITIALIZE REQUEST-MSG-COPY  REPLACING NUMERIC BY ZEROES     03221000\n031600                                                                  03230000\n031700     COMPUTE MQGMO-OPTIONS = MQGMO-SYNCPOINT                      03240000\n031800                           + MQGMO-FAIL-IF-QUIESCING              03250000\n031900                           + MQGMO-CONVERT                        03260000\n032000                           + MQGMO-WAIT                           03270000\n032100                                                                  03280000\n032200     CALL 'MQGET'  USING MQ-HCONN                                 03290000\n032300                         MQ-HOBJ                                  03300000\n032400                         MQ-MESSAGE-DESCRIPTOR                    03310000\n032500                         MQ-GET-MESSAGE-OPTIONS                   03320000\n032600                         MQ-BUFFER-LENGTH                         03330000\n032700                         MQ-BUFFER                                03340000\n032800                         MQ-DATA-LENGTH                           03350000\n032900                         MQ-CONDITION-CODE                        03360000\n033000                         MQ-REASON-CODE                           03370007\n033100                                                                  03380000\n033200                                                                  03390000\n033300     IF MQ-CONDITION-CODE = MQCC-OK                               03400000\n033400        MOVE MQMD-MSGID        TO MQ-MSG-ID                       03410000\n033500        MOVE MQMD-CORRELID     TO MQ-CORRELID                     03420000\n033600        MOVE MQMD-REPLYTOQ     TO MQ-QUEUE-REPLY                  03430000\n033700        MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE          03440000\n033800        MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE             03450000\n033900        MOVE MQ-BUFFER         TO REQUEST-MESSAGE                 03460000\n034000        MOVE MQ-CORRELID       TO SAVE-CORELID                    03470000\n034100        MOVE MQ-QUEUE-REPLY    TO SAVE-REPLY2Q                    03480000\n034200        MOVE MQ-MSG-ID         TO SAVE-MSGID                      03490000\n034300        MOVE REQUEST-MESSAGE   TO REQUEST-MSG-COPY                03500000\n034400        PERFORM 4000-PROCESS-REQUEST-REPLY                        03510010\n034500        ADD  1                 TO MQ-MSG-COUNT                    03520000\n034600     ELSE                                                         03530000\n034700        IF MQ-REASON-CODE  =  MQRC-NO-MSG-AVAILABLE               03540011\n034800          SET NO-MORE-MSGS             TO  TRUE                   03550007\n034900                                                                  03560000\n035000        ELSE                                                      03570000\n035100           MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE       03580000\n035200           MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE          03590000\n035300           MOVE INPUT-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME           03600000\n035400           MOVE 'INP MQGET ERR:'  TO MQ-APPL-RETURN-MESSAGE       03610000\n035500           PERFORM 9000-ERROR                                     03620007\n035600           PERFORM 8000-TERMINATION                               03630007\n035700       END-IF                                                     03640000\n035800     END-IF.                                                      03650000\n035900                                                                  03660000\n036000 4000-PROCESS-REQUEST-REPLY.                                      03670010\n036100     MOVE SPACES TO REPLY-MESSAGE                                 03680000\n036100     INITIALIZE WS-DATE-TIME REPLACING NUMERIC BY ZEROES          03690000\n036100     IF WS-FUNC = 'INQA' AND WS-KEY > ZEROES                      03700000\n              MOVE WS-KEY       TO  WS-CARD-RID-ACCT-ID                 03700106\n                                                                        03700206\n           EXEC CICS READ                                               03700306\n                DATASET   (LIT-ACCTFILENAME)                            03700406\n                RIDFLD    (WS-CARD-RID-ACCT-ID-X)                       03700506\n                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)             03700606\n                INTO      (ACCOUNT-RECORD)                              03700706\n                LENGTH    (LENGTH OF ACCOUNT-RECORD)                    03700806\n                RESP      (WS-RESP-CD)                                  03700906\n                RESP2     (WS-REAS-CD)                                  03701006\n           END-EXEC                                                     03701106\n                                                                        03701206\n           EVALUATE WS-RESP-CD                                          03701306\n               WHEN DFHRESP(NORMAL)                                     03701406\n                    MOVE ACCT-ID          TO WS-ACCT-ID                 03701510\n                    MOVE ACCT-ACTIVE-STATUS                             03701610\n                                          TO WS-ACCT-ACTIVE-STATUS      03701710\n                    MOVE ACCT-CURR-BAL    TO WS-ACCT-CURR-BAL           03701810\n                    MOVE ACCT-CREDIT-LIMIT                              03701910\n                                          TO WS-ACCT-CREDIT-LIMIT       03702110\n                    MOVE ACCT-CASH-CREDIT-LIMIT                         03702210\n                                          TO WS-ACCT-CASH-CREDIT-LIMIT  03702310\n                    MOVE ACCT-OPEN-DATE   TO WS-ACCT-OPEN-DATE          03702410\n                    MOVE ACCT-EXPIRAION-DATE                            03702510\n                                          TO WS-ACCT-EXPIRAION-DATE     03702610\n                    MOVE ACCT-REISSUE-DATE                              03702710\n                                          TO WS-ACCT-REISSUE-DATE       03702810\n                    MOVE ACCT-CURR-CYC-CREDIT                           03702910\n                                          TO WS-ACCT-CURR-CYC-CREDIT    03703010\n                    MOVE ACCT-CURR-CYC-DEBIT                            03703110\n                                          TO WS-ACCT-CURR-CYC-DEBIT     03703210\n                    MOVE ACCT-GROUP-ID    TO WS-ACCT-GROUP-ID           03703310\n                    MOVE WS-ACCT-RESPONSE TO REPLY-MESSAGE              03703510\n                    PERFORM 4100-PUT-REPLY                              03703610\n               WHEN DFHRESP(NOTFND)                                     03703710\n                    STRING 'INVALID REQUEST PARAMETERS '                03703810\n                           'ACCT ID : 'WS-KEY                           03703910\n                           DELIMITED BY SIZE                            03704010\n                           INTO                                         03704110\n                           REPLY-MESSAGE                                03704210\n                    END-STRING                                          03704310\n                    PERFORM 4100-PUT-REPLY                              03704410\n      *                                                                 03704510\n               WHEN OTHER                                               03704610\n017200                                                                  03704800\n035100           MOVE WS-RESP-CD        TO MQ-APPL-CONDITION-CODE       03704903\n035200           MOVE WS-REAS-CD        TO MQ-APPL-REASON-CODE          03705003\n035300           MOVE INPUT-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME           03705103\n035400           MOVE 'ERROR WHILE READING ACCTFILE'                    03705204\n035400                                  TO MQ-APPL-RETURN-MESSAGE       03705303\n                  PERFORM 9000-ERROR                                    03705407\n017400            PERFORM 8000-TERMINATION                              03705507\n      *           PERFORM SEND-LONG-TEXT                                03705603\n           END-EVALUATE                                                 03705703\n           ELSE                                                         03705805\n                    STRING 'INVALID REQUEST PARAMETERS '                03705905\n                           'ACCT ID : 'WS-KEY                           03706005\n                           'FUNCTION : 'WS-FUNC                         03706105\n                           DELIMITED BY SIZE                            03706205\n                           INTO                                         03706305\n                           REPLY-MESSAGE                                03706405\n                    END-STRING                                          03706505\n                    PERFORM 4100-PUT-REPLY                              03706610\n036100     END-IF                                                       03706705\n036100                                                                  03707005\n036100                                                                  03780000\n036800     .                                                            03860000\n036900                                                                  03870000\n037000 4100-PUT-REPLY.                                                  03880010\n037100                                                                  03890000\n037200* PUT WILL PUT A MESSAGE ON THE QUEUE AND CONVERT IT TO A STRING  03900000\n037300                                                                  03910000\n037600                                                                  03940000\n037700     MOVE REPLY-MESSAGE                TO MQ-BUFFER               03950007\n037800     MOVE 1000                         TO MQ-BUFFER-LENGTH        03960007\n037900     MOVE SAVE-MSGID                   TO MQMD-MSGID              03970007\n038000     MOVE SAVE-CORELID                 TO MQMD-CORRELID           03980007\n038100     MOVE MQFMT-STRING                 TO MQMD-FORMAT             03990007\n038200                                                                  04000000\n038300     COMPUTE MQMD-CODEDCHARSETID      =  MQCCSI-Q-MGR             04010007\n038400                                                                  04020000\n038500     COMPUTE MQPMO-OPTIONS = MQPMO-SYNCPOINT                      04030000\n038600                           + MQPMO-DEFAULT-CONTEXT                04040000\n038700                           + MQPMO-FAIL-IF-QUIESCING              04050007\n038800                                                                  04060000\n038900     CALL 'MQPUT'  USING MQ-HCONN                                 04070000\n039000                         OUTPUT-QUEUE-HANDLE                      04080000\n039100                         MQ-MESSAGE-DESCRIPTOR                    04090000\n039200                         MQ-PUT-MESSAGE-OPTIONS                   04100000\n039300                         MQ-BUFFER-LENGTH                         04110000\n039400                         MQ-BUFFER                                04120000\n039500                         MQ-CONDITION-CODE                        04130000\n039600                         MQ-REASON-CODE                           04140007\n039700                                                                  04150000\n039800     EVALUATE MQ-CONDITION-CODE                                   04160000\n039900         WHEN MQCC-OK                                             04170000\n040000              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    04180000\n040100              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       04190000\n040200         WHEN OTHER                                               04200000\n040300              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    04210000\n040400              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       04220000\n040500              MOVE REPLY-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        04230000\n040600              MOVE 'MQPUT ERR'       TO MQ-APPL-RETURN-MESSAGE    04240000\n040700              PERFORM 9000-ERROR                                  04250007\n040800              PERFORM 8000-TERMINATION                            04260007\n040900     END-EVALUATE.                                                04270000\n041000                                                                  04280000\n041100 9000-ERROR.                                                      04290007\n041200* PUT WILL PUT A MESSAGE ON THE QUEUE AND CONVERT IT TO A STRING  04300000\n041300                                                                  04310000\n041600                                                                  04340000\n041700     MOVE MQ-ERR-DISPLAY               TO ERROR-MESSAGE,          04350000\n041800     MOVE ERROR-MESSAGE                TO MQ-BUFFER               04360007\n041900     MOVE 1000                         TO MQ-BUFFER-LENGTH        04370007\n042200     MOVE MQFMT-STRING                 TO MQMD-FORMAT             04400007\n042300                                                                  04410000\n042400     COMPUTE MQMD-CODEDCHARSETID      =  MQCCSI-Q-MGR             04420007\n042500                                                                  04430000\n042600     COMPUTE MQPMO-OPTIONS = MQPMO-SYNCPOINT                      04440000\n042700                           + MQPMO-DEFAULT-CONTEXT                04450000\n042800                           + MQPMO-FAIL-IF-QUIESCING              04460007\n042900                                                                  04470000\n043000     CALL 'MQPUT'  USING MQ-HCONN                                 04480000\n043100                         ERROR-QUEUE-HANDLE                       04490000\n043200                         MQ-MESSAGE-DESCRIPTOR                    04500000\n043300                         MQ-PUT-MESSAGE-OPTIONS                   04510000\n043400                         MQ-BUFFER-LENGTH                         04520000\n043500                         MQ-BUFFER                                04530000\n043600                         MQ-CONDITION-CODE                        04540000\n043700                         MQ-REASON-CODE                           04550007\n043800                                                                  04560000\n043900     EVALUATE MQ-CONDITION-CODE                                   04570000\n044000         WHEN MQCC-OK                                             04580000\n044100              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    04590000\n044200              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       04600000\n044300         WHEN OTHER                                               04610000\n044400              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    04620000\n044500              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       04630000\n044600              MOVE ERROR-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        04640000\n044700              MOVE 'MQPUT ERR'       TO MQ-APPL-RETURN-MESSAGE    04650000\n044800              DISPLAY MQ-ERR-DISPLAY                              04660000\n044900              PERFORM 8000-TERMINATION                            04670007\n045000     END-EVALUATE.                                                04680000\n045100     .                                                            04690000\n045200 8000-TERMINATION.                                                04700007\n045300                                                                  04710000\n045400     IF REPLY-QUEUE-OPEN                                          04720007\n045500        PERFORM 5000-CLOSE-INPUT-QUEUE                            04730010\n045600     END-IF                                                       04740000\n045700     IF RESP-QUEUE-OPEN                                           04750007\n045800        PERFORM 5100-CLOSE-OUTPUT-QUEUE                           04760010\n045900     END-IF                                                       04770000\n046000     IF ERR-QUEUE-OPEN                                            04780007\n046100        PERFORM 5200-CLOSE-ERROR-QUEUE                            04790010\n046200     END-IF                                                       04800000\n046300     EXEC CICS RETURN END-EXEC                                    04810000\n046400     GOBACK.                                                      04820000\n046500                                                                  04830000\n046600 5000-CLOSE-INPUT-QUEUE.                                          04840010\n046700     MOVE INPUT-QUEUE-NAME           TO MQ-QUEUE                  04850000\n046800     MOVE INPUT-QUEUE-HANDLE         TO MQ-HOBJ                   04860000\n046900     COMPUTE MQ-OPTIONS = MQCO-NONE                               04870007\n047000                                                                  04880000\n047100     CALL 'MQCLOSE' USING MQ-HCONN                                04890000\n047200                          MQ-HOBJ                                 04900000\n047300                          MQ-OPTIONS                              04910000\n047400                          MQ-CONDITION-CODE                       04920000\n047500                          MQ-REASON-CODE                          04930007\n047600                                                                  04940000\n047700     EVALUATE MQ-CONDITION-CODE                                   04950000\n047800         WHEN MQCC-OK                                             04960000\n047900              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    04970000\n048000              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       04980000\n048100         WHEN OTHER                                               04990000\n048200              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    05000000\n048300              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       05010000\n048400              MOVE INPUT-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        05020000\n048500              MOVE 'MQCLOSE ERR'     TO MQ-APPL-RETURN-MESSAGE    05030000\n048600              PERFORM 8000-TERMINATION                            05040007\n048700     END-EVALUATE.                                                05050000\n048800 5100-CLOSE-OUTPUT-QUEUE.                                         05060010\n048900     MOVE REPLY-QUEUE-NAME            TO MQ-QUEUE                 05070000\n049000     MOVE OUTPUT-QUEUE-HANDLE         TO MQ-HOBJ                  05080000\n049100     COMPUTE MQ-OPTIONS = MQCO-NONE                               05090007\n049200                                                                  05100000\n049300     CALL 'MQCLOSE' USING MQ-HCONN                                05110000\n049400                          MQ-HOBJ                                 05120000\n049500                          MQ-OPTIONS                              05130000\n049600                          MQ-CONDITION-CODE                       05140000\n049700                          MQ-REASON-CODE                          05150007\n049800                                                                  05160000\n049900     EVALUATE MQ-CONDITION-CODE                                   05170000\n050000         WHEN MQCC-OK                                             05180000\n050100              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    05190000\n050200              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       05200000\n050300         WHEN OTHER                                               05210000\n050400              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    05220000\n050500              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       05230000\n050600              MOVE INPUT-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        05240000\n050700              MOVE 'MQCLOSE ERR'     TO MQ-APPL-RETURN-MESSAGE    05250000\n050800              PERFORM 8000-TERMINATION                            05260007\n050900     END-EVALUATE.                                                05270000\n051000                                                                  05280000\n051100 5200-CLOSE-ERROR-QUEUE.                                          05290010\n051200     MOVE ERROR-QUEUE-NAME          TO MQ-QUEUE                   05300000\n051300     MOVE ERROR-QUEUE-HANDLE         TO MQ-HOBJ                   05310000\n051400     COMPUTE MQ-OPTIONS = MQCO-NONE                               05320007\n051500                                                                  05330000\n051600     CALL 'MQCLOSE' USING MQ-HCONN                                05340000\n051700                          MQ-HOBJ                                 05350000\n051800                          MQ-OPTIONS                              05360000\n051900                          MQ-CONDITION-CODE                       05370000\n052000                          MQ-REASON-CODE                          05380007\n052100                                                                  05390000\n052200     EVALUATE MQ-CONDITION-CODE                                   05400000\n052300         WHEN MQCC-OK                                             05410000\n052400              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    05420000\n052500              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       05430000\n052600         WHEN OTHER                                               05440000\n052700              MOVE MQ-CONDITION-CODE TO MQ-APPL-CONDITION-CODE    05450000\n052800              MOVE MQ-REASON-CODE    TO MQ-APPL-REASON-CODE       05460000\n052900              MOVE ERROR-QUEUE-NAME  TO MQ-APPL-QUEUE-NAME        05470000\n053000              MOVE 'MQCLOSE ERR'     TO MQ-APPL-RETURN-MESSAGE    05480000\n053100              PERFORM 9000-ERROR                                  05490007\n053200              PERFORM 8000-TERMINATION                            05500007\n053300     END-EVALUATE.                                                05510000\n053400                                                                  05520000\n",
+  "java_files": [
+    {
+      "tab": "AccountEnquiryApplication.java",
+      "code": "package com.carddemo.account;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n/**\n * CardDemo Account Enquiry Service\n *\n * <p>Replaces COACCT01.cbl: a CICS-hosted IBM MQ listener that received account\n * enquiry requests ({@code INQA} function code + account ID) and returned account\n * details from the ACCTDAT VSAM file.\n *\n * <p>This service exposes the same logic as a REST API backed by an H2 (embedded)\n * or PostgreSQL database, using Spring Data JPA instead of EXEC CICS READ.\n */\n@SpringBootApplication\npublic class AccountEnquiryApplication {\n\n    public static void main(String[] args) {\n        SpringApplication.run(AccountEnquiryApplication.class, args);\n    }\n}\n"
+    },
+    {
+      "tab": "AccountController.java",
+      "code": "package com.carddemo.account.web;\n\nimport com.carddemo.account.service.AccountEnquiryService;\nimport com.carddemo.account.web.dto.AccountEnquiryRequest;\nimport com.carddemo.account.web.dto.AccountEnquiryResponse;\nimport jakarta.validation.Valid;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\n/**\n * REST entry point replacing the IBM MQ interface of COACCT01.cbl.\n *\n * <h2>Interface mapping</h2>\n * <table border=\"1\">\n *   <tr><th>COBOL</th><th>REST</th></tr>\n *   <tr><td>MQ GET from input queue</td><td>POST /api/accounts/enquiry (request body)</td></tr>\n *   <tr><td>MQ PUT to CARD.DEMO.REPLY.ACCT</td><td>HTTP 200 with JSON body</td></tr>\n *   <tr><td>MQ PUT to CARD.DEMO.ERROR</td><td>HTTP 200 with JSON {@code error} field, or HTTP 500</td></tr>\n *   <tr><td>PERFORM 8000-TERMINATION</td><td>HTTP 500 (unhandled exception)</td></tr>\n * </table>\n *\n * <p>Note: the COBOL program uses a fire-and-forget MQ pattern — the caller's\n * correlation ID is echoed back in the reply.  In this REST mapping the response\n * is returned synchronously, which is the natural HTTP equivalent.\n */\n@RestController\n@RequestMapping(\"/api/accounts\")\npublic class AccountController {\n\n    private final AccountEnquiryService enquiryService;\n\n    public AccountController(AccountEnquiryService enquiryService) {\n        this.enquiryService = enquiryService;\n    }\n\n    /**\n     * Account enquiry — replaces the COACCT01 MQ request/reply cycle.\n     *\n     * <p>HTTP 200 is returned in all handled cases (found, not-found, invalid function).\n     * This mirrors the COBOL behaviour: even error messages are placed on the reply\n     * queue with a normal MQ completion code.\n     *\n     * @param request validated request DTO\n     * @return enquiry response — check {@code error} field for business-level errors\n     */\n    @PostMapping(\"/enquiry\")\n    public ResponseEntity<AccountEnquiryResponse> enquire(\n            @RequestBody @Valid AccountEnquiryRequest request) {\n\n        AccountEnquiryResponse response = enquiryService.enquire(request);\n        return ResponseEntity.ok(response);\n    }\n\n    /**\n     * Convenience GET endpoint for quick account lookup by ID.\n     * Not in the original COACCT01 — added for REST usability.\n     */\n    @GetMapping(\"/{accountId}\")\n    public ResponseEntity<AccountEnquiryResponse> getById(\n            @PathVariable Long accountId) {\n\n        AccountEnquiryRequest request = new AccountEnquiryRequest(\"INQA\", accountId);\n        AccountEnquiryResponse response = enquiryService.enquire(request);\n        return ResponseEntity.ok(response);\n    }\n}\n"
+    },
+    {
+      "tab": "AccountEnquiryService.java",
+      "code": "package com.carddemo.account.service;\n\nimport com.carddemo.account.domain.Account;\nimport com.carddemo.account.repository.AccountRepository;\nimport com.carddemo.account.web.dto.AccountEnquiryRequest;\nimport com.carddemo.account.web.dto.AccountEnquiryResponse;\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.stereotype.Service;\nimport org.springframework.transaction.annotation.Transactional;\n\nimport java.util.Optional;\n\n/**\n * Implements the core account enquiry logic from COACCT01.cbl paragraph\n * {@code 4000-PROCESS-REQUEST-REPLY}.\n *\n * <h2>COBOL to Java mapping</h2>\n * <pre>\n * COBOL (COACCT01.cbl:4000-PROCESS-REQUEST-REPLY)       Java\n * ─────────────────────────────────────────────       ──────────────────────────────\n * IF WS-FUNC = 'INQA' AND WS-KEY > ZEROES          → functionCode.equals(\"INQA\")\n *   EXEC CICS READ DATASET('ACCTDAT')               → accountRepository.findById(id)\n *     RIDFLD(WS-CARD-RID-ACCT-ID-X)\n *     RESP(WS-RESP-CD)\n *   EVALUATE WS-RESP-CD\n *     WHEN DFHRESP(NORMAL)  → build WS-ACCT-RESPONSE  → AccountEnquiryResponse.success(…)\n *     WHEN DFHRESP(NOTFND)  → STRING 'INVALID…'       → AccountEnquiryResponse.error(…)\n *     WHEN OTHER            → PERFORM 9000-ERROR       → throw RuntimeException (→ 500)\n * ELSE                      → STRING 'INVALID…'       → AccountEnquiryResponse.error(…)\n * END-IF\n * </pre>\n */\n@Service\n@Transactional(readOnly = true)\npublic class AccountEnquiryService {\n\n    private static final Logger log =\n            LoggerFactory.getLogger(AccountEnquiryService.class);\n\n    /** Only supported function code — mirrors WS-FUNC = 'INQA' */\n    static final String FUNC_INQA = \"INQA\";\n\n    private final AccountRepository accountRepository;\n\n    public AccountEnquiryService(AccountRepository accountRepository) {\n        this.accountRepository = accountRepository;\n    }\n\n    /**\n     * Processes one account enquiry request.\n     *\n     * <p>Mirrors the COBOL control flow in {@code 4000-PROCESS-REQUEST-REPLY}:\n     * <ol>\n     *   <li>Validate function code and key (replaces {@code IF WS-FUNC = 'INQA' AND WS-KEY > ZEROES}).</li>\n     *   <li>Read account by ID (replaces {@code EXEC CICS READ DATASET('ACCTDAT')}).</li>\n     *   <li>Map found account to response (replaces the series of {@code MOVE ACCT-* TO WS-ACCT-*}).</li>\n     *   <li>Return error response if not found (replaces {@code DFHRESP(NOTFND)} branch).</li>\n     * </ol>\n     *\n     * @param request validated enquiry request\n     * @return success response with account fields, or error response\n     */\n    public AccountEnquiryResponse enquire(AccountEnquiryRequest request) {\n\n        // Guard: WS-FUNC = 'INQA' AND WS-KEY > ZEROES (COACCT01:4000)\n        if (!FUNC_INQA.equals(request.functionCode())) {\n            String msg = String.format(\n                    \"INVALID REQUEST PARAMETERS ACCT ID : %d FUNCTION : %s\",\n                    request.accountId(), request.functionCode());\n            log.warn(msg);\n            return AccountEnquiryResponse.error(msg);\n        }\n\n        log.debug(\"Account enquiry: id={}\", request.accountId());\n\n        // EXEC CICS READ DATASET('ACCTDAT') RIDFLD(WS-CARD-RID-ACCT-ID-X)\n        Optional<Account> found = accountRepository.findById(request.accountId());\n\n        // EVALUATE WS-RESP-CD\n        //   WHEN DFHRESP(NOTFND)\n        if (found.isEmpty()) {\n            String msg = String.format(\n                    \"INVALID REQUEST PARAMETERS ACCT ID : %d\",\n                    request.accountId());\n            log.debug(\"Account not found: {}\", request.accountId());\n            return AccountEnquiryResponse.error(msg);\n        }\n\n        // WHEN DFHRESP(NORMAL) → MOVE ACCT-* TO WS-ACCT-*\n        Account acct = found.get();\n        log.debug(\"Account found: id={} status={} bal={}\",\n                acct.getAcctId(), acct.getActiveStatus(), acct.getCurrBal());\n\n        return AccountEnquiryResponse.success(\n                acct.getAcctId(),\n                acct.getActiveStatus(),\n                acct.getCurrBal(),\n                acct.getCreditLimit(),\n                acct.getCashCreditLimit(),\n                acct.getOpenDate(),\n                acct.getExpirationDate(),\n                acct.getReissueDate(),\n                acct.getCurrCycCredit(),\n                acct.getCurrCycDebit(),\n                acct.getGroupId()\n        );\n    }\n}\n"
+    },
+    {
+      "tab": "Account.java",
+      "code": "package com.carddemo.account.domain;\n\nimport jakarta.persistence.Column;\nimport jakarta.persistence.Entity;\nimport jakarta.persistence.Id;\nimport jakarta.persistence.Table;\n\nimport java.math.BigDecimal;\n\n/**\n * JPA entity that replaces the VSAM ACCTDAT file.\n *\n * <p>Field layout follows copybook {@code app/cpy/CVACT01Y.cpy} (ACCOUNT-RECORD, 300 bytes).\n * All financial fields are {@link BigDecimal} with scale 2 — replacing COBOL\n * {@code PIC S9(10)V99} (including COMP-3 variants).\n * Date fields are stored as {@code String} matching the COBOL {@code PIC X(10)}\n * format {@code YYYY-MM-DD}.\n */\n@Entity\n@Table(name = \"accounts\")\npublic class Account {\n\n    /** ACCT-ID PIC 9(11) — primary key */\n    @Id\n    @Column(name = \"acct_id\")\n    private Long acctId;\n\n    /** ACCT-ACTIVE-STATUS PIC X(01) — 'Y' or 'N' */\n    @Column(name = \"active_status\", length = 1, nullable = false)\n    private String activeStatus;\n\n    /** ACCT-CURR-BAL PIC S9(10)V99 */\n    @Column(name = \"curr_bal\", precision = 12, scale = 2, nullable = false)\n    private BigDecimal currBal;\n\n    /** ACCT-CREDIT-LIMIT PIC S9(10)V99 */\n    @Column(name = \"credit_limit\", precision = 12, scale = 2, nullable = false)\n    private BigDecimal creditLimit;\n\n    /** ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99 */\n    @Column(name = \"cash_credit_limit\", precision = 12, scale = 2, nullable = false)\n    private BigDecimal cashCreditLimit;\n\n    /** ACCT-OPEN-DATE PIC X(10) format YYYY-MM-DD */\n    @Column(name = \"open_date\", length = 10)\n    private String openDate;\n\n    /**\n     * ACCT-EXPIRAION-DATE PIC X(10) format YYYY-MM-DD\n     * <p>Note: spelling \"EXPIRAION\" (missing 'T') is retained from the COBOL source\n     * to aid traceability ({@code app/cpy/CVACT01Y.cpy}).\n     */\n    @Column(name = \"expiration_date\", length = 10)\n    private String expirationDate;\n\n    /** ACCT-REISSUE-DATE PIC X(10) format YYYY-MM-DD */\n    @Column(name = \"reissue_date\", length = 10)\n    private String reissueDate;\n\n    /** ACCT-CURR-CYC-CREDIT PIC S9(10)V99 */\n    @Column(name = \"curr_cyc_credit\", precision = 12, scale = 2, nullable = false)\n    private BigDecimal currCycCredit;\n\n    /** ACCT-CURR-CYC-DEBIT PIC S9(10)V99 */\n    @Column(name = \"curr_cyc_debit\", precision = 12, scale = 2, nullable = false)\n    private BigDecimal currCycDebit;\n\n    /** ACCT-ADDR-ZIP PIC X(10) */\n    @Column(name = \"addr_zip\", length = 10)\n    private String addrZip;\n\n    /** ACCT-GROUP-ID PIC X(10) */\n    @Column(name = \"group_id\", length = 10)\n    private String groupId;\n\n    // ── Getters ──────────────────────────────────────────────────────\n\n    public Long getAcctId()              { return acctId; }\n    public String getActiveStatus()      { return activeStatus; }\n    public BigDecimal getCurrBal()       { return currBal; }\n    public BigDecimal getCreditLimit()   { return creditLimit; }\n    public BigDecimal getCashCreditLimit() { return cashCreditLimit; }\n    public String getOpenDate()          { return openDate; }\n    public String getExpirationDate()    { return expirationDate; }\n    public String getReissueDate()       { return reissueDate; }\n    public BigDecimal getCurrCycCredit() { return currCycCredit; }\n    public BigDecimal getCurrCycDebit()  { return currCycDebit; }\n    public String getAddrZip()           { return addrZip; }\n    public String getGroupId()           { return groupId; }\n\n    // ── Setters (needed by JPA and tests) ────────────────────────────\n\n    public void setAcctId(Long acctId)                         { this.acctId = acctId; }\n    public void setActiveStatus(String activeStatus)           { this.activeStatus = activeStatus; }\n    public void setCurrBal(BigDecimal currBal)                 { this.currBal = currBal; }\n    public void setCreditLimit(BigDecimal creditLimit)         { this.creditLimit = creditLimit; }\n    public void setCashCreditLimit(BigDecimal cashCreditLimit) { this.cashCreditLimit = cashCreditLimit; }\n    public void setOpenDate(String openDate)                   { this.openDate = openDate; }\n    public void setExpirationDate(String expirationDate)       { this.expirationDate = expirationDate; }\n    public void setReissueDate(String reissueDate)             { this.reissueDate = reissueDate; }\n    public void setCurrCycCredit(BigDecimal currCycCredit)     { this.currCycCredit = currCycCredit; }\n    public void setCurrCycDebit(BigDecimal currCycDebit)       { this.currCycDebit = currCycDebit; }\n    public void setAddrZip(String addrZip)                     { this.addrZip = addrZip; }\n    public void setGroupId(String groupId)                     { this.groupId = groupId; }\n}\n"
+    },
+    {
+      "tab": "AccountRepository.java",
+      "code": "package com.carddemo.account.repository;\n\nimport com.carddemo.account.domain.Account;\nimport org.springframework.data.jpa.repository.JpaRepository;\n\n/**\n * Replaces the EXEC CICS READ DATASET('ACCTDAT') RIDFLD(WS-CARD-RID-ACCT-ID-X)\n * call in COACCT01.cbl (paragraph 4000-PROCESS-REQUEST-REPLY).\n *\n * <ul>\n *   <li>{@link #findById(Long)} — random-key read; empty Optional = DFHRESP(NOTFND)</li>\n *   <li>{@link #existsById(Long)} — key existence check without fetching data</li>\n * </ul>\n */\npublic interface AccountRepository extends JpaRepository<Account, Long> {\n}\n"
+    },
+    {
+      "tab": "AccountEnquiryRequest.java",
+      "code": "package com.carddemo.account.web.dto;\n\nimport jakarta.validation.constraints.NotBlank;\nimport jakarta.validation.constraints.NotNull;\nimport jakarta.validation.constraints.Positive;\n\n/**\n * Replaces the MQ request message layout from COACCT01.cbl:\n * <pre>\n *   01 REQUEST-MSG-COPY.\n *      10 WS-FUNC   PIC X(04) VALUE SPACES.   ← functionCode\n *      10 WS-KEY    PIC 9(11) VALUE ZEROES.   ← accountId\n *      10 WS-FILLER PIC X(985).\n * </pre>\n *\n * <p>The COBOL program validates {@code WS-FUNC = 'INQA'} and {@code WS-KEY > ZEROES}\n * before performing the account lookup.  The same guard is implemented in\n * {@link com.carddemo.account.service.AccountEnquiryService#enquire}.\n *\n * @param functionCode must be \"INQA\" to trigger an account lookup\n * @param accountId    ACCT-ID PIC 9(11); must be positive\n */\npublic record AccountEnquiryRequest(\n\n        @NotBlank\n        String functionCode,\n\n        @NotNull @Positive\n        Long accountId\n) {}\n"
+    },
+    {
+      "tab": "AccountEnquiryResponse.java",
+      "code": "package com.carddemo.account.web.dto;\n\nimport java.math.BigDecimal;\n\n/**\n * Replaces the WS-ACCT-RESPONSE working-storage area in COACCT01.cbl.\n *\n * <p>The COBOL program formatted all fields into a 1000-byte text buffer\n * (REPLY-MESSAGE) that was placed on the MQ reply queue.  This DTO\n * replaces that with a structured JSON response.\n *\n * <p>When the account is found ({@code DFHRESP(NORMAL)}), {@code error} is null\n * and all account fields are populated.\n * When the account is not found ({@code DFHRESP(NOTFND)}) or the request is\n * invalid, only {@code error} is set.\n *\n * @param accountId       ACCT-ID PIC 9(11)\n * @param activeStatus    ACCT-ACTIVE-STATUS PIC X(01) — 'Y' or 'N'\n * @param currentBalance  ACCT-CURR-BAL PIC S9(10)V99\n * @param creditLimit     ACCT-CREDIT-LIMIT PIC S9(10)V99\n * @param cashCreditLimit ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99\n * @param openDate        ACCT-OPEN-DATE PIC X(10) — YYYY-MM-DD\n * @param expirationDate  ACCT-EXPIRAION-DATE (sic) PIC X(10) — YYYY-MM-DD\n * @param reissueDate     ACCT-REISSUE-DATE PIC X(10) — YYYY-MM-DD\n * @param currCycCredit   ACCT-CURR-CYC-CREDIT PIC S9(10)V99\n * @param currCycDebit    ACCT-CURR-CYC-DEBIT PIC S9(10)V99\n * @param groupId         ACCT-GROUP-ID PIC X(10)\n * @param error           null on success; error description on failure\n */\npublic record AccountEnquiryResponse(\n        Long accountId,\n        String activeStatus,\n        BigDecimal currentBalance,\n        BigDecimal creditLimit,\n        BigDecimal cashCreditLimit,\n        String openDate,\n        String expirationDate,\n        String reissueDate,\n        BigDecimal currCycCredit,\n        BigDecimal currCycDebit,\n        String groupId,\n        String error\n) {\n    /** Successful response — account found. */\n    public static AccountEnquiryResponse success(\n            Long accountId,\n            String activeStatus,\n            BigDecimal currentBalance,\n            BigDecimal creditLimit,\n            BigDecimal cashCreditLimit,\n            String openDate,\n            String expirationDate,\n            String reissueDate,\n            BigDecimal currCycCredit,\n            BigDecimal currCycDebit,\n            String groupId) {\n        return new AccountEnquiryResponse(\n                accountId, activeStatus, currentBalance,\n                creditLimit, cashCreditLimit,\n                openDate, expirationDate, reissueDate,\n                currCycCredit, currCycDebit, groupId, null);\n    }\n\n    /**\n     * Error response — mirrors the COBOL STRING … INTO REPLY-MESSAGE pattern\n     * used for DFHRESP(NOTFND) and invalid-request cases.\n     */\n    public static AccountEnquiryResponse error(String message) {\n        return new AccountEnquiryResponse(\n                null, null, null, null, null,\n                null, null, null, null, null, null, message);\n    }\n}\n"
+    },
+    {
+      "tab": "GlobalExceptionHandler.java",
+      "code": "package com.carddemo.account.exception;\n\nimport com.carddemo.account.web.dto.AccountEnquiryResponse;\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.http.HttpStatus;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.http.converter.HttpMessageNotReadableException;\nimport org.springframework.web.bind.MethodArgumentNotValidException;\nimport org.springframework.web.bind.annotation.ExceptionHandler;\nimport org.springframework.web.bind.annotation.RestControllerAdvice;\nimport org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;\n\nimport java.util.stream.Collectors;\n\n/**\n * Maps validation and unexpected errors to HTTP responses.\n *\n * <p>COBOL equivalent: PERFORM 9000-ERROR + PERFORM 8000-TERMINATION\n * (COACCT01.cbl — terminates program and puts error on CARD.DEMO.ERROR queue).\n */\n@RestControllerAdvice\npublic class GlobalExceptionHandler {\n\n    private static final Logger log =\n            LoggerFactory.getLogger(GlobalExceptionHandler.class);\n\n    /**\n     * Bean Validation failures (e.g. missing functionCode, accountId ≤ 0).\n     * Returns HTTP 400 with a descriptive error message.\n     */\n    @ExceptionHandler(MethodArgumentNotValidException.class)\n    public ResponseEntity<AccountEnquiryResponse> handleValidation(\n            MethodArgumentNotValidException ex) {\n\n        String msg = ex.getBindingResult().getFieldErrors().stream()\n                .map(fe -> fe.getField() + \": \" + fe.getDefaultMessage())\n                .collect(Collectors.joining(\"; \"));\n\n        log.warn(\"Validation error: {}\", msg);\n        return ResponseEntity\n                .status(HttpStatus.BAD_REQUEST)\n                .body(AccountEnquiryResponse.error(\"INVALID REQUEST: \" + msg));\n    }\n\n    /** Malformed request body (unparseable JSON). Returns HTTP 400. */\n    @ExceptionHandler(HttpMessageNotReadableException.class)\n    public ResponseEntity<AccountEnquiryResponse> handleNotReadable(\n            HttpMessageNotReadableException ex) {\n        log.warn(\"Unreadable request body: {}\", ex.getMessage());\n        return ResponseEntity\n                .status(HttpStatus.BAD_REQUEST)\n                .body(AccountEnquiryResponse.error(\"INVALID REQUEST: \" + ex.getMessage()));\n    }\n\n    /** Path-variable type mismatch (e.g. non-numeric account ID). Returns HTTP 400. */\n    @ExceptionHandler(MethodArgumentTypeMismatchException.class)\n    public ResponseEntity<AccountEnquiryResponse> handleTypeMismatch(\n            MethodArgumentTypeMismatchException ex) {\n        String msg = ex.getName() + \": invalid value '\" + ex.getValue() + \"'\";\n        log.warn(\"Type mismatch: {}\", msg);\n        return ResponseEntity\n                .status(HttpStatus.BAD_REQUEST)\n                .body(AccountEnquiryResponse.error(\"INVALID REQUEST: \" + msg));\n    }\n\n    /**\n     * Unexpected errors — replaces PERFORM 9000-ERROR + 8000-TERMINATION.\n     * Returns HTTP 500.\n     */\n    @ExceptionHandler(Exception.class)\n    public ResponseEntity<AccountEnquiryResponse> handleUnexpected(Exception ex) {\n        log.error(\"Unexpected error during account enquiry\", ex);\n        return ResponseEntity\n                .status(HttpStatus.INTERNAL_SERVER_ERROR)\n                .body(AccountEnquiryResponse.error(\n                        \"INTERNAL ERROR: \" + ex.getMessage()));\n    }\n}\n"
+    }
+  ],
+  "ct": {
+    "178": {
+      "c": "1000-CONTROL — main CICS control paragraph",
+      "j": "AccountEnquiryApplication.main() — Spring Boot entry point",
+      "n": "CICS transaction entry point → Spring Boot startup; MQ infrastructure replaced by embedded Tomcat HTTP server"
+    },
+    "222": {
+      "c": "2300-OPEN-INPUT-QUEUE — MQOPEN MQOO-INPUT-SHARED on the inbound MQ queue",
+      "j": "AccountController.enquire() — @PostMapping handles inbound requests",
+      "n": "MQOPEN for input queue → Spring registers POST /api/accounts/enquiry at startup; no runtime open needed"
+    },
+    "255": {
+      "c": "2400-OPEN-OUTPUT-QUEUE — MQOPEN MQOO-OUTPUT on CARD.DEMO.REPLY.ACCT",
+      "j": "AccountController.enquire() — return ResponseEntity.ok(response)",
+      "n": "MQOPEN for reply queue → HTTP response; Spring manages all I/O lifecycle automatically"
+    },
+    "289": {
+      "c": "2100-OPEN-ERROR-QUEUE — MQOPEN MQOO-OUTPUT on CARD.DEMO.ERROR queue",
+      "j": "GlobalExceptionHandler — @RestControllerAdvice intercepts exceptions",
+      "n": "MQOPEN for CARD.DEMO.ERROR → @RestControllerAdvice; errors become HTTP 400/500 instead of MQ messages"
+    },
+    "325": {
+      "c": "4000-MAIN-PROCESS — SYNCPOINT + loop control, calls 3000-GET-REQUEST",
+      "j": "AccountEnquiryService.enquire() — stateless request handler",
+      "n": "PERFORM UNTIL NO-MORE-MSGS loop → stateless REST: each HTTP request is an independent invocation"
+    },
+    "334": {
+      "c": "3000-GET-REQUEST — MQGET into MQ-BUFFER, parse WS-FUNC + WS-KEY from REQUEST-MSG-COPY",
+      "j": "AccountController.enquire() — @RequestBody @Valid AccountEnquiryRequest",
+      "n": "MQGET (5-second wait) → Spring deserialises JSON request body; correlation ID echoed via synchronous HTTP"
+    },
+    "390": {
+      "c": "4000-PROCESS-REQUEST-REPLY — CICS READ + EVALUATE response code + build WS-ACCT-RESPONSE",
+      "j": "AccountEnquiryService.enquire() — findById() + Optional handling + response mapping",
+      "n": "EXEC CICS READ DATASET(\\'ACCTDAT\\') → accountRepository.findById(); EVALUATE WS-RESP-CD → Optional.isEmpty()"
+    },
+    "462": {
+      "c": "4100-PUT-REPLY — MQPUT REPLY-MESSAGE to output queue with correlation ID",
+      "j": "AccountController.enquire() — return ResponseEntity.ok(response)",
+      "n": "MQPUT to CARD.DEMO.REPLY.ACCT → HTTP 200 JSON body; SAVE-CORELID echoed automatically by HTTP"
+    },
+    "501": {
+      "c": "9000-ERROR — MQPUT MQ-ERR-DISPLAY to error queue",
+      "j": "GlobalExceptionHandler.handleUnexpected() — HTTP 500 with error details",
+      "n": "MQPUT error to CARD.DEMO.ERROR → HTTP 500 with JSON error body; logged via SLF4J"
+    },
+    "538": {
+      "c": "8000-TERMINATION — conditional MQCLOSE + EXEC CICS RETURN",
+      "j": "AccountController.enquire() — method return is the REST equivalent of EXEC CICS RETURN",
+      "n": "EXEC CICS RETURN → method return; MQCLOSE operations managed by Spring container lifecycle"
+    },
+    "552": {
+      "c": "5000-CLOSE-INPUT-QUEUE — MQCLOSE INPUT-QUEUE-HANDLE",
+      "j": "AccountRepository (JpaRepository) — connection lifecycle managed by Spring container",
+      "n": "MQCLOSE for input queue → no Java equivalent; Spring Data JPA connections managed by HikariCP pool"
+    },
+    "574": {
+      "c": "5100-CLOSE-OUTPUT-QUEUE — MQCLOSE OUTPUT-QUEUE-HANDLE",
+      "j": "AccountRepository (JpaRepository) — output lifecycle handled by embedded Tomcat",
+      "n": "MQCLOSE for reply queue → no Java equivalent; HTTP response is sent and connection closed by servlet container"
+    },
+    "597": {
+      "c": "5200-CLOSE-ERROR-QUEUE — MQCLOSE ERROR-QUEUE-HANDLE",
+      "j": "GlobalExceptionHandler — stateless, no queue connection to manage",
+      "n": "MQCLOSE for error queue → no Java equivalent; exception handler is stateless, fires per-request"
+    }
+  },
+  "vars": {
+    "ACCOUNT-RECORD": {
+      "b": "Full account record layout from copybook CVACT01Y — 300-byte VSAM KSDS record",
+      "j": "Account entity (com.carddemo.account.domain.Account) — JPA-managed relational row",
+      "jt": 3,
+      "jl": 21
+    },
+    "ACCT-ID": {
+      "b": "Account number — 11-digit unique credit-card account identifier (primary key)",
+      "j": "Account.acctId (Long) — @Id @Column(acct_id)",
+      "jt": 3,
+      "jl": 26
+    },
+    "ACCT-ACTIVE-STATUS": {
+      "b": "Account active flag — PIC X(01), Y=active N=inactive",
+      "j": "Account.activeStatus (String) — @Column(active_status)",
+      "jt": 3,
+      "jl": 30
+    },
+    "ACCT-CURR-BAL": {
+      "b": "Current account balance — PIC S9(10)V99 COMP-3",
+      "j": "Account.currBal (BigDecimal scale=2) — @Column(curr_bal)",
+      "jt": 3,
+      "jl": 34
+    },
+    "ACCT-CREDIT-LIMIT": {
+      "b": "Maximum credit limit for purchases — PIC S9(10)V99",
+      "j": "Account.creditLimit (BigDecimal scale=2) — @Column(credit_limit)",
+      "jt": 3,
+      "jl": 38
+    },
+    "ACCT-CASH-CREDIT-LIMIT": {
+      "b": "Maximum credit limit for cash advances — PIC S9(10)V99",
+      "j": "Account.cashCreditLimit (BigDecimal scale=2) — @Column(cash_credit_limit)",
+      "jt": 3,
+      "jl": 42
+    },
+    "ACCT-OPEN-DATE": {
+      "b": "Date the account was opened — PIC X(10) format YYYY-MM-DD",
+      "j": "Account.openDate (String) — @Column(open_date)",
+      "jt": 3,
+      "jl": 46
+    },
+    "ACCT-EXPIRAION-DATE": {
+      "b": "Card expiration date — PIC X(10) YYYY-MM-DD (note: EXPIRAION typo retained from source)",
+      "j": "Account.expirationDate (String) — @Column(expiration_date)",
+      "jt": 3,
+      "jl": 54
+    },
+    "ACCT-REISSUE-DATE": {
+      "b": "Date the card was last reissued — PIC X(10) YYYY-MM-DD",
+      "j": "Account.reissueDate (String) — @Column(reissue_date)",
+      "jt": 3,
+      "jl": 58
+    },
+    "ACCT-CURR-CYC-CREDIT": {
+      "b": "Total credits applied in the current billing cycle — PIC S9(10)V99",
+      "j": "Account.currCycCredit (BigDecimal scale=2) — @Column(curr_cyc_credit)",
+      "jt": 3,
+      "jl": 62
+    },
+    "ACCT-CURR-CYC-DEBIT": {
+      "b": "Total debits applied in the current billing cycle — PIC S9(10)V99",
+      "j": "Account.currCycDebit (BigDecimal scale=2) — @Column(curr_cyc_debit)",
+      "jt": 3,
+      "jl": 66
+    },
+    "ACCT-GROUP-ID": {
+      "b": "Portfolio or product group identifier — PIC X(10)",
+      "j": "Account.groupId (String) — @Column(group_id)",
+      "jt": 3,
+      "jl": 74
+    },
+    "WS-ACCT-RESPONSE": {
+      "b": "Working-storage response area — 1000-byte text buffer formatted for MQ reply",
+      "j": "AccountEnquiryResponse record — JSON response DTO replacing the text buffer",
+      "jt": 6,
+      "jl": 30
+    },
+    "WS-ACCT-ID": {
+      "b": "Account ID copied into response area from ACCT-ID after successful CICS READ",
+      "j": "AccountEnquiryResponse.accountId (Long) — JSON field accountId",
+      "jt": 6,
+      "jl": 31
+    },
+    "WS-ACCT-ACTIVE-STATUS": {
+      "b": "Active status copied into response area from ACCT-ACTIVE-STATUS",
+      "j": "AccountEnquiryResponse.activeStatus (String)",
+      "jt": 6,
+      "jl": 32
+    },
+    "WS-ACCT-CURR-BAL": {
+      "b": "Current balance copied into response area from ACCT-CURR-BAL",
+      "j": "AccountEnquiryResponse.currentBalance (BigDecimal)",
+      "jt": 6,
+      "jl": 33
+    },
+    "WS-ACCT-CREDIT-LIMIT": {
+      "b": "Credit limit copied into response area from ACCT-CREDIT-LIMIT",
+      "j": "AccountEnquiryResponse.creditLimit (BigDecimal)",
+      "jt": 6,
+      "jl": 34
+    },
+    "WS-ACCT-CASH-CREDIT-LIMIT": {
+      "b": "Cash credit limit copied into response area from ACCT-CASH-CREDIT-LIMIT",
+      "j": "AccountEnquiryResponse.cashCreditLimit (BigDecimal)",
+      "jt": 6,
+      "jl": 35
+    },
+    "WS-ACCT-OPEN-DATE": {
+      "b": "Open date copied into response area from ACCT-OPEN-DATE",
+      "j": "AccountEnquiryResponse.openDate (String)",
+      "jt": 6,
+      "jl": 36
+    },
+    "WS-ACCT-EXPIRAION-DATE": {
+      "b": "Expiration date copied into response area from ACCT-EXPIRAION-DATE",
+      "j": "AccountEnquiryResponse.expirationDate (String)",
+      "jt": 6,
+      "jl": 37
+    },
+    "WS-ACCT-REISSUE-DATE": {
+      "b": "Reissue date copied into response area from ACCT-REISSUE-DATE",
+      "j": "AccountEnquiryResponse.reissueDate (String)",
+      "jt": 6,
+      "jl": 38
+    },
+    "WS-ACCT-CURR-CYC-CREDIT": {
+      "b": "Cycle credit copied into response area from ACCT-CURR-CYC-CREDIT",
+      "j": "AccountEnquiryResponse.currCycCredit (BigDecimal)",
+      "jt": 6,
+      "jl": 39
+    },
+    "WS-ACCT-CURR-CYC-DEBIT": {
+      "b": "Cycle debit copied into response area from ACCT-CURR-CYC-DEBIT",
+      "j": "AccountEnquiryResponse.currCycDebit (BigDecimal)",
+      "jt": 6,
+      "jl": 40
+    },
+    "WS-ACCT-GROUP-ID": {
+      "b": "Group ID copied into response area from ACCT-GROUP-ID",
+      "j": "AccountEnquiryResponse.groupId (String)",
+      "jt": 6,
+      "jl": 41
+    },
+    "REQUEST-MSG-COPY": {
+      "b": "Structured overlay of MQ-BUFFER — WS-FUNC (4 bytes) + WS-KEY (11 digits) + WS-FILLER",
+      "j": "AccountEnquiryRequest record — JSON deserialised from HTTP POST body",
+      "jt": 5,
+      "jl": 23
+    },
+    "WS-FUNC": {
+      "b": "Function code — PIC X(04); must be INQA for account enquiry",
+      "j": "AccountEnquiryRequest.functionCode (String) — @NotBlank, validated against FUNC_INQA",
+      "jt": 5,
+      "jl": 26
+    },
+    "WS-KEY": {
+      "b": "Account key — PIC 9(11); the ACCT-ID to look up",
+      "j": "AccountEnquiryRequest.accountId (Long) — @NotNull @Positive",
+      "jt": 5,
+      "jl": 29
+    },
+    "WS-CARD-RID-ACCT-ID": {
+      "b": "Account ID formatted as numeric RIDFLD for EXEC CICS READ — PIC 9(11)",
+      "j": "AccountEnquiryRequest.accountId passed to accountRepository.findById()",
+      "jt": 5,
+      "jl": 29
+    },
+    "WS-CARD-RID-ACCT-ID-X": {
+      "b": "Character REDEFINES of WS-CARD-RID-ACCT-ID — PIC X(11); used as RIDFLD string for CICS READ",
+      "j": "No Java equivalent — accountRepository.findById(Long) accepts numeric key directly"
+    },
+    "WS-CARD-RID-CARDNUM": {
+      "b": "Card number field in RIDFLD group — PIC X(16); unused in the account-enquiry path",
+      "j": "No Java equivalent — card number lookup not part of this service"
+    },
+    "WS-CARD-RID-CUST-ID": {
+      "b": "Customer ID in RIDFLD group — PIC 9(09); unused in the account-enquiry path",
+      "j": "No Java equivalent — customer lookup not part of this service"
+    },
+    "WS-RESP-CD": {
+      "b": "CICS EXEC response code — DFHRESP(NORMAL) = 0, DFHRESP(NOTFND) = 13",
+      "j": "No Java equivalent — Optional.isEmpty() replaces EVALUATE WS-RESP-CD"
+    },
+    "WS-REAS-CD": {
+      "b": "CICS EXEC response reason code — supplementary diagnostic from RESP2",
+      "j": "No Java equivalent — Spring Data exceptions carry diagnostic info via getMessage()"
+    },
+    "WS-CICS-RESP1-CD": {
+      "b": "CICS RESP from EXEC CICS RETRIEVE — checks that the trigger start succeeded",
+      "j": "No Java equivalent — REST endpoint is always available; no CICS trigger mechanism"
+    },
+    "WS-CICS-RESP2-CD": {
+      "b": "CICS RESP2 supplementary code from EXEC CICS RETRIEVE",
+      "j": "No Java equivalent — HTTP 400/500 status codes replace RESP2 diagnostics"
+    },
+    "LIT-ACCTFILENAME": {
+      "b": "VSAM DDNAME literal — PIC X(8) VALUE ACCTDAT; used in EXEC CICS READ DATASET()",
+      "j": "@Table(name=\"accounts\") on Account entity — database table name replaces DDNAME",
+      "jt": 3,
+      "jl": 20
+    },
+    "MQ-BUFFER": {
+      "b": "1000-byte raw MQ message payload — received by MQGET and sent by MQPUT",
+      "j": "No Java equivalent — Jackson automatically serialises/deserialises JSON; no explicit buffer"
+    },
+    "MQ-BUFFER-LENGTH": {
+      "b": "Length of MQ-BUFFER passed to MQGET/MQPUT calls — fixed at 1000",
+      "j": "No Java equivalent — HTTP Content-Length handled by servlet container"
+    },
+    "MQ-CONDITION-CODE": {
+      "b": "MQ API completion code — MQCC-OK=0, MQCC-FAILED=2; checked after every MQ call",
+      "j": "No Java equivalent — Spring throws exceptions on failure; checked via try/catch"
+    },
+    "MQ-REASON-CODE": {
+      "b": "MQ API reason code — MQRC-NO-MSG-AVAILABLE=2033 signals empty queue",
+      "j": "No Java equivalent — empty result represented by Optional.empty() from findById()"
+    },
+    "MQ-HCONN": {
+      "b": "MQ queue manager connection handle — returned by MQCONN, passed to all MQ calls",
+      "j": "No Java equivalent — JPA EntityManager/HikariCP manage database connections"
+    },
+    "MQ-HOBJ": {
+      "b": "MQ queue object handle — returned by MQOPEN, passed to MQGET/MQPUT/MQCLOSE",
+      "j": "No Java equivalent — HTTP socket managed by embedded Tomcat"
+    },
+    "MQ-OPTIONS": {
+      "b": "Bitfield of MQ open options — MQOO-INPUT-SHARED, MQOO-OUTPUT, MQOO-FAIL-IF-QUIESCING",
+      "j": "No Java equivalent — REST endpoint options declared in annotations"
+    },
+    "MQ-CORRELID": {
+      "b": "MQ message correlation ID — 24-byte binary; echoed from request to reply for routing",
+      "j": "No Java equivalent — HTTP is synchronous; client correlation implicit in TCP connection"
+    },
+    "MQ-MSG-ID": {
+      "b": "MQ message ID — 24-byte unique message identifier assigned by queue manager",
+      "j": "No Java equivalent — HTTP uses TCP session for message identity"
+    },
+    "MQ-MSG-COUNT": {
+      "b": "Counter of messages processed in this CICS activation — PIC 9(09)",
+      "j": "No Java equivalent — REST is stateless; metrics collected externally via Micrometer"
+    },
+    "SAVE-CORELID": {
+      "b": "Saved correlation ID from inbound message — used to correlate MQPUT reply",
+      "j": "No Java equivalent — HTTP correlation is implicit in the synchronous request/response"
+    },
+    "SAVE-MSGID": {
+      "b": "Saved message ID from inbound message — echoed in MQMD-MSGID of reply",
+      "j": "No Java equivalent — HTTP does not require message ID echoing"
+    },
+    "SAVE-REPLY2Q": {
+      "b": "Saved reply-to queue name from MQMD-REPLYTOQ — target for MQPUT reply",
+      "j": "No Java equivalent — HTTP response goes back to the same TCP connection"
+    },
+    "QUEUE-INFO": {
+      "b": "Queue configuration group — QMGR-NAME, INPUT-QUEUE-NAME, REPLY-QUEUE-NAME, ERROR-QUEUE-NAME",
+      "j": "No Java equivalent — endpoint URL and exception handling replace queue configuration"
+    },
+    "QMGR-NAME": {
+      "b": "IBM MQ queue manager name — identifies the MQ broker",
+      "j": "No Java equivalent — database URL in application.yml replaces MQ broker configuration"
+    },
+    "INPUT-QUEUE-NAME": {
+      "b": "MQ input queue name — read from CICS trigger, e.g. CARD.DEMO.ACCT.INQUEUE",
+      "j": "No Java equivalent — POST /api/accounts/enquiry is the fixed endpoint URL"
+    },
+    "REPLY-QUEUE-NAME": {
+      "b": "MQ reply queue — hardcoded as CARD.DEMO.REPLY.ACCT for account enquiry replies",
+      "j": "No Java equivalent — HTTP response goes back to the requesting client directly"
+    },
+    "ERROR-QUEUE-NAME": {
+      "b": "MQ error queue — hardcoded as CARD.DEMO.ERROR for error message routing",
+      "j": "No Java equivalent — HTTP 500 replaces error queue; logs go to stdout/SLF4J"
+    },
+    "INPUT-QUEUE-HANDLE": {
+      "b": "Object handle for the open input queue — passed to MQGET calls",
+      "j": "No Java equivalent — HTTP socket managed by embedded Tomcat"
+    },
+    "OUTPUT-QUEUE-HANDLE": {
+      "b": "Object handle for the open output (reply) queue — passed to MQPUT calls",
+      "j": "No Java equivalent — HTTP response stream managed by servlet container"
+    },
+    "ERROR-QUEUE-HANDLE": {
+      "b": "Object handle for the open error queue — passed to MQPUT error calls",
+      "j": "No Java equivalent — GlobalExceptionHandler writes errors to HTTP response"
+    },
+    "QMGR-HANDLE-CONN": {
+      "b": "Queue manager connection handle — returned by MQCONN, passed to MQOPEN/MQCLOSE",
+      "j": "No Java equivalent — database connection pool managed by Spring/HikariCP"
+    },
+    "REPLY-MESSAGE": {
+      "b": "1000-byte text buffer for the formatted reply placed on the MQ reply queue",
+      "j": "AccountEnquiryResponse record — structured JSON replaces the flat text buffer",
+      "jt": 6,
+      "jl": 30
+    },
+    "REQUEST-MESSAGE": {
+      "b": "Intermediate buffer — copy of MQ-BUFFER used to parse the incoming request",
+      "j": "No Java equivalent — Jackson directly deserialises HTTP body into AccountEnquiryRequest"
+    },
+    "ERROR-MESSAGE": {
+      "b": "1000-byte error text buffer — copy of MQ-ERR-DISPLAY sent to error queue",
+      "j": "No Java equivalent — exception message propagated via HTTP 500 response body"
+    },
+    "QUEUE-MESSAGE": {
+      "b": "Raw 1000-byte message workspace before structured parsing",
+      "j": "No Java equivalent — raw HTTP body bytes handled transparently by Spring MVC"
+    },
+    "WS-MQ-MSG-FLAG": {
+      "b": "MQ message exhausted flag — PIC X(01); set to Y when MQRC-NO-MSG-AVAILABLE",
+      "j": "No Java equivalent — REST is stateless; Optional.empty() signals not-found"
+    },
+    "NO-MORE-MSGS": {
+      "b": "88-level condition on WS-MQ-MSG-FLAG = Y — terminates the PERFORM UNTIL loop",
+      "j": "No Java equivalent — REST processes one request per HTTP call; no loop needed"
+    },
+    "WS-RESP-QUEUE-STS": {
+      "b": "Reply queue open status flag — PIC X(01); Y after successful MQOPEN",
+      "j": "No Java equivalent — Spring Boot endpoint is always ready; no manual open state"
+    },
+    "RESP-QUEUE-OPEN": {
+      "b": "88-level condition on WS-RESP-QUEUE-STS = Y — guards MQCLOSE in 8000-TERMINATION",
+      "j": "No Java equivalent — HTTP output channel managed by servlet container"
+    },
+    "WS-ERR-QUEUE-STS": {
+      "b": "Error queue open status flag — PIC X(01); Y after successful MQOPEN on error queue",
+      "j": "No Java equivalent — GlobalExceptionHandler is always active; no open state"
+    },
+    "ERR-QUEUE-OPEN": {
+      "b": "88-level condition on WS-ERR-QUEUE-STS = Y",
+      "j": "No Java equivalent — exception handler active for lifetime of application"
+    },
+    "WS-REPLY-QUEUE-STS": {
+      "b": "Reply queue open status flag — separate from WS-RESP-QUEUE-STS; guards MQCLOSE",
+      "j": "No Java equivalent — HTTP lifecycle managed by container"
+    },
+    "REPLY-QUEUE-OPEN": {
+      "b": "88-level condition on WS-REPLY-QUEUE-STS = Y",
+      "j": "No Java equivalent — REST response channel is always available"
+    },
+    "WS-DATE-TIME": {
+      "b": "Date/time working storage group — ABS-TIME (binary) + formatted MMDDYYYY + TIME",
+      "j": "No Java equivalent — date/time not used in the Java account-enquiry service"
+    },
+    "WS-ABS-TIME": {
+      "b": "CICS absolute time — PIC S9(15) COMP-3; used as timestamp base",
+      "j": "No Java equivalent — Java LocalDateTime / Instant used if timestamping needed"
+    },
+    "MQ-ERR-DISPLAY": {
+      "b": "Formatted error display record — paragraph name + return message + codes + queue name",
+      "j": "No Java equivalent — exception stack trace and message served via HTTP 500 JSON body"
+    },
+    "MQ-ERROR-PARA": {
+      "b": "Name of the paragraph that triggered the error — PIC X(25)",
+      "j": "No Java equivalent — stack trace in exception identifies the failing method"
+    },
+    "MQ-APPL-RETURN-MESSAGE": {
+      "b": "Human-readable error description — PIC X(25); e.g. INP MQGET ERR",
+      "j": "No Java equivalent — exception getMessage() provides the error description"
+    },
+    "MQ-APPL-CONDITION-CODE": {
+      "b": "MQ completion code formatted for display — PIC 9(02)",
+      "j": "No Java equivalent — HTTP status code (400/500) replaces MQ condition codes"
+    },
+    "MQ-APPL-REASON-CODE": {
+      "b": "MQ reason code formatted for display — PIC 9(05)",
+      "j": "No Java equivalent — exception type and message replace MQ reason codes"
+    },
+    "MQ-APPL-QUEUE-NAME": {
+      "b": "Queue name formatted for error display — PIC X(48)",
+      "j": "No Java equivalent — endpoint URL context included in Spring error logging"
+    }
+  }
+}

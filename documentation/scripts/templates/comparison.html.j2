@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ program }} — COBOL ↔ Java</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/catppuccin-latte.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cobol.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<style>
+:root{--bg:#eff1f5;--bg2:#e6e9ef;--bg3:#ccd0da;--border:#acb0c4;--text:#1a1c2e;--sub:#383a58;
+      --cyan:#0069b4;--gold:#8b5e00;--green:#1d6010;--blue:#1040b8;--peach:#b84000;--mauve:#5c15c4}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+/* ── nav ── */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:.4rem 1.2rem;
+    display:flex;gap:.7rem;align-items:center;flex-shrink:0;flex-wrap:wrap}
+nav a{color:var(--cyan);text-decoration:none;font-size:.8rem}
+nav a:hover{text-decoration:underline}
+nav .sep{color:var(--border)}
+.badge-nav{margin-left:auto;background:var(--bg3);color:var(--gold);
+           padding:.1rem .5rem;border-radius:4px;font-size:.7rem;font-weight:700}
+/* ── header ── */
+header{padding:.5rem 1.2rem .35rem;border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:1.1rem;color:var(--cyan)}
+.meta{color:var(--sub);font-size:.74rem;margin-top:.15rem}
+.meta code{font-family:monospace}
+.mc{color:var(--peach)} .mj{color:var(--green)}
+.badges{display:flex;gap:.35rem;margin-top:.28rem;flex-wrap:wrap}
+.badge{padding:.08rem .45rem;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.04em}
+.b-batch{background:#d8e8fd;color:var(--blue);border:1px solid var(--blue)}
+.b-spring{background:#d8f0d8;color:var(--green);border:1px solid var(--green)}
+.b-cobol{background:#fbe0e5;color:var(--peach);border:1px solid var(--peach)}
+.b-cics{background:#ead8fd;color:var(--mauve);border:1px solid var(--mauve)}
+.b-rest{background:#d8e8fd;color:var(--blue);border:1px solid var(--blue)}
+/* ── mapping table ── */
+.map-wrap{padding:.4rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0;
+          max-height:200px;overflow-y:auto;scrollbar-width:thin;
+          scrollbar-color:var(--border) var(--bg2);background:var(--bg2)}
+.map-wrap h2{font-size:.8rem;color:var(--gold);margin-bottom:.28rem}
+.nav-hint{color:var(--border);font-size:.65rem}
+.mt{width:100%;border-collapse:collapse;font-size:.7rem}
+.mt th{color:var(--sub);text-align:left;padding:.24rem .5rem;border-bottom:1px solid var(--border);
+       font-weight:600;position:sticky;top:0;background:var(--bg2);z-index:1}
+.mt td{padding:.24rem .5rem;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.35}
+.mt td:nth-child(3){color:var(--sub)}
+.mt small{color:var(--sub);font-size:.65rem}
+.mt code{background:var(--bg3);padding:.02rem .22rem;border-radius:3px;
+         font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--cyan)}
+.nav-row{cursor:pointer;transition:background .1s}
+.nav-row:hover td{background:rgba(0,105,180,.05)}
+.nav-row.row-active td{background:rgba(0,105,180,.08);border-left:2px solid var(--cyan)}
+/* ── split view ── */
+.split{display:flex;flex:1;overflow:hidden}
+.pane{display:flex;flex-direction:column;overflow:hidden}
+.pane-cobol{flex:1 1 50%;min-width:0;border-right:2px solid var(--border)}
+.pane-java{flex:1 1 50%;min-width:0}
+.pane-hdr{background:var(--bg2);padding:.28rem .7rem;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.lang-tag{font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+          padding:.07rem .35rem;border-radius:3px}
+.lc{background:#fbe0e5;color:var(--peach)} .lj{background:#d8f0d8;color:var(--green)}
+.pane-fn{font-size:.75rem;color:var(--sub);font-family:monospace}
+.pane-ln{margin-left:auto;font-size:.65rem;color:var(--border)}
+/* ── tabs ── */
+.tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;background:var(--bg2);
+      border-bottom:1px solid var(--border);flex-shrink:0;
+      scrollbar-width:thin;scrollbar-color:var(--border) var(--bg2)}
+.tabs button{flex-shrink:0;background:none;border:none;border-bottom:2px solid transparent;
+             color:var(--sub);padding:.28rem .55rem;font-size:.67rem;cursor:pointer;
+             font-family:'JetBrains Mono',monospace;transition:color .12s,border-color .12s;
+             white-space:nowrap}
+.tabs button:hover{color:var(--text)}
+.tabs button.active{color:var(--green);border-bottom-color:var(--green)}
+/* ── code scroll ── */
+.cs{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) var(--bg)}
+.panel{display:none}.panel.visible{display:block}
+.cs pre{margin:0}
+.cs pre code{display:block;padding:.5rem 0 .5rem .3rem !important;
+             font-size:.72rem !important;line-height:1.6 !important;
+             font-family:'JetBrains Mono','Cascadia Code','Fira Code',monospace !important}
+.hljs{background:var(--bg) !important}
+/* ── line numbers ── */
+.cl{display:block;padding-right:.4rem}
+.ln{display:inline-block;min-width:3em;color:#52546e;user-select:none;
+    text-align:right;padding-right:.6em;border-right:1px solid var(--border);
+    margin-right:.5em;font-variant-numeric:tabular-nums;font-style:normal}
+.cl.hl{background:rgba(0,105,180,.14);border-radius:2px;outline:1px solid rgba(0,105,180,.25)}
+.cl.hl .ln{color:var(--cyan)}
+/* Variable-name tooltip spans */
+.vt{background:rgba(139,94,0,.12);border-bottom:1px solid rgba(139,94,0,.55);
+    color:#8b5e00;border-radius:2px;cursor:help;
+    transition:background .12s,border-color .12s,color .12s;padding:0 1px}
+.vt:hover{background:rgba(139,94,0,.25);border-bottom-color:#8b5e00;color:#fff}
+.vt-link{cursor:pointer}
+.vt-link:hover{border-bottom-style:solid;border-bottom-width:2px}
+/* ── cobol line tooltips ── */
+#ctip{position:fixed;z-index:9999;display:none;max-width:430px;padding:.5rem .8rem;
+      background:#eff1f5;border:1px solid #0069b4;border-radius:6px;
+      font-size:.72rem;line-height:1.55;pointer-events:none;
+      box-shadow:0 6px 24px rgba(0,0,0,.2);font-family:'Segoe UI',system-ui,sans-serif;color:#1a1c2e}
+#ctip .tc{color:#b84000;font-weight:700;font-size:.68rem;margin-bottom:.18rem}
+#ctip .tj{color:#1d6010;font-weight:700;font-size:.68rem;margin-top:.28rem;margin-bottom:.18rem}
+#ctip .tn{color:#383a58;font-size:.69rem;margin-top:.28rem;border-top:1px solid #acb0c4;padding-top:.25rem}
+.cl[data-tip]{cursor:pointer;border-left:3px solid rgba(0,105,180,.4);background:rgba(0,105,180,.04)}
+.cl[data-tip] .ln{color:#0069b4;font-weight:700}
+.cl[data-tip] .ln::after{content:'';display:inline-block;width:5px;height:5px;background:rgba(0,105,180,.7);border-radius:50%;margin-left:.35em;vertical-align:middle;transition:all .15s}
+.cl[data-tip]:hover{background:rgba(0,105,180,.13);border-left-color:#0069b4}
+.cl[data-tip]:hover .ln{color:#0069b4}
+.cl[data-tip]:hover .ln::after{content:'→';width:auto;height:auto;background:none;border-radius:0;font-weight:400;font-size:.8em;letter-spacing:0}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">CardDemo Docs</a>
+  <span class="sep">›</span>
+  <a href="../java-transformation.html">Java Transformation</a>
+  <span class="sep">›</span>
+  <span style="color:var(--text)">{{ program }}</span>
+  <span class="badge-nav">COBOL ↔ Java</span>
+</nav>
+
+<header>
+  <h1>{{ program }} — COBOL ↔ Java Side-by-Side</h1>
+  <div class="meta">
+    COBOL: <code class="mc">{{ cobol_path }}</code> ({{ cobol_lines }} lines)&nbsp;·&nbsp;
+    Java: <code class="mj">{{ java_dir }}</code> ({{ java_lines }} lines, {{ java_files|length }} files)
+  </div>
+  <div class="badges">
+    {%- for b in badges %}
+    <span class="badge {{ b.cls }}">{{ b.text }}</span>
+    {%- endfor %}
+  </div>
+</header>
+
+<div class="map-wrap">
+  <h2>{{ mapping_heading }} &nbsp;<span class="nav-hint">(click row or highlighted COBOL line to navigate)</span></h2>
+  <table class="mt">
+    <thead><tr><th>COBOL paragraph</th><th>Java equivalent</th><th>Transformation notes</th></tr></thead>
+    <tbody>
+    {%- for r in mapping %}
+<tr class="nav-row" data-cl="{{ r.cl }}" data-jt="{{ r.jt }}" data-jl="{{ r.jl }}" onclick="navigate(this)" title="Jump to COBOL L{{ r.cl }} / {{ java_files[r.jt].tab }} L{{ r.jl }}">
+  <td>{{ r.col1 }}</td><td>{{ r.col2 }}</td><td>{{ r.col3 }}</td>
+</tr>
+    {%- endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="split">
+  <div class="pane pane-cobol">
+    <div class="pane-hdr">
+      <span class="lang-tag lc">COBOL</span>
+      <span class="pane-fn">{{ cobol_path }}</span>
+      <span class="pane-ln">{{ cobol_lines }} lines</span>
+    </div>
+    <div class="cs" id="cscroll">
+      <pre><code class="language-cobol" id="cc">{{ cobol_code|e }}</code></pre>
+    </div>
+  </div>
+  <div class="pane pane-java">
+    <div class="pane-hdr">
+      <span class="lang-tag lj">Java</span>
+      <span class="pane-fn" id="jfn">{{ java_files[0].tab }}</span>
+      <span class="pane-ln" id="jln"></span>
+    </div>
+    <div class="tabs">
+      {%- for f in java_files %}
+      <button {% if loop.first %}class="active" {% endif %}onclick="switchTab({{ loop.index0 }})">{{ f.tab }}</button>
+      {%- endfor %}
+    </div>
+    <div class="cs" id="jscroll">
+      {%- for f in java_files %}
+      <div class="panel{% if loop.first %} visible{% endif %}" data-tab="{{ loop.index0 }}"><pre><code class="language-java" id="jc{{ loop.index0 }}">{{ f.code|e }}</code></pre></div>
+      {%- endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+var CT={{ ct|tojson }};
+var VARS={{ vars|tojson }};
+{% raw %}
+hljs.configure({tabReplace: '    '});
+document.querySelectorAll('pre code').forEach(function(el){hljs.highlightElement(el);});
+
+function wrapLines(codeEl, idPfx) {
+  var lines = codeEl.innerHTML.split('\n');
+  if (lines.length && lines[lines.length-1]==='') lines.pop();
+  codeEl.innerHTML = lines.map(function(line,i){
+    var n=i+1, s=String(n);
+    while(s.length<4) s='\u00a0'+s;
+    return '<span class="cl" id="'+idPfx+'-L'+n+'"><span class="ln">'+s+'</span>'+(line||'\u200b')+'</span>';
+  }).join('\n');
+}
+wrapLines(document.getElementById('cc'), 'cobol');
+document.querySelectorAll('pre code[id^="jc"]').forEach(function(el){wrapLines(el, el.id);});
+
+var panels=document.querySelectorAll('.panel');
+var tabBtns=document.querySelectorAll('.tabs button');
+var fname=document.getElementById('jfn');
+var flines=document.getElementById('jln');
+var jscroll=document.getElementById('jscroll');
+function cntLines(idx){
+  var el=document.getElementById('jc'+idx);
+  return el?el.querySelectorAll('.cl').length:0;
+}
+function switchTab(idx,noReset){
+  panels.forEach(function(p){p.classList.remove('visible');});
+  tabBtns.forEach(function(b){b.classList.remove('active');});
+  panels[idx].classList.add('visible');
+  tabBtns[idx].classList.add('active');
+  fname.textContent=tabBtns[idx].textContent;
+  flines.textContent=cntLines(idx)+' lines';
+  if(!noReset) jscroll.scrollTop=0;
+}
+window.addEventListener('load',function(){flines.textContent=cntLines(0)+' lines';});
+
+var actC=null,actJ=null,actRow=null;
+function navigate(row){
+  var cl=parseInt(row.dataset.cl),jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+  if(actC) actC.classList.remove('hl');
+  if(actJ) actJ.classList.remove('hl');
+  if(actRow) actRow.classList.remove('row-active');
+  row.classList.add('row-active'); actRow=row;
+  var ce=document.getElementById('cobol-L'+cl);
+  if(ce){ce.scrollIntoView({behavior:'smooth',block:'center'});ce.classList.add('hl');actC=ce;}
+  switchTab(jt,true);
+  setTimeout(function(){
+    var je=document.getElementById('jc'+jt+'-L'+jl);
+    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}
+  },60);
+}
+
+var ctip=(function(){
+  var d=document.createElement('div');
+  d.id='ctip';
+  document.body.appendChild(d);
+  return d;
+}());
+var TABS=(function(){
+  return Array.from(document.querySelectorAll('.tabs button')).map(function(b){return b.textContent.trim();});
+}());
+function showCTip(e,ln){
+  var d=CT[ln];
+  if(!d)return;
+  var ref='';
+  var row=document.querySelector('.nav-row[data-cl="'+ln+'"]');
+  if(row){
+    var jt=parseInt(row.dataset.jt),jl=parseInt(row.dataset.jl);
+    var cls=TABS[jt]||('Tab '+jt);
+    ref='<div class=tj style="font-size:.72rem;margin-bottom:.1rem;opacity:.85">→ '+cls+':'+jl+'</div>';
+  }
+  ctip.innerHTML='<div class=tc>COBOL: '+d.c+'</div>'+
+                 ref+
+                 '<div class=tj>Java: '+d.j+'</div>'+
+                 '<div class=tn>'+d.n+'</div>';
+  ctip.style.display='block';
+  posCTip(e);
+}
+function posCTip(e){
+  var x=e.clientX+18,y=e.clientY+10,w=ctip.offsetWidth+20,h=ctip.offsetHeight+10;
+  if(x+w>window.innerWidth)  x=e.clientX-w;
+  if(y+h>window.innerHeight) y=e.clientY-h-10;
+  ctip.style.left=x+'px'; ctip.style.top=y+'px';
+}
+function hideCTip(){ctip.style.display='none';}
+(function attachTips(){
+  Object.keys(CT).forEach(function(ln){
+    var el=document.getElementById('cobol-L'+ln);
+    if(!el)return;
+    el.dataset.tip='1';
+    el.addEventListener('mouseenter',function(e){showCTip(e,+ln);});
+    el.addEventListener('mousemove',posCTip);
+    el.addEventListener('mouseleave',hideCTip);
+    var row=document.querySelector('.nav-row[data-cl="'+ln+'"]');
+    if(row){
+      el.addEventListener('click',function(){hideCTip();navigate(row);});
+    }
+  });
+}());
+
+function navigateVar(jt,jl){
+  if(actJ)actJ.classList.remove('hl');
+  switchTab(jt,true);
+  setTimeout(function(){
+    var je=document.getElementById('jc'+jt+'-L'+jl);
+    if(je){je.scrollIntoView({behavior:'smooth',block:'center'});je.classList.add('hl');actJ=je;}
+  },60);
+}
+
+function showVTip(e,vn){
+  var d=VARS[vn];
+  if(!d)return;
+  var ref='';
+  if(d.jt!==undefined){
+    var cls=TABS[d.jt]||('Tab '+d.jt);
+    ref='<div class=tj style="font-size:.72rem;margin-bottom:.1rem;opacity:.85">\u2192 '+cls+':'+d.jl+'</div>';
+  }
+  ctip.innerHTML=
+    '<div class=tc style="font-family:\'JetBrains Mono\',monospace;letter-spacing:.02em">'+vn+'</div>'+
+    '<div class=tj>\u25b6 '+d.b+'</div>'+
+    ref+
+    '<div class=tn>'+d.j+(d.jt!==undefined?' \u2014 click to navigate':'')+'</div>';
+  ctip.style.display='block';
+  posCTip(e);
+}
+
+function wrapVars(codeEl){
+  var varList=Object.keys(VARS).sort(function(a,b){return b.length-a.length;});
+  var esc=varList.map(function(v){return v.replace(/-/g,'\\-');}).join('|');
+  var re=new RegExp('(?<![A-Za-z0-9-])('+esc+')(?![A-Za-z0-9-])','gi');
+  var walker=document.createTreeWalker(
+    codeEl,NodeFilter.SHOW_TEXT,
+    {acceptNode:function(n){
+      var p=n.parentNode;
+      while(p&&p!==codeEl){
+        if(p.className&&(p.className==='ln'||p.className.indexOf('ln ')===0)) return NodeFilter.FILTER_REJECT;
+        p=p.parentNode;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }},false
+  );
+  var nodes=[],nd;
+  while((nd=walker.nextNode()))nodes.push(nd);
+  nodes.forEach(function(nd){
+    var txt=nd.textContent; re.lastIndex=0;
+    if(!re.test(txt))return;
+    re.lastIndex=0;
+    var frag=document.createDocumentFragment(),last=0,m;
+    while((m=re.exec(txt))!==null){
+      if(m.index>last)frag.appendChild(document.createTextNode(txt.slice(last,m.index)));
+      var sp=document.createElement('span');
+      var vn=m[1].toUpperCase();
+      var hasLink=VARS[vn]&&VARS[vn].jt!==undefined;
+      sp.className='vt'+(hasLink?' vt-link':'');
+      sp.dataset.vn=vn; sp.textContent=m[1];
+      (function(sp,vn,hasLink){
+        sp.addEventListener('mouseenter',function(e){showVTip(e,vn);});
+        sp.addEventListener('mousemove',posCTip);
+        sp.addEventListener('mouseleave',function(e){
+          var cl=sp.closest&&sp.closest('.cl[data-tip]');
+          if(cl&&cl.contains(e.relatedTarget)){
+            showCTip(e,parseInt(cl.id.replace('cobol-L','')));
+          } else hideCTip();
+        });
+        if(hasLink){
+          sp.addEventListener('click',function(e){
+            e.stopPropagation();
+            hideCTip();
+            navigateVar(VARS[vn].jt,VARS[vn].jl);
+          });
+        }
+      }(sp,vn,hasLink));
+      frag.appendChild(sp); last=m.index+m[0].length;
+    }
+    if(last<txt.length)frag.appendChild(document.createTextNode(txt.slice(last)));
+    nd.parentNode.replaceChild(frag,nd);
+  });
+}
+wrapVars(document.getElementById('cc'));
+{% endraw %}
+</script>
+</body>
+</html>

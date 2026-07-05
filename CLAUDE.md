@@ -59,9 +59,11 @@ All pages in `documentation/html/` are **generated artifacts**. They must be pro
 - **Landing page** (`index.html`): `generate_html.py` (`render_index`) + `index.html.j2`, derived from all program JSONs.
 - **Java transformation status** (`java-transformation.html`): `generate_transformation.py` + `transformation.html.j2` + `data/transformation.json`.
 - **Documentation status** (`status/index.html`): `generate_status.py` (derived from `app/cbl/` + program JSONs).
-- `process_all.py` orchestrates a full rebuild (analyse → per-program HTML → index → status → transformation).
+- **Migration plans** (`migration/*.html`): `generate_migration_html.py` + `migration.html.j2` / `migration_index.html.j2` + `data/migration/*.json`.
+- **COBOL ↔ Java comparison** (`comparison/*.html`): `generate_comparison.py` + `comparison.html.j2` + `data/comparison/*.json`. Each JSON is self-contained (COBOL + Java source, mapping rows, `ct` line tooltips, `vars` variable tooltips). Syntax highlighting uses highlight.js `catppuccin-latte` (light).
+- `process_all.py` orchestrates a full rebuild (analyse → per-program HTML → index → status → transformation → comparison).
 
-**Data convention:** `data/*.json` holds one file per program. Page-level data files (e.g. `transformation.json`) live in the same folder but have **no** `meta.program_name`; `generate_html.py` skips any JSON lacking that key so it is not mistaken for a program.
+**Data convention:** `data/*.json` holds one file per program. Page-level data files (e.g. `transformation.json`) live in the same folder but have **no** `meta.program_name`; `generate_html.py` skips any JSON lacking that key so it is not mistaken for a program. Sub-page data lives in its own subfolder (`data/migration/`, `data/comparison/`) and is rendered by its dedicated generator.
 
 ## Project Context
 - **Goal**: Modernize CardDemo COBOL/JCL/Assembler → Java (Spring Boot + Spring Batch + PostgreSQL)
